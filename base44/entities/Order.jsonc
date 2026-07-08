@@ -1,0 +1,101 @@
+{
+  "name": "Order",
+  "type": "object",
+  "properties": {
+    "customer_name": {
+      "type": "string",
+      "description": "Customer's full name"
+    },
+    "customer_phone": {
+      "type": "string",
+      "description": "Customer's phone number"
+    },
+    "cake_type": {
+      "type": "string",
+      "description": "e.g., Chocolate Truffle, Red Velvet"
+    },
+    "flavor": {
+      "type": "string",
+      "description": "Cake flavor"
+    },
+    "weight": {
+      "type": "string",
+      "description": "e.g., 2kg, 1.5lb, 500g"
+    },
+    "design_notes": {
+      "type": "string",
+      "description": "Writing on cake, decoration details"
+    },
+    "reference_image_url": {
+      "type": "string",
+      "description": "Reference image URL for cake design"
+    },
+    "delivery_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Delivery or pickup date"
+    },
+    "delivery_time": {
+      "type": "string",
+      "description": "Delivery or pickup time"
+    },
+    "delivery_type": {
+      "type": "string",
+      "enum": [
+        "pickup",
+        "delivery"
+      ],
+      "default": "delivery"
+    },
+    "price": {
+      "type": "number",
+      "description": "Order price in PKR"
+    },
+    "payment_status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "partial",
+        "paid"
+      ],
+      "default": "pending"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending_info",
+        "confirmed",
+        "in_progress",
+        "delivered",
+        "completed",
+        "cancelled"
+      ],
+      "default": "confirmed"
+    },
+    "special_requests": {
+      "type": "string",
+      "description": "Any special requests from customer"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Internal baker notes"
+    },
+    "confidence": {
+      "type": "number",
+      "description": "AI extraction confidence score 0-100"
+    },
+    "source": {
+      "type": "string",
+      "enum": [
+        "manual",
+        "auto_import"
+      ],
+      "default": "manual"
+    }
+  },
+  "required": [
+    "customer_name",
+    "cake_type",
+    "delivery_date"
+  ]
+}
