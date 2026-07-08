@@ -1,36 +1,57 @@
-const db = globalThis.__B44_DB__ || { auth:{ isAuthenticated: async()=>false, me: async()=>null }, entities:new Proxy({}, { get:()=>({ filter:async()=>[], get:async()=>null, create:async()=>({}), update:async()=>({}), delete:async()=>({}) }) }), integrations:{ Core:{ UploadFile:async()=>({ file_url:'' }) } } };
-
-# AGENTS.md
-
-## Project Context
-
-This is a Base44 app repository. Treat it as user-owned application code, keep changes focused on the user's request, and preserve existing project conventions.
-
-Start with `README.md` for local setup, environment variables, and publish workflow.
-
-## Base44 References
-
-- CLI overview: https://docs.db.com/developers/references/cli/get-started/overview.md
-- Agent skills: https://docs.db.com/developers/backend/overview/skills.md
-
-If your agent supports Agent Skills, install or update Base44 skills before Base44-specific work:
-
-```bash
-npx skills add base44/skills
-```
-
-## Key Files
-
-- `src/`: frontend application source.
-- `src/api/base44Client.js`: frontend Base44 SDK client.
-- `vite.config.js`: Vite config and Base44 Vite plugin setup.
-- `.env.local`: local-only environment values; never commit secrets.
-
-## Working Notes
-
-- Use `base44 dev` as the default local development command when you need the local Base44 backend. It can run the backend and frontend together.
-- When docs or code mention the frontend being started automatically, that usually means the Base44 project config includes `site.serveCommand`, for example `"serveCommand": "npm run dev"` in `base44/config.jsonc`.
-- Use `npm run dev` only for frontend-only work against the hosted Base44 backend.
-- Prefer the existing Base44 CLI workflow over adding new npm scripts for Base44-specific tasks.
-- Reuse the existing SDK client and Vite plugin patterns before adding new Base44 integration paths.
-- Run the relevant checks from `package.json` before finishing code changes.
+# AGENTS.md
+
+## Project Context
+
+Sweet Tooth is a Pakistan home-baker marketplace with a rule-based + RAG chat agent.
+
+- **Production app:** `artifacts/sweet-tooth/` + `artifacts/api-server/` + `lib/`
+- **Legacy Base44 dashboard:** `src/` (single-baker order UI)
+
+Start with `replit.md` for the Replit monorepo and `README.md` for Base44 setup.
+
+## Agent Memory & RAG
+
+The chat agent uses two memory systems:
+
+1. **Conversation memory** — buyer preferences (eggless, area, allergies) in `conversation_memory`
+2. **Knowledge RAG** — embedded product/policy chunks in `knowledge_chunks`
+
+Read `.agents/memory/agent-memory-rag.md` and `.agents/memory/rag-pipeline.md` before changing agent behavior.
+
+### RAG commands
+
+```bash
+pnpm --filter @workspace/db run push
+pnpm --filter @workspace/api-server run seed
+curl -X POST http://localhost:8080/api/bakers/1/knowledge/reindex
+```
+
+Optional: set `OPENAI_API_KEY` for OpenAI embeddings; otherwise local 384-dim embeddings are used.
+
+## Key Files
+
+| Area | Path |
+|------|------|
+| Chat agent + memory update | `artifacts/api-server/src/routes/chat.ts` |
+| RAG embeddings | `artifacts/api-server/src/lib/rag/embeddings.ts` |
+| RAG indexer / retriever | `artifacts/api-server/src/lib/rag/indexer.ts`, `retriever.ts` |
+| Knowledge API | `artifacts/api-server/src/routes/knowledge.ts` |
+| DB schemas | `lib/db/src/schema/conversation_memory.ts`, `knowledge_chunks.ts` |
+| Agent Hub UI | `artifacts/sweet-tooth/src/pages/dashboard/agent-hub.tsx` |
+| Agent dev memory | `.agents/memory/` |
+
+## Base44 (legacy root app)
+
+- `src/`: frontend application source.
+- `src/api/base44Client.js`: frontend Base44 SDK client.
+- `vite.config.js`: Vite config and Base44 Vite plugin setup.
+- `.env.local`: local-only environment values; never commit secrets.
+
+Use `base44 dev` for Base44-only work. Prefer the Replit monorepo for marketplace features.
+
+## Working Notes
+
+- Contract-first API: edit `lib/api-spec/openapi.yaml` then run Orval codegen for typed hooks.
+- Chat agent is rule-based first; RAG fallback when rules miss.
+- Reindex knowledge after product or policy changes.
+- Run `pnpm --filter @workspace/api-server run typecheck` after API changes.

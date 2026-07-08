@@ -9,12 +9,13 @@ import {
   cartItemsTable,
 } from "@workspace/db/schema";
 import { sql } from "drizzle-orm";
+import { reindexBakerKnowledge } from "./lib/rag/indexer";
 
 async function seed() {
   console.log("Seeding Sweet Tooth database...");
 
   // Clear all tables in reverse dependency order
-  await db.execute(sql`TRUNCATE chat_messages, cart_items, reviews, customers, orders, products, bakers RESTART IDENTITY CASCADE`);
+  await db.execute(sql`TRUNCATE knowledge_chunks, chat_messages, cart_items, reviews, customers, orders, products, bakers RESTART IDENTITY CASCADE`);
 
   // --- Bakers ---
   const [sana] = await db.insert(bakersTable).values({
@@ -620,6 +621,12 @@ async function seed() {
   ]);
 
   console.log("Chat messages seeded");
+
+  for (const baker of [sana, fatima, amna]) {
+    const indexed = await reindexBakerKnowledge(baker.id);
+    console.log(`RAG indexed ${indexed.chunks} chunks for ${baker.businessName} (${indexed.provider})`);
+  }
+
   console.log("Seeding complete!");
 }
 

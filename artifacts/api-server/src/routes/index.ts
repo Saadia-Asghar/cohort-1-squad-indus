@@ -10,6 +10,7 @@ import reviewsRouter from "./reviews";
 import customersRouter from "./customers";
 import analyticsRouter from "./analytics";
 import chatRouter from "./chat";
+import knowledgeRouter from "./knowledge";
 
 const router: IRouter = Router();
 
@@ -24,5 +25,6 @@ router.use(reviewsRouter);
 router.use(customersRouter);
 router.use(analyticsRouter);
 router.use(chatRouter);
+router.use(knowledgeRouter);
 
 export default router;

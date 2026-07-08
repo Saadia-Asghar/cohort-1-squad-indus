@@ -3,6 +3,7 @@ import { eq, and, desc, sql } from "drizzle-orm";
 import { db, chatMessagesTable, bakersTable, productsTable, conversationMemoryTable, notificationsTable } from "@workspace/db";
 import { SendChatMessageBody, GetChatHistoryParams } from "@workspace/api-zod";
 import { logger } from "../lib/logger";
+import { formatRetrievedContext, retrieveKnowledge } from "../lib/rag/retriever";
 
 const router: IRouter = Router();
 
@@ -67,6 +68,8 @@ async function generateAgentReply(
 
   const products = await db.select().from(productsTable).where(eq(productsTable.bakerId, bakerId));
   const lowerMsg = message.toLowerCase();
+  const ragChunks = await retrieveKnowledge(bakerId, message, 3, 0.1);
+  const ragContext = formatRetrievedContext(ragChunks);
 
   // Check custom responses first
   if (agentConf.customResponses?.length) {
@@ -196,6 +199,18 @@ async function generateAgentReply(
         action: null, cartItemId: null, escalated: false,
       };
     }
+  }
+
+  // RAG fallback — use indexed product/policy knowledge when rules miss
+  if (ragContext) {
+    const topChunk = ragChunks[0];
+    const hint = topChunk?.sourceType === "product"
+      ? `I found something relevant in our menu:\n\n${topChunk.content.split("\n").slice(0, 4).join("\n")}`
+      : `Here's what I know:\n\n${ragContext.split("\n\n")[0]}`;
+    return {
+      reply: `${hint}${memoryContext ? `\n\n${memoryContext}` : ""}\n\nWould you like to order or need more details?`,
+      action: null, cartItemId: null, escalated: false,
+    };
   }
 
   // Default

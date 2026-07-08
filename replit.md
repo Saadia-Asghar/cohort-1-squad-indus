@@ -40,7 +40,7 @@ Pakistan's home baker marketplace — buyers discover and order from nearby home
 - Contract-first API: OpenAPI spec → Orval codegen → typed hooks + Zod schemas. Never write raw fetch calls on the frontend.
 - Orval collision rule: operations with BOTH path params AND query params can generate a TS2308 collision. Fix: convert the query param to a path param (e.g., `/analytics/baker/{bakerId}/{period}`, `/chat/{bakerId}/history/{buyerId}`).
 - `cartItem: type: ["object","null"]` in OpenAPI 3.1 generates `zod.looseObject` which doesn't exist in Zod v3. Use scalar nullable types only.
-- Chat agent: rule-based (no LLM) — understands menu/price/eggless/delivery/payment queries for the baker.
+- Chat agent: rule-based (no LLM) with **RAG fallback** from `knowledge_chunks` embeddings — see `.agents/memory/agent-memory-rag.md`.
 - Demo session: buyer ID 1, baker ID 1 (Sana's Sweet Studio) hardcoded in localStorage for demo. No real auth.
 
 ## Product
