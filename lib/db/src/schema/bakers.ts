@@ -1,4 +1,4 @@
-import { pgTable, text, serial, timestamp, integer, boolean, real } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, integer, boolean, real, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -16,6 +16,17 @@ export const bakersTable = pgTable("bakers", {
   returnPolicy: text("return_policy"),
   maxOrdersPerDay: integer("max_orders_per_day").notNull().default(10),
   agentActive: boolean("agent_active").notNull().default(true),
+  agentConfig: jsonb("agent_config").$type<{
+    customGreeting?: string;
+    blockedTopics?: string[];
+    escalateKeywords?: string[];
+    autoReplyEnabled?: boolean;
+    customResponses?: Array<{ trigger: string; response: string }>;
+  }>().default({}),
+  whatsappAgentEnabled: boolean("whatsapp_agent_enabled").notNull().default(false),
+  instagramAgentEnabled: boolean("instagram_agent_enabled").notNull().default(false),
+  metaWebhookToken: text("meta_webhook_token"),
+  instagramPageId: text("instagram_page_id"),
   marketplaceVisible: boolean("marketplace_visible").notNull().default(true),
   subscriptionPlan: text("subscription_plan").notNull().default("free"),
   ratingAvg: real("rating_avg").notNull().default(0),

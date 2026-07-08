@@ -6,13 +6,17 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from './agentConfig';
+export * from './agentConfigInput';
 export * from './analyticsData';
 export * from './analyticsDataPoint';
 export * from './baker';
 export * from './bakerCard';
 export * from './bakerInput';
+export * from './bakerNotification';
 export * from './bakerStats';
 export * from './bakerUpdate';
+export * from './buyerPreferences';
 export * from './cartItem';
 export * from './cartItemInput';
 export * from './category';
@@ -20,6 +24,7 @@ export * from './chatMessage';
 export * from './chatMessageInput';
 export * from './chatResponse';
 export * from './clearCartParams';
+export * from './conversationSummary';
 export * from './customer';
 export * from './getCartParams';
 export * from './getFeaturedBakersParams';
@@ -42,4 +47,5 @@ export * from './review';
 export * from './reviewInput';
 export * from './searchMarketplaceParams';
 export * from './searchResults';
+export * from './successResponse';
 export * from './topProduct';

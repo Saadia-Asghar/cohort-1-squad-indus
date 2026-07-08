@@ -20,6 +20,7 @@ import DashboardSettings from "@/pages/dashboard/settings";
 import DashboardPayments from "@/pages/dashboard/payments";
 import DashboardCustomers from "@/pages/dashboard/customers";
 import DashboardCalendar from "@/pages/dashboard/calendar";
+import DashboardAgentHub from "@/pages/dashboard/agent-hub";
 import BakerLogin from "@/pages/auth/baker-login";
 
 import NotFound from "@/pages/not-found";
@@ -35,7 +36,7 @@ function Router() {
       <Route path="/cart" component={Cart} />
       <Route path="/orders" component={BuyerOrders} />
       <Route path="/login" component={BuyerLogin} />
-      
+
       <Route path="/dashboard" component={DashboardHome} />
       <Route path="/dashboard/orders" component={DashboardOrders} />
       <Route path="/dashboard/catalog" component={DashboardCatalog} />
@@ -44,8 +45,9 @@ function Router() {
       <Route path="/dashboard/payments" component={DashboardPayments} />
       <Route path="/dashboard/customers" component={DashboardCustomers} />
       <Route path="/dashboard/calendar" component={DashboardCalendar} />
+      <Route path="/dashboard/agent-hub" component={DashboardAgentHub} />
       <Route path="/dashboard/login" component={BakerLogin} />
-      
+
       <Route component={NotFound} />
     </Switch>
   );

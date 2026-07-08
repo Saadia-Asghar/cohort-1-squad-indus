@@ -20,10 +20,13 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  AgentConfig,
+  AgentConfigInput,
   AnalyticsData,
   Baker,
   BakerCard,
   BakerInput,
+  BakerNotification,
   BakerStats,
   BakerUpdate,
   CartItem,
@@ -33,6 +36,7 @@ import type {
   ChatMessageInput,
   ChatResponse,
   ClearCartParams,
+  ConversationSummary,
   Customer,
   GetCartParams,
   GetFeaturedBakersParams,
@@ -52,7 +56,8 @@ import type {
   Review,
   ReviewInput,
   SearchMarketplaceParams,
-  SearchResults
+  SearchResults,
+  SuccessResponse
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -2597,6 +2602,453 @@ export function useGetChatHistory<TData = Awaited<ReturnType<typeof getChatHisto
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetChatHistoryQueryOptions(bakerId,buyerId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getListNotificationsUrl = (bakerId: number,) => {
+
+
+
+
+  return `/api/bakers/${bakerId}/notifications`
+}
+
+/**
+ * @summary List baker notifications
+ */
+export const listNotifications = async (bakerId: number, options?: RequestInit): Promise<BakerNotification[]> => {
+
+  return customFetch<BakerNotification[]>(getListNotificationsUrl(bakerId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListNotificationsQueryKey = (bakerId: number,) => {
+    return [
+    `/api/bakers/${bakerId}/notifications`
+    ] as const;
+    }
+
+
+export const getListNotificationsQueryOptions = <TData = Awaited<ReturnType<typeof listNotifications>>, TError = ErrorType<unknown>>(bakerId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listNotifications>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListNotificationsQueryKey(bakerId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listNotifications>>> = ({ signal }) => listNotifications(bakerId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: bakerId !== null && bakerId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listNotifications>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListNotificationsQueryResult = NonNullable<Awaited<ReturnType<typeof listNotifications>>>
+export type ListNotificationsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List baker notifications
+ */
+
+export function useListNotifications<TData = Awaited<ReturnType<typeof listNotifications>>, TError = ErrorType<unknown>>(
+ bakerId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listNotifications>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListNotificationsQueryOptions(bakerId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getMarkAllNotificationsReadUrl = (bakerId: number,) => {
+
+
+
+
+  return `/api/bakers/${bakerId}/notifications/read-all`
+}
+
+/**
+ * @summary Mark all notifications as read
+ */
+export const markAllNotificationsRead = async (bakerId: number, options?: RequestInit): Promise<SuccessResponse> => {
+
+  return customFetch<SuccessResponse>(getMarkAllNotificationsReadUrl(bakerId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getMarkAllNotificationsReadMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof markAllNotificationsRead>>, TError,{bakerId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof markAllNotificationsRead>>, TError,{bakerId: number}, TContext> => {
+
+const mutationKey = ['markAllNotificationsRead'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof markAllNotificationsRead>>, {bakerId: number}> = (props) => {
+          const {bakerId} = props ?? {};
+
+          return  markAllNotificationsRead(bakerId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type MarkAllNotificationsReadMutationResult = NonNullable<Awaited<ReturnType<typeof markAllNotificationsRead>>>
+
+    export type MarkAllNotificationsReadMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Mark all notifications as read
+ */
+export const useMarkAllNotificationsRead = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof markAllNotificationsRead>>, TError,{bakerId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof markAllNotificationsRead>>,
+        TError,
+        {bakerId: number},
+        TContext
+      > => {
+      return useMutation(getMarkAllNotificationsReadMutationOptions(options));
+    }
+
+export const getMarkNotificationReadUrl = (bakerId: number,
+    notifId: number,) => {
+
+
+
+
+  return `/api/bakers/${bakerId}/notifications/${notifId}/read`
+}
+
+/**
+ * @summary Mark single notification as read
+ */
+export const markNotificationRead = async (bakerId: number,
+    notifId: number, options?: RequestInit): Promise<BakerNotification> => {
+
+  return customFetch<BakerNotification>(getMarkNotificationReadUrl(bakerId,notifId),
+  {
+    ...options,
+    method: 'PATCH'
+
+
+  }
+);}
+
+
+
+
+
+export const getMarkNotificationReadMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof markNotificationRead>>, TError,{bakerId: number;notifId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof markNotificationRead>>, TError,{bakerId: number;notifId: number}, TContext> => {
+
+const mutationKey = ['markNotificationRead'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof markNotificationRead>>, {bakerId: number;notifId: number}> = (props) => {
+          const {bakerId,notifId} = props ?? {};
+
+          return  markNotificationRead(bakerId,notifId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type MarkNotificationReadMutationResult = NonNullable<Awaited<ReturnType<typeof markNotificationRead>>>
+
+    export type MarkNotificationReadMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Mark single notification as read
+ */
+export const useMarkNotificationRead = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof markNotificationRead>>, TError,{bakerId: number;notifId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof markNotificationRead>>,
+        TError,
+        {bakerId: number;notifId: number},
+        TContext
+      > => {
+      return useMutation(getMarkNotificationReadMutationOptions(options));
+    }
+
+export const getGetAgentConfigUrl = (bakerId: number,) => {
+
+
+
+
+  return `/api/bakers/${bakerId}/agent-config`
+}
+
+/**
+ * @summary Get baker agent configuration
+ */
+export const getAgentConfig = async (bakerId: number, options?: RequestInit): Promise<AgentConfig> => {
+
+  return customFetch<AgentConfig>(getGetAgentConfigUrl(bakerId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAgentConfigQueryKey = (bakerId: number,) => {
+    return [
+    `/api/bakers/${bakerId}/agent-config`
+    ] as const;
+    }
+
+
+export const getGetAgentConfigQueryOptions = <TData = Awaited<ReturnType<typeof getAgentConfig>>, TError = ErrorType<unknown>>(bakerId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAgentConfig>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAgentConfigQueryKey(bakerId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAgentConfig>>> = ({ signal }) => getAgentConfig(bakerId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: bakerId !== null && bakerId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAgentConfig>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAgentConfigQueryResult = NonNullable<Awaited<ReturnType<typeof getAgentConfig>>>
+export type GetAgentConfigQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get baker agent configuration
+ */
+
+export function useGetAgentConfig<TData = Awaited<ReturnType<typeof getAgentConfig>>, TError = ErrorType<unknown>>(
+ bakerId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAgentConfig>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAgentConfigQueryOptions(bakerId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getUpdateAgentConfigUrl = (bakerId: number,) => {
+
+
+
+
+  return `/api/bakers/${bakerId}/agent-config`
+}
+
+/**
+ * @summary Update baker agent configuration
+ */
+export const updateAgentConfig = async (bakerId: number,
+    agentConfigInput: AgentConfigInput, options?: RequestInit): Promise<AgentConfig> => {
+
+  return customFetch<AgentConfig>(getUpdateAgentConfigUrl(bakerId),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(agentConfigInput)
+  }
+);}
+
+
+
+
+
+export const getUpdateAgentConfigMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAgentConfig>>, TError,{bakerId: number;data: BodyType<AgentConfigInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateAgentConfig>>, TError,{bakerId: number;data: BodyType<AgentConfigInput>}, TContext> => {
+
+const mutationKey = ['updateAgentConfig'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateAgentConfig>>, {bakerId: number;data: BodyType<AgentConfigInput>}> = (props) => {
+          const {bakerId,data} = props ?? {};
+
+          return  updateAgentConfig(bakerId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateAgentConfigMutationResult = NonNullable<Awaited<ReturnType<typeof updateAgentConfig>>>
+    export type UpdateAgentConfigMutationBody = BodyType<AgentConfigInput>
+    export type UpdateAgentConfigMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Update baker agent configuration
+ */
+export const useUpdateAgentConfig = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAgentConfig>>, TError,{bakerId: number;data: BodyType<AgentConfigInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateAgentConfig>>,
+        TError,
+        {bakerId: number;data: BodyType<AgentConfigInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateAgentConfigMutationOptions(options));
+    }
+
+export const getListConversationsUrl = (bakerId: number,) => {
+
+
+
+
+  return `/api/chat/${bakerId}/conversations`
+}
+
+/**
+ * @summary List all conversations for a baker
+ */
+export const listConversations = async (bakerId: number, options?: RequestInit): Promise<ConversationSummary[]> => {
+
+  return customFetch<ConversationSummary[]>(getListConversationsUrl(bakerId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListConversationsQueryKey = (bakerId: number,) => {
+    return [
+    `/api/chat/${bakerId}/conversations`
+    ] as const;
+    }
+
+
+export const getListConversationsQueryOptions = <TData = Awaited<ReturnType<typeof listConversations>>, TError = ErrorType<unknown>>(bakerId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listConversations>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListConversationsQueryKey(bakerId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listConversations>>> = ({ signal }) => listConversations(bakerId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: bakerId !== null && bakerId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listConversations>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListConversationsQueryResult = NonNullable<Awaited<ReturnType<typeof listConversations>>>
+export type ListConversationsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List all conversations for a baker
+ */
+
+export function useListConversations<TData = Awaited<ReturnType<typeof listConversations>>, TError = ErrorType<unknown>>(
+ bakerId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listConversations>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListConversationsQueryOptions(bakerId,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

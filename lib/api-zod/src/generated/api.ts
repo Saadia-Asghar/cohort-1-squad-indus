@@ -991,3 +991,137 @@ export const GetChatHistoryResponseItem = zod.object({
 export const GetChatHistoryResponse = zod.array(GetChatHistoryResponseItem)
 
 
+/**
+ * @summary List baker notifications
+ */
+export const ListNotificationsParams = zod.object({
+  "bakerId": zod.coerce.number()
+})
+
+export const ListNotificationsResponseItem = zod.object({
+  "id": zod.number(),
+  "bakerId": zod.number(),
+  "type": zod.string(),
+  "title": zod.string(),
+  "message": zod.string(),
+  "relatedId": zod.number().nullish(),
+  "relatedType": zod.string().nullish(),
+  "isRead": zod.boolean(),
+  "createdAt": zod.string()
+})
+export const ListNotificationsResponse = zod.array(ListNotificationsResponseItem)
+
+
+/**
+ * @summary Mark all notifications as read
+ */
+export const MarkAllNotificationsReadParams = zod.object({
+  "bakerId": zod.coerce.number()
+})
+
+export const MarkAllNotificationsReadResponse = zod.object({
+  "success": zod.boolean()
+})
+
+
+/**
+ * @summary Mark single notification as read
+ */
+export const MarkNotificationReadParams = zod.object({
+  "bakerId": zod.coerce.number(),
+  "notifId": zod.coerce.number()
+})
+
+export const MarkNotificationReadResponse = zod.object({
+  "id": zod.number(),
+  "bakerId": zod.number(),
+  "type": zod.string(),
+  "title": zod.string(),
+  "message": zod.string(),
+  "relatedId": zod.number().nullish(),
+  "relatedType": zod.string().nullish(),
+  "isRead": zod.boolean(),
+  "createdAt": zod.string()
+})
+
+
+/**
+ * @summary Get baker agent configuration
+ */
+export const GetAgentConfigParams = zod.object({
+  "bakerId": zod.coerce.number()
+})
+
+export const GetAgentConfigResponse = zod.object({
+  "bakerId": zod.number(),
+  "agentActive": zod.boolean(),
+  "whatsappAgentEnabled": zod.boolean(),
+  "instagramAgentEnabled": zod.boolean(),
+  "metaWebhookToken": zod.string().nullish(),
+  "instagramPageId": zod.string().nullish(),
+  "customGreeting": zod.string().nullish(),
+  "blockedTopics": zod.array(zod.string()).optional(),
+  "escalateKeywords": zod.array(zod.string()).optional(),
+  "autoReplyEnabled": zod.boolean().optional()
+})
+
+
+/**
+ * @summary Update baker agent configuration
+ */
+export const UpdateAgentConfigParams = zod.object({
+  "bakerId": zod.coerce.number()
+})
+
+export const UpdateAgentConfigBody = zod.object({
+  "agentActive": zod.boolean().optional(),
+  "whatsappAgentEnabled": zod.boolean().optional(),
+  "instagramAgentEnabled": zod.boolean().optional(),
+  "metaWebhookToken": zod.string().optional(),
+  "instagramPageId": zod.string().optional(),
+  "customGreeting": zod.string().optional(),
+  "blockedTopics": zod.array(zod.string()).optional(),
+  "escalateKeywords": zod.array(zod.string()).optional(),
+  "autoReplyEnabled": zod.boolean().optional()
+})
+
+export const UpdateAgentConfigResponse = zod.object({
+  "bakerId": zod.number(),
+  "agentActive": zod.boolean(),
+  "whatsappAgentEnabled": zod.boolean(),
+  "instagramAgentEnabled": zod.boolean(),
+  "metaWebhookToken": zod.string().nullish(),
+  "instagramPageId": zod.string().nullish(),
+  "customGreeting": zod.string().nullish(),
+  "blockedTopics": zod.array(zod.string()).optional(),
+  "escalateKeywords": zod.array(zod.string()).optional(),
+  "autoReplyEnabled": zod.boolean().optional()
+})
+
+
+/**
+ * @summary List all conversations for a baker
+ */
+export const ListConversationsParams = zod.object({
+  "bakerId": zod.coerce.number()
+})
+
+export const ListConversationsResponseItem = zod.object({
+  "buyerId": zod.number(),
+  "buyerName": zod.string(),
+  "lastMessage": zod.string(),
+  "lastActiveAt": zod.string(),
+  "messageCount": zod.number(),
+  "unread": zod.boolean(),
+  "preferences": zod.object({
+  "eggless": zod.boolean().optional(),
+  "preferredArea": zod.string().nullish(),
+  "favoriteProducts": zod.array(zod.string()).optional(),
+  "allergies": zod.array(zod.string()).optional(),
+  "usualOrderSize": zod.string().nullish()
+}).optional(),
+  "summary": zod.string().nullish()
+})
+export const ListConversationsResponse = zod.array(ListConversationsResponseItem)
+
+

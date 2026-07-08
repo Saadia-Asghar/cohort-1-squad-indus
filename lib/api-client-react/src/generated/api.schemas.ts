@@ -375,6 +375,74 @@ export interface ChatResponse {
   escalated?: boolean;
 }
 
+export interface BuyerPreferences {
+  eggless?: boolean;
+  /** @nullable */
+  preferredArea?: string | null;
+  favoriteProducts?: string[];
+  allergies?: string[];
+  /** @nullable */
+  usualOrderSize?: string | null;
+}
+
+export interface ConversationSummary {
+  buyerId: number;
+  buyerName: string;
+  lastMessage: string;
+  lastActiveAt: string;
+  messageCount: number;
+  unread: boolean;
+  preferences?: BuyerPreferences;
+  /** @nullable */
+  summary?: string | null;
+}
+
+export interface BakerNotification {
+  id: number;
+  bakerId: number;
+  type: string;
+  title: string;
+  message: string;
+  /** @nullable */
+  relatedId?: number | null;
+  /** @nullable */
+  relatedType?: string | null;
+  isRead: boolean;
+  createdAt: string;
+}
+
+export interface SuccessResponse {
+  success: boolean;
+}
+
+export interface AgentConfig {
+  bakerId: number;
+  agentActive: boolean;
+  whatsappAgentEnabled: boolean;
+  instagramAgentEnabled: boolean;
+  /** @nullable */
+  metaWebhookToken?: string | null;
+  /** @nullable */
+  instagramPageId?: string | null;
+  /** @nullable */
+  customGreeting?: string | null;
+  blockedTopics?: string[];
+  escalateKeywords?: string[];
+  autoReplyEnabled?: boolean;
+}
+
+export interface AgentConfigInput {
+  agentActive?: boolean;
+  whatsappAgentEnabled?: boolean;
+  instagramAgentEnabled?: boolean;
+  metaWebhookToken?: string;
+  instagramPageId?: string;
+  customGreeting?: string;
+  blockedTopics?: string[];
+  escalateKeywords?: string[];
+  autoReplyEnabled?: boolean;
+}
+
 export type GetFeaturedBakersParams = {
 city?: string;
 area?: string;

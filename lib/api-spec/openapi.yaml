@@ -689,6 +689,129 @@ paths:
                 items:
                   $ref: "#/components/schemas/ChatMessage"
 
+  # ── NOTIFICATIONS ─────────────────────────────────────────────────────────────
+  /bakers/{bakerId}/notifications:
+    get:
+      operationId: listNotifications
+      tags: [bakers]
+      summary: List baker notifications
+      parameters:
+        - name: bakerId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Notifications
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BakerNotification"
+
+  /bakers/{bakerId}/notifications/read-all:
+    post:
+      operationId: markAllNotificationsRead
+      tags: [bakers]
+      summary: Mark all notifications as read
+      parameters:
+        - name: bakerId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: All marked read
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /bakers/{bakerId}/notifications/{notifId}/read:
+    patch:
+      operationId: markNotificationRead
+      tags: [bakers]
+      summary: Mark single notification as read
+      parameters:
+        - name: bakerId
+          in: path
+          required: true
+          schema: { type: integer }
+        - name: notifId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Notification marked read
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BakerNotification"
+
+  # ── AGENT CONFIG ───────────────────────────────────────────────────────────────
+  /bakers/{bakerId}/agent-config:
+    get:
+      operationId: getAgentConfig
+      tags: [bakers]
+      summary: Get baker agent configuration
+      parameters:
+        - name: bakerId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Agent configuration
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AgentConfig"
+    put:
+      operationId: updateAgentConfig
+      tags: [bakers]
+      summary: Update baker agent configuration
+      parameters:
+        - name: bakerId
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AgentConfigInput"
+      responses:
+        "200":
+          description: Updated agent configuration
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AgentConfig"
+
+  # ── CHAT CONVERSATIONS ─────────────────────────────────────────────────────────
+  /chat/{bakerId}/conversations:
+    get:
+      operationId: listConversations
+      tags: [chat]
+      summary: List all conversations for a baker
+      parameters:
+        - name: bakerId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Conversation summaries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ConversationSummary"
+
 components:
   schemas:
     HealthStatus:
@@ -1102,3 +1225,74 @@ components:
         action: { type: ["string", "null"] }
         cartItemId: { type: ["integer", "null"] }
         escalated: { type: boolean }
+
+    BuyerPreferences:
+      type: object
+      properties:
+        eggless: { type: boolean }
+        preferredArea: { type: ["string", "null"] }
+        favoriteProducts: { type: array, items: { type: string } }
+        allergies: { type: array, items: { type: string } }
+        usualOrderSize: { type: ["string", "null"] }
+
+    ConversationSummary:
+      type: object
+      required: [buyerId, buyerName, lastMessage, lastActiveAt, messageCount, unread]
+      properties:
+        buyerId: { type: integer }
+        buyerName: { type: string }
+        lastMessage: { type: string }
+        lastActiveAt: { type: string }
+        messageCount: { type: integer }
+        unread: { type: boolean }
+        preferences:
+          $ref: "#/components/schemas/BuyerPreferences"
+        summary: { type: ["string", "null"] }
+
+    BakerNotification:
+      type: object
+      required: [id, bakerId, type, title, message, isRead, createdAt]
+      properties:
+        id: { type: integer }
+        bakerId: { type: integer }
+        type: { type: string }
+        title: { type: string }
+        message: { type: string }
+        relatedId: { type: ["integer", "null"] }
+        relatedType: { type: ["string", "null"] }
+        isRead: { type: boolean }
+        createdAt: { type: string }
+
+    SuccessResponse:
+      type: object
+      required: [success]
+      properties:
+        success: { type: boolean }
+
+    AgentConfig:
+      type: object
+      required: [bakerId, agentActive, whatsappAgentEnabled, instagramAgentEnabled]
+      properties:
+        bakerId: { type: integer }
+        agentActive: { type: boolean }
+        whatsappAgentEnabled: { type: boolean }
+        instagramAgentEnabled: { type: boolean }
+        metaWebhookToken: { type: ["string", "null"] }
+        instagramPageId: { type: ["string", "null"] }
+        customGreeting: { type: ["string", "null"] }
+        blockedTopics: { type: array, items: { type: string } }
+        escalateKeywords: { type: array, items: { type: string } }
+        autoReplyEnabled: { type: boolean }
+
+    AgentConfigInput:
+      type: object
+      properties:
+        agentActive: { type: boolean }
+        whatsappAgentEnabled: { type: boolean }
+        instagramAgentEnabled: { type: boolean }
+        metaWebhookToken: { type: string }
+        instagramPageId: { type: string }
+        customGreeting: { type: string }
+        blockedTopics: { type: array, items: { type: string } }
+        escalateKeywords: { type: array, items: { type: string } }
+        autoReplyEnabled: { type: boolean }

@@ -163,4 +163,72 @@ router.get("/bakers/:bakerId/stats", async (req, res): Promise<void> => {
   });
 });
 
+// GET /bakers/:bakerId/agent-config
+router.get("/bakers/:bakerId/agent-config", async (req, res): Promise<void> => {
+  const bakerId = parseInt(req.params.bakerId);
+  if (isNaN(bakerId)) { res.status(400).json({ error: "Invalid bakerId" }); return; }
+  const [baker] = await db.select().from(bakersTable).where(eq(bakersTable.id, bakerId));
+  if (!baker) { res.status(404).json({ error: "Baker not found" }); return; }
+  const conf = (baker.agentConfig ?? {}) as Record<string, unknown>;
+  res.json({
+    bakerId: baker.id,
+    agentActive: baker.agentActive,
+    whatsappAgentEnabled: baker.whatsappAgentEnabled,
+    instagramAgentEnabled: baker.instagramAgentEnabled,
+    metaWebhookToken: baker.metaWebhookToken,
+    instagramPageId: baker.instagramPageId,
+    customGreeting: (conf.customGreeting as string | null) ?? null,
+    blockedTopics: (conf.blockedTopics as string[]) ?? [],
+    escalateKeywords: (conf.escalateKeywords as string[]) ?? [],
+    autoReplyEnabled: (conf.autoReplyEnabled as boolean) ?? true,
+  });
+});
+
+// PUT /bakers/:bakerId/agent-config
+router.put("/bakers/:bakerId/agent-config", async (req, res): Promise<void> => {
+  const bakerId = parseInt(req.params.bakerId);
+  if (isNaN(bakerId)) { res.status(400).json({ error: "Invalid bakerId" }); return; }
+  const body = req.body as {
+    agentActive?: boolean;
+    whatsappAgentEnabled?: boolean;
+    instagramAgentEnabled?: boolean;
+    metaWebhookToken?: string;
+    instagramPageId?: string;
+    customGreeting?: string;
+    blockedTopics?: string[];
+    escalateKeywords?: string[];
+    autoReplyEnabled?: boolean;
+    customResponses?: Array<{ trigger: string; response: string }>;
+  };
+  const agentConfigUpdate: Record<string, unknown> = {};
+  if (body.customGreeting !== undefined) agentConfigUpdate.customGreeting = body.customGreeting;
+  if (body.blockedTopics !== undefined) agentConfigUpdate.blockedTopics = body.blockedTopics;
+  if (body.escalateKeywords !== undefined) agentConfigUpdate.escalateKeywords = body.escalateKeywords;
+  if (body.autoReplyEnabled !== undefined) agentConfigUpdate.autoReplyEnabled = body.autoReplyEnabled;
+  if (body.customResponses !== undefined) agentConfigUpdate.customResponses = body.customResponses;
+
+  const update: Record<string, unknown> = { agentConfig: agentConfigUpdate };
+  if (body.agentActive !== undefined) update.agentActive = body.agentActive;
+  if (body.whatsappAgentEnabled !== undefined) update.whatsappAgentEnabled = body.whatsappAgentEnabled;
+  if (body.instagramAgentEnabled !== undefined) update.instagramAgentEnabled = body.instagramAgentEnabled;
+  if (body.metaWebhookToken !== undefined) update.metaWebhookToken = body.metaWebhookToken;
+  if (body.instagramPageId !== undefined) update.instagramPageId = body.instagramPageId;
+
+  const [baker] = await db.update(bakersTable).set(update).where(eq(bakersTable.id, bakerId)).returning();
+  if (!baker) { res.status(404).json({ error: "Baker not found" }); return; }
+  const conf = (baker.agentConfig ?? {}) as Record<string, unknown>;
+  res.json({
+    bakerId: baker.id,
+    agentActive: baker.agentActive,
+    whatsappAgentEnabled: baker.whatsappAgentEnabled,
+    instagramAgentEnabled: baker.instagramAgentEnabled,
+    metaWebhookToken: baker.metaWebhookToken,
+    instagramPageId: baker.instagramPageId,
+    customGreeting: (conf.customGreeting as string | null) ?? null,
+    blockedTopics: (conf.blockedTopics as string[]) ?? [],
+    escalateKeywords: (conf.escalateKeywords as string[]) ?? [],
+    autoReplyEnabled: (conf.autoReplyEnabled as boolean) ?? true,
+  });
+});
+
 export default router;
