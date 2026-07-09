@@ -11,6 +11,7 @@ import {
   ListProductsQueryParams,
 } from "@workspace/api-zod";
 import { requireBakerAuth } from "../middlewares/auth";
+import { rebuildBakerKnowledgeIndex } from "../lib/rag/pipeline";
 
 const router: IRouter = Router();
 
@@ -38,7 +39,7 @@ router.get("/products", async (req, res): Promise<void> => {
   res.json(products.map(formatProduct));
 });
 
-// POST /products (Secured)
+// POST /products (Secured + Auto-RAG reindex)
 router.post("/products", requireBakerAuth, async (req, res): Promise<void> => {
   const parsed = CreateProductBody.safeParse(req.body);
   if (!parsed.success) {
@@ -53,6 +54,12 @@ router.post("/products", requireBakerAuth, async (req, res): Promise<void> => {
   }
 
   const [product] = await db.insert(productsTable).values(parsed.data as any).returning();
+  
+  // Asynchronously rebuild RAG knowledge index
+  rebuildBakerKnowledgeIndex(tokenBakerId).catch((err) =>
+    console.error(`Auto-RAG reindex failed for baker #${tokenBakerId}:`, err)
+  );
+
   res.status(201).json(formatProduct(product));
 });
 
@@ -71,7 +78,7 @@ router.get("/products/:productId", async (req, res): Promise<void> => {
   res.json(formatProduct(product));
 });
 
-// PATCH /products/:productId (Secured)
+// PATCH /products/:productId (Secured + Auto-RAG reindex)
 router.patch("/products/:productId", requireBakerAuth, async (req, res): Promise<void> => {
   const params = UpdateProductParams.safeParse(req.params);
   if (!params.success) {
@@ -97,10 +104,16 @@ router.patch("/products/:productId", requireBakerAuth, async (req, res): Promise
     return;
   }
   const [product] = await db.update(productsTable).set(parsed.data as any).where(eq(productsTable.id, params.data.productId)).returning();
+
+  // Asynchronously rebuild RAG knowledge index
+  rebuildBakerKnowledgeIndex(tokenBakerId).catch((err) =>
+    console.error(`Auto-RAG reindex failed for baker #${tokenBakerId}:`, err)
+  );
+
   res.json(formatProduct(product));
 });
 
-// DELETE /products/:productId (Secured)
+// DELETE /products/:productId (Secured + Auto-RAG reindex)
 router.delete("/products/:productId", requireBakerAuth, async (req, res): Promise<void> => {
   const params = DeleteProductParams.safeParse(req.params);
   if (!params.success) {
@@ -121,10 +134,16 @@ router.delete("/products/:productId", requireBakerAuth, async (req, res): Promis
   }
 
   await db.delete(productsTable).where(eq(productsTable.id, params.data.productId));
+
+  // Asynchronously rebuild RAG knowledge index
+  rebuildBakerKnowledgeIndex(tokenBakerId).catch((err) =>
+    console.error(`Auto-RAG reindex failed for baker #${tokenBakerId}:`, err)
+  );
+
   res.sendStatus(204);
 });
 
-// PATCH /products/:productId/toggle-stock (Secured)
+// PATCH /products/:productId/toggle-stock (Secured + Auto-RAG reindex)
 router.patch("/products/:productId/toggle-stock", requireBakerAuth, async (req, res): Promise<void> => {
   const params = ToggleProductStockParams.safeParse(req.params);
   if (!params.success) {
@@ -147,6 +166,12 @@ router.patch("/products/:productId/toggle-stock", requireBakerAuth, async (req, 
     .set({ isAvailable: !existing.isAvailable })
     .where(eq(productsTable.id, params.data.productId))
     .returning();
+
+  // Asynchronously rebuild RAG knowledge index
+  rebuildBakerKnowledgeIndex(tokenBakerId).catch((err) =>
+    console.error(`Auto-RAG reindex failed for baker #${tokenBakerId}:`, err)
+  );
+
   res.json(formatProduct(product));
 });
 

@@ -85,6 +85,17 @@ export default function BakerProfile() {
     });
   };
 
+  const handleQuickMessage = (text: string) => {
+    if (sendMessage.isPending) return;
+    sendMessage.mutate({
+      data: { bakerId, buyerId, message: text }
+    }, {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getGetChatHistoryQueryKey(bakerId, buyerId) });
+      }
+    });
+  };
+
   return (
     <BuyerLayout>
       <div className="container mx-auto px-4 py-8 max-w-5xl relative">
@@ -296,9 +307,39 @@ export default function BakerProfile() {
                   <div className="w-1.5 h-1.5 bg-primary/50 rounded-full animate-bounce delay-150"></div>
                 </div>
               </div>
-            )}
           </div>
           
+          <div className="px-3 pt-2 bg-card border-t border-border flex gap-1.5 overflow-x-auto whitespace-nowrap scrollbar-none py-1">
+            <button
+              onClick={() => handleQuickMessage("Show Menu")}
+              disabled={sendMessage.isPending}
+              className="text-[11px] px-2.5 py-1 rounded-full border border-primary/20 bg-primary/5 text-primary font-medium hover:bg-primary/10 transition-all cursor-pointer disabled:opacity-50"
+            >
+              ❓ Show Menu
+            </button>
+            <button
+              onClick={() => handleQuickMessage("Where do you deliver?")}
+              disabled={sendMessage.isPending}
+              className="text-[11px] px-2.5 py-1 rounded-full border border-primary/20 bg-primary/5 text-primary font-medium hover:bg-primary/10 transition-all cursor-pointer disabled:opacity-50"
+            >
+              🚚 Delivery Info
+            </button>
+            <button
+              onClick={() => handleQuickMessage("What is your payment policy?")}
+              disabled={sendMessage.isPending}
+              className="text-[11px] px-2.5 py-1 rounded-full border border-primary/20 bg-primary/5 text-primary font-medium hover:bg-primary/10 transition-all cursor-pointer disabled:opacity-50"
+            >
+              💳 Payment Policy
+            </button>
+            <button
+              onClick={() => handleQuickMessage("What is my order status?")}
+              disabled={sendMessage.isPending}
+              className="text-[11px] px-2.5 py-1 rounded-full border border-primary/20 bg-primary/5 text-primary font-medium hover:bg-primary/10 transition-all cursor-pointer disabled:opacity-50"
+            >
+              📦 Order Status
+            </button>
+          </div>
+
           <div className="p-3 border-t border-border bg-card">
             <form onSubmit={handleSendMessage} className="flex gap-2">
               <input 
