@@ -1,8 +1,9 @@
-import { pgTable, text, serial, timestamp, integer, jsonb, index } from "drizzle-orm/pg-core";
+import { text, serial, timestamp, integer, jsonb, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
+import { sweetTooth } from "./pg";
 
-export const knowledgeChunksTable = pgTable("knowledge_chunks", {
+export const knowledgeChunksTable = sweetTooth.table("knowledge_chunks", {
   id: serial("id").primaryKey(),
   bakerId: integer("baker_id").notNull(),
   sourceType: text("source_type").notNull(),

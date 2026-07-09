@@ -1,8 +1,9 @@
-import { pgTable, text, serial, timestamp, integer, jsonb, date } from "drizzle-orm/pg-core";
+import { text, serial, timestamp, integer, jsonb, date } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
+import { sweetTooth } from "./pg";
 
-export const ordersTable = pgTable("orders", {
+export const ordersTable = sweetTooth.table("orders", {
   id: serial("id").primaryKey(),
   bakerId: integer("baker_id").notNull(),
   buyerId: integer("buyer_id"),

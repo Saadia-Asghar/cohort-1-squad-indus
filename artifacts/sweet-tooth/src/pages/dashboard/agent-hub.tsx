@@ -448,8 +448,9 @@ export default function AgentHub() {
                 <ol className="list-decimal list-inside space-y-1 text-blue-700">
                   <li>Go to <strong>Meta for Developers</strong> → Create an App → WhatsApp</li>
                   <li>Generate a <strong>Webhook Verify Token</strong> (any random string)</li>
-                  <li>Set the webhook URL to: <code className="bg-blue-100 px-1 rounded">https://your-domain.replit.app/api/webhooks/whatsapp</code></li>
-                  <li>Paste your token below and save</li>
+                  <li>Set the webhook URL to: <code className="bg-blue-100 px-1 rounded break-all">/api/webhooks/whatsapp</code> (on your deployed API domain)</li>
+                  <li>Add <code className="bg-blue-100 px-1 rounded">WHATSAPP_ACCESS_TOKEN</code> to server environment</li>
+                  <li>Paste your verify token below and save — then enable the toggle above</li>
                 </ol>
               </div>
               <div className="space-y-2">
@@ -458,7 +459,11 @@ export default function AgentHub() {
                   type="password"
                   value={merged.metaWebhookToken ?? ""}
                   onChange={e => setLocalConfig(prev => ({ ...prev, metaWebhookToken: e.target.value }))}
-                  placeholder="Paste your Meta webhook verify token"
+                  placeholder={
+                    (config as { metaWebhookTokenPreview?: string | null })?.metaWebhookTokenPreview
+                      ? `Saved: ${(config as { metaWebhookTokenPreview?: string }).metaWebhookTokenPreview} — enter new to replace`
+                      : "Paste your Meta webhook verify token"
+                  }
                   className="w-full px-3 py-2 border border-border rounded-lg bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
                 />
               </div>

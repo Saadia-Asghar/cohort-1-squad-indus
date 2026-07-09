@@ -12,6 +12,7 @@ import analyticsRouter from "./analytics";
 import chatRouter from "./chat";
 import knowledgeRouter from "./knowledge";
 import workspaceRouter from "./workspace";
+import whatsappRouter from "./whatsapp";
 
 const router: IRouter = Router();
 
@@ -28,5 +29,6 @@ router.use(analyticsRouter);
 router.use(chatRouter);
 router.use(knowledgeRouter);
 router.use(workspaceRouter);
+router.use(whatsappRouter);
 
 export default router;

@@ -163,6 +163,11 @@ router.get("/bakers/:bakerId/stats", async (req, res): Promise<void> => {
   });
 });
 
+function maskWebhookToken(token: string | null): { metaWebhookTokenSet: boolean; metaWebhookTokenPreview: string | null } {
+  if (!token) return { metaWebhookTokenSet: false, metaWebhookTokenPreview: null };
+  return { metaWebhookTokenSet: true, metaWebhookTokenPreview: `${token.slice(0, 4)}••••` };
+}
+
 // GET /bakers/:bakerId/agent-config
 router.get("/bakers/:bakerId/agent-config", async (req, res): Promise<void> => {
   const bakerId = parseInt(req.params.bakerId);
@@ -170,18 +175,20 @@ router.get("/bakers/:bakerId/agent-config", async (req, res): Promise<void> => {
   const [baker] = await db.select().from(bakersTable).where(eq(bakersTable.id, bakerId));
   if (!baker) { res.status(404).json({ error: "Baker not found" }); return; }
   const conf = (baker.agentConfig ?? {}) as Record<string, unknown>;
+  const tokenMask = maskWebhookToken(baker.metaWebhookToken);
   res.json({
     bakerId: baker.id,
     agentActive: baker.agentActive,
     whatsappAgentEnabled: baker.whatsappAgentEnabled,
     instagramAgentEnabled: baker.instagramAgentEnabled,
-    metaWebhookToken: baker.metaWebhookToken,
+    ...tokenMask,
     instagramPageId: baker.instagramPageId,
     customGreeting: (conf.customGreeting as string | null) ?? null,
     blockedTopics: (conf.blockedTopics as string[]) ?? [],
     escalateKeywords: (conf.escalateKeywords as string[]) ?? [],
     autoReplyEnabled: (conf.autoReplyEnabled as boolean) ?? true,
     customResponses: (conf.customResponses as Array<{ trigger: string; response: string }>) ?? [],
+    whatsappWebhookUrl: "/api/webhooks/whatsapp",
   });
 });
 
@@ -226,18 +233,20 @@ router.put("/bakers/:bakerId/agent-config", async (req, res): Promise<void> => {
   const [baker] = await db.update(bakersTable).set(update).where(eq(bakersTable.id, bakerId)).returning();
   if (!baker) { res.status(404).json({ error: "Baker not found" }); return; }
   const conf = (baker.agentConfig ?? {}) as Record<string, unknown>;
+  const tokenMask = maskWebhookToken(baker.metaWebhookToken);
   res.json({
     bakerId: baker.id,
     agentActive: baker.agentActive,
     whatsappAgentEnabled: baker.whatsappAgentEnabled,
     instagramAgentEnabled: baker.instagramAgentEnabled,
-    metaWebhookToken: baker.metaWebhookToken,
+    ...tokenMask,
     instagramPageId: baker.instagramPageId,
     customGreeting: (conf.customGreeting as string | null) ?? null,
     blockedTopics: (conf.blockedTopics as string[]) ?? [],
     escalateKeywords: (conf.escalateKeywords as string[]) ?? [],
     autoReplyEnabled: (conf.autoReplyEnabled as boolean) ?? true,
     customResponses: (conf.customResponses as Array<{ trigger: string; response: string }>) ?? [],
+    whatsappWebhookUrl: "/api/webhooks/whatsapp",
   });
 });
 

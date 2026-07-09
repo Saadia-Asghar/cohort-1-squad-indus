@@ -32,6 +32,7 @@ async function seed() {
     returnPolicy: "Quality issue? Contact me within 2 hours of delivery. I'll make it right.",
     maxOrdersPerDay: 8,
     agentActive: true,
+    whatsappAgentEnabled: true,
     marketplaceVisible: true,
     subscriptionPlan: "pro",
     ratingAvg: 4.9,

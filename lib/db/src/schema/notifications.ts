@@ -1,8 +1,9 @@
-import { pgTable, text, serial, timestamp, integer, boolean } from "drizzle-orm/pg-core";
+import { text, serial, timestamp, integer, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
+import { sweetTooth } from "./pg";
 
-export const notificationsTable = pgTable("notifications", {
+export const notificationsTable = sweetTooth.table("notifications", {
   id: serial("id").primaryKey(),
   bakerId: integer("baker_id").notNull(),
   type: text("type").notNull(), // new_order | chat_escalation | payment_pending | order_delivered | new_message

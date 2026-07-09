@@ -1,14 +1,29 @@
 import { BuyerLayout } from "@/components/layout/buyer-layout";
 import { useSearchMarketplace, getSearchMarketplaceQueryKey } from "@workspace/api-client-react";
-import { Link } from "wouter";
+import { Link, useSearch } from "wouter";
 
 export default function Bakers() {
-  const { data, isLoading } = useSearchMarketplace({}, { query: { queryKey: getSearchMarketplaceQueryKey({}) } });
+  const search = useSearch();
+  const params = new URLSearchParams(search.startsWith("?") ? search : `?${search}`);
+  const q = params.get("q") ?? undefined;
+  const city = params.get("city") ?? undefined;
+
+  const { data, isLoading } = useSearchMarketplace(
+    { q, city },
+    { query: { queryKey: getSearchMarketplaceQueryKey({ q, city }) } },
+  );
 
   return (
     <BuyerLayout>
       <div className="container mx-auto px-4 py-8">
-        <h1 className="text-4xl font-bold mb-8 font-serif text-primary">Discover Bakers</h1>
+        <h1 className="text-4xl font-bold mb-2 font-serif text-primary">Discover Bakers</h1>
+        {(city || q) && (
+          <p className="text-muted-foreground mb-8">
+            {city && <span>in {city}</span>}
+            {q && <span>{city ? " · " : ""}matching “{q}”</span>}
+          </p>
+        )}
+        {!city && !q && <div className="mb-8" />}
         
         {isLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">

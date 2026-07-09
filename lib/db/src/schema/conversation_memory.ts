@@ -1,8 +1,9 @@
-import { pgTable, text, serial, timestamp, integer, jsonb, unique } from "drizzle-orm/pg-core";
+import { text, serial, timestamp, integer, jsonb, unique } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
+import { sweetTooth } from "./pg";
 
-export const conversationMemoryTable = pgTable("conversation_memory", {
+export const conversationMemoryTable = sweetTooth.table("conversation_memory", {
   id: serial("id").primaryKey(),
   bakerId: integer("baker_id").notNull(),
   buyerId: integer("buyer_id").notNull(),

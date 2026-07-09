@@ -1,8 +1,9 @@
-import { pgTable, text, serial, timestamp, integer, boolean, index } from "drizzle-orm/pg-core";
+import { text, serial, timestamp, integer, boolean, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
+import { sweetTooth } from "./pg";
 
-export const bakerGoalsTable = pgTable("baker_goals", {
+export const bakerGoalsTable = sweetTooth.table("baker_goals", {
   id: serial("id").primaryKey(),
   bakerId: integer("baker_id").notNull(),
   label: text("label").notNull(),
@@ -15,7 +16,7 @@ export const bakerGoalsTable = pgTable("baker_goals", {
   bakerIdx: index("baker_goals_baker_idx").on(table.bakerId),
 }));
 
-export const bakerNotesTable = pgTable("baker_notes", {
+export const bakerNotesTable = sweetTooth.table("baker_notes", {
   id: serial("id").primaryKey(),
   bakerId: integer("baker_id").notNull(),
   content: text("content").notNull(),
@@ -26,7 +27,7 @@ export const bakerNotesTable = pgTable("baker_notes", {
   bakerIdx: index("baker_notes_baker_idx").on(table.bakerId),
 }));
 
-export const bakerRemindersTable = pgTable("baker_reminders", {
+export const bakerRemindersTable = sweetTooth.table("baker_reminders", {
   id: serial("id").primaryKey(),
   bakerId: integer("baker_id").notNull(),
   title: text("title").notNull(),
