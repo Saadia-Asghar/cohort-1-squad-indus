@@ -2,6 +2,13 @@ import { Switch, Route, Router as WouterRouter } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { setBaseUrl } from "@workspace/api-client-react";
+
+// Read API URL from environment variable, falling back to same-origin proxy
+const apiUrl = import.meta.env.VITE_API_URL || "";
+if (apiUrl) {
+  setBaseUrl(apiUrl);
+}
 
 // Buyer Pages
 import Home from "@/pages/buyer/home";
