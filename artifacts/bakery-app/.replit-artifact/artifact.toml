@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Bakery Order Manager"
+version = "1.0.0"
+id = "artifacts/bakery-app"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 24297
+
+[services.development]
+run = "pnpm --filter @workspace/bakery-app run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/bakery-app", "run", "build" ]
+publicDir = "artifacts/bakery-app/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "24297"
+BASE_PATH = "/"

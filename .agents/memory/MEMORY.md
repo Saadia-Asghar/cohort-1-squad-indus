@@ -1,0 +1,1 @@
+- [Field naming in orders API](orders-field-naming.md) — API returns camelCase, frontend uses snake_case; ordersApi.js normalizes with toSnake()
