@@ -1,21 +1,25 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Check, AlertCircle, Edit3, Cake, Calendar, MapPin, Phone, X } from 'lucide-react';
+import { Sparkles, Check, AlertCircle, Edit3, Cake, Calendar, MapPin, Phone, X, MessageCircle, Instagram } from 'lucide-react';
 
 import { ConfidenceBadge } from '@/components/orders/StatusBadge';
 import { formatPKR, formatDeliveryDate } from '@/lib/utils';
-import { mockExtractionResults, processingSteps } from '@/lib/mockData';
+import { mockWhatsAppResults, mockInstagramResults, whatsappProcessingSteps, instagramProcessingSteps } from '@/lib/mockData';
 import { Order } from '@/api/ordersApi';
 
 export default function AutoImport() {
-  const [phase, setPhase] = useState('ready'); // ready | processing | results | done
+  const [channel, setChannel] = useState('whatsapp'); // whatsapp | instagram
+  const [phase, setPhase] = useState('ready');
   const [stepIndex, setStepIndex] = useState(0);
   const [results, setResults] = useState([]);
   const [lastSync, setLastSync] = useState('2 hours ago');
   const [editingIdx, setEditingIdx] = useState(null);
   const [reviewed, setReviewed] = useState(new Set());
   const navigate = useNavigate();
+
+  const processingSteps = channel === 'instagram' ? instagramProcessingSteps : whatsappProcessingSteps;
+  const mockResults = channel === 'instagram' ? mockInstagramResults : mockWhatsAppResults;
 
   const startImport = () => {
     setPhase('processing');
@@ -29,7 +33,7 @@ export default function AutoImport() {
       return () => clearTimeout(timer);
     } else {
       const timer = setTimeout(() => {
-        setResults(mockExtractionResults);
+        setResults(mockResults);
         setPhase('results');
       }, 800);
       return () => clearTimeout(timer);
@@ -37,42 +41,26 @@ export default function AutoImport() {
   }, [phase, stepIndex]);
 
   const confirmAndCreate = async () => {
-    const ordersToCreate = results.map(r => ({
-      customer_name: r.customer_name,
-      customer_phone: r.customer_phone,
-      cake_type: r.cake_type,
-      flavor: r.flavor,
+    const ordersToCreate = results.map((r, i) => ({
+      customerName: r.customer_name,
+      customerPhone: r.customer_phone || '',
+      cakeType: r.cake_type,
+      flavor: r.flavor || '',
       weight: r.weight || '',
-      design_notes: r.design_notes || '',
-      delivery_date: r.delivery_date,
-      delivery_time: r.delivery_time || '',
-      delivery_type: r.delivery_type,
+      designNotes: r.design_notes || '',
+      deliveryDate: r.delivery_date,
+      deliveryTime: r.delivery_time || '',
+      deliveryType: r.delivery_type,
       price: r.price || 0,
-      payment_status: r.payment_status,
-      status: r.needsReview && !reviewed.has(results.indexOf(r)) ? 'pending_info' : 'confirmed',
-      special_requests: r.special_requests || '',
-      source: 'auto_import',
-      confidence: r.confidence
+      paymentStatus: r.payment_status,
+      status: r.needsReview && !reviewed.has(i) ? 'pending_info' : 'confirmed',
+      specialRequests: r.special_requests || '',
+      source: r.source,
+      confidence: r.confidence,
     }));
 
     try {
-      await Order.bulkCreate(ordersToCreate.map(o => ({
-        customerName: o.customer_name,
-        customerPhone: o.customer_phone,
-        cakeType: o.cake_type,
-        flavor: o.flavor,
-        weight: o.weight,
-        designNotes: o.design_notes,
-        deliveryDate: o.delivery_date,
-        deliveryTime: o.delivery_time,
-        deliveryType: o.delivery_type,
-        price: o.price,
-        paymentStatus: o.payment_status,
-        status: o.status,
-        specialRequests: o.special_requests,
-        source: o.source,
-        confidence: o.confidence,
-      })));
+      await Order.bulkCreate(ordersToCreate);
       setPhase('done');
       setLastSync('just now');
       setTimeout(() => navigate('/'), 2000);
@@ -81,32 +69,84 @@ export default function AutoImport() {
     }
   };
 
-  const allReviewed = results.filter(r => r.needsReview).every(r => reviewed.has(results.indexOf(r)));
+  const allReviewed = results.filter(r => r.needsReview).every((r, _, arr) => reviewed.has(results.indexOf(r)));
+
+  const channelConfig = {
+    whatsapp: {
+      icon: MessageCircle,
+      label: 'WhatsApp',
+      color: 'text-[#25D366]',
+      bg: 'bg-[#25D366]/10',
+      activeBg: 'bg-[#25D366]',
+      connected: '+92 300 1234567',
+      description: 'Syncs your last 24h of WhatsApp messages and extracts orders using AI.',
+    },
+    instagram: {
+      icon: Instagram,
+      label: 'Instagram',
+      color: 'text-[#E1306C]',
+      bg: 'bg-[#E1306C]/10',
+      activeBg: 'bg-gradient-to-r from-[#833ab4] via-[#fd1d1d] to-[#fcb045]',
+      connected: '@zara.sweetooth',
+      description: 'Reads your Instagram DMs and extracts order details automatically.',
+    },
+  };
 
   return (
     <div className="p-5 pb-24 lg:p-8 lg:pb-8">
       <AnimatePresence mode="wait">
-        {/* STATE 1: READY */}
+        {/* READY */}
         {phase === 'ready' && (
-          <motion.div
-            key="ready"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0, y: -10 }}
-          >
+          <motion.div key="ready" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, y: -10 }}>
             <div className="flex items-center gap-2 mb-1">
               <Sparkles className="w-5 h-5 text-accent" />
               <span className="text-sm font-medium text-muted-foreground">AI-Powered</span>
             </div>
-            <h1 className="font-heading text-3xl font-bold text-foreground mb-6">Auto-Import Orders</h1>
+            <h1 className="font-heading text-3xl font-bold text-foreground mb-5">Auto-Import Orders</h1>
 
+            {/* Channel selector */}
+            <div className="grid grid-cols-2 gap-3 mb-5">
+              {(['whatsapp', 'instagram']).map(ch => {
+                const cfg = channelConfig[ch];
+                const Icon = cfg.icon;
+                const isActive = channel === ch;
+                return (
+                  <motion.button
+                    key={ch}
+                    whileTap={{ scale: 0.97 }}
+                    onClick={() => setChannel(ch)}
+                    className={`rounded-2xl p-4 border-2 transition-all text-left ${
+                      isActive ? 'border-primary bg-primary/5' : 'border-border/50 bg-card'
+                    }`}
+                  >
+                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center mb-2 ${isActive ? 'bg-primary/10' : 'bg-muted'}`}>
+                      <Icon className={`w-5 h-5 ${isActive ? 'text-primary' : 'text-muted-foreground'}`} />
+                    </div>
+                    <p className={`text-sm font-semibold ${isActive ? 'text-foreground' : 'text-muted-foreground'}`}>{cfg.label}</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">{cfg.connected}</p>
+                    {isActive && (
+                      <span className="inline-flex items-center gap-1 mt-1.5 text-[10px] font-medium text-success">
+                        <span className="w-1.5 h-1.5 rounded-full bg-success" /> Connected
+                      </span>
+                    )}
+                  </motion.button>
+                );
+              })}
+            </div>
+
+            {/* Import card */}
             <div className="bg-card rounded-3xl p-6 shadow-card border border-border/50 text-center mb-6">
               <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center">
-                <Sparkles className="w-10 h-10 text-primary" />
+                {channel === 'instagram'
+                  ? <Instagram className="w-10 h-10 text-primary" />
+                  : <MessageCircle className="w-10 h-10 text-primary" />
+                }
               </div>
-              <p className="text-foreground font-medium mb-1">Let AI handle the paperwork</p>
+              <p className="text-foreground font-medium mb-1">
+                Import from {channelConfig[channel].label}
+              </p>
               <p className="text-sm text-muted-foreground mb-6">
-                Syncs your last 24 hours of WhatsApp messages and extracts order details automatically.
+                {channelConfig[channel].description}
               </p>
 
               <motion.button
@@ -115,27 +155,23 @@ export default function AutoImport() {
                 className="w-full bg-primary text-primary-foreground rounded-2xl py-4 font-medium text-base shadow-lift flex items-center justify-center gap-2"
               >
                 <Sparkles className="w-5 h-5" />
-                Import Now
+                Import from {channelConfig[channel].label}
               </motion.button>
 
-              <p className="text-xs text-muted-foreground mt-4">
-                Last synced: {lastSync}
-              </p>
+              <p className="text-xs text-muted-foreground mt-4">Last synced: {lastSync}</p>
             </div>
 
             <div className="bg-accent/5 border border-accent/20 rounded-2xl p-4">
               <p className="text-xs text-accent-foreground/70 font-medium mb-2">HOW IT WORKS</p>
               <div className="space-y-2">
                 {[
-                  'Reads your WhatsApp conversations',
+                  `Reads your ${channelConfig[channel].label} messages`,
                   'AI extracts cake, date, price & more',
                   'Flags anything that needs your review',
-                  'Creates orders with one tap'
+                  'Creates orders with one tap',
                 ].map((step, i) => (
                   <div key={i} className="flex items-center gap-2.5 text-sm text-foreground/80">
-                    <span className="w-5 h-5 rounded-full bg-accent/20 text-accent-foreground flex items-center justify-center text-xs font-semibold">
-                      {i + 1}
-                    </span>
+                    <span className="w-5 h-5 rounded-full bg-accent/20 text-accent-foreground flex items-center justify-center text-xs font-semibold">{i + 1}</span>
                     {step}
                   </div>
                 ))}
@@ -144,103 +180,71 @@ export default function AutoImport() {
           </motion.div>
         )}
 
-        {/* STATE 2: PROCESSING */}
+        {/* PROCESSING */}
         {phase === 'processing' && (
-          <motion.div
-            key="processing"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="flex flex-col items-center justify-center min-h-[70vh]"
-          >
+          <motion.div key="processing" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="flex flex-col items-center justify-center min-h-[70vh]">
             <div className="relative mb-8">
-              <motion.div
-                animate={{ rotate: 360 }}
-                transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
-                className="w-24 h-24 rounded-full border-4 border-primary/10 border-t-primary"
-              />
+              <motion.div animate={{ rotate: 360 }} transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+                className="w-24 h-24 rounded-full border-4 border-primary/10 border-t-primary" />
               <div className="absolute inset-0 flex items-center justify-center">
-                <Sparkles className="w-8 h-8 text-primary" />
+                {channel === 'instagram'
+                  ? <Instagram className="w-8 h-8 text-primary" />
+                  : <MessageCircle className="w-8 h-8 text-primary" />
+                }
               </div>
             </div>
-
             <h2 className="font-heading text-2xl font-bold text-foreground mb-1">Finding orders...</h2>
             <p className="text-sm text-muted-foreground mb-8">Do not close this screen</p>
-
             <div className="w-full max-w-sm space-y-3">
               {processingSteps.map((step, i) => (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{
-                    opacity: i <= stepIndex ? 1 : 0.3,
-                    x: 0
-                  }}
+                <motion.div key={i} initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: i <= stepIndex ? 1 : 0.3, x: 0 }}
                   transition={{ duration: 0.3 }}
-                  className="flex items-center gap-3"
-                >
+                  className="flex items-center gap-3">
                   <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${
                     i < stepIndex ? 'bg-success text-success-foreground' :
                     i === stepIndex ? 'bg-primary text-primary-foreground' : 'bg-muted'
                   }`}>
-                    {i < stepIndex ? (
-                      <Check className="w-3.5 h-3.5" />
-                    ) : i === stepIndex ? (
-                      <motion.div
-                        animate={{ scale: [1, 0.8, 1] }}
-                        transition={{ duration: 0.8, repeat: Infinity }}
-                        className="w-2 h-2 rounded-full bg-current"
-                      />
-                    ) : (
-                      <span className="w-2 h-2 rounded-full bg-muted-foreground/40" />
-                    )}
+                    {i < stepIndex ? <Check className="w-3.5 h-3.5" />
+                      : i === stepIndex ? (
+                        <motion.div animate={{ scale: [1, 0.8, 1] }} transition={{ duration: 0.8, repeat: Infinity }}
+                          className="w-2 h-2 rounded-full bg-current" />
+                      ) : <span className="w-2 h-2 rounded-full bg-muted-foreground/40" />}
                   </div>
-                  <span className={`text-sm ${i <= stepIndex ? 'text-foreground' : 'text-muted-foreground'}`}>
-                    {step}
-                  </span>
+                  <span className={`text-sm ${i <= stepIndex ? 'text-foreground' : 'text-muted-foreground'}`}>{step}</span>
                 </motion.div>
               ))}
             </div>
           </motion.div>
         )}
 
-        {/* STATE 3: RESULTS */}
+        {/* RESULTS */}
         {phase === 'results' && (
-          <motion.div
-            key="results"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
+          <motion.div key="results" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
             <div className="flex items-center gap-2 mb-1">
               <div className="w-7 h-7 rounded-full bg-success flex items-center justify-center">
                 <Check className="w-4 h-4 text-success-foreground" />
               </div>
               <span className="text-sm font-medium text-success">Import complete</span>
+              <span className="ml-auto text-xs text-muted-foreground flex items-center gap-1">
+                {channel === 'instagram' ? <Instagram className="w-3.5 h-3.5" /> : <MessageCircle className="w-3.5 h-3.5" />}
+                {channelConfig[channel].label}
+              </span>
             </div>
-            <h1 className="font-heading text-3xl font-bold text-foreground mb-1">
-              Found {results.length} orders
-            </h1>
+            <h1 className="font-heading text-3xl font-bold text-foreground mb-1">Found {results.length} orders</h1>
             <p className="text-sm text-muted-foreground mb-6">Review and confirm to add them to your dashboard</p>
 
-            {/* Ready to Book */}
             <h2 className="font-heading text-lg font-semibold text-foreground mb-3 flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-success" />
-              Ready to Book
+              <span className="w-2 h-2 rounded-full bg-success" /> Ready to Book
             </h2>
             <div className="space-y-3 mb-6">
-              {results.filter(r => !r.needsReview).map((order, i) => {
+              {results.filter(r => !r.needsReview).map((order) => {
                 const idx = results.indexOf(order);
-                return (
-                  <ExtractedCard
-                    key={idx}
-                    order={order}
-                    onEdit={() => setEditingIdx(idx)}
-                  />
-                );
+                return <ExtractedCard key={idx} order={order} channel={channel} onEdit={() => setEditingIdx(idx)} />;
               })}
             </div>
 
-            {/* Needs Review */}
             {results.filter(r => r.needsReview).length > 0 && (
               <>
                 <h2 className="font-heading text-lg font-semibold text-foreground mb-3 flex items-center gap-2">
@@ -250,61 +254,36 @@ export default function AutoImport() {
                 <div className="space-y-3 mb-6">
                   {results.filter(r => r.needsReview).map((order) => {
                     const idx = results.indexOf(order);
-                    return (
-                      <ExtractedCard
-                        key={idx}
-                        order={order}
-                        needsReview
-                        isReviewed={reviewed.has(idx)}
-                        onEdit={() => setEditingIdx(idx)}
-                      />
-                    );
+                    return <ExtractedCard key={idx} order={order} channel={channel} needsReview isReviewed={reviewed.has(idx)} onEdit={() => setEditingIdx(idx)} />;
                   })}
                 </div>
               </>
             )}
 
-            <motion.button
-              whileTap={{ scale: 0.97 }}
-              disabled={!allReviewed}
-              onClick={confirmAndCreate}
+            <motion.button whileTap={{ scale: 0.97 }} disabled={!allReviewed} onClick={confirmAndCreate}
               className={`w-full rounded-2xl py-4 font-medium text-base flex items-center justify-center gap-2 transition-all ${
-                allReviewed
-                  ? 'bg-primary text-primary-foreground shadow-lift'
-                  : 'bg-muted text-muted-foreground'
-              }`}
-            >
+                allReviewed ? 'bg-primary text-primary-foreground shadow-lift' : 'bg-muted text-muted-foreground'
+              }`}>
               <Check className="w-5 h-5" />
               {allReviewed ? 'Confirm & Create Orders' : 'Review flagged orders first'}
             </motion.button>
             {!allReviewed && (
-              <p className="text-xs text-center text-muted-foreground mt-2">
-                Edit the flagged orders to confirm their details
-              </p>
+              <p className="text-xs text-center text-muted-foreground mt-2">Edit the flagged orders to confirm their details</p>
             )}
           </motion.div>
         )}
 
-        {/* STATE 4: DONE */}
+        {/* DONE */}
         {phase === 'done' && (
-          <motion.div
-            key="done"
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="flex flex-col items-center justify-center min-h-[70vh]"
-          >
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
+          <motion.div key="done" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
+            className="flex flex-col items-center justify-center min-h-[70vh]">
+            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}
               transition={{ type: 'spring', stiffness: 200, delay: 0.1 }}
-              className="w-24 h-24 rounded-full bg-success flex items-center justify-center mb-6"
-            >
+              className="w-24 h-24 rounded-full bg-success flex items-center justify-center mb-6">
               <Check className="w-12 h-12 text-success-foreground" strokeWidth={3} />
             </motion.div>
             <h2 className="font-heading text-2xl font-bold text-foreground mb-1">Orders created!</h2>
-            <p className="text-sm text-muted-foreground">
-              {results.length} orders added to your dashboard
-            </p>
+            <p className="text-sm text-muted-foreground">{results.length} orders added to your dashboard</p>
           </motion.div>
         )}
       </AnimatePresence>
@@ -329,20 +308,19 @@ export default function AutoImport() {
   );
 }
 
-function ExtractedCard({ order, needsReview, isReviewed, onEdit }) {
+function ExtractedCard({ order, channel, needsReview, isReviewed, onEdit }) {
+  const isInstagram = channel === 'instagram' || order.source === 'instagram';
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      className={`bg-card rounded-2xl p-4 shadow-soft border ${
-        needsReview ? 'border-warning/30' : 'border-border/50'
-      }`}
-    >
+    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+      className={`bg-card rounded-2xl p-4 shadow-soft border ${needsReview ? 'border-warning/30' : 'border-border/50'}`}>
       <div className="flex items-start justify-between gap-2 mb-3">
         <div className="flex-1 min-w-0">
-          <h3 className="font-heading font-semibold text-lg text-foreground truncate">
-            {order.customer_name}
-          </h3>
+          <div className="flex items-center gap-2 mb-0.5">
+            <h3 className="font-heading font-semibold text-lg text-foreground truncate">{order.customer_name}</h3>
+            {isInstagram && order.instagram_handle && (
+              <span className="text-[10px] text-muted-foreground">{order.instagram_handle}</span>
+            )}
+          </div>
           <p className="text-sm text-muted-foreground truncate">{order.cake_type}</p>
         </div>
         {needsReview ? (
@@ -356,9 +334,15 @@ function ExtractedCard({ order, needsReview, isReviewed, onEdit }) {
         )}
       </div>
 
+      {order.preview && (
+        <div className="mb-3 bg-muted/50 rounded-xl px-3 py-2.5 text-xs text-muted-foreground italic leading-relaxed border border-border/30">
+          "{order.preview.length > 100 ? order.preview.slice(0, 100) + '…' : order.preview}"
+        </div>
+      )}
+
       <div className="space-y-1.5 text-sm">
         <DetailRow icon={<Cake className="w-3.5 h-3.5" />} label="Cake" value={order.weight ? `${order.cake_type} · ${order.weight}` : order.cake_type} missing={needsReview && !order.weight} />
-        <DetailRow icon={<Calendar className="w-3.5 h-3.5" />} label="Delivery" value={order.delivery_date ? `${formatDeliveryDate(order.delivery_date)} · ${order.delivery_time || ''}` : null} missing={needsReview && !order.delivery_date} />
+        <DetailRow icon={<Calendar className="w-3.5 h-3.5" />} label="Delivery" value={order.delivery_date ? `${formatDeliveryDate(order.delivery_date)}${order.delivery_time ? ` · ${order.delivery_time}` : ''}` : null} missing={needsReview && !order.delivery_date} />
         <DetailRow icon={<MapPin className="w-3.5 h-3.5" />} label="Type" value={order.delivery_type === 'delivery' ? 'Home Delivery' : 'Pickup'} />
         <DetailRow icon={<span className="text-xs">💰</span>} label="Price" value={order.price ? formatPKR(order.price) : null} missing={needsReview && !order.price} />
         {order.customer_phone && <DetailRow icon={<Phone className="w-3.5 h-3.5" />} label="Phone" value={order.customer_phone} />}
@@ -372,6 +356,10 @@ function ExtractedCard({ order, needsReview, isReviewed, onEdit }) {
 
       <div className="mt-3 pt-3 border-t border-border/50 flex items-center justify-between">
         <ConfidenceBadge confidence={order.confidence} />
+        <span className={`flex items-center gap-1 text-[10px] font-medium ${isInstagram ? 'text-[#E1306C]' : 'text-[#25D366]'}`}>
+          {isInstagram ? <Instagram className="w-3 h-3" /> : <MessageCircle className="w-3 h-3" />}
+          {isInstagram ? 'Instagram DM' : 'WhatsApp'}
+        </span>
       </div>
     </motion.div>
   );
@@ -387,7 +375,7 @@ function DetailRow({ icon, label, value, missing }) {
           <AlertCircle className="w-3 h-3" /> Missing
         </span>
       ) : (
-        <span className="text-foreground text-sm">{value}</span>
+        <span className="text-foreground text-sm">{value || '—'}</span>
       )}
     </div>
   );
@@ -395,32 +383,21 @@ function DetailRow({ icon, label, value, missing }) {
 
 function EditModal({ order, onClose, onSave }) {
   const [form, setForm] = useState({ ...order });
-
   const update = (field, value) => setForm(prev => ({ ...prev, [field]: value }));
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      onClick={onClose}
-      className="fixed inset-0 z-50 bg-foreground/40 flex items-end justify-center"
-    >
-      <motion.div
-        initial={{ y: '100%' }}
-        animate={{ y: 0 }}
-        exit={{ y: '100%' }}
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      onClick={onClose} className="fixed inset-0 z-50 bg-foreground/40 flex items-end justify-center">
+      <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
         transition={{ type: 'spring', damping: 30, stiffness: 300 }}
         onClick={e => e.stopPropagation()}
-        className="bg-card w-full max-w-md rounded-t-3xl p-6 max-h-[85vh] overflow-y-auto"
-      >
+        className="bg-card w-full max-w-md rounded-t-3xl p-6 max-h-[85vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-heading text-xl font-semibold">Edit Order Details</h3>
           <button onClick={onClose} className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
             <X className="w-4 h-4" />
           </button>
         </div>
-
         <div className="space-y-4">
           <Field label="Customer Name" value={form.customer_name} onChange={v => update('customer_name', v)} />
           <Field label="Phone" value={form.customer_phone || ''} onChange={v => update('customer_phone', v)} />
@@ -432,12 +409,10 @@ function EditModal({ order, onClose, onSave }) {
           <Field label="Delivery Date" value={form.delivery_date || ''} onChange={v => update('delivery_date', v)} type="date" />
           <Field label="Delivery Time" value={form.delivery_time || ''} onChange={v => update('delivery_time', v)} placeholder="3:00 PM" />
           <Field label="Design Notes" value={form.design_notes || ''} onChange={v => update('design_notes', v)} />
+          <Field label="Special Requests" value={form.special_requests || ''} onChange={v => update('special_requests', v)} />
         </div>
-
-        <button
-          onClick={() => onSave(form)}
-          className="w-full mt-6 bg-primary text-primary-foreground rounded-2xl py-3.5 font-medium"
-        >
+        <button onClick={() => onSave(form)}
+          className="w-full mt-6 bg-primary text-primary-foreground rounded-2xl py-3.5 font-medium">
           Save & Confirm
         </button>
       </motion.div>
@@ -449,13 +424,8 @@ function Field({ label, value, onChange, type = 'text', placeholder }) {
   return (
     <div>
       <label className="text-xs font-medium text-muted-foreground mb-1.5 block">{label}</label>
-      <input
-        type={type}
-        value={value || ''}
-        onChange={e => onChange(e.target.value)}
-        placeholder={placeholder}
-        className="w-full bg-input rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-primary/30"
-      />
+      <input type={type} value={value || ''} onChange={e => onChange(e.target.value)} placeholder={placeholder}
+        className="w-full bg-input rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-primary/30" />
     </div>
   );
 }

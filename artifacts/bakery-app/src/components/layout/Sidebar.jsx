@@ -1,12 +1,13 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import { Home, ClipboardList, Calendar, User, Sparkles, LogOut, MessageCircle, Cake } from 'lucide-react';
+import { Home, ClipboardList, Calendar, User, Sparkles, LogOut, MessageCircle, Cake, Users } from 'lucide-react';
 
 const navItems = [
   { to: '/', icon: Home, label: 'Dashboard', end: true },
   { to: '/orders', icon: ClipboardList, label: 'Orders' },
   { to: '/auto-import', icon: Sparkles, label: 'Auto-Import' },
+  { to: '/customers', icon: Users, label: 'Customers' },
   { to: '/calendar', icon: Calendar, label: 'Calendar' },
-  { to: '/profile', icon: User, label: 'Profile' }
+  { to: '/profile', icon: User, label: 'Profile' },
 ];
 
 export default function Sidebar() {

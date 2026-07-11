@@ -1,13 +1,13 @@
 import { NavLink } from 'react-router-dom';
-import { Home, ClipboardList, Calendar, User, Sparkles } from 'lucide-react';
+import { Home, ClipboardList, Users, Sparkles, User } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const navItems = [
   { to: '/', icon: Home, label: 'Home' },
   { to: '/orders', icon: ClipboardList, label: 'Orders' },
   { to: '/auto-import', icon: Sparkles, label: 'Import', isCenter: true },
-  { to: '/calendar', icon: Calendar, label: 'Calendar' },
-  { to: '/profile', icon: User, label: 'Profile' }
+  { to: '/customers', icon: Users, label: 'Customers' },
+  { to: '/profile', icon: User, label: 'Profile' },
 ];
 
 export default function BottomNav() {

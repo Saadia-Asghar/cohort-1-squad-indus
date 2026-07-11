@@ -13,6 +13,7 @@ import OrderDetail from './pages/OrderDetail';
 import Calendar from './pages/Calendar';
 import Profile from './pages/Profile';
 import NewOrder from './pages/NewOrder';
+import Customers from './pages/Customers';
 
 function App() {
   return (
@@ -28,6 +29,7 @@ function App() {
               <Route path="/orders" element={<Orders />} />
               <Route path="/auto-import" element={<AutoImport />} />
               <Route path="/calendar" element={<Calendar />} />
+              <Route path="/customers" element={<Customers />} />
               <Route path="/profile" element={<Profile />} />
             </Route>
             <Route path="*" element={<PageNotFound />} />

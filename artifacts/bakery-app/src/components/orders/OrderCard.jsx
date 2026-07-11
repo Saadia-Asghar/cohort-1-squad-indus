@@ -1,10 +1,17 @@
 import { Link } from 'react-router-dom';
-import { MapPin, Clock, Cake } from 'lucide-react';
+import { MapPin, Cake, MessageCircle, Instagram, Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { StatusBadge, PaymentBadge } from './StatusBadge';
 import { formatDeliveryDate, formatPKR } from '@/lib/utils';
 
+const SOURCE_ICON = {
+  whatsapp: { icon: MessageCircle, color: 'text-[#25D366]', label: 'WhatsApp' },
+  instagram: { icon: Instagram, color: 'text-[#E1306C]', label: 'Instagram' },
+  auto_import: { icon: Sparkles, color: 'text-primary', label: 'AI Import' },
+};
+
 export default function OrderCard({ order, index = 0 }) {
+  const src = SOURCE_ICON[order.source];
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
@@ -33,7 +40,6 @@ export default function OrderCard({ order, index = 0 }) {
 
           <div className="flex items-center gap-3 text-sm text-muted-foreground mb-3">
             <span className="flex items-center gap-1.5">
-              <Clock className="w-3.5 h-3.5" />
               {formatDeliveryDate(order.delivery_date)}
               {order.delivery_time && ` · ${order.delivery_time}`}
             </span>
@@ -44,13 +50,20 @@ export default function OrderCard({ order, index = 0 }) {
               <StatusBadge status={order.status} />
               {order.payment_status !== 'paid' && <PaymentBadge status={order.payment_status} />}
             </div>
-            <span className="flex items-center gap-1 text-xs text-muted-foreground">
-              {order.delivery_type === 'delivery' ? (
-                <><MapPin className="w-3.5 h-3.5" /> Delivery</>
-              ) : (
-                <><MapPin className="w-3.5 h-3.5" /> Pickup</>
+            <div className="flex items-center gap-2">
+              {src && (
+                <span className={`flex items-center gap-0.5 text-[10px] font-medium ${src.color}`}>
+                  <src.icon className="w-3 h-3" />
+                </span>
               )}
-            </span>
+              <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                {order.delivery_type === 'delivery' ? (
+                  <><MapPin className="w-3.5 h-3.5" /> Delivery</>
+                ) : (
+                  <><MapPin className="w-3.5 h-3.5" /> Pickup</>
+                )}
+              </span>
+            </div>
           </div>
         </div>
       </Link>
