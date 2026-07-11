@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bot, Save, Plus, Trash2, Sparkles, Check, BookOpen, MapPin, CreditCard, Clock, ChevronDown, ChevronUp } from 'lucide-react';
+import { Bot, Save, Plus, Trash2, Sparkles, Check, BookOpen, MapPin, CreditCard, Clock, ToggleLeft, ToggleRight } from 'lucide-react';
 import { AgentApi } from '@/api/agentApi';
+
+const UNITS = ['per piece', 'per dozen', 'per box', 'per tray', 'per kg', 'per 500g', 'per slice', 'per cake'];
 
 const defaultKnowledge = {
   bakerName: 'Zara Ahmed',
@@ -16,12 +18,14 @@ const defaultKnowledge = {
   menu: [],
 };
 
+const emptyItem = () => ({ name: '', price: '', unit: 'per piece', description: '', eggless: false, available: true });
+
 export default function AgentHub() {
   const [form, setForm] = useState(defaultKnowledge);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [section, setSection] = useState('menu'); // menu | delivery | payment | policies
+  const [section, setSection] = useState('menu');
 
   useEffect(() => {
     AgentApi.getKnowledge().then(k => {
@@ -35,27 +39,24 @@ export default function AgentHub() {
         paymentMethods: k.paymentMethods || '',
         businessHours: k.businessHours || '',
         customPolicies: k.customPolicies || '',
-        menu: Array.isArray(k.menu) ? k.menu : [],
+        menu: Array.isArray(k.menu) ? k.menu.map(item => ({
+          ...emptyItem(),
+          ...item,
+        })) : [],
       });
       setLoading(false);
     }).catch(() => setLoading(false));
   }, []);
 
   const update = (k, v) => setForm(p => ({ ...p, [k]: v }));
-
-  const addMenuItem = () => {
-    setForm(p => ({ ...p, menu: [...p.menu, { name: '', price: '', description: '', eggless: false }] }));
-  };
-
+  const addMenuItem = () => setForm(p => ({ ...p, menu: [...p.menu, emptyItem()] }));
   const updateMenuItem = (i, field, value) => {
     const menu = [...form.menu];
     menu[i] = { ...menu[i], [field]: value };
     setForm(p => ({ ...p, menu }));
   };
-
-  const removeMenuItem = (i) => {
-    setForm(p => ({ ...p, menu: p.menu.filter((_, idx) => idx !== i) }));
-  };
+  const removeMenuItem = (i) => setForm(p => ({ ...p, menu: p.menu.filter((_, idx) => idx !== i) }));
+  const toggleAvailable = (i) => updateMenuItem(i, 'available', !form.menu[i].available);
 
   const save = async () => {
     setSaving(true);
@@ -63,9 +64,7 @@ export default function AgentHub() {
       await AgentApi.saveKnowledge(form);
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
-    } catch (e) {
-      console.error(e);
-    }
+    } catch (e) { console.error(e); }
     setSaving(false);
   };
 
@@ -83,6 +82,8 @@ export default function AgentHub() {
     { id: 'payment', icon: CreditCard, label: 'Payment & Hours' },
     { id: 'policies', icon: Sparkles, label: 'Custom Policies' },
   ];
+
+  const availableCount = form.menu.filter(i => i.available).length;
 
   return (
     <div className="px-5 pt-6 pb-24 lg:px-8 lg:pt-8 lg:pb-8 max-w-2xl">
@@ -127,37 +128,74 @@ export default function AgentHub() {
         {section === 'menu' && (
           <motion.div key="menu" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}>
             <div className="bg-card rounded-2xl p-5 border border-border/50 shadow-soft">
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center justify-between mb-1">
                 <h2 className="font-heading font-semibold text-foreground">Menu Items</h2>
                 <button onClick={addMenuItem}
                   className="flex items-center gap-1.5 text-xs font-medium text-primary bg-primary/10 px-3 py-1.5 rounded-full">
                   <Plus className="w-3.5 h-3.5" /> Add Item
                 </button>
               </div>
+              {form.menu.length > 0 && (
+                <p className="text-xs text-muted-foreground mb-4">
+                  {availableCount} of {form.menu.length} items available to customers
+                </p>
+              )}
               {form.menu.length === 0 ? (
                 <div className="text-center py-8">
                   <BookOpen className="w-8 h-8 text-muted-foreground/30 mx-auto mb-2" />
                   <p className="text-sm text-muted-foreground">No menu items yet</p>
-                  <p className="text-xs text-muted-foreground/70 mt-1">Add your cakes, cupcakes, and prices</p>
+                  <p className="text-xs text-muted-foreground/70 mt-1">Add your cakes, cupcakes, cookies and prices</p>
                 </div>
               ) : (
                 <div className="space-y-4">
                   {form.menu.map((item, i) => (
                     <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-                      className="bg-muted/40 rounded-xl p-4 border border-border/30">
-                      <div className="flex items-start gap-2 mb-3">
-                        <div className="flex-1 grid grid-cols-2 gap-2">
-                          <Field label="Item Name" value={item.name} onChange={v => updateMenuItem(i, 'name', v)} placeholder="Chocolate Truffle Cake" />
-                          <Field label="Price (PKR)" value={item.price} onChange={v => updateMenuItem(i, 'price', v)} placeholder="4500" />
-                        </div>
-                        <button onClick={() => removeMenuItem(i)} className="w-8 h-8 flex items-center justify-center rounded-full bg-danger/10 text-danger mt-5 flex-shrink-0">
-                          <Trash2 className="w-3.5 h-3.5" />
+                      className={`rounded-xl p-4 border transition-colors ${item.available ? 'bg-muted/40 border-border/30' : 'bg-muted/20 border-border/20 opacity-60'}`}>
+                      {/* Availability toggle + remove */}
+                      <div className="flex items-center justify-between mb-3">
+                        <button onClick={() => toggleAvailable(i)}
+                          className={`flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full transition-colors ${
+                            item.available ? 'bg-success/15 text-success' : 'bg-muted text-muted-foreground'
+                          }`}>
+                          {item.available
+                            ? <><ToggleRight className="w-3.5 h-3.5" /> Available</>
+                            : <><ToggleLeft className="w-3.5 h-3.5" /> Unavailable</>}
+                        </button>
+                        <button onClick={() => removeMenuItem(i)}
+                          className="w-7 h-7 flex items-center justify-center rounded-full bg-danger/10 text-danger">
+                          <Trash2 className="w-3 h-3" />
                         </button>
                       </div>
-                      <Field label="Description (optional)" value={item.description || ''} onChange={v => updateMenuItem(i, 'description', v)} placeholder="Sizes available: 1kg, 1.5kg, 2kg" />
-                      <label className="flex items-center gap-2 mt-3 cursor-pointer">
-                        <div onClick={() => updateMenuItem(i, 'eggless', !item.eggless)}
-                          className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${item.eggless ? 'bg-primary border-primary' : 'border-border'}`}>
+
+                      {/* Name + Unit row */}
+                      <div className="grid grid-cols-2 gap-2 mb-2">
+                        <Field label="Item Name" value={item.name} onChange={v => updateMenuItem(i, 'name', v)} placeholder="Chocolate Cupcakes" />
+                        <div>
+                          <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Sold By</label>
+                          <select value={item.unit || 'per piece'} onChange={e => updateMenuItem(i, 'unit', e.target.value)}
+                            className="w-full bg-input rounded-xl px-3 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30">
+                            {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
+                          </select>
+                        </div>
+                      </div>
+
+                      {/* Price */}
+                      <div className="mb-2">
+                        <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
+                          Price (PKR) <span className="text-muted-foreground/60">{item.unit ? `— ${item.unit}` : ''}</span>
+                        </label>
+                        <input value={item.price || ''} onChange={e => updateMenuItem(i, 'price', e.target.value)}
+                          placeholder="450"
+                          className="w-full bg-input rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-primary/30" />
+                      </div>
+
+                      {/* Description */}
+                      <Field label="Description (optional)" value={item.description || ''} onChange={v => updateMenuItem(i, 'description', v)}
+                        placeholder="e.g. Available in chocolate, red velvet, vanilla" />
+
+                      {/* Eggless */}
+                      <label className="flex items-center gap-2 mt-3 cursor-pointer" onClick={() => updateMenuItem(i, 'eggless', !item.eggless)}>
+                        <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${item.eggless ? 'bg-primary border-primary' : 'border-border'}`}>
                           {item.eggless && <Check className="w-2.5 h-2.5 text-white" />}
                         </div>
                         <span className="text-xs text-muted-foreground">Eggless option available</span>
@@ -219,18 +257,18 @@ export default function AgentHub() {
       <div className="mt-4 bg-accent/5 border border-accent/20 rounded-2xl p-4">
         <p className="text-xs font-medium text-accent-foreground/70 mb-1.5">HOW THE AGENT USES THIS</p>
         <p className="text-xs text-muted-foreground leading-relaxed">
-          Your AI agent reads this knowledge every time a customer asks a question. It will only answer based on what you've written here — it will never invent prices or items. Customers can also place orders through the chat.
+          Your AI agent reads this knowledge every time a customer chats. It only offers <strong>available</strong> items and never invents prices. Mark items unavailable when they're sold out — customers won't see them.
         </p>
       </div>
     </div>
   );
 }
 
-function Field({ label, value, onChange, placeholder, type = 'text' }) {
+function Field({ label, value, onChange, placeholder }) {
   return (
     <div>
       <label className="text-xs font-medium text-muted-foreground mb-1.5 block">{label}</label>
-      <input type={type} value={value || ''} onChange={e => onChange(e.target.value)} placeholder={placeholder}
+      <input value={value || ''} onChange={e => onChange(e.target.value)} placeholder={placeholder}
         className="w-full bg-input rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-primary/30" />
     </div>
   );

@@ -38,9 +38,7 @@ export default function AgentChat({ onOrderCreated }) {
     setMessages(prev => [...prev, userMsg]);
     setTyping(true);
 
-    const history = messages.filter(m => m.role !== 'system').map(m => ({ role: m.role, content: m.content }));
-
-    // Streaming assistant message
+    // Streaming assistant message — history is now read from DB server-side
     let assistantText = '';
     setMessages(prev => [...prev, { role: 'assistant', content: '', streaming: true }]);
 
@@ -48,7 +46,6 @@ export default function AgentChat({ onOrderCreated }) {
       const result = await AgentApi.chat({
         sessionId,
         message: text,
-        history,
         onChunk: (chunk) => {
           assistantText += chunk;
           // Strip ORDER_JSON line from displayed text

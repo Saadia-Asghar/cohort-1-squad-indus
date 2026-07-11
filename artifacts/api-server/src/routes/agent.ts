@@ -9,7 +9,6 @@ const router: IRouter = Router();
 router.get("/agent/knowledge", async (_req, res): Promise<void> => {
   const rows = await db.select().from(bakerKnowledgeTable).limit(1);
   if (rows.length === 0) {
-    // Return sensible defaults
     res.json({
       id: null,
       bakerName: "Zara Ahmed",
@@ -69,12 +68,11 @@ router.post("/agent/knowledge", async (req, res): Promise<void> => {
 });
 
 // ── POST /agent/chat ─────────────────────────────────────────────────────────
-// Streaming SSE endpoint — sends chunks then a final {done,order?} event
+// Stateful SSE streaming: history is loaded from DB, not trusted from frontend
 router.post("/agent/chat", async (req, res): Promise<void> => {
-  const { sessionId, message, history } = req.body as {
+  const { sessionId, message } = req.body as {
     sessionId: string;
     message: string;
-    history: Array<{ role: "user" | "assistant"; content: string }>;
   };
 
   if (!sessionId || !message) {
@@ -82,61 +80,66 @@ router.post("/agent/chat", async (req, res): Promise<void> => {
     return;
   }
 
+  // Load conversation history from DB (memory-based, not stateless)
+  const sessionRows = await db.select().from(chatSessionsTable).where(eq(chatSessionsTable.sessionId, sessionId)).limit(1);
+  const dbHistory = (sessionRows[0]?.messages ?? []) as Array<{ role: "user" | "assistant"; content: string }>;
+
   // Load baker knowledge
   const knowledgeRows = await db.select().from(bakerKnowledgeTable).limit(1);
-  const knowledge = knowledgeRows[0] ?? {
-    bakerName: "Zara Ahmed",
-    businessName: "Sweet Tooth",
-    deliveryArea: "DHA, Gulberg, Defence",
-    deliveryFee: "PKR 200",
-    minimumOrder: "PKR 2000",
-    paymentMethods: "COD, JazzCash, Easypaisa",
-    businessHours: "Mon–Sat 10am–9pm",
-    customPolicies: "",
-    menu: [],
-  };
+  const knowledge = knowledgeRows[0];
+
+  // Build menu text — only include AVAILABLE items
+  type MenuItem = { name: string; price: string; unit?: string; description?: string; eggless?: boolean; available?: boolean };
+  const allMenu = Array.isArray(knowledge?.menu) ? (knowledge.menu as MenuItem[]) : [];
+  const availableMenu = allMenu.filter(item => item.available !== false);
 
   const menuText =
-    Array.isArray(knowledge.menu) && (knowledge.menu as object[]).length > 0
-      ? (knowledge.menu as Array<{ name: string; price: string; description?: string }>)
-          .map((item) => `• ${item.name} — PKR ${item.price}${item.description ? ` (${item.description})` : ""}`)
+    availableMenu.length > 0
+      ? availableMenu
+          .map(item => {
+            const unit = item.unit || "per piece";
+            const egglessNote = item.eggless ? " ✓ eggless available" : "";
+            const desc = item.description ? ` — ${item.description}` : "";
+            return `• ${item.name}: PKR ${item.price} ${unit}${egglessNote}${desc}`;
+          })
           .join("\n")
-      : "Menu not configured yet.";
+      : "Menu not configured yet. Please ask the baker for details.";
 
-  const systemPrompt = `You are the AI order-taking assistant for ${knowledge.businessName}, run by ${knowledge.bakerName}.
+  const unavailableItems = allMenu.filter(item => item.available === false).map(i => i.name);
 
-You ONLY answer based on the information below. Never make up prices or items not in the menu.
+  const systemPrompt = `You are the AI order-taking assistant for ${knowledge?.businessName ?? "Sweet Tooth"}, run by ${knowledge?.bakerName ?? "Zara"}.
 
-MENU:
+You answer ONLY based on the information provided below. Never invent items, prices, or flavors not listed.
+
+AVAILABLE MENU (only offer these):
 ${menuText}
 
+${unavailableItems.length > 0 ? `CURRENTLY UNAVAILABLE (do NOT offer or take orders for these): ${unavailableItems.join(", ")}` : ""}
+
 DELIVERY:
-- Area: ${knowledge.deliveryArea || "Contact baker for details"}
-- Fee: ${knowledge.deliveryFee || "Contact baker for details"}
-- Minimum order: ${knowledge.minimumOrder || "No minimum"}
+- Area: ${knowledge?.deliveryArea || "Contact baker for details"}
+- Fee: ${knowledge?.deliveryFee || "Contact baker"}
+- Minimum order: ${knowledge?.minimumOrder || "No minimum"}
 
-PAYMENT: ${knowledge.paymentMethods || "COD"}
-HOURS: ${knowledge.businessHours || "Contact baker"}
-${knowledge.customPolicies ? `POLICIES:\n${knowledge.customPolicies}` : ""}
+PAYMENT: ${knowledge?.paymentMethods || "COD"}
+HOURS: ${knowledge?.businessHours || "Contact baker"}
+${knowledge?.customPolicies ? `\nPOLICIES:\n${knowledge.customPolicies}` : ""}
 
-TAKING ORDERS:
+ORDERING:
 When a customer wants to place an order, collect:
 1. Their name
-2. Cake type and size/weight
+2. What they want (item + quantity — use the item's unit, e.g. "2 dozen cupcakes", "1 chocolate cake per kg")
 3. Delivery date and time
-4. Delivery address (if delivery) or confirm pickup
-5. Any special requests (eggless, allergy, design notes)
+4. Delivery address OR confirm pickup
+5. Any special requests (flavors, design, allergies)
 6. Phone number
 
-Once you have all details, output EXACTLY this JSON block (nothing before or after on that line):
+Once you have all details confirmed, output EXACTLY this on its own line:
 ORDER_JSON:{"customerName":"...","cakeType":"...","weight":"...","deliveryDate":"YYYY-MM-DD","deliveryTime":"...","deliveryType":"delivery or pickup","specialRequests":"...","customerPhone":"...","price":0,"source":"agent"}
 
-Set price=0 if not confirmed yet. The baker will confirm the price.
+Set price=0; the baker confirms the final price. Use "cakeType" for the full item description (e.g. "Chocolate Cupcakes x24").
 
-DELIVERY NOTIFICATIONS:
-If the baker marks an order as delivered, send a warm confirmation message to the customer.
-
-Keep your tone warm, friendly, and professional. Use Urdu words naturally (e.g., "Ji", "Shukriya", "Insha'Allah"). Keep responses concise.`;
+Keep tone warm and friendly. Use Urdu naturally (Ji, Shukriya, Zaroor). Respond concisely.`;
 
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");
@@ -144,7 +147,7 @@ Keep your tone warm, friendly, and professional. Use Urdu words naturally (e.g.,
 
   const chatMessages: Array<{ role: "system" | "user" | "assistant"; content: string }> = [
     { role: "system", content: systemPrompt },
-    ...(history || []).slice(-10), // last 10 turns for context
+    ...dbHistory.slice(-12), // last 12 turns from DB
     { role: "user", content: message },
   ];
 
@@ -166,7 +169,7 @@ Keep your tone warm, friendly, and professional. Use Urdu words naturally (e.g.,
       }
     }
 
-    // Check if the response contains an order JSON
+    // Check for order in response
     const orderMatch = fullResponse.match(/ORDER_JSON:(\{.+\})/);
     let createdOrder: object | null = null;
 
@@ -178,7 +181,7 @@ Keep your tone warm, friendly, and professional. Use Urdu words naturally (e.g.,
           .values({
             customerName: orderData.customerName ?? "Unknown",
             customerPhone: orderData.customerPhone ?? null,
-            cakeType: orderData.cakeType ?? "Custom Cake",
+            cakeType: orderData.cakeType ?? "Custom Order",
             weight: orderData.weight ?? null,
             deliveryDate: orderData.deliveryDate ?? null,
             deliveryTime: orderData.deliveryTime ?? null,
@@ -197,13 +200,26 @@ Keep your tone warm, friendly, and professional. Use Urdu words naturally (e.g.,
       }
     }
 
-    // Save session
-    const messages = [...(history || []), { role: "user", content: message }, { role: "assistant", content: fullResponse }];
-    const existing = await db.select().from(chatSessionsTable).where(eq(chatSessionsTable.sessionId, sessionId)).limit(1);
-    if (existing.length > 0) {
-      await db.update(chatSessionsTable).set({ messages, orderCreated: createdOrder ? String((createdOrder as { id: number }).id) : existing[0].orderCreated }).where(eq(chatSessionsTable.sessionId, sessionId));
+    // Persist updated history to DB (this is the memory)
+    const updatedMessages = [
+      ...dbHistory,
+      { role: "user" as const, content: message },
+      { role: "assistant" as const, content: fullResponse },
+    ];
+
+    if (sessionRows.length > 0) {
+      await db.update(chatSessionsTable)
+        .set({
+          messages: updatedMessages,
+          orderCreated: createdOrder ? String((createdOrder as { id: number }).id) : sessionRows[0].orderCreated,
+        })
+        .where(eq(chatSessionsTable.sessionId, sessionId));
     } else {
-      await db.insert(chatSessionsTable).values({ sessionId, messages, orderCreated: createdOrder ? String((createdOrder as { id: number }).id) : null });
+      await db.insert(chatSessionsTable).values({
+        sessionId,
+        messages: updatedMessages,
+        orderCreated: createdOrder ? String((createdOrder as { id: number }).id) : null,
+      });
     }
 
     res.write(`data: ${JSON.stringify({ done: true, order: createdOrder })}\n\n`);
@@ -215,7 +231,6 @@ Keep your tone warm, friendly, and professional. Use Urdu words naturally (e.g.,
 });
 
 // ── POST /agent/delivery-message ─────────────────────────────────────────────
-// Generate a delivery confirmation message for a customer
 router.post("/agent/delivery-message", async (req, res): Promise<void> => {
   const { orderId } = req.body as { orderId: number };
   if (!orderId) {
@@ -245,8 +260,8 @@ router.post("/agent/delivery-message", async (req, res): Promise<void> => {
           role: "user",
           content: `Write a delivery confirmation WhatsApp message for:
 Customer: ${order.customerName}
-Cake: ${order.cakeType}${order.weight ? ` (${order.weight})` : ""}
-${order.deliveryType === "pickup" ? "They're picking it up." : "We just delivered to them."}
+Item: ${order.cakeType}${order.weight ? ` (${order.weight})` : ""}
+${order.deliveryType === "pickup" ? "They picked it up." : "We just delivered to them."}
 Baker name: ${bakerName}
 
 Keep it warm, 2-3 sentences, include an emoji or two.`,
