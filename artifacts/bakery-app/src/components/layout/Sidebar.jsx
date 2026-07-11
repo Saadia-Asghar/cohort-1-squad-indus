@@ -1,4 +1,5 @@
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink } from 'react-router-dom';
+import { useClerk, useUser } from '@clerk/react';
 import { Home, ClipboardList, Calendar, User, Sparkles, LogOut, MessageCircle, Cake, Users, Bot } from 'lucide-react';
 
 const navItems = [
@@ -12,7 +13,10 @@ const navItems = [
 ];
 
 export default function Sidebar() {
-  const navigate = useNavigate();
+  const { signOut } = useClerk();
+  const { user } = useUser();
+
+  const displayName = user?.fullName || user?.firstName || user?.emailAddresses?.[0]?.emailAddress || 'Baker';
 
   return (
     <aside className="hidden lg:flex w-64 flex-col bg-sidebar border-r border-sidebar-border h-screen sticky top-0 flex-shrink-0">
@@ -57,8 +61,14 @@ export default function Sidebar() {
       </div>
 
       <div className="px-3 py-3 border-t border-sidebar-border">
+        <div className="flex items-center gap-2.5 px-3 py-2 mb-1">
+          <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+            <User className="w-3.5 h-3.5 text-primary" />
+          </div>
+          <p className="text-xs font-medium text-sidebar-foreground truncate">{displayName}</p>
+        </div>
         <button
-          onClick={() => window.location.reload()}
+          onClick={() => signOut({ redirectUrl: '/' })}
           className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-danger transition-colors w-full"
         >
           <LogOut className="w-5 h-5" />

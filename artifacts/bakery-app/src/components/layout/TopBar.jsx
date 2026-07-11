@@ -1,6 +1,10 @@
 import { Search, Bell, User } from 'lucide-react';
+import { useUser } from '@clerk/react';
 
 export default function TopBar() {
+  const { user } = useUser();
+  const displayName = user?.fullName || user?.firstName || 'Baker';
+
   return (
     <header className="hidden lg:flex items-center justify-between px-8 py-3.5 bg-card border-b border-border sticky top-0 z-30">
       <div className="flex-1 max-w-md">
@@ -18,11 +22,15 @@ export default function TopBar() {
           <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-danger" />
         </button>
         <div className="flex items-center gap-2.5 pl-3 border-l border-border">
-          <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center">
-            <User className="w-5 h-5 text-primary" />
+          <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
+            {user?.imageUrl ? (
+              <img src={user.imageUrl} alt={displayName} className="w-full h-full object-cover" />
+            ) : (
+              <User className="w-5 h-5 text-primary" />
+            )}
           </div>
           <div>
-            <p className="text-sm font-medium text-foreground">Zara Ahmed</p>
+            <p className="text-sm font-medium text-foreground">{displayName}</p>
             <p className="text-[10px] text-muted-foreground">Home Baker</p>
           </div>
         </div>

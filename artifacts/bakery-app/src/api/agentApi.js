@@ -1,10 +1,8 @@
 const BASE = '/api/agent';
-const API_KEY = import.meta.env.VITE_INTERNAL_API_KEY || '';
 
+// Clerk uses session cookies for auth — no API key header needed in browser
 function authHeaders(extra = {}) {
-  const headers = { ...extra };
-  if (API_KEY) headers['x-api-key'] = API_KEY;
-  return headers;
+  return { ...extra };
 }
 
 export const AgentApi = {
