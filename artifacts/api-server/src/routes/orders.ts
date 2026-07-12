@@ -1,131 +1,192 @@
 import { Router, type IRouter } from "express";
-import { eq, and } from "drizzle-orm";
+import { eq, desc, asc, and } from "drizzle-orm";
 import { db, ordersTable } from "@workspace/db";
 import {
-  GetOrderParams,
-  UpdateOrderStatusParams,
-  UpdateOrderStatusBody,
-  MarkOrderPaidParams,
-  MarkOrderPaidBody,
   CreateOrderBody,
+  UpdateOrderBody,
+  BulkCreateOrdersBody,
   ListOrdersQueryParams,
 } from "@workspace/api-zod";
-import { triggerPaymentOCRVerification } from "../lib/ocr";
 
 const router: IRouter = Router();
 
-function formatOrder(o: typeof ordersTable.$inferSelect) {
-  return { ...o, items: (o.items as unknown[]) ?? [] };
-}
-
-// GET /orders
 router.get("/orders", async (req, res): Promise<void> => {
-  const query = ListOrdersQueryParams.safeParse(req.query);
-  if (!query.success) {
-    res.status(400).json({ error: query.error.message });
-    return;
-  }
-  let dbQuery = db.select().from(ordersTable).$dynamic();
-  if (query.data.bakerId) dbQuery = dbQuery.where(eq(ordersTable.bakerId, query.data.bakerId));
-  if (query.data.buyerId) dbQuery = dbQuery.where(eq(ordersTable.buyerId, query.data.buyerId));
-  if (query.data.status) dbQuery = dbQuery.where(eq(ordersTable.status, query.data.status));
-  const orders = await dbQuery;
-  res.json(orders.map(formatOrder));
+  const userId = req.userId;
+  const parsed = ListOrdersQueryParams.safeParse(req.query);
+  const limitVal = parsed.success && parsed.data.limit ? parsed.data.limit : 100;
+  const sortVal = parsed.success && parsed.data.sort ? parsed.data.sort : "-created_at";
+
+  const orderBy = sortVal.startsWith("-")
+    ? desc(ordersTable.createdAt)
+    : asc(ordersTable.createdAt);
+
+  const orders = await db
+    .select()
+    .from(ordersTable)
+    .where(eq(ordersTable.userId, userId))
+    .orderBy(orderBy)
+    .limit(limitVal);
+
+  res.json(orders);
 });
 
-// POST /orders
+router.post("/orders/bulk", async (req, res): Promise<void> => {
+  const userId = req.userId;
+  const parsed = BulkCreateOrdersBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+
+  const ordersData = parsed.data.orders.map((o) => ({
+    userId,
+    customerName: o.customerName,
+    customerPhone: o.customerPhone ?? null,
+    cakeType: o.cakeType,
+    flavor: o.flavor ?? null,
+    weight: o.weight ?? null,
+    designNotes: o.designNotes ?? null,
+    deliveryDate: o.deliveryDate ?? null,
+    deliveryTime: o.deliveryTime ?? null,
+    deliveryType: o.deliveryType ?? "delivery",
+    price: o.price ?? 0,
+    paymentStatus: o.paymentStatus ?? "pending",
+    status: o.status ?? "confirmed",
+    specialRequests: o.specialRequests ?? null,
+    notes: o.notes ?? null,
+    source: o.source ?? "manual",
+    confidence: o.confidence ?? null,
+  }));
+
+  const created = await db.insert(ordersTable).values(ordersData).returning();
+  res.status(201).json(created);
+});
+
 router.post("/orders", async (req, res): Promise<void> => {
+  const userId = req.userId;
   const parsed = CreateOrderBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
-  const [order] = await db.insert(ordersTable).values(parsed.data as any).returning();
-  
-  // Auto-trigger OCR verification if a payment screenshot URL is provided on checkout
-  if (parsed.data.paymentScreenshotUrl) {
-    triggerPaymentOCRVerification(order.id).catch((err) =>
-      console.error("Auto-OCR payment verification failed asynchronously:", err)
-    );
-  }
 
-  res.status(201).json(formatOrder(order));
+  const data = parsed.data;
+  const [order] = await db
+    .insert(ordersTable)
+    .values({
+      userId,
+      customerName: data.customerName,
+      customerPhone: data.customerPhone ?? null,
+      cakeType: data.cakeType,
+      flavor: data.flavor ?? null,
+      weight: data.weight ?? null,
+      designNotes: data.designNotes ?? null,
+      deliveryDate: data.deliveryDate ?? null,
+      deliveryTime: data.deliveryTime ?? null,
+      deliveryType: data.deliveryType ?? "delivery",
+      price: data.price ?? 0,
+      paymentStatus: data.paymentStatus ?? "pending",
+      status: data.status ?? "confirmed",
+      specialRequests: data.specialRequests ?? null,
+      notes: data.notes ?? null,
+      source: data.source ?? "manual",
+      confidence: data.confidence ?? null,
+    })
+    .returning();
+
+  res.status(201).json(order);
 });
 
-// POST /orders/:orderId/verify-payment
-router.post("/orders/:orderId/verify-payment", async (req, res): Promise<void> => {
-  const orderId = parseInt(req.params.orderId, 10);
-  if (isNaN(orderId)) {
+router.get("/orders/:id", async (req, res): Promise<void> => {
+  const userId = req.userId;
+  const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const id = parseInt(raw, 10);
+  if (isNaN(id)) {
     res.status(400).json({ error: "Invalid order ID" });
     return;
   }
-  const result = await triggerPaymentOCRVerification(orderId);
-  if (!result) {
-    res.status(400).json({ error: "No screenshot URL found on this order or verification failed." });
-    return;
-  }
-  res.json(result);
-});
 
-// GET /orders/:orderId
-router.get("/orders/:orderId", async (req, res): Promise<void> => {
-  const params = GetOrderParams.safeParse(req.params);
-  if (!params.success) {
-    res.status(400).json({ error: params.error.message });
-    return;
-  }
-  const [order] = await db.select().from(ordersTable).where(eq(ordersTable.id, params.data.orderId));
+  const [order] = await db
+    .select()
+    .from(ordersTable)
+    .where(and(eq(ordersTable.id, id), eq(ordersTable.userId, userId)));
+
   if (!order) {
     res.status(404).json({ error: "Order not found" });
     return;
   }
-  res.json(formatOrder(order));
+
+  res.json(order);
 });
 
-// PATCH /orders/:orderId/status
-router.patch("/orders/:orderId/status", async (req, res): Promise<void> => {
-  const params = UpdateOrderStatusParams.safeParse(req.params);
-  if (!params.success) {
-    res.status(400).json({ error: params.error.message });
+router.patch("/orders/:id", async (req, res): Promise<void> => {
+  const userId = req.userId;
+  const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const id = parseInt(raw, 10);
+  if (isNaN(id)) {
+    res.status(400).json({ error: "Invalid order ID" });
     return;
   }
-  const parsed = UpdateOrderStatusBody.safeParse(req.body);
+
+  const parsed = UpdateOrderBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
-  const [order] = await db.update(ordersTable)
-    .set({ status: parsed.data.status })
-    .where(eq(ordersTable.id, params.data.orderId))
+
+  const data = parsed.data;
+  const updateData: Record<string, unknown> = {};
+  if (data.customerName !== undefined) updateData.customerName = data.customerName;
+  if (data.customerPhone !== undefined) updateData.customerPhone = data.customerPhone;
+  if (data.cakeType !== undefined) updateData.cakeType = data.cakeType;
+  if (data.flavor !== undefined) updateData.flavor = data.flavor;
+  if (data.weight !== undefined) updateData.weight = data.weight;
+  if (data.designNotes !== undefined) updateData.designNotes = data.designNotes;
+  if (data.deliveryDate !== undefined) updateData.deliveryDate = data.deliveryDate;
+  if (data.deliveryTime !== undefined) updateData.deliveryTime = data.deliveryTime;
+  if (data.deliveryType !== undefined) updateData.deliveryType = data.deliveryType;
+  if (data.price !== undefined) updateData.price = data.price;
+  if (data.paymentStatus !== undefined) updateData.paymentStatus = data.paymentStatus;
+  if (data.status !== undefined) updateData.status = data.status;
+  if (data.specialRequests !== undefined) updateData.specialRequests = data.specialRequests;
+  if (data.notes !== undefined) updateData.notes = data.notes;
+  if (data.source !== undefined) updateData.source = data.source;
+  if (data.confidence !== undefined) updateData.confidence = data.confidence;
+
+  const [order] = await db
+    .update(ordersTable)
+    .set(updateData)
+    .where(and(eq(ordersTable.id, id), eq(ordersTable.userId, userId)))
     .returning();
+
   if (!order) {
     res.status(404).json({ error: "Order not found" });
     return;
   }
-  res.json(formatOrder(order));
+
+  res.json(order);
 });
 
-// PATCH /orders/:orderId/payment
-router.patch("/orders/:orderId/payment", async (req, res): Promise<void> => {
-  const params = MarkOrderPaidParams.safeParse(req.params);
-  if (!params.success) {
-    res.status(400).json({ error: params.error.message });
+router.delete("/orders/:id", async (req, res): Promise<void> => {
+  const userId = req.userId;
+  const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const id = parseInt(raw, 10);
+  if (isNaN(id)) {
+    res.status(400).json({ error: "Invalid order ID" });
     return;
   }
-  const parsed = MarkOrderPaidBody.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.message });
-    return;
-  }
-  const [order] = await db.update(ordersTable)
-    .set({ paymentStatus: "paid", paymentAmountReceived: parsed.data.amountReceived })
-    .where(eq(ordersTable.id, params.data.orderId))
+
+  const [order] = await db
+    .delete(ordersTable)
+    .where(and(eq(ordersTable.id, id), eq(ordersTable.userId, userId)))
     .returning();
+
   if (!order) {
     res.status(404).json({ error: "Order not found" });
     return;
   }
-  res.json(formatOrder(order));
+
+  res.sendStatus(204);
 });
 
 export default router;

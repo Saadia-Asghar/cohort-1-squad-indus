@@ -1,6 +1,1 @@
-- [Orval TS2308 collision fix](orval-collision.md) — ops with BOTH path params AND query params generate duplicate `Get*Params` types; fix by converting query params to path params.
-- [OpenAPI nullable object](openapi-nullable-object.md) — `type: ["object","null"]` generates `zod.looseObject` (invalid in Zod v3); use scalar nullable types only (string|null, integer|null).
-- [Lib rebuild before leaf typecheck](lib-rebuild.md) — must run `pnpm run typecheck:libs` after adding new schema files to `lib/db/src/schema/` before leaf artifact typechecks will pass.
-- [Seed script location](seed-script.md) — seed lives in `artifacts/api-server/src/seed.ts`; run via `pnpm --filter @workspace/api-server run seed` (has drizzle-orm + pg in scope).
-- [Agent memory & RAG](agent-memory-rag.md) — conversation_memory + knowledge_chunks embedding pipeline for the chat agent.
-- [RAG pipeline details](rag-pipeline.md) — indexing, embeddings (OpenAI/local), retrieval API.
+- [Field naming in orders API](orders-field-naming.md) — API returns camelCase, frontend uses snake_case; ordersApi.js normalizes with toSnake()

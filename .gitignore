@@ -1,46 +1,24 @@
-# env
-.env
-.env.*
-!.env.example
+# See https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files for more about ignoring files.
 
-# Logs
-/logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
-testem.log
+# compiled output
+dist
+tmp
+out-tsc
+*.tsbuildinfo
+.expo
+.expo-shared
 
 # dependencies
 node_modules
 
-# compiled output
-dist
-dist-ssr
-tmp
-out-tsc
-*.tsbuildinfo
-*.local
-.expo
-.expo-shared
-.vite
-
 # IDEs and editors
 /.idea
-.idea
 .project
 .classpath
 .c9/
 *.launch
 .settings/
 *.sublime-workspace
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
 
 # IDE - VSCode
 .vscode/*
@@ -54,6 +32,9 @@ out-tsc
 /connect.lock
 /coverage
 /libpeerconnection.log
+npm-debug.log
+yarn-error.log
+testem.log
 /typings
 
 # System Files
@@ -66,4 +47,3 @@ Thumbs.db
 # Replit
 .cache/
 .local/
-.config/

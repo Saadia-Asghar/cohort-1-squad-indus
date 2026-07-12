@@ -1,0 +1,1433 @@
+openapi: 3.1.0
+info:
+  title: Api
+  version: 0.1.0
+  description: Sweet Tooth — Pakistan's Home Baker Platform API
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: bakers
+    description: Baker operations
+  - name: products
+    description: Product catalog operations
+  - name: orders
+    description: Order management
+  - name: cart
+    description: Cart operations
+  - name: reviews
+    description: Review operations
+  - name: customers
+    description: Customer/buyer operations
+  - name: marketplace
+    description: Marketplace discovery
+  - name: chat
+    description: AI agent chat
+  - name: analytics
+    description: Dashboard analytics
+
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  # ── MARKETPLACE ──────────────────────────────────────────────────────────────
+  /marketplace/featured:
+    get:
+      operationId: getFeaturedBakers
+      tags: [marketplace]
+      summary: Get featured bakers for homepage
+      parameters:
+        - name: city
+          in: query
+          schema: { type: string }
+        - name: area
+          in: query
+          schema: { type: string }
+      responses:
+        "200":
+          description: Featured bakers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BakerCard"
+
+  /marketplace/search:
+    get:
+      operationId: searchMarketplace
+      tags: [marketplace]
+      summary: Search bakers and products
+      parameters:
+        - name: q
+          in: query
+          schema: { type: string }
+        - name: city
+          in: query
+          schema: { type: string }
+        - name: area
+          in: query
+          schema: { type: string }
+        - name: category
+          in: query
+          schema: { type: string }
+        - name: occasion
+          in: query
+          schema: { type: string }
+        - name: dietary
+          in: query
+          schema: { type: string }
+      responses:
+        "200":
+          description: Search results
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SearchResults"
+
+  /marketplace/categories:
+    get:
+      operationId: getCategories
+      tags: [marketplace]
+      summary: Get product categories with counts
+      responses:
+        "200":
+          description: Categories
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Category"
+
+  # ── BAKERS ───────────────────────────────────────────────────────────────────
+  /bakers:
+    get:
+      operationId: listBakers
+      tags: [bakers]
+      summary: List all bakers
+      parameters:
+        - name: city
+          in: query
+          schema: { type: string }
+        - name: area
+          in: query
+          schema: { type: string }
+      responses:
+        "200":
+          description: List of bakers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BakerCard"
+    post:
+      operationId: createBaker
+      tags: [bakers]
+      summary: Register a new baker
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BakerInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Baker"
+
+  /bakers/login:
+    post:
+      operationId: loginBaker
+      tags: [bakers]
+      summary: Login baker with email and password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string }
+                password: { type: string }
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [token, baker]
+                properties:
+                  token: { type: string }
+                  baker: { $ref: "#/components/schemas/Baker" }
+        "401":
+          description: Invalid credentials
+
+  /bakers/{bakerId}:
+    get:
+      operationId: getBaker
+      tags: [bakers]
+      summary: Get baker profile
+      parameters:
+        - name: bakerId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Baker profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Baker"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateBaker
+      tags: [bakers]
+      summary: Update baker profile
+      parameters:
+        - name: bakerId
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BakerUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Baker"
+
+  /bakers/{bakerId}/products:
+    get:
+      operationId: getBakerProducts
+      tags: [bakers]
+      summary: Get baker's product catalog
+      parameters:
+        - name: bakerId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Products
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Product"
+
+  /bakers/{bakerId}/reviews:
+    get:
+      operationId: getBakerReviews
+      tags: [bakers]
+      summary: Get baker's reviews
+      parameters:
+        - name: bakerId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Reviews
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Review"
+
+  /bakers/{bakerId}/stats:
+    get:
+      operationId: getBakerStats
+      tags: [bakers]
+      summary: Get baker dashboard stats summary
+      parameters:
+        - name: bakerId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BakerStats"
+
+  # ── PRODUCTS ──────────────────────────────────────────────────────────────────
+  /products:
+    get:
+      operationId: listProducts
+      tags: [products]
+      summary: List products (optionally filter by baker)
+      parameters:
+        - name: bakerId
+          in: query
+          schema: { type: integer }
+        - name: category
+          in: query
+          schema: { type: string }
+      responses:
+        "200":
+          description: Products
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Product"
+    post:
+      operationId: createProduct
+      tags: [products]
+      summary: Create a product
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProductInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Product"
+
+  /products/{productId}:
+    get:
+      operationId: getProduct
+      tags: [products]
+      summary: Get a product
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Product
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Product"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateProduct
+      tags: [products]
+      summary: Update a product
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProductUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Product"
+    delete:
+      operationId: deleteProduct
+      tags: [products]
+      summary: Delete a product
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "204":
+          description: Deleted
+
+  /products/{productId}/toggle-stock:
+    patch:
+      operationId: toggleProductStock
+      tags: [products]
+      summary: Toggle product availability
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Product"
+
+  # ── ORDERS ────────────────────────────────────────────────────────────────────
+  /orders:
+    get:
+      operationId: listOrders
+      tags: [orders]
+      summary: List orders (filter by baker or buyer)
+      parameters:
+        - name: bakerId
+          in: query
+          schema: { type: integer }
+        - name: buyerId
+          in: query
+          schema: { type: integer }
+        - name: status
+          in: query
+          schema: { type: string }
+      responses:
+        "200":
+          description: Orders
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Order"
+    post:
+      operationId: createOrder
+      tags: [orders]
+      summary: Place an order
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OrderInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+
+  /orders/{orderId}:
+    get:
+      operationId: getOrder
+      tags: [orders]
+      summary: Get an order
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Order
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+        "404":
+          description: Not found
+
+  /orders/{orderId}/status:
+    patch:
+      operationId: updateOrderStatus
+      tags: [orders]
+      summary: Update order status
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OrderStatusUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+
+  /orders/{orderId}/payment:
+    patch:
+      operationId: markOrderPaid
+      tags: [orders]
+      summary: Mark order as paid (COD received)
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PaymentUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+
+  # ── CART ──────────────────────────────────────────────────────────────────────
+  /cart:
+    get:
+      operationId: getCart
+      tags: [cart]
+      summary: Get cart items for a buyer
+      parameters:
+        - name: buyerId
+          in: query
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Cart items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CartItem"
+    post:
+      operationId: addToCart
+      tags: [cart]
+      summary: Add item to cart
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CartItemInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CartItem"
+
+  /cart/{cartItemId}:
+    delete:
+      operationId: removeFromCart
+      tags: [cart]
+      summary: Remove item from cart
+      parameters:
+        - name: cartItemId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "204":
+          description: Removed
+
+  /cart/clear:
+    delete:
+      operationId: clearCart
+      tags: [cart]
+      summary: Clear all cart items for a buyer
+      parameters:
+        - name: buyerId
+          in: query
+          required: true
+          schema: { type: integer }
+      responses:
+        "204":
+          description: Cleared
+
+  # ── REVIEWS ───────────────────────────────────────────────────────────────────
+  /reviews:
+    post:
+      operationId: createReview
+      tags: [reviews]
+      summary: Submit a review
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReviewInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Review"
+
+  # ── CUSTOMERS ─────────────────────────────────────────────────────────────────
+  /customers:
+    get:
+      operationId: listCustomers
+      tags: [customers]
+      summary: List customers for a baker
+      parameters:
+        - name: bakerId
+          in: query
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Customers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Customer"
+
+  /customers/{customerId}:
+    get:
+      operationId: getCustomer
+      tags: [customers]
+      summary: Get customer details
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Customer
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Customer"
+
+  # ── ANALYTICS ─────────────────────────────────────────────────────────────────
+  /analytics/baker/{bakerId}/{period}:
+    get:
+      operationId: getBakerAnalytics
+      tags: [analytics]
+      summary: Get baker analytics data
+      parameters:
+        - name: bakerId
+          in: path
+          required: true
+          schema: { type: integer }
+        - name: period
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [daily, weekly, monthly]
+      responses:
+        "200":
+          description: Analytics data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnalyticsData"
+
+  /analytics/baker/{bakerId}/sources:
+    get:
+      operationId: getOrderSources
+      tags: [analytics]
+      summary: Get order source breakdown for baker
+      parameters:
+        - name: bakerId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Source breakdown
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/OrderSourceStat"
+
+  # ── CHAT ──────────────────────────────────────────────────────────────────────
+  /chat:
+    post:
+      operationId: sendChatMessage
+      tags: [chat]
+      summary: Send message to marketplace AI agent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChatMessageInput"
+      responses:
+        "200":
+          description: Agent reply
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatResponse"
+
+  /chat/{bakerId}/history/{buyerId}:
+    get:
+      operationId: getChatHistory
+      tags: [chat]
+      summary: Get chat history for a buyer+baker pair
+      parameters:
+        - name: bakerId
+          in: path
+          required: true
+          schema: { type: integer }
+        - name: buyerId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Chat messages
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ChatMessage"
+
+  # ── NOTIFICATIONS ─────────────────────────────────────────────────────────────
+  /bakers/{bakerId}/notifications:
+    get:
+      operationId: listNotifications
+      tags: [bakers]
+      summary: List baker notifications
+      parameters:
+        - name: bakerId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Notifications
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BakerNotification"
+
+  /bakers/{bakerId}/notifications/read-all:
+    post:
+      operationId: markAllNotificationsRead
+      tags: [bakers]
+      summary: Mark all notifications as read
+      parameters:
+        - name: bakerId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: All marked read
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /bakers/{bakerId}/notifications/{notifId}/read:
+    patch:
+      operationId: markNotificationRead
+      tags: [bakers]
+      summary: Mark single notification as read
+      parameters:
+        - name: bakerId
+          in: path
+          required: true
+          schema: { type: integer }
+        - name: notifId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Notification marked read
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BakerNotification"
+
+  # ── AGENT CONFIG ───────────────────────────────────────────────────────────────
+  /bakers/{bakerId}/agent-config:
+    get:
+      operationId: getAgentConfig
+      tags: [bakers]
+      summary: Get baker agent configuration
+      parameters:
+        - name: bakerId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Agent configuration
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AgentConfig"
+    put:
+      operationId: updateAgentConfig
+      tags: [bakers]
+      summary: Update baker agent configuration
+      parameters:
+        - name: bakerId
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AgentConfigInput"
+      responses:
+        "200":
+          description: Updated agent configuration
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AgentConfig"
+
+  # ── KNOWLEDGE RAG ──────────────────────────────────────────────────────────────
+  /bakers/{bakerId}/knowledge/reindex:
+    post:
+      operationId: reindexBakerKnowledge
+      tags: [knowledge]
+      summary: Rebuild RAG embeddings from products and policies
+      parameters:
+        - name: bakerId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Reindex result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/KnowledgeReindexResult"
+        "404":
+          description: Baker not found
+
+  /bakers/{bakerId}/knowledge/query:
+    post:
+      operationId: queryBakerKnowledge
+      tags: [knowledge]
+      summary: Query baker knowledge index (debug / preview)
+      parameters:
+        - name: bakerId
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/KnowledgeQueryInput"
+      responses:
+        "200":
+          description: Retrieved knowledge chunks
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/KnowledgeQueryResult"
+
+  # ── CHAT CONVERSATIONS ─────────────────────────────────────────────────────────
+  /chat/{bakerId}/conversations:
+    get:
+      operationId: listConversations
+      tags: [chat]
+      summary: List all conversations for a baker
+      parameters:
+        - name: bakerId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Conversation summaries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ConversationSummary"
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      required: [status]
+      properties:
+        status: { type: string }
+
+    # ── Baker schemas ─────────────────────────────────────────────────────────
+    BakerCard:
+      type: object
+      required: [id, businessName, city, ratingAvg, totalOrders, isActive, slug]
+      properties:
+        id: { type: integer }
+        businessName: { type: string }
+        tagline: { type: ["string", "null"] }
+        city: { type: string }
+        area: { type: ["string", "null"] }
+        deliveryAreas: { type: array, items: { type: string } }
+        ratingAvg: { type: number }
+        totalOrders: { type: integer }
+        isActive: { type: boolean }
+        agentActive: { type: boolean }
+        marketplaceVisible: { type: boolean }
+        slug: { type: string }
+        photoUrl: { type: ["string", "null"] }
+        categories: { type: array, items: { type: string } }
+        startingPrice: { type: ["integer", "null"] }
+
+    Baker:
+      type: object
+      required: [id, businessName, city, slug, createdAt]
+      properties:
+        id: { type: integer }
+        businessName: { type: string }
+        ownerName: { type: string }
+        tagline: { type: ["string", "null"] }
+        bio: { type: ["string", "null"] }
+        city: { type: string }
+        area: { type: ["string", "null"] }
+        whatsappNumber: { type: string }
+        email: { type: ["string", "null"] }
+        deliveryAreas: { type: array, items: { type: string } }
+        codPolicy: { type: ["string", "null"] }
+        returnPolicy: { type: ["string", "null"] }
+        maxOrdersPerDay: { type: integer }
+        agentActive: { type: boolean }
+        marketplaceVisible: { type: boolean }
+        subscriptionPlan: { type: string }
+        ratingAvg: { type: number }
+        totalOrders: { type: integer }
+        slug: { type: string }
+        photoUrl: { type: ["string", "null"] }
+        requireAdvance: { type: boolean }
+        advanceThresholdPkr: { type: integer }
+        advancePercentage: { type: integer }
+        paymentDetails: { type: string }
+        createdAt: { type: string }
+
+    BakerInput:
+      type: object
+      required: [businessName, ownerName, city, whatsappNumber, slug, email, password]
+      properties:
+        businessName: { type: string }
+        ownerName: { type: string }
+        tagline: { type: string }
+        bio: { type: string }
+        city: { type: string }
+        area: { type: string }
+        whatsappNumber: { type: string }
+        email: { type: string }
+        password: { type: string }
+        deliveryAreas: { type: array, items: { type: string } }
+        codPolicy: { type: string }
+        returnPolicy: { type: string }
+        maxOrdersPerDay: { type: integer }
+        slug: { type: string }
+        photoUrl: { type: string }
+        requireAdvance: { type: boolean }
+        advanceThresholdPkr: { type: integer }
+        advancePercentage: { type: integer }
+        paymentDetails: { type: string }
+
+    BakerUpdate:
+      type: object
+      properties:
+        businessName: { type: string }
+        ownerName: { type: string }
+        tagline: { type: string }
+        bio: { type: string }
+        city: { type: string }
+        area: { type: string }
+        deliveryAreas: { type: array, items: { type: string } }
+        codPolicy: { type: string }
+        returnPolicy: { type: string }
+        maxOrdersPerDay: { type: integer }
+        agentActive: { type: boolean }
+        marketplaceVisible: { type: boolean }
+        photoUrl: { type: string }
+        requireAdvance: { type: boolean }
+        advanceThresholdPkr: { type: integer }
+        advancePercentage: { type: integer }
+        paymentDetails: { type: string }
+
+    BakerStats:
+      type: object
+      required: [bakerId, todayOrders, todayRevenue, totalOrders, totalRevenue, pendingOrders, agentActive]
+      properties:
+        bakerId: { type: integer }
+        todayOrders: { type: integer }
+        todayRevenue: { type: integer }
+        weekOrders: { type: integer }
+        weekRevenue: { type: integer }
+        totalOrders: { type: integer }
+        totalRevenue: { type: integer }
+        pendingOrders: { type: integer }
+        outstandingPayments: { type: integer }
+        agentActive: { type: boolean }
+        topProduct: { type: ["string", "null"] }
+        newCustomersThisMonth: { type: integer }
+
+    # ── Product schemas ───────────────────────────────────────────────────────
+    ProductSize:
+      type: object
+      required: [label, pricePkr]
+      properties:
+        label: { type: string }
+        pricePkr: { type: integer }
+
+    Product:
+      type: object
+      required: [id, bakerId, name, basePricePkr, isAvailable, category, createdAt]
+      properties:
+        id: { type: integer }
+        bakerId: { type: integer }
+        name: { type: string }
+        description: { type: ["string", "null"] }
+        basePricePkr: { type: integer }
+        sizes: { type: array, items: { $ref: "#/components/schemas/ProductSize" } }
+        variants: { type: array, items: { type: string } }
+        isEgglessAvailable: { type: boolean }
+        isAvailable: { type: boolean }
+        leadTimeDays: { type: integer }
+        category: { type: string }
+        occasionTags: { type: array, items: { type: string } }
+        dietaryTags: { type: array, items: { type: string } }
+        photoUrl: { type: ["string", "null"] }
+        totalOrders: { type: integer }
+        isBestSeller: { type: boolean }
+        isTopRated: { type: boolean }
+        displayOrder: { type: integer }
+        createdAt: { type: string }
+
+    ProductInput:
+      type: object
+      required: [bakerId, name, basePricePkr, category]
+      properties:
+        bakerId: { type: integer }
+        name: { type: string }
+        description: { type: string }
+        basePricePkr: { type: integer }
+        sizes: { type: array, items: { $ref: "#/components/schemas/ProductSize" } }
+        variants: { type: array, items: { type: string } }
+        isEgglessAvailable: { type: boolean }
+        isAvailable: { type: boolean }
+        leadTimeDays: { type: integer }
+        category: { type: string }
+        occasionTags: { type: array, items: { type: string } }
+        dietaryTags: { type: array, items: { type: string } }
+        photoUrl: { type: string }
+
+    ProductUpdate:
+      type: object
+      properties:
+        name: { type: string }
+        description: { type: string }
+        basePricePkr: { type: integer }
+        sizes: { type: array, items: { $ref: "#/components/schemas/ProductSize" } }
+        variants: { type: array, items: { type: string } }
+        isEgglessAvailable: { type: boolean }
+        isAvailable: { type: boolean }
+        leadTimeDays: { type: integer }
+        category: { type: string }
+        occasionTags: { type: array, items: { type: string } }
+        dietaryTags: { type: array, items: { type: string } }
+        photoUrl: { type: string }
+        displayOrder: { type: integer }
+
+    # ── Order schemas ─────────────────────────────────────────────────────────
+    OrderItem:
+      type: object
+      required: [productId, productName, quantity, unitPricePkr, sizeLabel]
+      properties:
+        productId: { type: integer }
+        productName: { type: string }
+        quantity: { type: integer }
+        unitPricePkr: { type: integer }
+        sizeLabel: { type: string }
+        variant: { type: ["string", "null"] }
+
+    Order:
+      type: object
+      required: [id, bakerId, buyerName, buyerWhatsapp, buyerAddress, totalPkr, status, paymentStatus, source, createdAt]
+      properties:
+        id: { type: integer }
+        bakerId: { type: integer }
+        buyerId: { type: ["integer", "null"] }
+        buyerName: { type: string }
+        buyerWhatsapp: { type: string }
+        buyerAddress: { type: string }
+        buyerArea: { type: ["string", "null"] }
+        items: { type: array, items: { $ref: "#/components/schemas/OrderItem" } }
+        totalPkr: { type: integer }
+        deliveryDate: { type: ["string", "null"] }
+        status: { type: string }
+        paymentStatus: { type: string }
+        paymentAmountReceived: { type: ["integer", "null"] }
+        source: { type: string }
+        occasion: { type: ["string", "null"] }
+        specialInstructions: { type: ["string", "null"] }
+        flavour: { type: ["string", "null"] }
+        textOnCake: { type: ["string", "null"] }
+        paymentScreenshotUrl: { type: ["string", "null"] }
+        advancePaid: { type: boolean }
+        requireAdvance: { type: boolean }
+        createdAt: { type: string }
+        updatedAt: { type: string }
+
+    OrderInput:
+      type: object
+      required: [bakerId, buyerName, buyerWhatsapp, buyerAddress, items, totalPkr]
+      properties:
+        bakerId: { type: integer }
+        buyerId: { type: integer }
+        buyerName: { type: string }
+        buyerWhatsapp: { type: string }
+        buyerAddress: { type: string }
+        buyerArea: { type: string }
+        items: { type: array, items: { $ref: "#/components/schemas/OrderItem" } }
+        totalPkr: { type: integer }
+        deliveryDate: { type: string }
+        source: { type: string }
+        occasion: { type: string }
+        specialInstructions: { type: string }
+        flavour: { type: string }
+        textOnCake: { type: string }
+        paymentScreenshotUrl: { type: string }
+        advancePaid: { type: boolean }
+        requireAdvance: { type: boolean }
+
+    OrderStatusUpdate:
+      type: object
+      required: [status]
+      properties:
+        status: { type: string }
+
+    PaymentUpdate:
+      type: object
+      required: [amountReceived]
+      properties:
+        amountReceived: { type: integer }
+
+    # ── Cart schemas ──────────────────────────────────────────────────────────
+    CartItem:
+      type: object
+      required: [id, buyerId, bakerId, productId, productName, sizeLabel, quantity, unitPricePkr, addedAt]
+      properties:
+        id: { type: integer }
+        buyerId: { type: integer }
+        bakerId: { type: integer }
+        productId: { type: integer }
+        productName: { type: string }
+        sizeLabel: { type: string }
+        variant: { type: ["string", "null"] }
+        quantity: { type: integer }
+        unitPricePkr: { type: integer }
+        photoUrl: { type: ["string", "null"] }
+        addedAt: { type: string }
+
+    CartItemInput:
+      type: object
+      required: [buyerId, bakerId, productId, productName, sizeLabel, quantity, unitPricePkr]
+      properties:
+        buyerId: { type: integer }
+        bakerId: { type: integer }
+        productId: { type: integer }
+        productName: { type: string }
+        sizeLabel: { type: string }
+        variant: { type: string }
+        quantity: { type: integer }
+        unitPricePkr: { type: integer }
+        photoUrl: { type: string }
+
+    # ── Review schemas ────────────────────────────────────────────────────────
+    Review:
+      type: object
+      required: [id, bakerId, buyerName, rating, createdAt]
+      properties:
+        id: { type: integer }
+        bakerId: { type: integer }
+        buyerId: { type: ["integer", "null"] }
+        orderId: { type: ["integer", "null"] }
+        buyerName: { type: string }
+        rating: { type: integer }
+        ratingProduct: { type: ["integer", "null"] }
+        ratingPackaging: { type: ["integer", "null"] }
+        reviewText: { type: ["string", "null"] }
+        productName: { type: ["string", "null"] }
+        createdAt: { type: string }
+
+    ReviewInput:
+      type: object
+      required: [bakerId, buyerName, rating]
+      properties:
+        bakerId: { type: integer }
+        buyerId: { type: integer }
+        orderId: { type: integer }
+        buyerName: { type: string }
+        rating: { type: integer }
+        ratingProduct: { type: integer }
+        ratingPackaging: { type: integer }
+        reviewText: { type: string }
+        productName: { type: string }
+
+    # ── Customer schemas ──────────────────────────────────────────────────────
+    Customer:
+      type: object
+      required: [id, name, whatsappNumber, totalOrders, totalSpentPkr, createdAt]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        whatsappNumber: { type: string }
+        city: { type: ["string", "null"] }
+        preferredArea: { type: ["string", "null"] }
+        totalOrders: { type: integer }
+        totalSpentPkr: { type: integer }
+        lastOrderAt: { type: ["string", "null"] }
+        isRegular: { type: boolean }
+        isAtRisk: { type: boolean }
+        createdAt: { type: string }
+
+    # ── Marketplace schemas ───────────────────────────────────────────────────
+    SearchResults:
+      type: object
+      required: [bakers, products]
+      properties:
+        bakers:
+          type: array
+          items:
+            $ref: "#/components/schemas/BakerCard"
+        products:
+          type: array
+          items:
+            $ref: "#/components/schemas/Product"
+
+    Category:
+      type: object
+      required: [name, count]
+      properties:
+        name: { type: string }
+        count: { type: integer }
+        icon: { type: ["string", "null"] }
+
+    # ── Analytics schemas ─────────────────────────────────────────────────────
+    AnalyticsDataPoint:
+      type: object
+      required: [date, orders, revenue]
+      properties:
+        date: { type: string }
+        orders: { type: integer }
+        revenue: { type: integer }
+
+    AnalyticsData:
+      type: object
+      required: [period, dataPoints, totalOrders, totalRevenue, avgOrderValue, topProducts]
+      properties:
+        period: { type: string }
+        dataPoints:
+          type: array
+          items:
+            $ref: "#/components/schemas/AnalyticsDataPoint"
+        totalOrders: { type: integer }
+        totalRevenue: { type: integer }
+        avgOrderValue: { type: integer }
+        topProducts:
+          type: array
+          items:
+            $ref: "#/components/schemas/TopProduct"
+        newCustomers: { type: integer }
+        repeatCustomers: { type: integer }
+
+    TopProduct:
+      type: object
+      required: [name, orders, revenue]
+      properties:
+        name: { type: string }
+        orders: { type: integer }
+        revenue: { type: integer }
+
+    OrderSourceStat:
+      type: object
+      required: [source, orders, revenue, percentage]
+      properties:
+        source: { type: string }
+        orders: { type: integer }
+        revenue: { type: integer }
+        percentage: { type: number }
+
+    # ── Chat schemas ──────────────────────────────────────────────────────────
+    ChatMessage:
+      type: object
+      required: [id, bakerId, role, content, createdAt]
+      properties:
+        id: { type: integer }
+        bakerId: { type: integer }
+        buyerId: { type: ["integer", "null"] }
+        role: { type: string }
+        content: { type: string }
+        createdAt: { type: string }
+
+    ChatMessageInput:
+      type: object
+      required: [bakerId, message]
+      properties:
+        bakerId: { type: integer }
+        buyerId: { type: integer }
+        message: { type: string }
+        sessionId: { type: string }
+
+    ChatResponse:
+      type: object
+      required: [reply, sessionId]
+      properties:
+        reply: { type: string }
+        sessionId: { type: string }
+        action: { type: ["string", "null"] }
+        cartItemId: { type: ["integer", "null"] }
+        escalated: { type: boolean }
+
+    BuyerPreferences:
+      type: object
+      properties:
+        eggless: { type: boolean }
+        preferredArea: { type: ["string", "null"] }
+        favoriteProducts: { type: array, items: { type: string } }
+        allergies: { type: array, items: { type: string } }
+        usualOrderSize: { type: ["string", "null"] }
+
+    ConversationSummary:
+      type: object
+      required: [buyerId, buyerName, lastMessage, lastActiveAt, messageCount, unread]
+      properties:
+        buyerId: { type: integer }
+        buyerName: { type: string }
+        lastMessage: { type: string }
+        lastActiveAt: { type: string }
+        messageCount: { type: integer }
+        unread: { type: boolean }
+        preferences:
+          $ref: "#/components/schemas/BuyerPreferences"
+        summary: { type: ["string", "null"] }
+
+    BakerNotification:
+      type: object
+      required: [id, bakerId, type, title, message, isRead, createdAt]
+      properties:
+        id: { type: integer }
+        bakerId: { type: integer }
+        type: { type: string }
+        title: { type: string }
+        message: { type: string }
+        relatedId: { type: ["integer", "null"] }
+        relatedType: { type: ["string", "null"] }
+        isRead: { type: boolean }
+        createdAt: { type: string }
+
+    SuccessResponse:
+      type: object
+      required: [success]
+      properties:
+        success: { type: boolean }
+
+    AgentConfig:
+      type: object
+      required: [bakerId, agentActive, whatsappAgentEnabled, instagramAgentEnabled]
+      properties:
+        bakerId: { type: integer }
+        agentActive: { type: boolean }
+        whatsappAgentEnabled: { type: boolean }
+        instagramAgentEnabled: { type: boolean }
+        metaWebhookToken: { type: ["string", "null"] }
+        instagramPageId: { type: ["string", "null"] }
+        customGreeting: { type: ["string", "null"] }
+        blockedTopics: { type: array, items: { type: string } }
+        escalateKeywords: { type: array, items: { type: string } }
+        autoReplyEnabled: { type: boolean }
+
+    AgentConfigInput:
+      type: object
+      properties:
+        agentActive: { type: boolean }
+        whatsappAgentEnabled: { type: boolean }
+        instagramAgentEnabled: { type: boolean }
+        metaWebhookToken: { type: string }
+        instagramPageId: { type: string }
+        customGreeting: { type: string }
+        blockedTopics: { type: array, items: { type: string } }
+        escalateKeywords: { type: array, items: { type: string } }
+        autoReplyEnabled: { type: boolean }
+
+    KnowledgeReindexResult:
+      type: object
+      required: [bakerId, chunksIndexed, embeddingProvider, message]
+      properties:
+        bakerId: { type: integer }
+        chunksIndexed: { type: integer }
+        embeddingProvider: { type: string, enum: [openai, local] }
+        message: { type: string }
+
+    KnowledgeQueryInput:
+      type: object
+      required: [query]
+      properties:
+        query: { type: string }
+
+    KnowledgeChunkHit:
+      type: object
+      required: [id, content, sourceType, score]
+      properties:
+        id: { type: integer }
+        content: { type: string }
+        sourceType: { type: string }
+        sourceId: { type: ["integer", "null"] }
+        score: { type: number }
+        metadata: { type: object, additionalProperties: true }
+
+    KnowledgeQueryResult:
+      type: object
+      required: [chunks, context]
+      properties:
+        context: { type: string }
+        chunks:
+          type: array
+          items:
+            $ref: "#/components/schemas/KnowledgeChunkHit"
