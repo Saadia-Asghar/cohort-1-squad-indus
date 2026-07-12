@@ -20,6 +20,7 @@ import Customers from './pages/Customers';
 import AgentHub from './pages/AgentHub';
 import AgentChat from './components/AgentChat';
 import MenuPage from './pages/MenuPage';
+import LandingPage from './pages/LandingPage';
 
 // REQUIRED — copy verbatim per Clerk setup instructions
 const clerkPubKey = publishableKeyFromHost(
@@ -132,11 +133,11 @@ function ClerkQueryClientCacheInvalidator() {
   return null;
 }
 
-// Protected wrapper: redirects signed-out users to sign-in
+// Protected wrapper: redirects signed-out users to the landing page
 function SignedOutRedirect() {
   const navigate = useNavigate();
   useEffect(() => {
-    navigate(`${basePath}/sign-in`, { replace: true });
+    navigate(`${basePath}/`, { replace: true });
   }, [navigate]);
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-purple-50 to-violet-100">
@@ -167,6 +168,8 @@ function AppWithClerk() {
       appearance={clerkAppearance}
       signInUrl={`${basePath}/sign-in`}
       signUpUrl={`${basePath}/sign-up`}
+      afterSignInUrl={`${basePath}/dashboard`}
+      afterSignUpUrl={`${basePath}/dashboard`}
       routerPush={(to) => navigate(stripBase(to))}
       routerReplace={(to) => navigate(stripBase(to), { replace: true })}
     >
@@ -174,13 +177,14 @@ function AppWithClerk() {
         <ClerkQueryClientCacheInvalidator />
         <ScrollToTop />
         <Routes>
+          <Route path="/" element={<LandingPage />} />
           <Route path="/sign-in/*" element={<SignInPage />} />
           <Route path="/sign-up/*" element={<SignUpPage />} />
           <Route path="/menu/:userId" element={<MenuPage />} />
           <Route path="/orders/new" element={<ProtectedRoute><NewOrder /></ProtectedRoute>} />
           <Route path="/orders/:id" element={<ProtectedRoute><OrderDetail /></ProtectedRoute>} />
           <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
-            <Route path="/" element={<Home />} />
+            <Route path="/dashboard" element={<Home />} />
             <Route path="/orders" element={<Orders />} />
             <Route path="/auto-import" element={<AutoImport />} />
             <Route path="/calendar" element={<Calendar />} />

@@ -3,7 +3,7 @@ import { useClerk, useUser } from '@clerk/react';
 import { Home, ClipboardList, Calendar, User, Sparkles, LogOut, MessageCircle, Cake, Users, Bot } from 'lucide-react';
 
 const navItems = [
-  { to: '/', icon: Home, label: 'Dashboard', end: true },
+  { to: '/dashboard', icon: Home, label: 'Dashboard', end: true },
   { to: '/orders', icon: ClipboardList, label: 'Orders' },
   { to: '/auto-import', icon: Sparkles, label: 'Auto-Import' },
   { to: '/customers', icon: Users, label: 'Customers' },
