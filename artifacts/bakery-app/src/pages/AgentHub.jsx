@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bot, Save, Plus, Trash2, Sparkles, Check, BookOpen, MapPin, CreditCard, Clock, ToggleLeft, ToggleRight } from 'lucide-react';
+import { Bot, Save, Plus, Trash2, Sparkles, Check, BookOpen, MapPin, CreditCard, Clock, ToggleLeft, ToggleRight, Share2, Copy, ExternalLink } from 'lucide-react';
+import { useUser } from '@clerk/react';
 import { AgentApi } from '@/api/agentApi';
 
 const UNITS = ['per piece', 'per dozen', 'per box', 'per tray', 'per kg', 'per 500g', 'per slice', 'per cake'];
@@ -21,11 +22,24 @@ const defaultKnowledge = {
 const emptyItem = () => ({ name: '', price: '', unit: 'per piece', description: '', eggless: false, available: true });
 
 export default function AgentHub() {
+  const { user } = useUser();
   const [form, setForm] = useState(defaultKnowledge);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [section, setSection] = useState('menu');
+  const [copied, setCopied] = useState(false);
+
+  const basePath = import.meta.env.BASE_URL.replace(/\/$/, '');
+  const menuUrl = user ? `${window.location.origin}${basePath}/menu/${user.id}` : null;
+
+  const copyLink = () => {
+    if (!menuUrl) return;
+    navigator.clipboard.writeText(menuUrl).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
 
   useEffect(() => {
     AgentApi.getKnowledge().then(k => {
@@ -253,6 +267,34 @@ export default function AgentHub() {
         } disabled:opacity-60`}>
         {saved ? <><Check className="w-5 h-5" /> Saved!</> : saving ? 'Saving…' : <><Save className="w-5 h-5" /> Save Knowledge</>}
       </motion.button>
+
+      {/* Share menu link */}
+      {menuUrl && (
+        <div className="mt-4 bg-primary/5 border border-primary/20 rounded-2xl p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <Share2 className="w-4 h-4 text-primary" />
+            <p className="text-sm font-semibold text-foreground">Share Your Menu</p>
+          </div>
+          <p className="text-xs text-muted-foreground mb-3 leading-relaxed">
+            Send this link to customers. They can browse your menu and chat with the AI to place orders — no login needed.
+          </p>
+          <div className="flex gap-2">
+            <div className="flex-1 bg-input rounded-xl px-3 py-2 text-xs text-muted-foreground truncate font-mono border border-border/30">
+              {menuUrl}
+            </div>
+            <button onClick={copyLink}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium transition-colors flex-shrink-0 ${
+                copied ? 'bg-success text-success-foreground' : 'bg-primary text-primary-foreground'
+              }`}>
+              {copied ? <><Check className="w-3.5 h-3.5" /> Copied!</> : <><Copy className="w-3.5 h-3.5" /> Copy</>}
+            </button>
+            <a href={menuUrl} target="_blank" rel="noreferrer"
+              className="flex items-center justify-center w-9 h-9 rounded-xl bg-card border border-border/50 text-muted-foreground hover:text-foreground transition-colors flex-shrink-0">
+              <ExternalLink className="w-3.5 h-3.5" />
+            </a>
+          </div>
+        </div>
+      )}
 
       <div className="mt-4 bg-accent/5 border border-accent/20 rounded-2xl p-4">
         <p className="text-xs font-medium text-accent-foreground/70 mb-1.5">HOW THE AGENT USES THIS</p>

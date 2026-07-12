@@ -19,6 +19,7 @@ import NewOrder from './pages/NewOrder';
 import Customers from './pages/Customers';
 import AgentHub from './pages/AgentHub';
 import AgentChat from './components/AgentChat';
+import MenuPage from './pages/MenuPage';
 
 // REQUIRED — copy verbatim per Clerk setup instructions
 const clerkPubKey = publishableKeyFromHost(
@@ -175,6 +176,7 @@ function AppWithClerk() {
         <Routes>
           <Route path="/sign-in/*" element={<SignInPage />} />
           <Route path="/sign-up/*" element={<SignUpPage />} />
+          <Route path="/menu/:userId" element={<MenuPage />} />
           <Route path="/orders/new" element={<ProtectedRoute><NewOrder /></ProtectedRoute>} />
           <Route path="/orders/:id" element={<ProtectedRoute><OrderDetail /></ProtectedRoute>} />
           <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
