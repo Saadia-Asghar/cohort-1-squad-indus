@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useUser } from '@clerk/react';
 import { Sparkles, Plus, AlertCircle, ClipboardList, Calendar, TrendingUp, Wallet } from 'lucide-react';
 
 import MetricCard from '@/components/dashboard/MetricCard';
@@ -12,14 +13,14 @@ import { Order } from '@/api/ordersApi';
 
 export default function Home() {
   const [orders, setOrders] = useState(null);
-  const [user] = useState({ full_name: 'Zara Ahmed' });
+  const { user: clerkUser } = useUser();
 
   useEffect(() => {
     Order.list('-delivery_date', 50).then(setOrders).catch(() => setOrders([]));
   }, []);
 
   const greeting = getGreeting();
-  const bakerName = user?.full_name || 'Zara';
+  const bakerName = clerkUser?.firstName || clerkUser?.fullName?.split(' ')[0] || 'Baker';
 
   const totalOrders = orders?.length || 0;
   const thisWeekOrders = (orders || []).filter(o => o.delivery_date && isUpcoming(o.delivery_date, 7)).length;
@@ -88,7 +89,7 @@ export default function Home() {
         </div>
 
         <div className="lg:col-span-4">
-          <AccountSidebar user={user} orders={orders} revenue={revenue} completedOrders={completedOrders} />
+          <AccountSidebar orders={orders} revenue={revenue} completedOrders={completedOrders} />
         </div>
       </div>
     </div>

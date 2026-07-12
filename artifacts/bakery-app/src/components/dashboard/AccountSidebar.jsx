@@ -1,7 +1,9 @@
 import { Sparkles, QrCode } from 'lucide-react';
+import { useUser } from '@clerk/react';
 import { formatPKR } from '@/lib/utils';
 
-export default function AccountSidebar({ user, orders, revenue, completedOrders }) {
+export default function AccountSidebar({ orders, revenue, completedOrders }) {
+  const { user } = useUser();
   const todayOrders = (orders || []).filter(o => {
     if (!o.delivery_date) return false;
     return new Date(o.delivery_date).toDateString() === new Date().toDateString();
@@ -14,13 +16,18 @@ export default function AccountSidebar({ user, orders, revenue, completedOrders 
     <div className="space-y-4">
       <div className="bg-card rounded-2xl p-5 shadow-soft border border-border/50">
         <div className="flex flex-col items-center text-center">
-          <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-3">
-            <span className="font-heading text-2xl font-bold text-primary">
-              {(user?.full_name || 'Z')[0]}
-            </span>
-          </div>
-          <h3 className="font-heading text-lg font-semibold text-foreground">{user?.full_name || 'Zara Ahmed'}</h3>
-          <p className="text-xs text-muted-foreground">Home Baker · Lahore</p>
+          {user?.imageUrl
+            ? <img src={user.imageUrl} alt="avatar" className="w-16 h-16 rounded-full object-cover mb-3 border-2 border-primary/20" />
+            : (
+              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-3">
+                <span className="font-heading text-2xl font-bold text-primary">
+                  {(user?.firstName || user?.fullName || 'B')[0]}
+                </span>
+              </div>
+            )
+          }
+          <h3 className="font-heading text-lg font-semibold text-foreground">{user?.fullName || user?.firstName || 'Baker'}</h3>
+          <p className="text-xs text-muted-foreground">{user?.primaryEmailAddress?.emailAddress || 'Home Baker'}</p>
           <span className="flex items-center gap-1 text-xs font-medium text-primary bg-primary/10 px-2.5 py-0.5 rounded-full mt-2">
             <Sparkles className="w-3 h-3" /> Verified Baker
           </span>

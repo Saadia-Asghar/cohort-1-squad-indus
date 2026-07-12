@@ -105,18 +105,21 @@ const TESTIMONIALS = [
     city: 'Lahore',
     text: 'Pehle WhatsApp pe orders manage karna bohot mushkil tha. Ab sab kuch ek jagah hai — orders, calendar, payments. Bohot helpful!',
     stars: 5,
+    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=80&h=80&fit=crop&q=80',
   },
   {
     name: 'Fatima R.',
     city: 'Karachi',
     text: 'The AI chat feature is amazing. My customers place orders at midnight and everything shows up in my dashboard by morning.',
     stars: 5,
+    avatar: 'https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?w=80&h=80&fit=crop&q=80',
   },
   {
     name: 'Maryam A.',
     city: 'Islamabad',
     text: 'Delivery messages generate karna ab 2 seconds ka kaam hai. Customers bhi bohat khush rehte hain.',
     stars: 5,
+    avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=80&h=80&fit=crop&q=80',
   },
 ];
 
@@ -192,17 +195,40 @@ export default function LandingPage() {
           </FadeUp>
         </div>
 
-        {/* Dashboard preview mockup */}
+        {/* Hero image + dashboard mockup split */}
         <FadeUp delay={0.25}>
-          <div className="max-w-3xl mx-auto mt-14 relative">
+          <div className="max-w-5xl mx-auto mt-14 grid grid-cols-1 lg:grid-cols-2 gap-6 items-center">
+            {/* Real bakery photo */}
+            <div className="relative rounded-3xl overflow-hidden shadow-2xl aspect-[4/3] lg:aspect-auto lg:h-80">
+              <img
+                src="https://images.unsplash.com/photo-1621303837174-89787a7d4729?w=800&q=80"
+                alt="Home baker decorating a cake"
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+              <div className="absolute bottom-4 left-4 right-4">
+                <div className="bg-white/90 backdrop-blur rounded-2xl px-4 py-3 flex items-center gap-3 shadow-lg">
+                  <div className="w-9 h-9 rounded-xl bg-green-500 flex items-center justify-center flex-shrink-0">
+                    <MessageCircle className="w-4 h-4 text-white" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-bold text-gray-900">New order via AI chat</p>
+                    <p className="text-[11px] text-gray-500 truncate">Aisha: "1 chocolate cake, 18 July, Gulberg"</p>
+                  </div>
+                  <span className="text-[10px] font-semibold bg-green-100 text-green-700 px-2 py-0.5 rounded-full flex-shrink-0">Saved ✓</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Dashboard mockup */}
             <div className="bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden">
               <div className="bg-gray-50 border-b border-gray-100 px-4 py-3 flex items-center gap-2">
                 <div className="w-3 h-3 rounded-full bg-red-300" />
                 <div className="w-3 h-3 rounded-full bg-yellow-300" />
                 <div className="w-3 h-3 rounded-full bg-green-300" />
-                <div className="ml-3 flex-1 bg-gray-200 rounded-full h-5 max-w-[200px]" />
+                <div className="ml-3 text-xs text-gray-400 font-medium">Sweet Tooth Dashboard</div>
               </div>
-              <div className="p-5 grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="p-4 grid grid-cols-2 gap-2.5">
                 {[
                   { label: 'Total Orders', val: '147', color: 'bg-purple-50 text-purple-700' },
                   { label: 'This Week', val: '23', color: 'bg-blue-50 text-blue-700' },
@@ -210,18 +236,23 @@ export default function LandingPage() {
                   { label: 'Pending Pay', val: 'PKR 12.4k', color: 'bg-amber-50 text-amber-700' },
                 ].map(c => (
                   <div key={c.label} className={`${c.color} rounded-xl p-3`}>
-                    <p className="text-xs font-medium opacity-70 mb-1">{c.label}</p>
-                    <p className="text-xl font-bold">{c.val}</p>
+                    <p className="text-[11px] font-medium opacity-70 mb-1">{c.label}</p>
+                    <p className="text-lg font-bold">{c.val}</p>
                   </div>
                 ))}
               </div>
-              <div className="px-5 pb-5 space-y-2">
-                {['Aisha Khan — Chocolate Cake — 18 Jul', 'Sara Ahmed — Red Velvet — 19 Jul', 'Fatima R — Cupcakes ×2 dozen — 20 Jul'].map((o, i) => (
-                  <div key={i} className="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-2.5">
-                    <span className="text-sm text-gray-700">{o}</span>
-                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${i === 0 ? 'bg-green-100 text-green-700' : i === 1 ? 'bg-amber-100 text-amber-700' : 'bg-purple-100 text-purple-700'}`}>
-                      {i === 0 ? 'Paid' : i === 1 ? 'Pending' : 'Confirmed'}
-                    </span>
+              <div className="px-4 pb-4 space-y-2">
+                {[
+                  { name: 'Aisha Khan', item: 'Chocolate Cake', date: '18 Jul', status: 'Paid', color: 'bg-green-100 text-green-700' },
+                  { name: 'Sara Ahmed', item: 'Red Velvet', date: '19 Jul', status: 'Pending', color: 'bg-amber-100 text-amber-700' },
+                  { name: 'Fatima R', item: 'Cupcakes ×2 doz', date: '20 Jul', status: 'Confirmed', color: 'bg-purple-100 text-purple-700' },
+                ].map((o, i) => (
+                  <div key={i} className="flex items-center justify-between bg-gray-50 rounded-xl px-3 py-2.5">
+                    <div>
+                      <p className="text-xs font-semibold text-gray-800">{o.name}</p>
+                      <p className="text-[11px] text-gray-400">{o.item} · {o.date}</p>
+                    </div>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${o.color}`}>{o.status}</span>
                   </div>
                 ))}
               </div>
@@ -339,9 +370,7 @@ export default function LandingPage() {
                   </div>
                   <p className="text-sm text-gray-700 leading-relaxed mb-4">"{t.text}"</p>
                   <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 rounded-full bg-purple-200 flex items-center justify-center text-xs font-bold text-purple-700">
-                      {t.name[0]}
-                    </div>
+                    <img src={t.avatar} alt={t.name} className="w-8 h-8 rounded-full object-cover border-2 border-purple-200" />
                     <div>
                       <p className="text-xs font-semibold text-gray-900">{t.name}</p>
                       <p className="text-[10px] text-gray-400">{t.city}</p>
