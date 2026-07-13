@@ -3,6 +3,7 @@ import { useBuyerSession } from "@/hooks/use-session";
 import { useGetBaker, useUpdateBaker, getGetBakerQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
+import { Copy, QrCode, Share2 } from "lucide-react";
 
 export default function DashboardSettings() {
   const { bakerId } = useBuyerSession();
@@ -18,6 +19,21 @@ export default function DashboardSettings() {
   const [advanceThresholdPkr, setAdvanceThresholdPkr] = useState(2000);
   const [advancePercentage, setAdvancePercentage] = useState(50);
   const [paymentDetails, setPaymentDetails] = useState("");
+  const shopUrl = typeof window === "undefined" ? "" : `${window.location.origin}/bakers/${bakerId}`;
+  const qrCodeUrl = shopUrl ? `https://quickchart.io/qr?size=260&text=${encodeURIComponent(shopUrl)}` : "";
+
+  const copyShopLink = async () => {
+    await navigator.clipboard.writeText(shopUrl);
+    alert("Your marketplace link has been copied.");
+  };
+
+  const shareShop = async () => {
+    if (navigator.share) {
+      await navigator.share({ title: baker?.businessName ?? "Sweet Tooth", text: "Browse my menu and order online.", url: shopUrl });
+      return;
+    }
+    await copyShopLink();
+  };
 
   useEffect(() => {
     if (baker) {
@@ -101,6 +117,25 @@ export default function DashboardSettings() {
                 value={whatsappNumber}
                 onChange={e => setWhatsappNumber(e.target.value)}
               />
+            </div>
+          </div>
+
+          <div className="p-6 rounded-xl border border-border bg-card shadow-sm space-y-4">
+            <div className="flex items-center gap-2">
+              <QrCode className="w-5 h-5 text-primary" />
+              <h3 className="font-serif text-xl font-bold">Share your marketplace</h3>
+            </div>
+            <p className="text-sm text-muted-foreground">Customers scan this QR code to open your live menu, talk to your assistant, and place an order.</p>
+            <div className="flex flex-col sm:flex-row gap-5 items-start">
+              {qrCodeUrl && <img src={qrCodeUrl} alt={`QR code for ${baker?.businessName ?? "your shop"}`} className="w-40 h-40 rounded-lg border border-border bg-white p-2" />}
+              <div className="space-y-3 flex-1 min-w-0">
+                <input readOnly value={shopUrl} className="w-full px-3 py-2 border border-border rounded-md bg-muted text-sm" aria-label="Your marketplace link" />
+                <div className="flex flex-wrap gap-2">
+                  <button onClick={copyShopLink} className="inline-flex items-center gap-2 px-3 py-2 rounded-md border border-border text-sm font-medium hover:bg-muted"><Copy className="w-4 h-4" /> Copy link</button>
+                  <button onClick={shareShop} className="inline-flex items-center gap-2 px-3 py-2 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90"><Share2 className="w-4 h-4" /> Share shop</button>
+                </div>
+                <p className="text-xs text-muted-foreground">Print this QR code on packaging, business cards, or Instagram stories.</p>
+              </div>
             </div>
           </div>
 

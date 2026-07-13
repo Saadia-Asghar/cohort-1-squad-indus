@@ -13,12 +13,22 @@ import {
 import { z } from "zod";
 import { hashPassword, verifyPassword, signToken } from "../lib/auth.js";
 import { requireBakerAuth } from "../middlewares/auth.js";
+import { rebuildBakerKnowledgeIndex } from "../lib/rag/pipeline.js";
 
 const router = Router();
 
 function toPublicBaker(baker: Record<string, unknown>) {
   const { passwordHash, metaWebhookToken, whatsappNumber, email, paymentDetails, ...publicBaker } = baker;
-  return publicBaker;
+  const digits = String(whatsappNumber ?? "").replace(/\D/g, "");
+  const internationalNumber = digits.startsWith("0") ? `92${digits.slice(1)}` : digits;
+  return {
+    ...publicBaker,
+    // Share a safe customer handoff URL rather than exposing the raw phone
+    // number in every marketplace response. The agent must be explicitly on.
+    whatsappChatUrl: baker.whatsappAgentEnabled && internationalNumber
+      ? `https://wa.me/${internationalNumber}?text=${encodeURIComponent(`Assalam-o-Alaikum! I found ${String(baker.businessName ?? "your bakery")} on Sweet Tooth and need help with an order.`)}`
+      : null,
+  };
 }
 
 function toAuthenticatedBaker(baker: Record<string, unknown>) {
@@ -156,7 +166,12 @@ router.patch("/bakers/:bakerId", requireBakerAuth, async (req, res): Promise<voi
     res.status(404).json({ error: "Baker not found" });
     return;
   }
-  res.json({ ...baker, deliveryAreas: baker.deliveryAreas ?? [] });
+  // Policies and delivery areas are agent knowledge. Keep the retrieval index
+  // in sync whenever a baker updates their shop profile.
+  rebuildBakerKnowledgeIndex(baker.id).catch((error) =>
+    console.error(`Auto-RAG reindex failed for baker #${baker.id}:`, error),
+  );
+  res.json({ ...toAuthenticatedBaker(baker), deliveryAreas: baker.deliveryAreas ?? [] });
 });
 
 // GET /bakers/:bakerId/products

@@ -57749,11 +57749,222 @@ function requireBakerAuth(req, res, next) {
   next();
 }
 
+// artifacts/api-server/src/lib/logger.ts
+var import_pino = __toESM(require_pino(), 1);
+var isProduction = process.env.NODE_ENV === "production";
+var logger = (0, import_pino.default)({
+  level: process.env.LOG_LEVEL ?? "info",
+  redact: [
+    "req.headers.authorization",
+    "req.headers.cookie",
+    "res.headers['set-cookie']"
+  ],
+  ...isProduction ? {} : {
+    transport: {
+      target: "pino-pretty",
+      options: { colorize: true }
+    }
+  }
+});
+
+// artifacts/api-server/src/lib/rag/embeddings.ts
+var EMBEDDING_DIM = 384;
+function localEmbed(text2, dims = EMBEDDING_DIM) {
+  const vec = new Array(dims).fill(0);
+  const normalized = text2.toLowerCase().replace(/[^\w\s]/g, " ");
+  const tokens = normalized.split(/\s+/).filter(Boolean);
+  for (const token of tokens) {
+    let h = 0;
+    for (let i = 0; i < token.length; i++) {
+      h = (h << 5) - h + token.charCodeAt(i) | 0;
+    }
+    vec[Math.abs(h) % dims] += 1;
+  }
+  for (let i = 0; i < tokens.length - 1; i++) {
+    const bigram = `${tokens[i]}_${tokens[i + 1]}`;
+    let h = 0;
+    for (let j = 0; j < bigram.length; j++) {
+      h = (h << 5) - h + bigram.charCodeAt(j) | 0;
+    }
+    vec[Math.abs(h) % dims] += 0.5;
+  }
+  const norm = Math.sqrt(vec.reduce((sum, value) => sum + value * value, 0)) || 1;
+  return vec.map((value) => value / norm);
+}
+async function openaiEmbed(text2) {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) return null;
+  const model = process.env.OPENAI_EMBEDDING_MODEL ?? "text-embedding-3-small";
+  const response = await fetch("https://api.openai.com/v1/embeddings", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ model, input: text2.slice(0, 8e3) })
+  });
+  if (!response.ok) {
+    const detail = (await response.text()).slice(0, 500);
+    logger.warn({ status: response.status, detail }, "OpenAI embedding request failed; using local fallback");
+    return null;
+  }
+  const payload = await response.json();
+  const embedding = payload.data?.[0]?.embedding;
+  return embedding?.length ? embedding : null;
+}
+async function embedText(text2) {
+  try {
+    const openaiVector = await openaiEmbed(text2);
+    if (openaiVector) {
+      return { vector: openaiVector, provider: "openai" };
+    }
+  } catch (error40) {
+    logger.warn({ err: error40 }, "OpenAI embedding request failed; using local fallback");
+  }
+  return { vector: localEmbed(text2), provider: "local" };
+}
+function cosineSimilarity(a, b) {
+  const len = Math.min(a.length, b.length);
+  let dot = 0;
+  let normA = 0;
+  let normB = 0;
+  for (let i = 0; i < len; i++) {
+    dot += a[i] * b[i];
+    normA += a[i] * a[i];
+    normB += b[i] * b[i];
+  }
+  const denom = Math.sqrt(normA) * Math.sqrt(normB);
+  return denom === 0 ? 0 : dot / denom;
+}
+
+// artifacts/api-server/src/lib/rag/indexer.ts
+function productChunks(product) {
+  const sizes = product.sizes ?? [];
+  const sizeText = sizes.length ? sizes.map((s) => `${s.label}: PKR ${s.pricePkr}`).join(", ") : `PKR ${product.basePricePkr}`;
+  const content = [
+    `Product: ${product.name}`,
+    product.description ? `Description: ${product.description}` : "",
+    `Category: ${product.category}`,
+    `Pricing: ${sizeText}`,
+    product.isEgglessAvailable ? "Eggless version available." : "",
+    product.leadTimeDays > 0 ? `Lead time: ${product.leadTimeDays} day(s).` : "",
+    product.occasionTags?.length ? `Occasions: ${product.occasionTags.join(", ")}` : "",
+    product.dietaryTags?.length ? `Dietary: ${product.dietaryTags.join(", ")}` : "",
+    product.isAvailable ? "Status: in stock." : "Status: sold out."
+  ].filter(Boolean).join("\n");
+  return [{
+    sourceType: "product",
+    sourceId: product.id,
+    chunkIndex: 0,
+    content,
+    metadata: { productName: product.name, category: product.category }
+  }];
+}
+async function buildBakerKnowledgeDrafts(bakerId) {
+  const [baker] = await db.select().from(bakersTable).where(eq(bakersTable.id, bakerId));
+  if (!baker) return [];
+  const products = await db.select().from(productsTable).where(eq(productsTable.bakerId, bakerId));
+  const drafts = [];
+  drafts.push({
+    sourceType: "baker_profile",
+    sourceId: baker.id,
+    chunkIndex: 0,
+    content: [
+      `Baker: ${baker.businessName}`,
+      baker.tagline ? `Tagline: ${baker.tagline}` : "",
+      baker.bio ? `About: ${baker.bio}` : "",
+      `City: ${baker.city}`,
+      baker.area ? `Area: ${baker.area}` : "",
+      baker.deliveryAreas?.length ? `Delivery areas: ${baker.deliveryAreas.join(", ")}` : ""
+    ].filter(Boolean).join("\n"),
+    metadata: { businessName: baker.businessName }
+  });
+  drafts.push({
+    sourceType: "policy",
+    sourceId: baker.id,
+    chunkIndex: 0,
+    content: [
+      `Payment policy: ${baker.codPolicy ?? "Cash on delivery (COD)."}`,
+      baker.returnPolicy ? `Return policy: ${baker.returnPolicy}` : "",
+      `Max orders per day: ${baker.maxOrdersPerDay}`
+    ].filter(Boolean).join("\n"),
+    metadata: { type: "policy" }
+  });
+  for (const product of products) {
+    drafts.push(...productChunks(product));
+  }
+  return drafts;
+}
+async function reindexBakerKnowledge(bakerId) {
+  const drafts = await buildBakerKnowledgeDrafts(bakerId);
+  await db.delete(knowledgeChunksTable).where(eq(knowledgeChunksTable.bakerId, bakerId));
+  if (drafts.length === 0) {
+    return { chunks: 0, provider: "local" };
+  }
+  let provider = "local";
+  const rows = [];
+  for (const draft of drafts) {
+    const embedded = await embedText(draft.content);
+    provider = embedded.provider;
+    rows.push({
+      bakerId,
+      sourceType: draft.sourceType,
+      sourceId: draft.sourceId ?? null,
+      chunkIndex: draft.chunkIndex,
+      content: draft.content,
+      embedding: embedded.vector,
+      metadata: draft.metadata ?? {},
+      updatedAt: /* @__PURE__ */ new Date()
+    });
+  }
+  await db.insert(knowledgeChunksTable).values(rows);
+  return { chunks: rows.length, provider };
+}
+
+// artifacts/api-server/src/lib/rag/retriever.ts
+async function retrieveKnowledge(bakerId, query, limit = 4, minScore = 0.12) {
+  const chunks = await db.select().from(knowledgeChunksTable).where(eq(knowledgeChunksTable.bakerId, bakerId));
+  if (chunks.length === 0) return [];
+  const { vector: vector2 } = await embedText(query);
+  const ranked = chunks.map((chunk) => ({
+    id: chunk.id,
+    content: chunk.content,
+    sourceType: chunk.sourceType,
+    sourceId: chunk.sourceId,
+    metadata: chunk.metadata ?? {},
+    score: cosineSimilarity(vector2, chunk.embedding)
+  })).filter((item) => item.score >= minScore).sort((a, b) => b.score - a.score).slice(0, limit);
+  return ranked;
+}
+function formatRetrievedContext(chunks) {
+  if (chunks.length === 0) return "";
+  return chunks.map((chunk, index2) => `[${index2 + 1}] ${chunk.content}`).join("\n\n");
+}
+
+// artifacts/api-server/src/lib/rag/pipeline.ts
+async function runRagQuery(bakerId, query) {
+  const chunks = await retrieveKnowledge(bakerId, query);
+  return {
+    chunks,
+    context: formatRetrievedContext(chunks)
+  };
+}
+async function rebuildBakerKnowledgeIndex(bakerId) {
+  return reindexBakerKnowledge(bakerId);
+}
+
 // artifacts/api-server/src/routes/bakers.ts
 var router2 = (0, import_express2.Router)();
 function toPublicBaker(baker) {
   const { passwordHash, metaWebhookToken, whatsappNumber, email: email3, paymentDetails, ...publicBaker } = baker;
-  return publicBaker;
+  const digits = String(whatsappNumber ?? "").replace(/\D/g, "");
+  const internationalNumber = digits.startsWith("0") ? `92${digits.slice(1)}` : digits;
+  return {
+    ...publicBaker,
+    // Share a safe customer handoff URL rather than exposing the raw phone
+    // number in every marketplace response. The agent must be explicitly on.
+    whatsappChatUrl: baker.whatsappAgentEnabled && internationalNumber ? `https://wa.me/${internationalNumber}?text=${encodeURIComponent(`Assalam-o-Alaikum! I found ${String(baker.businessName ?? "your bakery")} on Sweet Tooth and need help with an order.`)}` : null
+  };
 }
 function toAuthenticatedBaker(baker) {
   const { passwordHash, metaWebhookToken, ...safeBaker } = baker;
@@ -57866,7 +58077,10 @@ router2.patch("/bakers/:bakerId", requireBakerAuth, async (req, res) => {
     res.status(404).json({ error: "Baker not found" });
     return;
   }
-  res.json({ ...baker, deliveryAreas: baker.deliveryAreas ?? [] });
+  rebuildBakerKnowledgeIndex(baker.id).catch(
+    (error40) => console.error(`Auto-RAG reindex failed for baker #${baker.id}:`, error40)
+  );
+  res.json({ ...toAuthenticatedBaker(baker), deliveryAreas: baker.deliveryAreas ?? [] });
 });
 router2.get("/bakers/:bakerId/products", async (req, res) => {
   const params = GetBakerProductsParams.safeParse(req.params);
@@ -58127,190 +58341,6 @@ var marketplace_default = router4;
 
 // artifacts/api-server/src/routes/products.ts
 var import_express5 = __toESM(require_express2(), 1);
-
-// artifacts/api-server/src/lib/rag/embeddings.ts
-var EMBEDDING_DIM = 384;
-function localEmbed(text2, dims = EMBEDDING_DIM) {
-  const vec = new Array(dims).fill(0);
-  const normalized = text2.toLowerCase().replace(/[^\w\s]/g, " ");
-  const tokens = normalized.split(/\s+/).filter(Boolean);
-  for (const token of tokens) {
-    let h = 0;
-    for (let i = 0; i < token.length; i++) {
-      h = (h << 5) - h + token.charCodeAt(i) | 0;
-    }
-    vec[Math.abs(h) % dims] += 1;
-  }
-  for (let i = 0; i < tokens.length - 1; i++) {
-    const bigram = `${tokens[i]}_${tokens[i + 1]}`;
-    let h = 0;
-    for (let j = 0; j < bigram.length; j++) {
-      h = (h << 5) - h + bigram.charCodeAt(j) | 0;
-    }
-    vec[Math.abs(h) % dims] += 0.5;
-  }
-  const norm = Math.sqrt(vec.reduce((sum, value) => sum + value * value, 0)) || 1;
-  return vec.map((value) => value / norm);
-}
-async function openaiEmbed(text2) {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) return null;
-  const model = process.env.OPENAI_EMBEDDING_MODEL ?? "text-embedding-3-small";
-  const response = await fetch("https://api.openai.com/v1/embeddings", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({ model, input: text2.slice(0, 8e3) })
-  });
-  if (!response.ok) return null;
-  const payload = await response.json();
-  const embedding = payload.data?.[0]?.embedding;
-  return embedding?.length ? embedding : null;
-}
-async function embedText(text2) {
-  try {
-    const openaiVector = await openaiEmbed(text2);
-    if (openaiVector) {
-      return { vector: openaiVector, provider: "openai" };
-    }
-  } catch {
-  }
-  return { vector: localEmbed(text2), provider: "local" };
-}
-function cosineSimilarity(a, b) {
-  const len = Math.min(a.length, b.length);
-  let dot = 0;
-  let normA = 0;
-  let normB = 0;
-  for (let i = 0; i < len; i++) {
-    dot += a[i] * b[i];
-    normA += a[i] * a[i];
-    normB += b[i] * b[i];
-  }
-  const denom = Math.sqrt(normA) * Math.sqrt(normB);
-  return denom === 0 ? 0 : dot / denom;
-}
-
-// artifacts/api-server/src/lib/rag/indexer.ts
-function productChunks(product) {
-  const sizes = product.sizes ?? [];
-  const sizeText = sizes.length ? sizes.map((s) => `${s.label}: PKR ${s.pricePkr}`).join(", ") : `PKR ${product.basePricePkr}`;
-  const content = [
-    `Product: ${product.name}`,
-    product.description ? `Description: ${product.description}` : "",
-    `Category: ${product.category}`,
-    `Pricing: ${sizeText}`,
-    product.isEgglessAvailable ? "Eggless version available." : "",
-    product.leadTimeDays > 0 ? `Lead time: ${product.leadTimeDays} day(s).` : "",
-    product.occasionTags?.length ? `Occasions: ${product.occasionTags.join(", ")}` : "",
-    product.dietaryTags?.length ? `Dietary: ${product.dietaryTags.join(", ")}` : "",
-    product.isAvailable ? "Status: in stock." : "Status: sold out."
-  ].filter(Boolean).join("\n");
-  return [{
-    sourceType: "product",
-    sourceId: product.id,
-    chunkIndex: 0,
-    content,
-    metadata: { productName: product.name, category: product.category }
-  }];
-}
-async function buildBakerKnowledgeDrafts(bakerId) {
-  const [baker] = await db.select().from(bakersTable).where(eq(bakersTable.id, bakerId));
-  if (!baker) return [];
-  const products = await db.select().from(productsTable).where(eq(productsTable.bakerId, bakerId));
-  const drafts = [];
-  drafts.push({
-    sourceType: "baker_profile",
-    sourceId: baker.id,
-    chunkIndex: 0,
-    content: [
-      `Baker: ${baker.businessName}`,
-      baker.tagline ? `Tagline: ${baker.tagline}` : "",
-      baker.bio ? `About: ${baker.bio}` : "",
-      `City: ${baker.city}`,
-      baker.area ? `Area: ${baker.area}` : "",
-      baker.deliveryAreas?.length ? `Delivery areas: ${baker.deliveryAreas.join(", ")}` : ""
-    ].filter(Boolean).join("\n"),
-    metadata: { businessName: baker.businessName }
-  });
-  drafts.push({
-    sourceType: "policy",
-    sourceId: baker.id,
-    chunkIndex: 0,
-    content: [
-      `Payment policy: ${baker.codPolicy ?? "Cash on delivery (COD)."}`,
-      baker.returnPolicy ? `Return policy: ${baker.returnPolicy}` : "",
-      `Max orders per day: ${baker.maxOrdersPerDay}`,
-      `WhatsApp: ${baker.whatsappNumber}`
-    ].filter(Boolean).join("\n"),
-    metadata: { type: "policy" }
-  });
-  for (const product of products) {
-    drafts.push(...productChunks(product));
-  }
-  return drafts;
-}
-async function reindexBakerKnowledge(bakerId) {
-  const drafts = await buildBakerKnowledgeDrafts(bakerId);
-  await db.delete(knowledgeChunksTable).where(eq(knowledgeChunksTable.bakerId, bakerId));
-  if (drafts.length === 0) {
-    return { chunks: 0, provider: "local" };
-  }
-  let provider = "local";
-  const rows = [];
-  for (const draft of drafts) {
-    const embedded = await embedText(draft.content);
-    provider = embedded.provider;
-    rows.push({
-      bakerId,
-      sourceType: draft.sourceType,
-      sourceId: draft.sourceId ?? null,
-      chunkIndex: draft.chunkIndex,
-      content: draft.content,
-      embedding: embedded.vector,
-      metadata: draft.metadata ?? {},
-      updatedAt: /* @__PURE__ */ new Date()
-    });
-  }
-  await db.insert(knowledgeChunksTable).values(rows);
-  return { chunks: rows.length, provider };
-}
-
-// artifacts/api-server/src/lib/rag/retriever.ts
-async function retrieveKnowledge(bakerId, query, limit = 4, minScore = 0.12) {
-  const chunks = await db.select().from(knowledgeChunksTable).where(eq(knowledgeChunksTable.bakerId, bakerId));
-  if (chunks.length === 0) return [];
-  const { vector: vector2 } = await embedText(query);
-  const ranked = chunks.map((chunk) => ({
-    id: chunk.id,
-    content: chunk.content,
-    sourceType: chunk.sourceType,
-    sourceId: chunk.sourceId,
-    metadata: chunk.metadata ?? {},
-    score: cosineSimilarity(vector2, chunk.embedding)
-  })).filter((item) => item.score >= minScore).sort((a, b) => b.score - a.score).slice(0, limit);
-  return ranked;
-}
-function formatRetrievedContext(chunks) {
-  if (chunks.length === 0) return "";
-  return chunks.map((chunk, index2) => `[${index2 + 1}] ${chunk.content}`).join("\n\n");
-}
-
-// artifacts/api-server/src/lib/rag/pipeline.ts
-async function runRagQuery(bakerId, query) {
-  const chunks = await retrieveKnowledge(bakerId, query);
-  return {
-    chunks,
-    context: formatRetrievedContext(chunks)
-  };
-}
-async function rebuildBakerKnowledgeIndex(bakerId) {
-  return reindexBakerKnowledge(bakerId);
-}
-
-// artifacts/api-server/src/routes/products.ts
 var router5 = (0, import_express5.Router)();
 function formatProduct(p) {
   return {
@@ -58830,24 +58860,6 @@ var analytics_default = router10;
 
 // artifacts/api-server/src/routes/chat.ts
 var import_express11 = __toESM(require_express2(), 1);
-
-// artifacts/api-server/src/lib/logger.ts
-var import_pino = __toESM(require_pino(), 1);
-var isProduction = process.env.NODE_ENV === "production";
-var logger = (0, import_pino.default)({
-  level: process.env.LOG_LEVEL ?? "info",
-  redact: [
-    "req.headers.authorization",
-    "req.headers.cookie",
-    "res.headers['set-cookie']"
-  ],
-  ...isProduction ? {} : {
-    transport: {
-      target: "pino-pretty",
-      options: { colorize: true }
-    }
-  }
-});
 
 // artifacts/api-server/src/lib/agent-llm.ts
 async function generateLlmReply(context) {

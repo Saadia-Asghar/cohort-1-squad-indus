@@ -16,7 +16,7 @@ import {
 import { useParams } from "wouter";
 import { useBuyerSession } from "@/hooks/use-session";
 import { useQueryClient } from "@tanstack/react-query";
-import { MessageCircle, X, Send, User, Star } from "lucide-react";
+import { MessageCircle, X, Send, User, Star, Phone, Sparkles } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 
@@ -96,6 +96,13 @@ export default function BakerProfile() {
     });
   };
 
+  const askAboutProduct = (productName: string) => {
+    setIsChatOpen(true);
+    handleQuickMessage(`Tell me about ${productName}. Is it available, and can I order it today?`);
+  };
+
+  const whatsappChatUrl = (baker as { whatsappChatUrl?: string | null } | undefined)?.whatsappChatUrl;
+
   return (
     <BuyerLayout>
       <div className="container mx-auto px-4 py-8 max-w-5xl relative">
@@ -142,6 +149,16 @@ export default function BakerProfile() {
                         <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
                         Active today
                       </span>
+                    )}
+                    {whatsappChatUrl && (
+                      <a
+                        href={whatsappChatUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex items-center gap-1.5 text-green-700 bg-green-50 px-3 py-1 rounded-full text-sm font-medium border border-green-200 hover:bg-green-100"
+                      >
+                        <Phone className="w-3.5 h-3.5" /> Continue on WhatsApp
+                      </a>
                     )}
                   </div>
                 </div>
@@ -196,13 +213,25 @@ export default function BakerProfile() {
                           )}
                           <div className="flex justify-between items-center">
                             <span className="font-mono font-bold text-primary">PKR {displayPrice.toLocaleString()}</span>
-                            <button 
-                              onClick={() => handleAddToCart(product)}
-                              disabled={addToCart.isPending || !product.isAvailable}
-                              className="bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground px-4 py-1.5 rounded-md text-sm font-bold transition-colors disabled:opacity-50"
-                            >
-                              {product.isAvailable ? 'Add +' : 'Out'}
-                            </button>
+                            <div className="flex gap-2">
+                              {baker.agentActive && product.isAvailable && (
+                                <button
+                                  onClick={() => askAboutProduct(product.name)}
+                                  className="p-1.5 rounded-md text-primary border border-primary/20 hover:bg-primary/10"
+                                  aria-label={`Ask the assistant about ${product.name}`}
+                                  title="Ask the assistant"
+                                >
+                                  <Sparkles className="w-4 h-4" />
+                                </button>
+                              )}
+                              <button
+                                onClick={() => handleAddToCart(product)}
+                                disabled={addToCart.isPending || !product.isAvailable}
+                                className="bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground px-4 py-1.5 rounded-md text-sm font-bold transition-colors disabled:opacity-50"
+                              >
+                                {product.isAvailable ? 'Add +' : 'Out'}
+                              </button>
+                            </div>
                           </div>
                         </div>
                       </div>

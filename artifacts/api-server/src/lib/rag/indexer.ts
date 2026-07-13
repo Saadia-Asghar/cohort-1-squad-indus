@@ -67,7 +67,6 @@ export async function buildBakerKnowledgeDrafts(bakerId: number): Promise<ChunkD
       `Payment policy: ${baker.codPolicy ?? "Cash on delivery (COD)."}`,
       baker.returnPolicy ? `Return policy: ${baker.returnPolicy}` : "",
       `Max orders per day: ${baker.maxOrdersPerDay}`,
-      `WhatsApp: ${baker.whatsappNumber}`,
     ].filter(Boolean).join("\n"),
     metadata: { type: "policy" },
   });
