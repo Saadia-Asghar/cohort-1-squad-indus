@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { eq, sql } from "drizzle-orm";
+import { eq, or, sql } from "drizzle-orm";
 import { db, bakersTable, productsTable, reviewsTable, ordersTable } from "@workspace/db";
 import {
   GetBakerParams,
@@ -103,7 +103,7 @@ router.post("/bakers", async (req, res): Promise<void> => {
 // POST /bakers/login
 router.post("/bakers/login", async (req, res): Promise<void> => {
   const schema = z.object({
-    email: z.string().email(),
+    identifier: z.string().min(3),
     password: z.string(),
   });
   
@@ -113,17 +113,20 @@ router.post("/bakers/login", async (req, res): Promise<void> => {
     return;
   }
 
-  const { email, password } = parsed.data;
-  const [baker] = await db.select().from(bakersTable).where(eq(bakersTable.email, email));
+  const { identifier, password } = parsed.data;
+  const [baker] = await db.select().from(bakersTable).where(or(
+    eq(bakersTable.email, identifier.toLowerCase()),
+    eq(bakersTable.whatsappNumber, identifier),
+  ));
   
   if (!baker || !baker.passwordHash) {
-    res.status(401).json({ error: "Invalid email or password" });
+    res.status(401).json({ error: "Invalid email/number or password" });
     return;
   }
 
   const isMatch = verifyPassword(password, baker.passwordHash);
   if (!isMatch) {
-    res.status(401).json({ error: "Invalid email or password" });
+    res.status(401).json({ error: "Invalid email/number or password" });
     return;
   }
 

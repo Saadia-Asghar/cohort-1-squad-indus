@@ -43,8 +43,8 @@ async function request(path: string, body: Record<string, string>): Promise<Bake
   return saveSession(data);
 }
 
-export function loginBaker(email: string, password: string) {
-  return request("/api/bakers/login", { email, password });
+export function loginBaker(identifier: string, password: string) {
+  return request("/api/bakers/login", { identifier, password });
 }
 
 export function registerBaker(input: {

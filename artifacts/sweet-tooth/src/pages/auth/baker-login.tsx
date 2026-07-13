@@ -4,27 +4,31 @@ import { loginBaker } from "@/lib/baker-session";
 
 export default function BakerLogin() {
   const [, navigate] = useLocation();
-  const [email, setEmail] = useState("");
+  const [method, setMethod] = useState<"email" | "phone">("email");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const isEmail = method === "email";
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     setLoading(true); setError(null);
-    try {
-      await loginBaker(email.trim(), password);
-      navigate("/dashboard");
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "We could not sign you in.");
-    } finally { setLoading(false); }
+    try { await loginBaker(identifier.trim(), password); navigate("/dashboard"); }
+    catch (cause) { setError(cause instanceof Error ? cause.message : "We could not sign you in."); }
+    finally { setLoading(false); }
   };
 
+  const chooseMethod = (next: "email" | "phone") => { setMethod(next); setIdentifier(""); setError(null); };
   return <div className="min-h-screen bg-background flex items-center justify-center p-4">
     <form onSubmit={submit} className="w-full max-w-md p-8 border border-border rounded-2xl bg-card shadow-lg space-y-6">
       <div className="text-center"><h1 className="text-3xl font-serif font-bold text-primary">Baker Portal</h1><p className="text-muted-foreground mt-2">Sign in to your own kitchen dashboard.</p></div>
+      <div className="grid grid-cols-2 gap-2 rounded-lg bg-muted p-1" role="tablist" aria-label="Sign-in method">
+        <button type="button" onClick={() => chooseMethod("email")} className={`rounded-md px-3 py-2 text-sm font-semibold ${isEmail ? "bg-card text-primary shadow-sm" : "text-muted-foreground"}`}>Email / Gmail</button>
+        <button type="button" onClick={() => chooseMethod("phone")} className={`rounded-md px-3 py-2 text-sm font-semibold ${!isEmail ? "bg-card text-primary shadow-sm" : "text-muted-foreground"}`}>WhatsApp number</button>
+      </div>
       <div className="space-y-4">
-        <label className="block text-sm font-medium">Email<input required type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} className="mt-1 w-full px-4 py-3 border border-border rounded-md bg-background" /></label>
+        <label className="block text-sm font-medium">{isEmail ? "Email address" : "WhatsApp number"}<input required type={isEmail ? "email" : "tel"} autoComplete={isEmail ? "email" : "tel"} placeholder={isEmail ? "you@gmail.com" : "+92 300 0000000"} value={identifier} onChange={(e) => setIdentifier(e.target.value)} className="mt-1 w-full px-4 py-3 border border-border rounded-md bg-background" /></label>
         <label className="block text-sm font-medium">Password<input required type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} className="mt-1 w-full px-4 py-3 border border-border rounded-md bg-background" /></label>
         {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
         <button disabled={loading} className="w-full bg-primary text-primary-foreground py-3 rounded-md font-bold disabled:opacity-50">{loading ? "Signing in…" : "Sign in as baker"}</button>
