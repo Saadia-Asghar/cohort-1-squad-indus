@@ -1,10 +1,10 @@
-import { Router, type IRouter } from "express";
+import { Router } from "express";
 import { eq } from "drizzle-orm";
 import { db, bakersTable } from "@workspace/db";
 import { rebuildBakerKnowledgeIndex, runRagQuery } from "../lib/rag/pipeline.js";
 import { logger } from "../lib/logger.js";
 
-const router: IRouter = Router();
+const router = Router();
 
 // POST /bakers/:bakerId/knowledge/reindex — rebuild RAG embeddings from products + policies
 router.post("/bakers/:bakerId/knowledge/reindex", async (req, res): Promise<void> => {

@@ -1,8 +1,8 @@
-import { Router, type IRouter } from "express";
+import { Router } from "express";
 import { eq, ilike, or, sql } from "drizzle-orm";
 import { db, bakersTable, productsTable } from "@workspace/db";
 
-const router: IRouter = Router();
+const router = Router();
 
 // GET /marketplace/featured
 router.get("/marketplace/featured", async (req, res): Promise<void> => {

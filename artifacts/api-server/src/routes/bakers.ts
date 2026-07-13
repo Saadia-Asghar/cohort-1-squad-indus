@@ -1,4 +1,4 @@
-import { Router, type IRouter } from "express";
+import { Router } from "express";
 import { eq, sql } from "drizzle-orm";
 import { db, bakersTable, productsTable, reviewsTable, ordersTable } from "@workspace/db";
 import {
@@ -14,7 +14,7 @@ import { z } from "zod";
 import { hashPassword, verifyPassword, signToken } from "../lib/auth.js";
 import { requireBakerAuth } from "../middlewares/auth.js";
 
-const router: IRouter = Router();
+const router = Router();
 
 // GET /bakers
 router.get("/bakers", async (req, res): Promise<void> => {

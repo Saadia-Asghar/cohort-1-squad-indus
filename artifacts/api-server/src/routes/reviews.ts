@@ -1,8 +1,8 @@
-import { Router, type IRouter } from "express";
+import { Router } from "express";
 import { db, reviewsTable } from "@workspace/db";
 import { CreateReviewBody } from "@workspace/api-zod";
 
-const router: IRouter = Router();
+const router = Router();
 
 // POST /reviews
 router.post("/reviews", async (req, res): Promise<void> => {

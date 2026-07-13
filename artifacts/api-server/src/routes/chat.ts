@@ -1,11 +1,11 @@
-import { Router, type IRouter } from "express";
+import { Router } from "express";
 import { eq, and, desc } from "drizzle-orm";
 import { db, chatMessagesTable, conversationMemoryTable } from "@workspace/db";
 import { SendChatMessageBody, GetChatHistoryParams } from "@workspace/api-zod";
 import { processChatMessage } from "../lib/chat-agent.js";
 import { rateLimit } from "../middlewares/rate-limiter.js";
 
-const router: IRouter = Router();
+const router = Router();
 
 // POST /chat
 router.post("/chat", rateLimit(60, 60 * 1000), async (req, res): Promise<void> => {

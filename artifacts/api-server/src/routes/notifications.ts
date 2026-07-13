@@ -1,8 +1,8 @@
-import { Router, type IRouter } from "express";
+import { Router } from "express";
 import { eq, desc } from "drizzle-orm";
 import { db, notificationsTable } from "@workspace/db";
 
-const router: IRouter = Router();
+const router = Router();
 
 // GET /bakers/:bakerId/notifications
 router.get("/bakers/:bakerId/notifications", async (req, res): Promise<void> => {

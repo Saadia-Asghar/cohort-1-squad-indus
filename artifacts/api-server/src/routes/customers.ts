@@ -1,4 +1,4 @@
-import { Router, type IRouter } from "express";
+import { Router } from "express";
 import { eq } from "drizzle-orm";
 import { db, customersTable } from "@workspace/db";
 import {
@@ -6,7 +6,7 @@ import {
   ListCustomersQueryParams,
 } from "@workspace/api-zod";
 
-const router: IRouter = Router();
+const router = Router();
 
 // GET /customers
 router.get("/customers", async (req, res): Promise<void> => {

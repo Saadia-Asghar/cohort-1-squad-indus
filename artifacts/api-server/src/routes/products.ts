@@ -1,4 +1,4 @@
-import { Router, type IRouter } from "express";
+import { Router } from "express";
 import { eq } from "drizzle-orm";
 import { db, productsTable } from "@workspace/db";
 import {
@@ -13,7 +13,7 @@ import {
 import { requireBakerAuth } from "../middlewares/auth.js";
 import { rebuildBakerKnowledgeIndex } from "../lib/rag/pipeline.js";
 
-const router: IRouter = Router();
+const router = Router();
 
 function formatProduct(p: typeof productsTable.$inferSelect) {
   return {

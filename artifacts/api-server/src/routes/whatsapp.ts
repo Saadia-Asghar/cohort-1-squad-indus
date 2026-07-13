@@ -1,4 +1,4 @@
-import { Router, type IRouter } from "express";
+import { Router } from "express";
 import { eq } from "drizzle-orm";
 import { db, bakersTable } from "@workspace/db";
 import { logger } from "../lib/logger.js";
@@ -10,7 +10,7 @@ import {
 } from "../lib/whatsapp.js";
 import { rateLimit } from "../middlewares/rate-limiter.js";
 
-const router: IRouter = Router();
+const router = Router();
 
 function resolveVerifyToken(bakerToken?: string | null): string | undefined {
   return bakerToken ?? process.env.WHATSAPP_VERIFY_TOKEN;

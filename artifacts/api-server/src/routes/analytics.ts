@@ -1,9 +1,9 @@
-import { Router, type IRouter } from "express";
+import { Router } from "express";
 import { eq } from "drizzle-orm";
 import { db, ordersTable } from "@workspace/db";
 import { GetBakerAnalyticsParams, GetOrderSourcesParams } from "@workspace/api-zod";
 
-const router: IRouter = Router();
+const router = Router();
 
 // GET /analytics/baker/:bakerId/:period
 router.get("/analytics/baker/:bakerId/:period", async (req, res): Promise<void> => {

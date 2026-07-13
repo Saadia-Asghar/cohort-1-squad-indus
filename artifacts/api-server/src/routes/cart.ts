@@ -1,4 +1,4 @@
-import { Router, type IRouter } from "express";
+import { Router } from "express";
 import { eq, and } from "drizzle-orm";
 import { db, cartItemsTable } from "@workspace/db";
 import {
@@ -8,7 +8,7 @@ import {
   ClearCartQueryParams,
 } from "@workspace/api-zod";
 
-const router: IRouter = Router();
+const router = Router();
 
 // GET /cart
 router.get("/cart", async (req, res): Promise<void> => {

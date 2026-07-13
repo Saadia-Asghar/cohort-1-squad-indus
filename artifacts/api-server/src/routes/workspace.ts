@@ -1,4 +1,4 @@
-import { Router, type IRouter } from "express";
+import { Router } from "express";
 import { eq, and, gte, desc } from "drizzle-orm";
 import {
   db,
@@ -8,7 +8,7 @@ import {
   ordersTable,
 } from "@workspace/db";
 
-const router: IRouter = Router();
+const router = Router();
 
 async function getMonthlyProgress(bakerId: number, metric: string) {
   const monthStart = new Date();

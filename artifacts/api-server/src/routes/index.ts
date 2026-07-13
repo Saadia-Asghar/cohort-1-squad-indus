@@ -1,4 +1,4 @@
-import { Router, type IRouter } from "express";
+import { Router } from "express";
 import healthRouter from "./health.js";
 import bakersRouter from "./bakers.js";
 import notificationsRouter from "./notifications.js";
@@ -14,7 +14,7 @@ import knowledgeRouter from "./knowledge.js";
 import workspaceRouter from "./workspace.js";
 import whatsappRouter from "./whatsapp.js";
 
-const router: IRouter = Router();
+const router = Router();
 
 router.use(healthRouter);
 router.use(bakersRouter);

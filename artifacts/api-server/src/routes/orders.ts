@@ -1,4 +1,4 @@
-import { Router, type IRouter } from "express";
+import { Router } from "express";
 import { eq, and } from "drizzle-orm";
 import { db, ordersTable } from "@workspace/db";
 import {
@@ -12,7 +12,7 @@ import {
 } from "@workspace/api-zod";
 import { triggerPaymentOCRVerification } from "../lib/ocr.js";
 
-const router: IRouter = Router();
+const router = Router();
 
 function formatOrder(o: typeof ordersTable.$inferSelect) {
   return { ...o, items: (o.items as unknown[]) ?? [] };
