@@ -28,6 +28,11 @@ function toPublicBaker(baker: Record<string, unknown>) {
     whatsappChatUrl: baker.whatsappAgentEnabled && internationalNumber
       ? `https://wa.me/${internationalNumber}?text=${encodeURIComponent(`Assalam-o-Alaikum! I found ${String(baker.businessName ?? "your bakery")} on Sweet Tooth and need help with an order.`)}`
       : null,
+    publicShopSettings: {
+      menuAccent: (baker.agentConfig as Record<string, unknown> | null)?.menuAccent ?? "#7c3aed",
+      availabilityHours: (baker.agentConfig as Record<string, unknown> | null)?.availabilityHours ?? "",
+      dietaryPolicy: (baker.agentConfig as Record<string, unknown> | null)?.dietaryPolicy ?? "",
+    },
   };
 }
 
@@ -285,6 +290,9 @@ router.get("/bakers/:bakerId/agent-config", async (req, res): Promise<void> => {
     escalateKeywords: (conf.escalateKeywords as string[]) ?? [],
     autoReplyEnabled: (conf.autoReplyEnabled as boolean) ?? true,
     customResponses: (conf.customResponses as Array<{ trigger: string; response: string }>) ?? [],
+    menuAccent: (conf.menuAccent as string | null) ?? "#7c3aed",
+    availabilityHours: (conf.availabilityHours as string | null) ?? "",
+    dietaryPolicy: (conf.dietaryPolicy as string | null) ?? "",
     whatsappWebhookUrl: "/api/webhooks/whatsapp",
   });
 });
@@ -304,6 +312,9 @@ router.put("/bakers/:bakerId/agent-config", async (req, res): Promise<void> => {
     escalateKeywords?: string[];
     autoReplyEnabled?: boolean;
     customResponses?: Array<{ trigger: string; response: string }>;
+    menuAccent?: string;
+    availabilityHours?: string;
+    dietaryPolicy?: string;
   };
   const agentConfigUpdate: Record<string, unknown> = {};
   if (body.customGreeting !== undefined) agentConfigUpdate.customGreeting = body.customGreeting;
@@ -311,6 +322,9 @@ router.put("/bakers/:bakerId/agent-config", async (req, res): Promise<void> => {
   if (body.escalateKeywords !== undefined) agentConfigUpdate.escalateKeywords = body.escalateKeywords;
   if (body.autoReplyEnabled !== undefined) agentConfigUpdate.autoReplyEnabled = body.autoReplyEnabled;
   if (body.customResponses !== undefined) agentConfigUpdate.customResponses = body.customResponses;
+  if (body.menuAccent !== undefined && /^#[0-9a-fA-F]{6}$/.test(body.menuAccent)) agentConfigUpdate.menuAccent = body.menuAccent;
+  if (body.availabilityHours !== undefined) agentConfigUpdate.availabilityHours = body.availabilityHours.slice(0, 240);
+  if (body.dietaryPolicy !== undefined) agentConfigUpdate.dietaryPolicy = body.dietaryPolicy.slice(0, 600);
 
   const [existing] = await db.select().from(bakersTable).where(eq(bakersTable.id, bakerId));
   if (!existing) { res.status(404).json({ error: "Baker not found" }); return; }
@@ -343,6 +357,9 @@ router.put("/bakers/:bakerId/agent-config", async (req, res): Promise<void> => {
     escalateKeywords: (conf.escalateKeywords as string[]) ?? [],
     autoReplyEnabled: (conf.autoReplyEnabled as boolean) ?? true,
     customResponses: (conf.customResponses as Array<{ trigger: string; response: string }>) ?? [],
+    menuAccent: (conf.menuAccent as string | null) ?? "#7c3aed",
+    availabilityHours: (conf.availabilityHours as string | null) ?? "",
+    dietaryPolicy: (conf.dietaryPolicy as string | null) ?? "",
     whatsappWebhookUrl: "/api/webhooks/whatsapp",
   });
 });

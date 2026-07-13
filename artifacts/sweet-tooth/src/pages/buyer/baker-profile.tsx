@@ -102,6 +102,8 @@ export default function BakerProfile() {
   };
 
   const whatsappChatUrl = (baker as { whatsappChatUrl?: string | null } | undefined)?.whatsappChatUrl;
+  const shopSettings = (baker as { publicShopSettings?: { menuAccent?: string; availabilityHours?: string; dietaryPolicy?: string } } | undefined)?.publicShopSettings;
+  const menuAccent = /^#[0-9a-fA-F]{6}$/.test(shopSettings?.menuAccent ?? "") ? shopSettings!.menuAccent! : "#7c3aed";
 
   return (
     <BuyerLayout>
@@ -113,7 +115,7 @@ export default function BakerProfile() {
         ) : baker ? (
           <>
             <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden mb-12">
-              <div className="h-48 bg-primary/10 relative">
+              <div className="h-48 relative" style={{ backgroundColor: `${menuAccent}1a` }}>
                 {baker.photoUrl ? (
                    <img src={baker.photoUrl} alt={baker.businessName} className="w-full h-full object-cover" />
                 ) : (
@@ -125,7 +127,7 @@ export default function BakerProfile() {
               <div className="p-8 relative">
                 <div className="flex flex-col md:flex-row justify-between items-start gap-4">
                   <div>
-                    <h1 className="text-4xl font-bold font-serif text-primary mb-2">{baker.businessName}</h1>
+                    <h1 className="text-4xl font-bold font-serif mb-2" style={{ color: menuAccent }}>{baker.businessName}</h1>
                     <p className="text-xl text-muted-foreground">{baker.tagline}</p>
                     <p className="text-sm mt-4 max-w-2xl">{baker.bio}</p>
                     
@@ -136,6 +138,7 @@ export default function BakerProfile() {
                       <div className="bg-muted px-3 py-1.5 rounded-md">
                         <span className="font-bold text-foreground">COD Policy:</span> {baker.codPolicy || "Standard"}
                       </div>
+                      {shopSettings?.availabilityHours && <div className="bg-muted px-3 py-1.5 rounded-md"><span className="font-bold text-foreground">Order hours:</span> {shopSettings.availabilityHours}</div>}
                     </div>
                   </div>
                   <div className="text-right flex flex-col items-end gap-2 shrink-0">

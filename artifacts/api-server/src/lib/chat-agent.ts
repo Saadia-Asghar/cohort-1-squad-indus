@@ -94,6 +94,8 @@ export async function generateAgentReply(
     escalateKeywords?: string[];
     autoReplyEnabled?: boolean;
     customResponses?: Array<{ trigger: string; response: string }>;
+    availabilityHours?: string;
+    dietaryPolicy?: string;
   };
 
   if (agentConf.autoReplyEnabled === false) {
@@ -107,6 +109,30 @@ export async function generateAgentReply(
 
   const products = await db.select().from(productsTable).where(eq(productsTable.bakerId, bakerId));
   const lowerMsg = message.toLowerCase();
+
+  if (/(allerg|peanut|nut[ -]?free|gluten|dairy|lactose|vegan|halal|cross.?contamin)/.test(lowerMsg)) {
+    const dietaryPolicy = agentConf.dietaryPolicy?.trim();
+    const eggless = products.filter((product) => product.isAvailable && product.isEgglessAvailable);
+    const egglessList = eggless.length ? ` Eggless options currently listed: ${eggless.map((product) => product.name).join(", ")}.` : "";
+    return {
+      reply: `${dietaryPolicy ? `${dietaryPolicy} ` : "I can share menu details, but I cannot guarantee an item is allergen-safe or free from cross-contact."}${egglessList} For a medical allergy, please confirm directly with ${baker.businessName} before ordering.`,
+      action: "escalate",
+      cartItemId: null,
+      escalated: true,
+    };
+  }
+
+  if (/(open|close|hours|available today|working today|today open)/.test(lowerMsg)) {
+    const hours = agentConf.availabilityHours?.trim();
+    return {
+      reply: hours
+        ? `${baker.businessName}'s availability: ${hours}. For a custom or same-day order, please confirm the required delivery time.`
+        : `${baker.businessName}'s availability changes with the baking schedule. Tell me your required date and time, and I’ll help check the menu.`,
+      action: null,
+      cartItemId: null,
+      escalated: false,
+    };
+  }
 
   // Rule-based handler for Order Status and Advance Payment verification queries
   if (buyerId && (lowerMsg.includes("status") || lowerMsg.includes("verify") || lowerMsg.includes("receipt") || lowerMsg.includes("screenshot") || lowerMsg.includes("payment") || lowerMsg.includes("advance"))) {

@@ -82,6 +82,9 @@ export default function AgentHub() {
     instagramAgentEnabled?: boolean;
     metaWebhookToken?: string;
     instagramPageId?: string;
+    menuAccent?: string;
+    availabilityHours?: string;
+    dietaryPolicy?: string;
   }>({});
 
   const merged = { ...config, ...localConfig };
@@ -247,6 +250,16 @@ export default function AgentHub() {
                 placeholder={`Assalam-o-Alaikum! Welcome to your baker's shop. How can I help you today?`}
                 className="w-full px-3 py-2 border border-border rounded-lg bg-background text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/30"
               />
+            </div>
+
+            <div className="p-5 rounded-xl border border-border bg-card shadow-sm space-y-3">
+              <h3 className="font-semibold">Shop appearance, hours & dietary policy</h3>
+              <p className="text-sm text-muted-foreground">This personalizes the marketplace menu and gives the agent safe facts to use.</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <label className="text-sm font-medium">Menu accent colour<input type="color" value={merged.menuAccent ?? "#7c3aed"} onChange={e => setLocalConfig(prev => ({ ...prev, menuAccent: e.target.value }))} className="block mt-1 h-10 w-full rounded border border-border bg-background" /></label>
+                <label className="text-sm font-medium">Order availability<input value={merged.availabilityHours ?? ""} onChange={e => setLocalConfig(prev => ({ ...prev, availabilityHours: e.target.value }))} placeholder="e.g. Mon–Sat, 10am–8pm" className="block mt-1 w-full px-3 py-2 border border-border rounded-lg bg-background text-sm" /></label>
+              </div>
+              <label className="block text-sm font-medium">Dietary & allergen policy<textarea rows={3} value={merged.dietaryPolicy ?? ""} onChange={e => setLocalConfig(prev => ({ ...prev, dietaryPolicy: e.target.value }))} placeholder="e.g. Eggless on selected items. We cannot guarantee an allergen-free kitchen; confirm severe allergies before ordering." className="block mt-1 w-full px-3 py-2 border border-border rounded-lg bg-background text-sm resize-none" /></label>
             </div>
 
             {/* Blocked topics */}
