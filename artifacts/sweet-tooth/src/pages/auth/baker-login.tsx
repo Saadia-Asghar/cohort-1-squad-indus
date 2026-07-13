@@ -28,7 +28,9 @@ export default function BakerLogin() {
     setLoading(true);
     setError(null);
     try {
-      completeLogin(await signInWithGoogle());
+      const user = await signInWithGoogle();
+      rememberGoogleUser(user, "baker");
+      navigate("/dashboard");
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Google sign-in could not be completed.");
     } finally {
