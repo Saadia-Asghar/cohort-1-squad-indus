@@ -59682,6 +59682,9 @@ var app = (0, import_express16.default)();
 app.use((0, import_cors.default)());
 app.use(import_express16.default.json());
 app.use(import_express16.default.urlencoded({ extended: true }));
+app.get("/", (_req, res) => {
+  res.json({ status: "ok", message: "Indus API is running", health: "/api/healthz" });
+});
 app.use("/api", routes_default);
 var app_default = app;
 
