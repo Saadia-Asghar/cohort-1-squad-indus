@@ -1,11 +1,11 @@
-import express from "express";
+import express, { type NextFunction, type Request, type Response } from "express";
 import cors from "cors";
 import router from "./routes/index.js";
 import { logger } from "./lib/logger.js";
 
 const app = express();
 
-app.use((req, res, next) => {
+app.use((req: Request, res: Response, next: NextFunction) => {
   res.on("finish", () => {
     logger.info({ method: req.method, statusCode: res.statusCode, url: req.path }, "Request completed");
   });
