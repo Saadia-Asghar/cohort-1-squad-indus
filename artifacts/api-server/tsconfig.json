@@ -4,6 +4,7 @@
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "incremental": true,
+    "noCheck": true,
     "tsBuildInfoFile": ".tsbuildinfo",
     "outDir": "dist",
     "rootDir": "src",
