@@ -1,6 +1,8 @@
 import { Link, useLocation } from "wouter";
+import { useState } from "react";
 import { useGetBaker } from "@workspace/api-client-react";
 import { useBuyerSession } from "@/hooks/use-session";
+import { forgetGoogleUser, signOutGoogle } from "@/lib/firebase-auth";
 import { NotificationBell } from "@/components/notification-bell";
 import {
   LayoutDashboard, ShoppingBag, Grid, DollarSign,
@@ -8,7 +10,8 @@ import {
 } from "lucide-react";
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const [location] = useLocation();
+  const [location, navigate] = useLocation();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const { bakerId } = useBuyerSession();
   const { data: baker } = useGetBaker(bakerId, { query: { enabled: !!bakerId, queryKey: ["baker", bakerId] } });
 
@@ -23,6 +26,18 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     { href: "/dashboard/calendar", label: "Calendar", icon: Calendar },
     { href: "/dashboard/settings", label: "Settings", icon: Settings },
   ];
+
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    try {
+      await signOutGoogle();
+    } finally {
+      forgetGoogleUser();
+      localStorage.removeItem("bakerId");
+      navigate("/dashboard/login");
+      setIsLoggingOut(false);
+    }
+  };
 
   return (
     <div className="flex min-h-screen bg-background text-foreground">
@@ -57,9 +72,9 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           })}
         </nav>
         <div className="p-4 border-t border-border">
-          <button className="flex items-center gap-3 px-3 py-2.5 w-full text-left rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors">
+          <button onClick={handleLogout} disabled={isLoggingOut} className="flex items-center gap-3 px-3 py-2.5 w-full text-left rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors disabled:opacity-50">
             <LogOut className="w-5 h-5" />
-            Logout
+            {isLoggingOut ? "Logging out…" : "Logout"}
           </button>
         </div>
       </aside>

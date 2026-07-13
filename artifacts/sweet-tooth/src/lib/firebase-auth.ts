@@ -1,4 +1,4 @@
-import { GoogleAuthProvider, getAuth, getRedirectResult, onAuthStateChanged, signInWithPopup, type User } from "firebase/auth";
+import { GoogleAuthProvider, getAuth, getRedirectResult, onAuthStateChanged, signInWithPopup, signOut, type User } from "firebase/auth";
 import { initializeApp, type FirebaseApp } from "firebase/app";
 
 const config = {
@@ -42,6 +42,15 @@ export async function getGoogleRedirectUser(): Promise<User | null> {
 export function onGoogleAuthUser(callback: (user: User | null) => void) {
   if (!configured) return () => undefined;
   return onAuthStateChanged(getFirebaseAuth(), callback);
+}
+
+export async function signOutGoogle(): Promise<void> {
+  if (!configured) return;
+  await signOut(getFirebaseAuth());
+}
+
+export function forgetGoogleUser() {
+  localStorage.removeItem("sweet-tooth-google-user");
 }
 
 export function rememberGoogleUser(user: User, role: "buyer" | "baker") {
