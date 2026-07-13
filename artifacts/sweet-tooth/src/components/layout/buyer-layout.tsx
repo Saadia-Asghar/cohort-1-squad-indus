@@ -12,8 +12,12 @@ export function BuyerLayout({ children }: { children: React.ReactNode }) {
             <Link href="/bakers" className="text-sm font-medium hover:text-primary transition-colors">Find Bakers</Link>
             <Link href="/cart" className="text-sm font-medium hover:text-primary transition-colors">Cart</Link>
             <Link href="/orders" className="text-sm font-medium hover:text-primary transition-colors">Orders</Link>
-            <Link href="/login" className="text-sm font-medium hover:text-primary transition-colors">Login</Link>
-            <Link href="/dashboard" className="text-sm font-medium bg-primary/10 text-primary px-3 py-1.5 rounded-md hover:bg-primary/20 transition-colors">Baker Portal</Link>
+            <Link
+              href="/login"
+              className="text-sm font-medium bg-primary/10 text-primary px-3 py-1.5 rounded-md hover:bg-primary/20 transition-colors"
+            >
+              Sign in
+            </Link>
           </div>
         </div>
       </nav>

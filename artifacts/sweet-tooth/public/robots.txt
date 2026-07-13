@@ -1,2 +1,4 @@
 User-agent: *
 Allow: /
+
+Sitemap: https://cohort-1-squad-indus-sweet-tooth.vercel.app/sitemap.xml
