@@ -11,6 +11,8 @@ import {
 } from "@workspace/db";
 import { logger } from "./logger.js";
 import { formatRetrievedContext, retrieveKnowledge } from "./rag/retriever.js";
+import { generateLlmReply } from "./agent-llm.js";
+import { sendN8nEvent } from "./n8n.js";
 
 export type AgentReply = {
   reply: string;
@@ -198,6 +200,25 @@ export async function generateAgentReply(
         .filter(Boolean)
         .join(" ")
     : "";
+
+  // Rules above retain precedence for custom replies, blocked content,
+  // escalations, and sensitive order/payment status. Everything else can use
+  // an LLM when OPENAI_API_KEY is configured, with the local rules as a safe
+  // availability fallback if the provider is unavailable.
+  const llmReply = await generateLlmReply({
+    businessName: baker.businessName,
+    customerMessage: message,
+    products: products.map((product) => ({
+      name: product.name,
+      category: product.category,
+      basePricePkr: product.basePricePkr,
+      isAvailable: product.isAvailable,
+      isEgglessAvailable: product.isEgglessAvailable,
+    })),
+    knowledge: ragContext,
+    memory: memoryContext,
+  });
+  if (llmReply) return { reply: llmReply, action: null, cartItemId: null, escalated: false };
 
   if (
     lowerMsg.includes("price") ||
@@ -533,6 +554,16 @@ export async function processChatMessage(input: ProcessChatInput): Promise<Proce
       "chat",
     );
   }
+
+  await sendN8nEvent(agentReply.escalated ? "chat.escalated" : "chat.received", {
+    bakerId,
+    buyerId,
+    sessionId: sid,
+    channel: input.channel ?? "web",
+    message: message.slice(0, 2000),
+    reply: agentReply.reply,
+    escalated: agentReply.escalated,
+  });
 
   return { ...agentReply, sessionId: sid };
 }
