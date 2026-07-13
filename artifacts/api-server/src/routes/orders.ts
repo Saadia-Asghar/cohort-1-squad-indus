@@ -94,8 +94,14 @@ router.patch("/orders/:orderId/status", async (req, res): Promise<void> => {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
+  const isCancelled = parsed.data.status === "cancelled";
   const [order] = await db.update(ordersTable)
-    .set({ status: parsed.data.status })
+    .set({
+      status: parsed.data.status,
+      cancellationReason: isCancelled ? parsed.data.cancellationReason?.trim() || "Not specified" : null,
+      cancelledBy: isCancelled ? parsed.data.cancelledBy?.trim() || "baker" : null,
+      cancelledAt: isCancelled ? new Date() : null,
+    })
     .where(eq(ordersTable.id, params.data.orderId))
     .returning();
   if (!order) {

@@ -96,6 +96,7 @@ export async function generateAgentReply(
     customResponses?: Array<{ trigger: string; response: string }>;
     availabilityHours?: string;
     dietaryPolicy?: string;
+    activeOffers?: string;
   };
 
   if (agentConf.autoReplyEnabled === false) {
@@ -128,6 +129,18 @@ export async function generateAgentReply(
       reply: hours
         ? `${baker.businessName}'s availability: ${hours}. For a custom or same-day order, please confirm the required delivery time.`
         : `${baker.businessName}'s availability changes with the baking schedule. Tell me your required date and time, and I’ll help check the menu.`,
+      action: null,
+      cartItemId: null,
+      escalated: false,
+    };
+  }
+
+  if (/(discount|offer|promo|coupon|sale|deal)/.test(lowerMsg)) {
+    const offers = agentConf.activeOffers?.trim();
+    return {
+      reply: offers
+        ? `Current offers from ${baker.businessName}: ${offers}`
+        : `${baker.businessName} has no published offer right now. I can still help you choose something from the menu.`,
       action: null,
       cartItemId: null,
       escalated: false,

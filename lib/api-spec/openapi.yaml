@@ -940,6 +940,9 @@ components:
         slug: { type: string }
         photoUrl: { type: ["string", "null"] }
         requireAdvance: { type: boolean }
+        cancellationReason: { type: ["string", "null"] }
+        cancelledBy: { type: ["string", "null"] }
+        cancelledAt: { type: ["string", "null"] }
         advanceThresholdPkr: { type: integer }
         advancePercentage: { type: integer }
         paymentDetails: { type: string }
@@ -1141,6 +1144,8 @@ components:
       required: [status]
       properties:
         status: { type: string }
+        cancellationReason: { type: string }
+        cancelledBy: { type: string }
 
     PaymentUpdate:
       type: object
@@ -1276,6 +1281,20 @@ components:
             $ref: "#/components/schemas/TopProduct"
         newCustomers: { type: integer }
         repeatCustomers: { type: integer }
+        cancellationAnalytics:
+          type: object
+          properties:
+            total: { type: integer }
+            rate: { type: integer }
+            byReason: { type: array, items: { $ref: "#/components/schemas/NamedCount" } }
+            byProduct: { type: array, items: { $ref: "#/components/schemas/NamedCount" } }
+            byActor: { type: array, items: { $ref: "#/components/schemas/NamedCount" } }
+
+    NamedCount:
+      type: object
+      properties:
+        name: { type: string }
+        count: { type: integer }
 
     TopProduct:
       type: object
@@ -1382,6 +1401,10 @@ components:
         blockedTopics: { type: array, items: { type: string } }
         escalateKeywords: { type: array, items: { type: string } }
         autoReplyEnabled: { type: boolean }
+        menuAccent: { type: string }
+        availabilityHours: { type: string }
+        dietaryPolicy: { type: string }
+        activeOffers: { type: string }
 
     AgentConfigInput:
       type: object
@@ -1395,6 +1418,10 @@ components:
         blockedTopics: { type: array, items: { type: string } }
         escalateKeywords: { type: array, items: { type: string } }
         autoReplyEnabled: { type: boolean }
+        menuAccent: { type: string }
+        availabilityHours: { type: string }
+        dietaryPolicy: { type: string }
+        activeOffers: { type: string }
 
     KnowledgeReindexResult:
       type: object

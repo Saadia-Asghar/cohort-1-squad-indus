@@ -200,6 +200,13 @@ export default function BakerProfile() {
                             {product.isEgglessAvailable && <span className="text-[10px] uppercase font-bold tracking-wider bg-green-50 text-green-700 px-2 py-0.5 rounded border border-green-200 ml-2 shrink-0">Eggless</span>}
                           </div>
                           <p className="text-sm text-muted-foreground line-clamp-2">{product.description}</p>
+                          {(product.dietaryTags ?? []).length > 0 && (
+                            <div className="mt-2 flex flex-wrap gap-1" aria-label={`Dietary and allergen labels for ${product.name}`}>
+                              {(product.dietaryTags ?? []).map((label) => (
+                                <span key={label} className="rounded-full border border-primary/20 bg-primary/5 px-1.5 py-0.5 text-[10px] font-medium text-primary">{label}</span>
+                              ))}
+                            </div>
+                          )}
                         </div>
                         
                         <div className="mt-4 flex flex-col gap-2">
@@ -294,7 +301,7 @@ export default function BakerProfile() {
               <User className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-bold font-serif leading-tight">Sana's Assistant</h3>
+              <h3 className="font-bold font-serif leading-tight">{baker?.businessName ?? "Baker"}'s Assistant</h3>
               <p className="text-xs text-primary-foreground/80">Typically replies instantly</p>
             </div>
           </div>

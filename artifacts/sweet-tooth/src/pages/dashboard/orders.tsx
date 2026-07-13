@@ -11,8 +11,12 @@ export default function DashboardOrders() {
   const updateStatus = useUpdateOrderStatus();
 
   const handleStatusUpdate = (orderId: number, status: string) => {
+    const cancellationReason = status === "cancelled"
+      ? window.prompt("Why was this order cancelled? This appears in analytics.")?.trim()
+      : undefined;
+    if (status === "cancelled" && cancellationReason === undefined) return;
     updateStatus.mutate(
-      { orderId, data: { status } },
+      { orderId, data: { status, ...(status === "cancelled" ? { cancellationReason, cancelledBy: "baker" } : {}) } },
       {
         onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: getListOrdersQueryKey({ bakerId }) });

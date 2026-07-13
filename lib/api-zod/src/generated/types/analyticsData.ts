@@ -5,6 +5,7 @@
  * Sweet Tooth — Pakistan's Home Baker Platform API
  * OpenAPI spec version: 0.1.0
  */
+import type { AnalyticsDataCancellationAnalytics } from './analyticsDataCancellationAnalytics';
 import type { AnalyticsDataPoint } from './analyticsDataPoint';
 import type { TopProduct } from './topProduct';
 
@@ -17,4 +18,5 @@ export interface AnalyticsData {
   topProducts: TopProduct[];
   newCustomers?: number;
   repeatCustomers?: number;
+  cancellationAnalytics?: AnalyticsDataCancellationAnalytics;
 }

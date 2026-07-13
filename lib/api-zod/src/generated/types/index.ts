@@ -9,6 +9,7 @@
 export * from './agentConfig';
 export * from './agentConfigInput';
 export * from './analyticsData';
+export * from './analyticsDataCancellationAnalytics';
 export * from './analyticsDataPoint';
 export * from './baker';
 export * from './bakerCard';
@@ -41,6 +42,7 @@ export * from './listOrdersParams';
 export * from './listProductsParams';
 export * from './loginBaker200';
 export * from './loginBakerBody';
+export * from './namedCount';
 export * from './order';
 export * from './orderInput';
 export * from './orderItem';

@@ -16,4 +16,8 @@ export interface AgentConfigInput {
   blockedTopics?: string[];
   escalateKeywords?: string[];
   autoReplyEnabled?: boolean;
+  menuAccent?: string;
+  availabilityHours?: string;
+  dietaryPolicy?: string;
+  activeOffers?: string;
 }

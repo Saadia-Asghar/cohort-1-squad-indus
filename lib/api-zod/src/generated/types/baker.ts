@@ -35,6 +35,12 @@ export interface Baker {
   /** @nullable */
   photoUrl?: string | null;
   requireAdvance?: boolean;
+  /** @nullable */
+  cancellationReason?: string | null;
+  /** @nullable */
+  cancelledBy?: string | null;
+  /** @nullable */
+  cancelledAt?: string | null;
   advanceThresholdPkr?: number;
   advancePercentage?: number;
   paymentDetails?: string;

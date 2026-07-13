@@ -85,6 +85,7 @@ export default function AgentHub() {
     menuAccent?: string;
     availabilityHours?: string;
     dietaryPolicy?: string;
+    activeOffers?: string;
   }>({});
 
   const merged = { ...config, ...localConfig };
@@ -260,6 +261,8 @@ export default function AgentHub() {
                 <label className="text-sm font-medium">Order availability<input value={merged.availabilityHours ?? ""} onChange={e => setLocalConfig(prev => ({ ...prev, availabilityHours: e.target.value }))} placeholder="e.g. Mon–Sat, 10am–8pm" className="block mt-1 w-full px-3 py-2 border border-border rounded-lg bg-background text-sm" /></label>
               </div>
               <label className="block text-sm font-medium">Dietary & allergen policy<textarea rows={3} value={merged.dietaryPolicy ?? ""} onChange={e => setLocalConfig(prev => ({ ...prev, dietaryPolicy: e.target.value }))} placeholder="e.g. Eggless on selected items. We cannot guarantee an allergen-free kitchen; confirm severe allergies before ordering." className="block mt-1 w-full px-3 py-2 border border-border rounded-lg bg-background text-sm resize-none" /></label>
+              <label className="block text-sm font-medium">Current discount offers<textarea rows={2} value={merged.activeOffers ?? ""} onChange={e => setLocalConfig(prev => ({ ...prev, activeOffers: e.target.value }))} placeholder="e.g. 10% off cupcakes with code SWEET10 until 31 July. One offer per line." className="block mt-1 w-full px-3 py-2 border border-border rounded-lg bg-background text-sm resize-none" /></label>
+              <p className="text-xs text-muted-foreground">The web and WhatsApp agents read these same live offers when a customer asks about discounts.</p>
             </div>
 
             {/* Blocked topics */}

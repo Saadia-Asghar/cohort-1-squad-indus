@@ -60,6 +60,12 @@ export interface Baker {
   /** @nullable */
   photoUrl?: string | null;
   requireAdvance?: boolean;
+  /** @nullable */
+  cancellationReason?: string | null;
+  /** @nullable */
+  cancelledBy?: string | null;
+  /** @nullable */
+  cancelledAt?: string | null;
   advanceThresholdPkr?: number;
   advancePercentage?: number;
   paymentDetails?: string;
@@ -252,6 +258,8 @@ export interface OrderInput {
 
 export interface OrderStatusUpdate {
   status: string;
+  cancellationReason?: string;
+  cancelledBy?: string;
 }
 
 export interface PaymentUpdate {
@@ -353,6 +361,19 @@ export interface AnalyticsDataPoint {
   revenue: number;
 }
 
+export interface NamedCount {
+  name?: string;
+  count?: number;
+}
+
+export type AnalyticsDataCancellationAnalytics = {
+  total?: number;
+  rate?: number;
+  byReason?: NamedCount[];
+  byProduct?: NamedCount[];
+  byActor?: NamedCount[];
+};
+
 export interface TopProduct {
   name: string;
   orders: number;
@@ -368,6 +389,7 @@ export interface AnalyticsData {
   topProducts: TopProduct[];
   newCustomers?: number;
   repeatCustomers?: number;
+  cancellationAnalytics?: AnalyticsDataCancellationAnalytics;
 }
 
 export interface OrderSourceStat {
@@ -458,6 +480,10 @@ export interface AgentConfig {
   blockedTopics?: string[];
   escalateKeywords?: string[];
   autoReplyEnabled?: boolean;
+  menuAccent?: string;
+  availabilityHours?: string;
+  dietaryPolicy?: string;
+  activeOffers?: string;
 }
 
 export interface AgentConfigInput {
@@ -470,6 +496,10 @@ export interface AgentConfigInput {
   blockedTopics?: string[];
   escalateKeywords?: string[];
   autoReplyEnabled?: boolean;
+  menuAccent?: string;
+  availabilityHours?: string;
+  dietaryPolicy?: string;
+  activeOffers?: string;
 }
 
 export type KnowledgeReindexResultEmbeddingProvider = typeof KnowledgeReindexResultEmbeddingProvider[keyof typeof KnowledgeReindexResultEmbeddingProvider];

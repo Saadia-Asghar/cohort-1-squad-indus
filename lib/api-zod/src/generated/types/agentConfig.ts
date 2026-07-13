@@ -20,4 +20,8 @@ export interface AgentConfig {
   blockedTopics?: string[];
   escalateKeywords?: string[];
   autoReplyEnabled?: boolean;
+  menuAccent?: string;
+  availabilityHours?: string;
+  dietaryPolicy?: string;
+  activeOffers?: string;
 }

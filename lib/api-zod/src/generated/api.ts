@@ -187,6 +187,9 @@ export const CreateBakerResponse = zod.object({
   "slug": zod.string(),
   "photoUrl": zod.string().nullish(),
   "requireAdvance": zod.boolean().optional(),
+  "cancellationReason": zod.string().nullish(),
+  "cancelledBy": zod.string().nullish(),
+  "cancelledAt": zod.string().nullish(),
   "advanceThresholdPkr": zod.number().optional(),
   "advancePercentage": zod.number().optional(),
   "paymentDetails": zod.string().optional(),
@@ -226,6 +229,9 @@ export const LoginBakerResponse = zod.object({
   "slug": zod.string(),
   "photoUrl": zod.string().nullish(),
   "requireAdvance": zod.boolean().optional(),
+  "cancellationReason": zod.string().nullish(),
+  "cancelledBy": zod.string().nullish(),
+  "cancelledAt": zod.string().nullish(),
   "advanceThresholdPkr": zod.number().optional(),
   "advancePercentage": zod.number().optional(),
   "paymentDetails": zod.string().optional(),
@@ -263,6 +269,9 @@ export const GetBakerResponse = zod.object({
   "slug": zod.string(),
   "photoUrl": zod.string().nullish(),
   "requireAdvance": zod.boolean().optional(),
+  "cancellationReason": zod.string().nullish(),
+  "cancelledBy": zod.string().nullish(),
+  "cancelledAt": zod.string().nullish(),
   "advanceThresholdPkr": zod.number().optional(),
   "advancePercentage": zod.number().optional(),
   "paymentDetails": zod.string().optional(),
@@ -319,6 +328,9 @@ export const UpdateBakerResponse = zod.object({
   "slug": zod.string(),
   "photoUrl": zod.string().nullish(),
   "requireAdvance": zod.boolean().optional(),
+  "cancellationReason": zod.string().nullish(),
+  "cancelledBy": zod.string().nullish(),
+  "cancelledAt": zod.string().nullish(),
   "advanceThresholdPkr": zod.number().optional(),
   "advancePercentage": zod.number().optional(),
   "paymentDetails": zod.string().optional(),
@@ -774,7 +786,9 @@ export const UpdateOrderStatusParams = zod.object({
 })
 
 export const UpdateOrderStatusBody = zod.object({
-  "status": zod.string()
+  "status": zod.string(),
+  "cancellationReason": zod.string().optional(),
+  "cancelledBy": zod.string().optional()
 })
 
 export const UpdateOrderStatusResponse = zod.object({
@@ -1028,7 +1042,23 @@ export const GetBakerAnalyticsResponse = zod.object({
   "revenue": zod.number()
 })),
   "newCustomers": zod.number().optional(),
-  "repeatCustomers": zod.number().optional()
+  "repeatCustomers": zod.number().optional(),
+  "cancellationAnalytics": zod.object({
+  "total": zod.number().optional(),
+  "rate": zod.number().optional(),
+  "byReason": zod.array(zod.object({
+  "name": zod.string().optional(),
+  "count": zod.number().optional()
+})).optional(),
+  "byProduct": zod.array(zod.object({
+  "name": zod.string().optional(),
+  "count": zod.number().optional()
+})).optional(),
+  "byActor": zod.array(zod.object({
+  "name": zod.string().optional(),
+  "count": zod.number().optional()
+})).optional()
+}).optional()
 })
 
 
@@ -1157,7 +1187,11 @@ export const GetAgentConfigResponse = zod.object({
   "customGreeting": zod.string().nullish(),
   "blockedTopics": zod.array(zod.string()).optional(),
   "escalateKeywords": zod.array(zod.string()).optional(),
-  "autoReplyEnabled": zod.boolean().optional()
+  "autoReplyEnabled": zod.boolean().optional(),
+  "menuAccent": zod.string().optional(),
+  "availabilityHours": zod.string().optional(),
+  "dietaryPolicy": zod.string().optional(),
+  "activeOffers": zod.string().optional()
 })
 
 
@@ -1177,7 +1211,11 @@ export const UpdateAgentConfigBody = zod.object({
   "customGreeting": zod.string().optional(),
   "blockedTopics": zod.array(zod.string()).optional(),
   "escalateKeywords": zod.array(zod.string()).optional(),
-  "autoReplyEnabled": zod.boolean().optional()
+  "autoReplyEnabled": zod.boolean().optional(),
+  "menuAccent": zod.string().optional(),
+  "availabilityHours": zod.string().optional(),
+  "dietaryPolicy": zod.string().optional(),
+  "activeOffers": zod.string().optional()
 })
 
 export const UpdateAgentConfigResponse = zod.object({
@@ -1190,7 +1228,11 @@ export const UpdateAgentConfigResponse = zod.object({
   "customGreeting": zod.string().nullish(),
   "blockedTopics": zod.array(zod.string()).optional(),
   "escalateKeywords": zod.array(zod.string()).optional(),
-  "autoReplyEnabled": zod.boolean().optional()
+  "autoReplyEnabled": zod.boolean().optional(),
+  "menuAccent": zod.string().optional(),
+  "availabilityHours": zod.string().optional(),
+  "dietaryPolicy": zod.string().optional(),
+  "activeOffers": zod.string().optional()
 })
 
 

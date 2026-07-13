@@ -56,6 +56,19 @@ router.get("/analytics/baker/:bakerId/:period", async (req, res): Promise<void> 
       return count > 1;
     });
   const repeatSet = new Set(repeatBuyers.map((o) => o.buyerWhatsapp));
+  const cancelledOrders = orders.filter((order) => order.status === "cancelled");
+  const cancellationsByReason: Record<string, number> = {};
+  const cancellationsByProduct: Record<string, number> = {};
+  const cancellationsByActor: Record<string, number> = {};
+  for (const order of cancelledOrders) {
+    const reason = order.cancellationReason || "Not specified";
+    const actor = order.cancelledBy || "baker";
+    cancellationsByReason[reason] = (cancellationsByReason[reason] ?? 0) + 1;
+    cancellationsByActor[actor] = (cancellationsByActor[actor] ?? 0) + 1;
+    for (const item of (order.items as Array<{ productName: string; quantity: number }>) ?? []) {
+      cancellationsByProduct[item.productName] = (cancellationsByProduct[item.productName] ?? 0) + item.quantity;
+    }
+  }
 
   res.json({
     period,
@@ -66,6 +79,13 @@ router.get("/analytics/baker/:bakerId/:period", async (req, res): Promise<void> 
     topProducts,
     newCustomers: newBuyers.size,
     repeatCustomers: repeatSet.size,
+    cancellationAnalytics: {
+      total: cancelledOrders.length,
+      rate: totalOrders ? Math.round((cancelledOrders.length / totalOrders) * 100) : 0,
+      byReason: Object.entries(cancellationsByReason).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count),
+      byProduct: Object.entries(cancellationsByProduct).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count),
+      byActor: Object.entries(cancellationsByActor).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count),
+    },
   });
 });
 

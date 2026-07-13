@@ -6,8 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface OrderStatusUpdate {
-  status: string;
-  cancellationReason?: string;
-  cancelledBy?: string;
+export interface NamedCount {
+  name?: string;
+  count?: number;
 }

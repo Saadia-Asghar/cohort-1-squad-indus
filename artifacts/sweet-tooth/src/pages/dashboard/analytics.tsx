@@ -275,6 +275,28 @@ export default function DashboardAnalytics() {
                     </div>
                   </div>
                 </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  <div className="p-6 rounded-xl border border-border bg-card shadow-sm">
+                    <h3 className="font-serif text-xl font-bold">Order cancellations</h3>
+                    <p className="mt-2 text-3xl font-bold font-mono text-destructive">{analytics?.cancellationAnalytics?.total ?? 0}</p>
+                    <p className="text-sm text-muted-foreground">{analytics?.cancellationAnalytics?.rate ?? 0}% of all orders</p>
+                  </div>
+                  <div className="p-6 rounded-xl border border-border bg-card shadow-sm">
+                    <h3 className="font-serif text-xl font-bold mb-3">Why orders cancel</h3>
+                    <div className="space-y-2 text-sm">
+                      {analytics?.cancellationAnalytics?.byReason?.slice(0, 4).map((item) => <div key={item.name} className="flex justify-between gap-3"><span className="truncate">{item.name}</span><span className="font-mono">{item.count}</span></div>)}
+                      {!analytics?.cancellationAnalytics?.byReason?.length && <p className="text-muted-foreground">No cancellation data yet.</p>}
+                    </div>
+                  </div>
+                  <div className="p-6 rounded-xl border border-border bg-card shadow-sm">
+                    <h3 className="font-serif text-xl font-bold mb-3">Products affected</h3>
+                    <div className="space-y-2 text-sm">
+                      {analytics?.cancellationAnalytics?.byProduct?.slice(0, 4).map((item) => <div key={item.name} className="flex justify-between gap-3"><span className="truncate">{item.name}</span><span className="font-mono">{item.count}</span></div>)}
+                      {!analytics?.cancellationAnalytics?.byProduct?.length && <p className="text-muted-foreground">No cancelled products yet.</p>}
+                    </div>
+                  </div>
+                </div>
               </>
             ) : (
               /* Returning Customer Activity & Marketing Outreach Hub */

@@ -19,6 +19,7 @@ export default function DashboardSettings() {
   const [advanceThresholdPkr, setAdvanceThresholdPkr] = useState(2000);
   const [advancePercentage, setAdvancePercentage] = useState(50);
   const [paymentDetails, setPaymentDetails] = useState("");
+  const [deliveryAreasText, setDeliveryAreasText] = useState("");
   const shopUrl = typeof window === "undefined" ? "" : `${window.location.origin}/bakers/${bakerId}`;
   const qrCodeUrl = shopUrl ? `https://quickchart.io/qr?size=260&text=${encodeURIComponent(shopUrl)}` : "";
 
@@ -45,6 +46,7 @@ export default function DashboardSettings() {
       setAdvanceThresholdPkr(baker.advanceThresholdPkr ?? 2000);
       setAdvancePercentage(baker.advancePercentage ?? 50);
       setPaymentDetails(baker.paymentDetails ?? "");
+      setDeliveryAreasText((baker.deliveryAreas ?? []).join(", "));
     }
   }, [baker]);
 
@@ -59,6 +61,7 @@ export default function DashboardSettings() {
         advanceThresholdPkr,
         advancePercentage,
         paymentDetails,
+        deliveryAreas: deliveryAreasText.split(",").map((area) => area.trim()).filter(Boolean),
       }
     }, {
       onSuccess: () => {
@@ -125,6 +128,17 @@ export default function DashboardSettings() {
               <QrCode className="w-5 h-5 text-primary" />
               <h3 className="font-serif text-xl font-bold">Share your marketplace</h3>
             </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">Delivery sectors / areas</label>
+              <input
+                type="text"
+                className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                placeholder="e.g. Gulberg, DHA Phase 5, Model Town"
+                value={deliveryAreasText}
+                onChange={e => setDeliveryAreasText(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">Separate sectors with commas. The marketplace and both agents use these areas when answering delivery questions.</p>
+            </div>
             <p className="text-sm text-muted-foreground">Customers scan this QR code to open your live menu, talk to your assistant, and place an order.</p>
             <div className="flex flex-col sm:flex-row gap-5 items-start">
               {qrCodeUrl && <img src={qrCodeUrl} alt={`QR code for ${baker?.businessName ?? "your shop"}`} className="w-40 h-40 rounded-lg border border-border bg-white p-2" />}
@@ -140,7 +154,7 @@ export default function DashboardSettings() {
           </div>
 
           <div className="p-6 rounded-xl border border-border bg-card shadow-sm space-y-4">
-            <h3 className="font-serif text-xl font-bold">Advance Deposit Policy</h3>
+            <h3 className="font-serif text-xl font-bold">Payments & advance deposit</h3>
             
             <div className="flex items-center gap-3">
               <input 
@@ -155,8 +169,7 @@ export default function DashboardSettings() {
               </label>
             </div>
 
-            {requireAdvance && (
-              <div className="space-y-4 pt-2 border-t border-border/50 animate-in fade-in duration-200">
+            <div className="space-y-4 pt-2 border-t border-border/50 animate-in fade-in duration-200">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-foreground">Minimum Order (PKR) for Deposit</label>
@@ -191,7 +204,6 @@ export default function DashboardSettings() {
                   </p>
                 </div>
               </div>
-            )}
           </div>
           
           <div className="p-6 rounded-xl border border-border bg-card shadow-sm space-y-4">

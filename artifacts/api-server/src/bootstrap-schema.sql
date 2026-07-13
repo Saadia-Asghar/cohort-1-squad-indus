@@ -12,6 +12,9 @@ CREATE TABLE IF NOT EXISTS sweet_tooth.bakers (
   email TEXT UNIQUE,
   password_hash TEXT,
   require_advance BOOLEAN NOT NULL DEFAULT false,
+  cancellation_reason TEXT,
+  cancelled_by TEXT,
+  cancelled_at TIMESTAMPTZ,
   advance_threshold_pkr INTEGER NOT NULL DEFAULT 2000,
   advance_percentage INTEGER NOT NULL DEFAULT 50,
   payment_details TEXT NOT NULL DEFAULT '',
@@ -222,6 +225,9 @@ ALTER TABLE sweet_tooth.orders ADD COLUMN IF NOT EXISTS text_on_cake TEXT;
 ALTER TABLE sweet_tooth.orders ADD COLUMN IF NOT EXISTS payment_screenshot_url TEXT;
 ALTER TABLE sweet_tooth.orders ADD COLUMN IF NOT EXISTS advance_paid BOOLEAN NOT NULL DEFAULT false;
 ALTER TABLE sweet_tooth.orders ADD COLUMN IF NOT EXISTS require_advance BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE sweet_tooth.orders ADD COLUMN IF NOT EXISTS cancellation_reason TEXT;
+ALTER TABLE sweet_tooth.orders ADD COLUMN IF NOT EXISTS cancelled_by TEXT;
+ALTER TABLE sweet_tooth.orders ADD COLUMN IF NOT EXISTS cancelled_at TIMESTAMPTZ;
 ALTER TABLE sweet_tooth.reviews ADD COLUMN IF NOT EXISTS order_id INTEGER;
 ALTER TABLE sweet_tooth.reviews ADD COLUMN IF NOT EXISTS rating_product INTEGER;
 ALTER TABLE sweet_tooth.reviews ADD COLUMN IF NOT EXISTS rating_packaging INTEGER;
