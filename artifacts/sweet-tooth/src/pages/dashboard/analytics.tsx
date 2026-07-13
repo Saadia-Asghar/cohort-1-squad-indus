@@ -341,12 +341,12 @@ export default function DashboardAnalytics() {
                     </div>
                   </div>
 
-                  {/* Najomi Intelligent Marketing Panel */}
+                  {/* Smart customer marketing panel */}
                   <div className="lg:col-span-2 p-6 rounded-xl border border-border bg-card shadow-sm space-y-6">
                     <div>
                       <div className="flex items-center gap-2 text-primary">
                         <Sparkles className="w-5 h-5" />
-                        <h3 className="font-serif text-xl font-bold">Najomi Smart Campaigns</h3>
+                        <h3 className="font-serif text-xl font-bold">Sweet Tooth Smart Campaigns</h3>
                       </div>
                       <p className="text-sm text-muted-foreground mt-1">Select a customer segment below to blast custom WhatsApp/SMS announcements automatically.</p>
                     </div>
