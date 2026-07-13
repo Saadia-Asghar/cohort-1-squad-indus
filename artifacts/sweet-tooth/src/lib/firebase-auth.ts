@@ -1,4 +1,4 @@
-import { GoogleAuthProvider, getAuth, getRedirectResult, signInWithRedirect, type User } from "firebase/auth";
+import { GoogleAuthProvider, getAuth, getRedirectResult, onAuthStateChanged, signInWithRedirect, type User } from "firebase/auth";
 import { initializeApp, type FirebaseApp } from "firebase/app";
 
 const config = {
@@ -34,6 +34,11 @@ export async function getGoogleRedirectUser(): Promise<User | null> {
   if (!configured) return null;
   const result = await getRedirectResult(getFirebaseAuth());
   return result?.user ?? null;
+}
+
+export function onGoogleAuthUser(callback: (user: User | null) => void) {
+  if (!configured) return () => undefined;
+  return onAuthStateChanged(getFirebaseAuth(), callback);
 }
 
 export function rememberGoogleUser(user: User, role: "buyer" | "baker") {

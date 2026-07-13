@@ -233,6 +233,34 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Baker value proposition */}
+      <section className="py-16 px-4" style={{ background: "hsl(var(--primary) / 0.06)" }}>
+        <div className="max-w-6xl mx-auto">
+          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-5 mb-10">
+            <div>
+              <p className="text-sm font-semibold text-primary uppercase tracking-wider mb-2">For home bakers</p>
+              <h2 className="text-3xl font-bold font-serif text-foreground">Turn your kitchen into a storefront</h2>
+              <p className="text-muted-foreground mt-2 max-w-2xl">Sweet Tooth helps bakers showcase menus, answer customer questions, organise orders, and share one trusted marketplace link.</p>
+            </div>
+            <Link href="/dashboard/login" className="shrink-0 inline-flex items-center justify-center rounded-xl bg-primary px-5 py-3 text-sm font-bold text-primary-foreground hover:bg-primary/90">
+              Join as a baker
+            </Link>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            {[
+              { title: "A menu customers can understand", desc: "Show prices, availability, dietary tags, offers, and delivery areas in one place." },
+              { title: "Your bakery agent", desc: "Give shoppers quick, grounded answers about your menu before they place an order." },
+              { title: "A simpler daily workflow", desc: "Track orders, customer feedback, cancellations, payments, and performance from your dashboard." },
+            ].map((feature) => (
+              <article key={feature.title} className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+                <h3 className="font-serif text-xl font-bold text-foreground mb-2">{feature.title}</h3>
+                <p className="text-sm leading-relaxed text-muted-foreground">{feature.desc}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* How it works */}
       <section className="py-16 px-4 bg-background">
         <div className="max-w-4xl mx-auto text-center">
