@@ -1,3 +1,5 @@
+import { logger } from "../logger.js";
+
 export const EMBEDDING_DIM = 384;
 
 /** Deterministic local embedding — no API key required (dev/demo). */
@@ -41,7 +43,11 @@ async function openaiEmbed(text: string): Promise<number[] | null> {
     body: JSON.stringify({ model, input: text.slice(0, 8000) }),
   });
 
-  if (!response.ok) return null;
+  if (!response.ok) {
+    const detail = (await response.text()).slice(0, 500);
+    logger.warn({ status: response.status, detail }, "OpenAI embedding request failed; using local fallback");
+    return null;
+  }
   const payload = (await response.json()) as { data?: Array<{ embedding?: number[] }> };
   const embedding = payload.data?.[0]?.embedding;
   return embedding?.length ? embedding : null;
@@ -53,8 +59,9 @@ export async function embedText(text: string): Promise<{ vector: number[]; provi
     if (openaiVector) {
       return { vector: openaiVector, provider: "openai" };
     }
-  } catch {
+  } catch (error) {
     // Fall back to local embeddings when OpenAI is unavailable.
+    logger.warn({ err: error }, "OpenAI embedding request failed; using local fallback");
   }
   return { vector: localEmbed(text), provider: "local" };
 }
