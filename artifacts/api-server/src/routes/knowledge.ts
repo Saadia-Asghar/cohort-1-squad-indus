@@ -1,8 +1,8 @@
 import { Router, type IRouter } from "express";
 import { eq } from "drizzle-orm";
 import { db, bakersTable } from "@workspace/db";
-import { rebuildBakerKnowledgeIndex, runRagQuery } from "../lib/rag/pipeline";
-import { logger } from "../lib/logger";
+import { rebuildBakerKnowledgeIndex, runRagQuery } from "../lib/rag/pipeline.js";
+import { logger } from "../lib/logger.js";
 
 const router: IRouter = Router();
 

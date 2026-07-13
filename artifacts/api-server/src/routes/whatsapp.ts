@@ -1,14 +1,14 @@
 import { Router, type IRouter } from "express";
 import { eq } from "drizzle-orm";
 import { db, bakersTable } from "@workspace/db";
-import { logger } from "../lib/logger";
-import { processChatMessage } from "../lib/chat-agent";
+import { logger } from "../lib/logger.js";
+import { processChatMessage } from "../lib/chat-agent.js";
 import {
   parseWhatsAppWebhook,
   phonesMatch,
   sendWhatsAppTextMessage,
-} from "../lib/whatsapp";
-import { rateLimit } from "../middlewares/rate-limiter";
+} from "../lib/whatsapp.js";
+import { rateLimit } from "../middlewares/rate-limiter.js";
 
 const router: IRouter = Router();
 

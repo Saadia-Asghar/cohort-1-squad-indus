@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { db, knowledgeChunksTable } from "@workspace/db";
-import { cosineSimilarity, embedText } from "./embeddings";
+import { cosineSimilarity, embedText } from "./embeddings.js";
 
 export type RetrievedChunk = {
   id: number;

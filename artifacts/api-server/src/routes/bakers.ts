@@ -11,8 +11,8 @@ import {
   CreateBakerBody,
 } from "@workspace/api-zod";
 import { z } from "zod";
-import { hashPassword, verifyPassword, signToken } from "../lib/auth";
-import { requireBakerAuth } from "../middlewares/auth";
+import { hashPassword, verifyPassword, signToken } from "../lib/auth.js";
+import { requireBakerAuth } from "../middlewares/auth.js";
 
 const router: IRouter = Router();
 

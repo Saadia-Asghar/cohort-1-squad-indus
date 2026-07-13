@@ -10,8 +10,8 @@ import {
   CreateProductBody,
   ListProductsQueryParams,
 } from "@workspace/api-zod";
-import { requireBakerAuth } from "../middlewares/auth";
-import { rebuildBakerKnowledgeIndex } from "../lib/rag/pipeline";
+import { requireBakerAuth } from "../middlewares/auth.js";
+import { rebuildBakerKnowledgeIndex } from "../lib/rag/pipeline.js";
 
 const router: IRouter = Router();
 

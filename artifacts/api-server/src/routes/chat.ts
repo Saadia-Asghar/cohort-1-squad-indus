@@ -2,8 +2,8 @@ import { Router, type IRouter } from "express";
 import { eq, and, desc } from "drizzle-orm";
 import { db, chatMessagesTable, conversationMemoryTable } from "@workspace/db";
 import { SendChatMessageBody, GetChatHistoryParams } from "@workspace/api-zod";
-import { processChatMessage } from "../lib/chat-agent";
-import { rateLimit } from "../middlewares/rate-limiter";
+import { processChatMessage } from "../lib/chat-agent.js";
+import { rateLimit } from "../middlewares/rate-limiter.js";
 
 const router: IRouter = Router();
 

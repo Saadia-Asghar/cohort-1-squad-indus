@@ -1,18 +1,18 @@
 import { Router, type IRouter } from "express";
-import healthRouter from "./health";
-import bakersRouter from "./bakers";
-import notificationsRouter from "./notifications";
-import marketplaceRouter from "./marketplace";
-import productsRouter from "./products";
-import ordersRouter from "./orders";
-import cartRouter from "./cart";
-import reviewsRouter from "./reviews";
-import customersRouter from "./customers";
-import analyticsRouter from "./analytics";
-import chatRouter from "./chat";
-import knowledgeRouter from "./knowledge";
-import workspaceRouter from "./workspace";
-import whatsappRouter from "./whatsapp";
+import healthRouter from "./health.js";
+import bakersRouter from "./bakers.js";
+import notificationsRouter from "./notifications.js";
+import marketplaceRouter from "./marketplace.js";
+import productsRouter from "./products.js";
+import ordersRouter from "./orders.js";
+import cartRouter from "./cart.js";
+import reviewsRouter from "./reviews.js";
+import customersRouter from "./customers.js";
+import analyticsRouter from "./analytics.js";
+import chatRouter from "./chat.js";
+import knowledgeRouter from "./knowledge.js";
+import workspaceRouter from "./workspace.js";
+import whatsappRouter from "./whatsapp.js";
 
 const router: IRouter = Router();
 

@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { db, bakersTable, productsTable, knowledgeChunksTable } from "@workspace/db";
-import { embedText } from "./embeddings";
+import { embedText } from "./embeddings.js";
 
 type ChunkDraft = {
   sourceType: string;

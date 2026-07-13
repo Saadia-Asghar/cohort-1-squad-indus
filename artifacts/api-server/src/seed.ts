@@ -10,8 +10,8 @@ import {
   bakerGoalsTable,
 } from "@workspace/db/schema";
 import { sql } from "drizzle-orm";
-import { reindexBakerKnowledge } from "./lib/rag/indexer";
-import { hashPassword } from "./lib/auth";
+import { reindexBakerKnowledge } from "./lib/rag/indexer.js";
+import { hashPassword } from "./lib/auth.js";
 
 async function seed() {
   console.log("Seeding Sweet Tooth database...");

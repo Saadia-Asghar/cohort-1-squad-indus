@@ -9,8 +9,8 @@ import {
   customersTable,
   ordersTable,
 } from "@workspace/db";
-import { logger } from "./logger";
-import { formatRetrievedContext, retrieveKnowledge } from "./rag/retriever";
+import { logger } from "./logger.js";
+import { formatRetrievedContext, retrieveKnowledge } from "./rag/retriever.js";
 
 export type AgentReply = {
   reply: string;

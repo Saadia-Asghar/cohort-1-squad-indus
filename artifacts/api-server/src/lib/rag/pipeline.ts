@@ -1,5 +1,5 @@
-import { reindexBakerKnowledge } from "./indexer";
-import { formatRetrievedContext, retrieveKnowledge } from "./retriever";
+import { reindexBakerKnowledge } from "./indexer.js";
+import { formatRetrievedContext, retrieveKnowledge } from "./retriever.js";
 
 export async function runRagQuery(bakerId: number, query: string) {
   const chunks = await retrieveKnowledge(bakerId, query);

@@ -1,4 +1,4 @@
-import { logger } from "./logger";
+import { logger } from "./logger.js";
 
 const GRAPH_API = "https://graph.facebook.com/v21.0";
 

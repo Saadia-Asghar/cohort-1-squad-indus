@@ -10,7 +10,7 @@ import {
   CreateOrderBody,
   ListOrdersQueryParams,
 } from "@workspace/api-zod";
-import { triggerPaymentOCRVerification } from "../lib/ocr";
+import { triggerPaymentOCRVerification } from "../lib/ocr.js";
 
 const router: IRouter = Router();
 
