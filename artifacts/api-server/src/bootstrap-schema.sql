@@ -267,3 +267,49 @@ WHERE NOT EXISTS (
   SELECT 1 FROM sweet_tooth.products existing
   WHERE existing.baker_id = b.id AND existing.name = p.name
 );
+
+-- Starter data for a newly linked Neon database. It demonstrates the
+-- marketplace, agent memory, dietary labels, delivery areas, and analytics
+-- without exposing any real customer information.
+UPDATE sweet_tooth.bakers
+SET agent_config = COALESCE(agent_config, '{}'::jsonb) || jsonb_build_object(
+  'customGreeting', 'Assalam-o-Alaikum! Welcome to Sana''s Sweet Studio. I can help with the menu, delivery sectors, dietary options, and custom orders.',
+  'availabilityHours', 'Mon-Sat, 10am-8pm',
+  'dietaryPolicy', 'Labels are recipe-based. Our kitchen also handles eggs, dairy, gluten, and nuts, so please confirm severe allergies before ordering.',
+  'activeOffers', '10% off cupcakes with code SWEET10 until 31 July. Free Gulberg delivery on orders over PKR 3,500.',
+  'menuAccent', '#7c3aed'
+)
+WHERE slug = 'sana-sweet-studio';
+
+UPDATE sweet_tooth.products
+SET dietary_tags = ARRAY['Egg-free','Vegetarian','Contains dairy','Contains gluten']
+WHERE baker_id = (SELECT id FROM sweet_tooth.bakers WHERE slug = 'sana-sweet-studio')
+  AND name = 'Classic Black Forest Cake';
+
+UPDATE sweet_tooth.products
+SET dietary_tags = ARRAY['Vegetarian','Contains eggs','Contains dairy','Contains gluten']
+WHERE baker_id = (SELECT id FROM sweet_tooth.bakers WHERE slug = 'sana-sweet-studio')
+  AND name = 'Red Velvet Cupcakes';
+
+INSERT INTO sweet_tooth.customers (baker_id, name, whatsapp_number, city, preferred_area, total_orders, total_spent_pkr, is_regular)
+SELECT b.id, 'Demo Customer', '+923000000001', 'Lahore', 'Gulberg', 2, 6400, true
+FROM sweet_tooth.bakers b
+WHERE b.slug = 'sana-sweet-studio'
+  AND NOT EXISTS (SELECT 1 FROM sweet_tooth.customers c WHERE c.baker_id = b.id AND c.whatsapp_number = '+923000000001');
+
+INSERT INTO sweet_tooth.orders (baker_id, buyer_id, buyer_name, buyer_whatsapp, buyer_address, buyer_area, items, total_pkr, delivery_date, status, payment_status, source, occasion, special_instructions)
+SELECT b.id, c.id, c.name, c.whatsapp_number, 'Demo address - Gulberg', 'Gulberg',
+  '[{"productId":1,"productName":"Classic Black Forest Cake","quantity":1,"unitPricePkr":2800,"sizeLabel":"Half Kg"}]'::jsonb,
+  2800, CURRENT_DATE - 2, 'delivered', 'paid', 'demo', 'Birthday', 'Demo order for dashboard walkthrough'
+FROM sweet_tooth.bakers b
+JOIN sweet_tooth.customers c ON c.baker_id = b.id AND c.whatsapp_number = '+923000000001'
+WHERE b.slug = 'sana-sweet-studio'
+  AND NOT EXISTS (SELECT 1 FROM sweet_tooth.orders o WHERE o.baker_id = b.id AND o.source = 'demo' AND o.buyer_whatsapp = '+923000000001');
+
+INSERT INTO sweet_tooth.conversation_memory (baker_id, buyer_id, buyer_name, preferences, message_count, summary)
+SELECT b.id, c.id, c.name, '{"area":"Gulberg","dietary":"egg-free","occasion":"birthday"}'::jsonb, 3,
+  'Prefers egg-free birthday cakes and delivery in Gulberg. Asked about current cupcake offers.'
+FROM sweet_tooth.bakers b
+JOIN sweet_tooth.customers c ON c.baker_id = b.id AND c.whatsapp_number = '+923000000001'
+WHERE b.slug = 'sana-sweet-studio'
+ON CONFLICT (baker_id, buyer_id) DO UPDATE SET preferences = EXCLUDED.preferences, message_count = EXCLUDED.message_count, summary = EXCLUDED.summary, last_active_at = NOW();
