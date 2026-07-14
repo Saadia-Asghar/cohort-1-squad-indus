@@ -303,7 +303,8 @@ export const UpdateBakerBody = zod.object({
   "requireAdvance": zod.boolean().optional(),
   "advanceThresholdPkr": zod.number().optional(),
   "advancePercentage": zod.number().optional(),
-  "paymentDetails": zod.string().optional()
+  "paymentDetails": zod.string().optional(),
+  "socialLinks": zod.object({ "instagram": zod.string().url().optional(), "facebook": zod.string().url().optional() }).optional()
 })
 
 export const UpdateBakerResponse = zod.object({
@@ -1299,5 +1300,3 @@ export const ListConversationsResponseItem = zod.object({
   "summary": zod.string().nullish()
 })
 export const ListConversationsResponse = zod.array(ListConversationsResponseItem)
-
-

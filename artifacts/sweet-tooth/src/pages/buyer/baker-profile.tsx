@@ -14,9 +14,10 @@ import {
   getGetCartQueryKey
 } from "@workspace/api-client-react";
 import { useParams } from "wouter";
+import { Link } from "wouter";
 import { useBuyerSession } from "@/hooks/use-session";
 import { useQueryClient } from "@tanstack/react-query";
-import { MessageCircle, X, Send, User, Star, Phone, Sparkles } from "lucide-react";
+import { MessageCircle, X, Send, User, Star, Phone, Sparkles, Facebook, Instagram } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 
@@ -103,6 +104,7 @@ export default function BakerProfile() {
 
   const whatsappChatUrl = (baker as { whatsappChatUrl?: string | null } | undefined)?.whatsappChatUrl;
   const shopSettings = (baker as { publicShopSettings?: { menuAccent?: string; availabilityHours?: string; dietaryPolicy?: string } } | undefined)?.publicShopSettings;
+  const socialLinks = (baker as { socialLinks?: { instagram?: string; facebook?: string } } | undefined)?.socialLinks;
   const menuAccent = /^#[0-9a-fA-F]{6}$/.test(shopSettings?.menuAccent ?? "") ? shopSettings!.menuAccent! : "#7c3aed";
 
   return (
@@ -140,6 +142,10 @@ export default function BakerProfile() {
                       </div>
                       {shopSettings?.availabilityHours && <div className="bg-muted px-3 py-1.5 rounded-md"><span className="font-bold text-foreground">Order hours:</span> {shopSettings.availabilityHours}</div>}
                     </div>
+                    {(socialLinks?.instagram || socialLinks?.facebook) && <div className="mt-4 flex flex-wrap gap-2">
+                      {socialLinks.instagram && <a href={socialLinks.instagram} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-sm font-medium hover:bg-muted"><Instagram className="h-4 w-4" /> Instagram</a>}
+                      {socialLinks.facebook && <a href={socialLinks.facebook} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-sm font-medium hover:bg-muted"><Facebook className="h-4 w-4" /> Facebook</a>}
+                    </div>}
                   </div>
                   <div className="text-right flex flex-col items-end gap-2 shrink-0">
                     <div className="flex items-center gap-1 text-lg font-medium bg-secondary/10 text-secondary-foreground px-3 py-1 rounded-full">
@@ -168,7 +174,7 @@ export default function BakerProfile() {
               </div>
             </div>
 
-            <h2 className="text-3xl font-bold font-serif mb-8">Menu</h2>
+            <div className="mb-8 flex flex-wrap items-center justify-between gap-3"><h2 className="text-3xl font-bold font-serif">Menu</h2><Link href="/cart" className="rounded-md border border-primary/30 bg-primary/5 px-4 py-2 text-sm font-bold text-primary hover:bg-primary hover:text-primary-foreground">View my order</Link></div>
             
             {loadingProducts ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-16">

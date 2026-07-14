@@ -48,6 +48,7 @@ function toPublicBaker(baker: Record<string, unknown>) {
       availabilityHours: (baker.agentConfig as Record<string, unknown> | null)?.availabilityHours ?? "",
       dietaryPolicy: (baker.agentConfig as Record<string, unknown> | null)?.dietaryPolicy ?? "",
     },
+    socialLinks: (baker.agentConfig as Record<string, unknown> | null)?.socialLinks ?? {},
   };
 }
 
@@ -192,7 +193,17 @@ router.patch("/bakers/:bakerId", requireBakerAuth, async (req, res): Promise<voi
     return;
   }
   
-  const [baker] = await db.update(bakersTable).set(parsed.data).where(eq(bakersTable.id, params.data.bakerId)).returning();
+  const { socialLinks, ...profileUpdates } = parsed.data as typeof parsed.data & { socialLinks?: { instagram?: string; facebook?: string } };
+  const [existing] = await db.select().from(bakersTable).where(eq(bakersTable.id, params.data.bakerId));
+  if (!existing) {
+    res.status(404).json({ error: "Baker not found" });
+    return;
+  }
+  const currentConfig = (existing.agentConfig ?? {}) as Record<string, unknown>;
+  const [baker] = await db.update(bakersTable).set({
+    ...profileUpdates,
+    ...(socialLinks !== undefined ? { agentConfig: { ...currentConfig, socialLinks } } : {}),
+  }).where(eq(bakersTable.id, params.data.bakerId)).returning();
   if (!baker) {
     res.status(404).json({ error: "Baker not found" });
     return;

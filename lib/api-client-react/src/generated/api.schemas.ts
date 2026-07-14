@@ -69,6 +69,7 @@ export interface Baker {
   advanceThresholdPkr?: number;
   advancePercentage?: number;
   paymentDetails?: string;
+  socialLinks?: { instagram?: string; facebook?: string };
   createdAt: string;
 }
 
@@ -112,6 +113,7 @@ export interface BakerUpdate {
   advanceThresholdPkr?: number;
   advancePercentage?: number;
   paymentDetails?: string;
+  socialLinks?: { instagram?: string; facebook?: string };
 }
 
 export interface BakerStats {
@@ -589,4 +591,3 @@ buyerId: number;
 export type ListCustomersParams = {
 bakerId: number;
 };
-

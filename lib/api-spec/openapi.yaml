@@ -946,6 +946,11 @@ components:
         advanceThresholdPkr: { type: integer }
         advancePercentage: { type: integer }
         paymentDetails: { type: string }
+        socialLinks:
+          type: object
+          properties:
+            instagram: { type: string, format: uri }
+            facebook: { type: string, format: uri }
         createdAt: { type: string }
 
     BakerInput:
@@ -992,6 +997,11 @@ components:
         advanceThresholdPkr: { type: integer }
         advancePercentage: { type: integer }
         paymentDetails: { type: string }
+        socialLinks:
+          type: object
+          properties:
+            instagram: { type: string, format: uri }
+            facebook: { type: string, format: uri }
 
     BakerStats:
       type: object

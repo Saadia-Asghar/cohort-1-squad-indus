@@ -11,14 +11,11 @@ if (apiUrl) {
   setBaseUrl(apiUrl);
 }
 
-// Buyer Pages
+// Public pages: customers reach a baker's menu through a direct shared link.
 import Home from "@/pages/buyer/home";
-import Bakers from "@/pages/buyer/bakers";
 import BakerProfile from "@/pages/buyer/baker-profile";
 import Cart from "@/pages/buyer/cart";
 import BuyerOrders from "@/pages/buyer/orders";
-import BuyerLogin from "@/pages/auth/buyer-login";
-import LoginChoice from "@/pages/auth/login-choice";
 
 // Dashboard Pages
 import DashboardHome from "@/pages/dashboard/home";
@@ -46,12 +43,10 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
-      <Route path="/bakers" component={Bakers} />
+      <Route path="/menu/:id" component={BakerProfile} />
       <Route path="/bakers/:id" component={BakerProfile} />
       <Route path="/cart" component={Cart} />
       <Route path="/orders" component={BuyerOrders} />
-      <Route path="/login" component={LoginChoice} />
-      <Route path="/login/buyer" component={BuyerLogin} />
 
       <Route path="/dashboard" component={() => <ProtectedDashboard component={DashboardHome} />} />
       <Route path="/dashboard/orders" component={() => <ProtectedDashboard component={DashboardOrders} />} />
