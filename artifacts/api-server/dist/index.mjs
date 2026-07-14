@@ -20706,27 +20706,27 @@ var require_router = __commonJS({
     var slice = Array.prototype.slice;
     var flatten = Array.prototype.flat;
     var methods = METHODS.map((method) => method.toLowerCase());
-    module.exports = Router16;
+    module.exports = Router15;
     module.exports.Route = Route;
-    function Router16(options) {
-      if (!(this instanceof Router16)) {
-        return new Router16(options);
+    function Router15(options) {
+      if (!(this instanceof Router15)) {
+        return new Router15(options);
       }
       const opts = options || {};
-      function router16(req, res, next) {
-        router16.handle(req, res, next);
+      function router15(req, res, next) {
+        router15.handle(req, res, next);
       }
-      Object.setPrototypeOf(router16, this);
-      router16.caseSensitive = opts.caseSensitive;
-      router16.mergeParams = opts.mergeParams;
-      router16.params = {};
-      router16.strict = opts.strict;
-      router16.stack = [];
-      return router16;
+      Object.setPrototypeOf(router15, this);
+      router15.caseSensitive = opts.caseSensitive;
+      router15.mergeParams = opts.mergeParams;
+      router15.params = {};
+      router15.strict = opts.strict;
+      router15.stack = [];
+      return router15;
     }
-    Router16.prototype = function() {
+    Router15.prototype = function() {
     };
-    Router16.prototype.param = function param(name, fn) {
+    Router15.prototype.param = function param(name, fn) {
       if (!name) {
         throw new TypeError("argument name is required");
       }
@@ -20746,7 +20746,7 @@ var require_router = __commonJS({
       params.push(fn);
       return this;
     };
-    Router16.prototype.handle = function handle(req, res, callback) {
+    Router15.prototype.handle = function handle(req, res, callback) {
       if (!callback) {
         throw new TypeError("argument callback is required");
       }
@@ -20873,7 +20873,7 @@ var require_router = __commonJS({
         }
       }
     };
-    Router16.prototype.use = function use(handler) {
+    Router15.prototype.use = function use(handler) {
       let offset = 0;
       let path = "/";
       if (typeof handler !== "function") {
@@ -20906,7 +20906,7 @@ var require_router = __commonJS({
       }
       return this;
     };
-    Router16.prototype.route = function route(path) {
+    Router15.prototype.route = function route(path) {
       const route2 = new Route(path);
       const layer = new Layer(path, {
         sensitive: this.caseSensitive,
@@ -20921,7 +20921,7 @@ var require_router = __commonJS({
       return route2;
     };
     methods.concat("all").forEach(function(method) {
-      Router16.prototype[method] = function(path) {
+      Router15.prototype[method] = function(path) {
         const route = this.route(path);
         route[method].apply(route, slice.call(arguments, 1));
         return this;
@@ -21104,13 +21104,13 @@ var require_application = __commonJS({
     var compileTrust = require_utils3().compileTrust;
     var resolve = __require("node:path").resolve;
     var once = require_once();
-    var Router16 = require_router();
+    var Router15 = require_router();
     var slice = Array.prototype.slice;
     var flatten = Array.prototype.flat;
     var app2 = exports = module.exports = {};
     var trustProxyDefaultSymbol = "@@symbol:trust_proxy_default";
     app2.init = function init() {
-      var router16 = null;
+      var router15 = null;
       this.cache = /* @__PURE__ */ Object.create(null);
       this.engines = /* @__PURE__ */ Object.create(null);
       this.settings = /* @__PURE__ */ Object.create(null);
@@ -21119,13 +21119,13 @@ var require_application = __commonJS({
         configurable: true,
         enumerable: true,
         get: function getrouter() {
-          if (router16 === null) {
-            router16 = new Router16({
+          if (router15 === null) {
+            router15 = new Router15({
               caseSensitive: this.enabled("case sensitive routing"),
               strict: this.enabled("strict routing")
             });
           }
-          return router16;
+          return router15;
         }
       });
     };
@@ -21196,15 +21196,15 @@ var require_application = __commonJS({
       if (fns.length === 0) {
         throw new TypeError("app.use() requires a middleware function");
       }
-      var router16 = this.router;
+      var router15 = this.router;
       fns.forEach(function(fn2) {
         if (!fn2 || !fn2.handle || !fn2.set) {
-          return router16.use(path, fn2);
+          return router15.use(path, fn2);
         }
         debug(".use app under %s", path);
         fn2.mountpath = path;
         fn2.parent = this;
-        router16.use(path, function mounted_app(req, res, next) {
+        router15.use(path, function mounted_app(req, res, next) {
           var orig = req.app;
           fn2.handle(req, res, function(err) {
             Object.setPrototypeOf(req, orig.request);
@@ -23789,7 +23789,7 @@ var require_express = __commonJS({
     var EventEmitter = __require("node:events").EventEmitter;
     var mixin = require_merge_descriptors();
     var proto = require_application();
-    var Router16 = require_router();
+    var Router15 = require_router();
     var req = require_request();
     var res = require_response();
     exports = module.exports = createApplication;
@@ -23811,8 +23811,8 @@ var require_express = __commonJS({
     exports.application = proto;
     exports.request = req;
     exports.response = res;
-    exports.Route = Router16.Route;
-    exports.Router = Router16;
+    exports.Route = Router15.Route;
+    exports.Router = Router15;
     exports.json = bodyParser.json;
     exports.raw = bodyParser.raw;
     exports.static = require_serve_static();
@@ -33572,14 +33572,14 @@ var require_pino = __commonJS({
   }
 });
 
-// ../api-server/src/app.ts
-var import_express16 = __toESM(require_express2(), 1);
+// src/app.ts
+var import_express15 = __toESM(require_express2(), 1);
 var import_cors = __toESM(require_lib3(), 1);
 
-// ../api-server/src/routes/index.ts
-var import_express15 = __toESM(require_express2(), 1);
+// src/routes/index.ts
+var import_express14 = __toESM(require_express2(), 1);
 
-// ../api-server/src/routes/health.ts
+// src/routes/health.ts
 var import_express = __toESM(require_express2(), 1);
 
 // ../../node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/external.js
@@ -37747,11 +37747,7 @@ var CreateBakerBody = objectType({
   "requireAdvance": booleanType().optional(),
   "advanceThresholdPkr": numberType().optional(),
   "advancePercentage": numberType().optional(),
-  "paymentDetails": stringType().optional(),
-  "socialLinks": objectType({
-    "instagram": stringType().url().optional(),
-    "facebook": stringType().url().optional()
-  }).optional()
+  "paymentDetails": stringType().optional()
 });
 var CreateBakerResponse = objectType({
   "id": numberType(),
@@ -37873,7 +37869,8 @@ var UpdateBakerBody = objectType({
   "requireAdvance": booleanType().optional(),
   "advanceThresholdPkr": numberType().optional(),
   "advancePercentage": numberType().optional(),
-  "paymentDetails": stringType().optional()
+  "paymentDetails": stringType().optional(),
+  "socialLinks": objectType({ "instagram": stringType().url().optional(), "facebook": stringType().url().optional() }).optional()
 });
 var UpdateBakerResponse = objectType({
   "id": numberType(),
@@ -38666,7 +38663,7 @@ var ListConversationsResponseItem = objectType({
 });
 var ListConversationsResponse = arrayType(ListConversationsResponseItem);
 
-// ../api-server/src/routes/health.ts
+// src/routes/health.ts
 var router = (0, import_express.Router)();
 router.get("/healthz", (_req, res) => {
   const data = HealthCheckResponse.parse({ status: "ok" });
@@ -38674,7 +38671,7 @@ router.get("/healthz", (_req, res) => {
 });
 var health_default = router;
 
-// ../api-server/src/routes/bakers.ts
+// src/routes/bakers.ts
 var import_express2 = __toESM(require_express2(), 1);
 
 // ../../node_modules/.pnpm/drizzle-orm@0.45.2_@types+pg@8.20.0_pg@8.22.0/node_modules/drizzle-orm/entity.js
@@ -39320,10 +39317,10 @@ function pgEnumObjectWithSchema(enumName, values, schema) {
 // ../../node_modules/.pnpm/drizzle-orm@0.45.2_@types+pg@8.20.0_pg@8.22.0/node_modules/drizzle-orm/subquery.js
 var Subquery = class {
   static [entityKind] = "Subquery";
-  constructor(sql3, fields, alias, isWith = false, usedTables = []) {
+  constructor(sql2, fields, alias, isWith = false, usedTables = []) {
     this._ = {
       brand: "Subquery",
-      sql: sql3,
+      sql: sql2,
       selectedFields: fields,
       alias,
       isWith,
@@ -39724,19 +39721,19 @@ function sql(strings, ...params) {
   }
   return new SQL(queryChunks);
 }
-((sql22) => {
+((sql2) => {
   function empty() {
     return new SQL([]);
   }
-  sql22.empty = empty;
+  sql2.empty = empty;
   function fromList(list) {
     return new SQL(list);
   }
-  sql22.fromList = fromList;
+  sql2.fromList = fromList;
   function raw(str) {
     return new SQL([new StringChunk(str)]);
   }
-  sql22.raw = raw;
+  sql2.raw = raw;
   function join(chunks, separator) {
     const result = [];
     for (const [i, chunk] of chunks.entries()) {
@@ -39747,24 +39744,24 @@ function sql(strings, ...params) {
     }
     return new SQL(result);
   }
-  sql22.join = join;
+  sql2.join = join;
   function identifier(value) {
     return new Name(value);
   }
-  sql22.identifier = identifier;
+  sql2.identifier = identifier;
   function placeholder2(name2) {
     return new Placeholder(name2);
   }
-  sql22.placeholder = placeholder2;
+  sql2.placeholder = placeholder2;
   function param2(value, encoder) {
     return new Param(value, encoder);
   }
-  sql22.param = param2;
+  sql2.param = param2;
 })(sql || (sql = {}));
 ((SQL2) => {
   class Aliased {
-    constructor(sql22, fieldAlias) {
-      this.sql = sql22;
+    constructor(sql2, fieldAlias) {
+      this.sql = sql2;
       this.fieldAlias = fieldAlias;
     }
     static [entityKind] = "SQL.Aliased";
@@ -42643,8 +42640,8 @@ var PgDialect = class {
       return "none";
     }
   }
-  sqlToQuery(sql22, invokeSource) {
-    return sql22.toQuery({
+  sqlToQuery(sql2, invokeSource) {
+    return sql2.toQuery({
       casing: this.casing,
       escapeName: this.escapeName,
       escapeParam: this.escapeParam,
@@ -45240,10 +45237,10 @@ var PgRelationalQuery = class extends QueryPromise {
 
 // ../../node_modules/.pnpm/drizzle-orm@0.45.2_@types+pg@8.20.0_pg@8.22.0/node_modules/drizzle-orm/pg-core/query-builders/raw.js
 var PgRaw = class extends QueryPromise {
-  constructor(execute, sql3, query, mapBatchResult) {
+  constructor(execute, sql2, query, mapBatchResult) {
     super();
     this.execute = execute;
-    this.sql = sql3;
+    this.sql = sql2;
     this.query = query;
     this.mapBatchResult = mapBatchResult;
   }
@@ -45563,8 +45560,8 @@ var NoopCache = class extends Cache {
   async onMutate(_params) {
   }
 };
-async function hashQuery(sql3, params) {
-  const dataToHash = `${sql3}-${JSON.stringify(params)}`;
+async function hashQuery(sql2, params) {
+  const dataToHash = `${sql2}-${JSON.stringify(params)}`;
   const encoder = new TextEncoder();
   const data = encoder.encode(dataToHash);
   const hashBuffer = await crypto.subtle.digest("SHA-256", data);
@@ -45751,8 +45748,8 @@ var PgSession = class {
     ).all();
   }
   /** @internal */
-  async count(sql22, token) {
-    const res = await this.execute(sql22, token);
+  async count(sql2, token) {
+    const res = await this.execute(sql2, token);
     return Number(
       res[0]["count"]
     );
@@ -45974,8 +45971,8 @@ var NodePgSession = class _NodePgSession extends PgSession {
       if (isPool) session.client.release();
     }
   }
-  async count(sql22) {
-    const res = await this.execute(sql22);
+  async count(sql2) {
+    const res = await this.execute(sql2);
     return Number(
       res["rows"][0]["count"]
     );
@@ -57245,7 +57242,7 @@ function date5(params) {
 // ../../node_modules/.pnpm/zod@3.25.76/node_modules/zod/v4/classic/external.js
 config(en_default2());
 
-// ../../node_modules/.pnpm/drizzle-zod@0.8.3_drizzle-orm@0.45.2_@types+pg@8.20.0_pg@8.22.0__zod@3.25.76/node_modules/drizzle-zod/index.mjs
+// ../../node_modules/.pnpm/drizzle-zod@0.8.3_drizzle-o_9023862330606cbd2d7b4dbe0f6a6add/node_modules/drizzle-zod/index.mjs
 var CONSTANTS = {
   INT8_MIN: -128,
   INT8_MAX: 127,
@@ -57751,21 +57748,34 @@ if (!process.env.DATABASE_URL) {
 var pool = new Pool3({ connectionString: process.env.DATABASE_URL });
 var db = drizzle(pool, { schema: schema_exports });
 
-// ../api-server/src/lib/auth.ts
+// src/lib/auth.ts
 import crypto2 from "crypto";
-var JWT_SECRET = process.env.JWT_SECRET || "sweet-tooth-default-secret-key-123456";
+var TOKEN_TTL_SECONDS = 60 * 60 * 12;
+function getJwtSecret() {
+  const secret = process.env.JWT_SECRET;
+  if (!secret || secret.length < 32) {
+    throw new Error("JWT_SECRET must be set to a random value of at least 32 characters");
+  }
+  return secret;
+}
 function signToken(payload) {
   const header = Buffer.from(JSON.stringify({ alg: "HS256", typ: "JWT" })).toString("base64url");
-  const payloadStr = Buffer.from(JSON.stringify(payload)).toString("base64url");
-  const signature = crypto2.createHmac("sha256", JWT_SECRET).update(`${header}.${payloadStr}`).digest("base64url");
+  const now = Math.floor(Date.now() / 1e3);
+  const payloadStr = Buffer.from(JSON.stringify({ ...payload, iat: now, exp: now + TOKEN_TTL_SECONDS })).toString("base64url");
+  const signature = crypto2.createHmac("sha256", getJwtSecret()).update(`${header}.${payloadStr}`).digest("base64url");
   return `${header}.${payloadStr}.${signature}`;
 }
 function verifyToken(token) {
   try {
     const [header, payload, signature] = token.split(".");
-    const expectedSig = crypto2.createHmac("sha256", JWT_SECRET).update(`${header}.${payload}`).digest("base64url");
-    if (signature !== expectedSig) return null;
-    return JSON.parse(Buffer.from(payload, "base64url").toString("utf8"));
+    if (!header || !payload || !signature) return null;
+    const expectedSig = crypto2.createHmac("sha256", getJwtSecret()).update(`${header}.${payload}`).digest("base64url");
+    const signatureBuffer = Buffer.from(signature);
+    const expectedBuffer = Buffer.from(expectedSig);
+    if (signatureBuffer.length !== expectedBuffer.length || !crypto2.timingSafeEqual(signatureBuffer, expectedBuffer)) return null;
+    const decoded = JSON.parse(Buffer.from(payload, "base64url").toString("utf8"));
+    if (typeof decoded.exp !== "number" || decoded.exp <= Math.floor(Date.now() / 1e3)) return null;
+    return decoded;
   } catch {
     return null;
   }
@@ -57781,7 +57791,7 @@ function verifyPassword(password, storedHash) {
   return hash === checkHash;
 }
 
-// ../api-server/src/middlewares/auth.ts
+// src/middlewares/auth.ts
 function requireBakerAuth(req, res, next) {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -57790,15 +57800,28 @@ function requireBakerAuth(req, res, next) {
   }
   const token = authHeader.split(" ")[1];
   const decoded = verifyToken(token);
-  if (!decoded || !decoded.bakerId) {
+  if (!decoded || typeof decoded.bakerId !== "number") {
     res.status(401).json({ error: "Invalid or expired token." });
     return;
   }
   req.bakerId = decoded.bakerId;
   next();
 }
+function requireBakerOwnership(req, res, next) {
+  const rawBakerId = req.params.bakerId ?? req.query.bakerId;
+  const bakerId = Number(Array.isArray(rawBakerId) ? rawBakerId[0] : rawBakerId);
+  if (!Number.isInteger(bakerId) || bakerId <= 0) {
+    res.status(400).json({ error: "A valid bakerId is required." });
+    return;
+  }
+  if (req.bakerId !== bakerId) {
+    res.status(403).json({ error: "You can only access your own bakery data." });
+    return;
+  }
+  next();
+}
 
-// ../api-server/src/lib/logger.ts
+// src/lib/logger.ts
 var import_pino = __toESM(require_pino(), 1);
 var isProduction = process.env.NODE_ENV === "production";
 var logger = (0, import_pino.default)({
@@ -57816,7 +57839,7 @@ var logger = (0, import_pino.default)({
   }
 });
 
-// ../api-server/src/lib/rag/embeddings.ts
+// src/lib/rag/embeddings.ts
 var EMBEDDING_DIM = 384;
 function localEmbed(text2, dims = EMBEDDING_DIM) {
   const vec = new Array(dims).fill(0);
@@ -57886,7 +57909,7 @@ function cosineSimilarity(a, b) {
   return denom === 0 ? 0 : dot / denom;
 }
 
-// ../api-server/src/lib/rag/indexer.ts
+// src/lib/rag/indexer.ts
 function productChunks(product) {
   const sizes = product.sizes ?? [];
   const sizeText = sizes.length ? sizes.map((s) => `${s.label}: PKR ${s.pricePkr}`).join(", ") : `PKR ${product.basePricePkr}`;
@@ -57970,7 +57993,7 @@ async function reindexBakerKnowledge(bakerId) {
   return { chunks: rows.length, provider };
 }
 
-// ../api-server/src/lib/rag/retriever.ts
+// src/lib/rag/retriever.ts
 async function retrieveKnowledge(bakerId, query, limit = 4, minScore = 0.12) {
   const chunks = await db.select().from(knowledgeChunksTable).where(eq(knowledgeChunksTable.bakerId, bakerId));
   if (chunks.length === 0) return [];
@@ -57990,7 +58013,7 @@ function formatRetrievedContext(chunks) {
   return chunks.map((chunk, index2) => `[${index2 + 1}] ${chunk.content}`).join("\n\n");
 }
 
-// ../api-server/src/lib/rag/pipeline.ts
+// src/lib/rag/pipeline.ts
 async function runRagQuery(bakerId, query) {
   const chunks = await retrieveKnowledge(bakerId, query);
   return {
@@ -58002,8 +58025,46 @@ async function rebuildBakerKnowledgeIndex(bakerId) {
   return reindexBakerKnowledge(bakerId);
 }
 
-// ../api-server/src/routes/bakers.ts
+// src/middlewares/rate-limiter.ts
+var ipRequestCounts = /* @__PURE__ */ new Map();
+function rateLimit(limit, windowMs) {
+  return (req, res, next) => {
+    const ip = req.ip || req.socket.remoteAddress || "unknown";
+    const now = Date.now();
+    let record2 = ipRequestCounts.get(ip);
+    if (!record2 || now > record2.resetTime) {
+      record2 = { count: 0, resetTime: now + windowMs };
+    }
+    record2.count++;
+    ipRequestCounts.set(ip, record2);
+    if (record2.count > limit) {
+      res.status(429).json({ error: "Too many requests. Please try again later." });
+      return;
+    }
+    next();
+  };
+}
+
+// src/routes/bakers.ts
 var router2 = (0, import_express2.Router)();
+function normalizePakistanPhone(value) {
+  let digits = value.replace(/\D/g, "");
+  if (digits.startsWith("00")) digits = digits.slice(2);
+  if (digits.length === 11 && digits.startsWith("0")) digits = `92${digits.slice(1)}`;
+  if (digits.length === 10 && digits.startsWith("3")) digits = `92${digits}`;
+  return /^923\d{9}$/.test(digits) ? `+${digits}` : null;
+}
+function phoneLookupVariants(value, normalized) {
+  const raw = value.trim();
+  if (!normalized) return [raw];
+  const digits = normalized.slice(1);
+  return [.../* @__PURE__ */ new Set([raw, normalized, digits, `0${digits.slice(2)}`, digits.slice(2)])];
+}
+function databaseErrorCode(error40) {
+  if (!error40 || typeof error40 !== "object") return void 0;
+  const candidate = error40;
+  return typeof candidate.code === "string" ? candidate.code : typeof candidate.cause?.code === "string" ? candidate.cause.code : void 0;
+}
 function toPublicBaker(baker) {
   const { passwordHash, metaWebhookToken, whatsappNumber, email: email3, paymentDetails, ...publicBaker } = baker;
   const digits = String(whatsappNumber ?? "").replace(/\D/g, "");
@@ -58020,24 +58081,6 @@ function toPublicBaker(baker) {
     },
     socialLinks: baker.agentConfig?.socialLinks ?? {}
   };
-}
-function normalizePakistanPhone(value) {
-  let digits = value.replace(/\D/g, "");
-  if (digits.startsWith("00")) digits = digits.slice(2);
-  if (digits.length === 11 && digits.startsWith("0")) digits = `92${digits.slice(1)}`;
-  if (digits.length === 10 && digits.startsWith("3")) digits = `92${digits}`;
-  return /^923\d{9}$/.test(digits) ? `+${digits}` : null;
-}
-function phoneLookupVariants(value, normalized) {
-  const raw = value.trim();
-  if (!normalized) return [raw];
-  const digits = normalized.slice(1);
-  return [...new Set([raw, normalized, digits, `0${digits.slice(2)}`, digits.slice(2)])];
-}
-function databaseErrorCode(error) {
-  if (!error || typeof error !== "object") return void 0;
-  const candidate = error;
-  return typeof candidate.code === "string" ? candidate.code : typeof candidate.cause?.code === "string" ? candidate.cause.code : void 0;
 }
 function toAuthenticatedBaker(baker) {
   const { passwordHash, metaWebhookToken, ...safeBaker } = baker;
@@ -58058,7 +58101,7 @@ router2.get("/bakers", async (req, res) => {
   );
   res.json(bakerCards);
 });
-router2.post("/bakers", async (req, res) => {
+router2.post("/bakers", rateLimit(10, 15 * 60 * 1e3), async (req, res) => {
   const schema = external_exports.object({
     businessName: external_exports.string(),
     ownerName: external_exports.string(),
@@ -58108,7 +58151,7 @@ router2.post("/bakers", async (req, res) => {
     }
   }
 });
-router2.post("/bakers/login", async (req, res) => {
+router2.post("/bakers/login", rateLimit(10, 15 * 60 * 1e3), async (req, res) => {
   const schema = external_exports.object({
     identifier: external_exports.string().min(3),
     password: external_exports.string()
@@ -58175,7 +58218,7 @@ router2.patch("/bakers/:bakerId", requireBakerAuth, async (req, res) => {
   const currentConfig = existing.agentConfig ?? {};
   const [baker] = await db.update(bakersTable).set({
     ...profileUpdates,
-    ...(socialLinks !== void 0 ? { agentConfig: { ...currentConfig, socialLinks } } : {})
+    ...socialLinks !== void 0 ? { agentConfig: { ...currentConfig, socialLinks } } : {}
   }).where(eq(bakersTable.id, params.data.bakerId)).returning();
   if (!baker) {
     res.status(404).json({ error: "Baker not found" });
@@ -58210,7 +58253,7 @@ router2.get("/bakers/:bakerId/reviews", async (req, res) => {
   const reviews = await db.select().from(reviewsTable).where(eq(reviewsTable.bakerId, params.data.bakerId)).orderBy(sql`${reviewsTable.createdAt} DESC`);
   res.json(reviews);
 });
-router2.get("/bakers/:bakerId/stats", async (req, res) => {
+router2.get("/bakers/:bakerId/stats", requireBakerAuth, requireBakerOwnership, async (req, res) => {
   const params = GetBakerStatsParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
@@ -58263,8 +58306,8 @@ function maskWebhookToken(token) {
   if (!token) return { metaWebhookTokenSet: false, metaWebhookTokenPreview: null };
   return { metaWebhookTokenSet: true, metaWebhookTokenPreview: `${token.slice(0, 4)}\u2022\u2022\u2022\u2022` };
 }
-router2.get("/bakers/:bakerId/agent-config", async (req, res) => {
-  const bakerId = parseInt(req.params.bakerId);
+router2.get("/bakers/:bakerId/agent-config", requireBakerAuth, requireBakerOwnership, async (req, res) => {
+  const bakerId = parseInt(String(req.params.bakerId), 10);
   if (isNaN(bakerId)) {
     res.status(400).json({ error: "Invalid bakerId" });
     return;
@@ -58295,8 +58338,8 @@ router2.get("/bakers/:bakerId/agent-config", async (req, res) => {
     whatsappWebhookUrl: "/api/webhooks/whatsapp"
   });
 });
-router2.put("/bakers/:bakerId/agent-config", async (req, res) => {
-  const bakerId = parseInt(req.params.bakerId);
+router2.put("/bakers/:bakerId/agent-config", requireBakerAuth, requireBakerOwnership, async (req, res) => {
+  const bakerId = parseInt(String(req.params.bakerId), 10);
   if (isNaN(bakerId)) {
     res.status(400).json({ error: "Invalid bakerId" });
     return;
@@ -58355,11 +58398,11 @@ router2.put("/bakers/:bakerId/agent-config", async (req, res) => {
 });
 var bakers_default = router2;
 
-// ../api-server/src/routes/notifications.ts
+// src/routes/notifications.ts
 var import_express3 = __toESM(require_express2(), 1);
 var router3 = (0, import_express3.Router)();
-router3.get("/bakers/:bakerId/notifications", async (req, res) => {
-  const bakerId = parseInt(req.params.bakerId);
+router3.get("/bakers/:bakerId/notifications", requireBakerAuth, requireBakerOwnership, async (req, res) => {
+  const bakerId = parseInt(String(req.params.bakerId), 10);
   if (isNaN(bakerId)) {
     res.status(400).json({ error: "Invalid bakerId" });
     return;
@@ -58367,8 +58410,8 @@ router3.get("/bakers/:bakerId/notifications", async (req, res) => {
   const notifs = await db.select().from(notificationsTable).where(eq(notificationsTable.bakerId, bakerId)).orderBy(desc(notificationsTable.createdAt)).limit(50);
   res.json(notifs);
 });
-router3.post("/bakers/:bakerId/notifications/read-all", async (req, res) => {
-  const bakerId = parseInt(req.params.bakerId);
+router3.post("/bakers/:bakerId/notifications/read-all", requireBakerAuth, requireBakerOwnership, async (req, res) => {
+  const bakerId = parseInt(String(req.params.bakerId), 10);
   if (isNaN(bakerId)) {
     res.status(400).json({ error: "Invalid bakerId" });
     return;
@@ -58376,14 +58419,14 @@ router3.post("/bakers/:bakerId/notifications/read-all", async (req, res) => {
   await db.update(notificationsTable).set({ isRead: true }).where(eq(notificationsTable.bakerId, bakerId));
   res.json({ success: true });
 });
-router3.patch("/bakers/:bakerId/notifications/:notifId/read", async (req, res) => {
-  const bakerId = parseInt(req.params.bakerId);
-  const notifId = parseInt(req.params.notifId);
+router3.patch("/bakers/:bakerId/notifications/:notifId/read", requireBakerAuth, requireBakerOwnership, async (req, res) => {
+  const bakerId = parseInt(String(req.params.bakerId), 10);
+  const notifId = parseInt(String(req.params.notifId), 10);
   if (isNaN(bakerId) || isNaN(notifId)) {
     res.status(400).json({ error: "Invalid params" });
     return;
   }
-  const [updated] = await db.update(notificationsTable).set({ isRead: true }).where(eq(notificationsTable.id, notifId)).returning();
+  const [updated] = await db.update(notificationsTable).set({ isRead: true }).where(and(eq(notificationsTable.id, notifId), eq(notificationsTable.bakerId, bakerId))).returning();
   if (!updated) {
     res.status(404).json({ error: "Notification not found" });
     return;
@@ -58392,72 +58435,9 @@ router3.patch("/bakers/:bakerId/notifications/:notifId/read", async (req, res) =
 });
 var notifications_default = router3;
 
-// ../api-server/src/routes/marketplace.ts
+// src/routes/products.ts
 var import_express4 = __toESM(require_express2(), 1);
 var router4 = (0, import_express4.Router)();
-function toPublicBaker2(baker) {
-  const { passwordHash, metaWebhookToken, whatsappNumber, email: email3, paymentDetails, ...publicBaker } = baker;
-  return publicBaker;
-}
-router4.get("/marketplace/featured", async (req, res) => {
-  const { city, area } = req.query;
-  let query = db.select().from(bakersTable).where(eq(bakersTable.marketplaceVisible, true)).$dynamic();
-  if (city) query = query.where(eq(bakersTable.city, city));
-  const bakers = await query.limit(12);
-  const bakerCards = await Promise.all(
-    bakers.map(async (b) => {
-      const products = await db.select({ category: productsTable.category, basePricePkr: productsTable.basePricePkr }).from(productsTable).where(eq(productsTable.bakerId, b.id));
-      const categories = [...new Set(products.map((p) => p.category))];
-      const startingPrice = products.length > 0 ? Math.min(...products.map((p) => p.basePricePkr)) : null;
-      return { ...toPublicBaker2(b), deliveryAreas: b.deliveryAreas ?? [], categories, startingPrice };
-    })
-  );
-  res.json(bakerCards);
-});
-router4.get("/marketplace/search", async (req, res) => {
-  const { q, city, area, category, occasion, dietary } = req.query;
-  const bakers = await db.select().from(bakersTable).where(eq(bakersTable.marketplaceVisible, true)).limit(20);
-  const bakerCards = await Promise.all(
-    bakers.filter((b) => {
-      if (city && b.city !== city) return false;
-      if (q && !b.businessName.toLowerCase().includes(q.toLowerCase())) return false;
-      return true;
-    }).map(async (b) => {
-      const products2 = await db.select({ category: productsTable.category, basePricePkr: productsTable.basePricePkr }).from(productsTable).where(eq(productsTable.bakerId, b.id));
-      const categories = [...new Set(products2.map((p) => p.category))];
-      const startingPrice = products2.length > 0 ? Math.min(...products2.map((p) => p.basePricePkr)) : null;
-      return { ...toPublicBaker2(b), deliveryAreas: b.deliveryAreas ?? [], categories, startingPrice };
-    })
-  );
-  let productQuery = db.select().from(productsTable).where(eq(productsTable.isAvailable, true)).$dynamic();
-  if (category) productQuery = productQuery.where(eq(productsTable.category, category));
-  const products = await productQuery.limit(20);
-  const filteredProducts = products.filter((p) => {
-    if (q && !p.name.toLowerCase().includes(q.toLowerCase())) return false;
-    return true;
-  }).map((p) => ({
-    ...p,
-    sizes: p.sizes ?? [],
-    variants: p.variants ?? [],
-    occasionTags: p.occasionTags ?? [],
-    dietaryTags: p.dietaryTags ?? []
-  }));
-  res.json({ bakers: bakerCards, products: filteredProducts });
-});
-router4.get("/marketplace/categories", async (req, res) => {
-  const products = await db.select({ category: productsTable.category }).from(productsTable);
-  const counts = {};
-  for (const p of products) {
-    counts[p.category] = (counts[p.category] ?? 0) + 1;
-  }
-  const categories = Object.entries(counts).map(([name, count]) => ({ name, count, icon: null }));
-  res.json(categories);
-});
-var marketplace_default = router4;
-
-// ../api-server/src/routes/products.ts
-var import_express5 = __toESM(require_express2(), 1);
-var router5 = (0, import_express5.Router)();
 function formatProduct(p) {
   return {
     ...p,
@@ -58467,7 +58447,7 @@ function formatProduct(p) {
     dietaryTags: p.dietaryTags ?? []
   };
 }
-router5.get("/products", async (req, res) => {
+router4.get("/products", async (req, res) => {
   const query = ListProductsQueryParams.safeParse(req.query);
   if (!query.success) {
     res.status(400).json({ error: query.error.message });
@@ -58479,7 +58459,7 @@ router5.get("/products", async (req, res) => {
   const products = await dbQuery.orderBy(productsTable.displayOrder);
   res.json(products.map(formatProduct));
 });
-router5.post("/products", requireBakerAuth, async (req, res) => {
+router4.post("/products", requireBakerAuth, async (req, res) => {
   const parsed = CreateProductBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
@@ -58496,7 +58476,7 @@ router5.post("/products", requireBakerAuth, async (req, res) => {
   );
   res.status(201).json(formatProduct(product));
 });
-router5.get("/products/:productId", async (req, res) => {
+router4.get("/products/:productId", async (req, res) => {
   const params = GetProductParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
@@ -58509,7 +58489,7 @@ router5.get("/products/:productId", async (req, res) => {
   }
   res.json(formatProduct(product));
 });
-router5.patch("/products/:productId", requireBakerAuth, async (req, res) => {
+router4.patch("/products/:productId", requireBakerAuth, async (req, res) => {
   const params = UpdateProductParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
@@ -58536,7 +58516,7 @@ router5.patch("/products/:productId", requireBakerAuth, async (req, res) => {
   );
   res.json(formatProduct(product));
 });
-router5.delete("/products/:productId", requireBakerAuth, async (req, res) => {
+router4.delete("/products/:productId", requireBakerAuth, async (req, res) => {
   const params = DeleteProductParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
@@ -58558,7 +58538,7 @@ router5.delete("/products/:productId", requireBakerAuth, async (req, res) => {
   );
   res.sendStatus(204);
 });
-router5.patch("/products/:productId/toggle-stock", requireBakerAuth, async (req, res) => {
+router4.patch("/products/:productId/toggle-stock", requireBakerAuth, async (req, res) => {
   const params = ToggleProductStockParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
@@ -58580,12 +58560,12 @@ router5.patch("/products/:productId/toggle-stock", requireBakerAuth, async (req,
   );
   res.json(formatProduct(product));
 });
-var products_default = router5;
+var products_default = router4;
 
-// ../api-server/src/routes/orders.ts
-var import_express6 = __toESM(require_express2(), 1);
+// src/routes/orders.ts
+var import_express5 = __toESM(require_express2(), 1);
 
-// ../api-server/src/lib/ocr.ts
+// src/lib/ocr.ts
 async function performReceiptOCR(imageUrl) {
   const apiKey = process.env.GOOGLE_CLOUD_VISION_API_KEY;
   if (apiKey) {
@@ -58719,12 +58699,12 @@ async function triggerPaymentOCRVerification(orderId) {
   return result;
 }
 
-// ../api-server/src/routes/orders.ts
-var router6 = (0, import_express6.Router)();
+// src/routes/orders.ts
+var router5 = (0, import_express5.Router)();
 function formatOrder(o) {
   return { ...o, items: o.items ?? [] };
 }
-router6.get("/orders", async (req, res) => {
+router5.get("/orders", async (req, res) => {
   const query = ListOrdersQueryParams.safeParse(req.query);
   if (!query.success) {
     res.status(400).json({ error: query.error.message });
@@ -58737,7 +58717,7 @@ router6.get("/orders", async (req, res) => {
   const orders = await dbQuery;
   res.json(orders.map(formatOrder));
 });
-router6.post("/orders", async (req, res) => {
+router5.post("/orders", async (req, res) => {
   const parsed = CreateOrderBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
@@ -58774,10 +58754,19 @@ router6.post("/orders", async (req, res) => {
   }
   res.status(201).json(formatOrder(order));
 });
-router6.post("/orders/:orderId/verify-payment", async (req, res) => {
-  const orderId = parseInt(req.params.orderId, 10);
+router5.post("/orders/:orderId/verify-payment", requireBakerAuth, async (req, res) => {
+  const orderId = parseInt(String(req.params.orderId), 10);
   if (isNaN(orderId)) {
     res.status(400).json({ error: "Invalid order ID" });
+    return;
+  }
+  const [order] = await db.select({ bakerId: ordersTable.bakerId }).from(ordersTable).where(eq(ordersTable.id, orderId));
+  if (!order) {
+    res.status(404).json({ error: "Order not found" });
+    return;
+  }
+  if (order.bakerId !== req.bakerId) {
+    res.status(403).json({ error: "You can only verify your own orders." });
     return;
   }
   const result = await triggerPaymentOCRVerification(orderId);
@@ -58787,7 +58776,7 @@ router6.post("/orders/:orderId/verify-payment", async (req, res) => {
   }
   res.json(result);
 });
-router6.get("/orders/:orderId", async (req, res) => {
+router5.get("/orders/:orderId", requireBakerAuth, async (req, res) => {
   const params = GetOrderParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
@@ -58798,9 +58787,13 @@ router6.get("/orders/:orderId", async (req, res) => {
     res.status(404).json({ error: "Order not found" });
     return;
   }
+  if (order.bakerId !== req.bakerId) {
+    res.status(403).json({ error: "You can only access your own orders." });
+    return;
+  }
   res.json(formatOrder(order));
 });
-router6.patch("/orders/:orderId/status", async (req, res) => {
+router5.patch("/orders/:orderId/status", requireBakerAuth, async (req, res) => {
   const params = UpdateOrderStatusParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
@@ -58817,14 +58810,14 @@ router6.patch("/orders/:orderId/status", async (req, res) => {
     cancellationReason: isCancelled ? parsed.data.cancellationReason?.trim() || "Not specified" : null,
     cancelledBy: isCancelled ? parsed.data.cancelledBy?.trim() || "baker" : null,
     cancelledAt: isCancelled ? /* @__PURE__ */ new Date() : null
-  }).where(eq(ordersTable.id, params.data.orderId)).returning();
+  }).where(and(eq(ordersTable.id, params.data.orderId), eq(ordersTable.bakerId, req.bakerId))).returning();
   if (!order) {
     res.status(404).json({ error: "Order not found" });
     return;
   }
   res.json(formatOrder(order));
 });
-router6.patch("/orders/:orderId/payment", async (req, res) => {
+router5.patch("/orders/:orderId/payment", requireBakerAuth, async (req, res) => {
   const params = MarkOrderPaidParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
@@ -58835,19 +58828,19 @@ router6.patch("/orders/:orderId/payment", async (req, res) => {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
-  const [order] = await db.update(ordersTable).set({ paymentStatus: "paid", paymentAmountReceived: parsed.data.amountReceived }).where(eq(ordersTable.id, params.data.orderId)).returning();
+  const [order] = await db.update(ordersTable).set({ paymentStatus: "paid", paymentAmountReceived: parsed.data.amountReceived }).where(and(eq(ordersTable.id, params.data.orderId), eq(ordersTable.bakerId, req.bakerId))).returning();
   if (!order) {
     res.status(404).json({ error: "Order not found" });
     return;
   }
   res.json(formatOrder(order));
 });
-var orders_default = router6;
+var orders_default = router5;
 
-// ../api-server/src/routes/cart.ts
-var import_express7 = __toESM(require_express2(), 1);
-var router7 = (0, import_express7.Router)();
-router7.get("/cart", async (req, res) => {
+// src/routes/cart.ts
+var import_express6 = __toESM(require_express2(), 1);
+var router6 = (0, import_express6.Router)();
+router6.get("/cart", async (req, res) => {
   const query = GetCartQueryParams.safeParse(req.query);
   if (!query.success) {
     res.status(400).json({ error: query.error.message });
@@ -58856,7 +58849,7 @@ router7.get("/cart", async (req, res) => {
   const items = await db.select().from(cartItemsTable).where(eq(cartItemsTable.buyerId, query.data.buyerId));
   res.json(items);
 });
-router7.post("/cart", async (req, res) => {
+router6.post("/cart", async (req, res) => {
   const parsed = AddToCartBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
@@ -58865,7 +58858,7 @@ router7.post("/cart", async (req, res) => {
   const [item] = await db.insert(cartItemsTable).values(parsed.data).returning();
   res.status(201).json(item);
 });
-router7.delete("/cart/:cartItemId", async (req, res) => {
+router6.delete("/cart/:cartItemId", async (req, res) => {
   const params = RemoveFromCartParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
@@ -58874,7 +58867,7 @@ router7.delete("/cart/:cartItemId", async (req, res) => {
   await db.delete(cartItemsTable).where(eq(cartItemsTable.id, params.data.cartItemId));
   res.sendStatus(204);
 });
-router7.delete("/cart/clear", async (req, res) => {
+router6.delete("/cart/clear", async (req, res) => {
   const query = ClearCartQueryParams.safeParse(req.query);
   if (!query.success) {
     res.status(400).json({ error: query.error.message });
@@ -58883,12 +58876,12 @@ router7.delete("/cart/clear", async (req, res) => {
   await db.delete(cartItemsTable).where(eq(cartItemsTable.buyerId, query.data.buyerId));
   res.sendStatus(204);
 });
-var cart_default = router7;
+var cart_default = router6;
 
-// ../api-server/src/routes/reviews.ts
-var import_express8 = __toESM(require_express2(), 1);
-var router8 = (0, import_express8.Router)();
-router8.post("/reviews", async (req, res) => {
+// src/routes/reviews.ts
+var import_express7 = __toESM(require_express2(), 1);
+var router7 = (0, import_express7.Router)();
+router7.post("/reviews", async (req, res) => {
   const parsed = CreateReviewBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
@@ -58897,12 +58890,12 @@ router8.post("/reviews", async (req, res) => {
   const [review] = await db.insert(reviewsTable).values(parsed.data).returning();
   res.status(201).json(review);
 });
-var reviews_default = router8;
+var reviews_default = router7;
 
-// ../api-server/src/routes/customers.ts
-var import_express9 = __toESM(require_express2(), 1);
-var router9 = (0, import_express9.Router)();
-router9.get("/customers", async (req, res) => {
+// src/routes/customers.ts
+var import_express8 = __toESM(require_express2(), 1);
+var router8 = (0, import_express8.Router)();
+router8.get("/customers", requireBakerAuth, requireBakerOwnership, async (req, res) => {
   const query = ListCustomersQueryParams.safeParse(req.query);
   if (!query.success) {
     res.status(400).json({ error: query.error.message });
@@ -58911,7 +58904,7 @@ router9.get("/customers", async (req, res) => {
   const customers = await db.select().from(customersTable).where(eq(customersTable.bakerId, query.data.bakerId));
   res.json(customers);
 });
-router9.get("/customers/:customerId", async (req, res) => {
+router8.get("/customers/:customerId", requireBakerAuth, async (req, res) => {
   const params = GetCustomerParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
@@ -58922,14 +58915,18 @@ router9.get("/customers/:customerId", async (req, res) => {
     res.status(404).json({ error: "Customer not found" });
     return;
   }
+  if (req.bakerId !== customer.bakerId) {
+    res.status(403).json({ error: "You can only access your own customers." });
+    return;
+  }
   res.json(customer);
 });
-var customers_default = router9;
+var customers_default = router8;
 
-// ../api-server/src/routes/analytics.ts
-var import_express10 = __toESM(require_express2(), 1);
-var router10 = (0, import_express10.Router)();
-router10.get("/analytics/baker/:bakerId/:period", async (req, res) => {
+// src/routes/analytics.ts
+var import_express9 = __toESM(require_express2(), 1);
+var router9 = (0, import_express9.Router)();
+router9.get("/analytics/baker/:bakerId/:period", requireBakerAuth, requireBakerOwnership, async (req, res) => {
   const params = GetBakerAnalyticsParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
@@ -59006,7 +59003,7 @@ router10.get("/analytics/baker/:bakerId/:period", async (req, res) => {
     }
   });
 });
-router10.get("/analytics/baker/:bakerId/sources", async (req, res) => {
+router9.get("/analytics/baker/:bakerId/sources", requireBakerAuth, requireBakerOwnership, async (req, res) => {
   const params = GetOrderSourcesParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
@@ -59028,12 +59025,12 @@ router10.get("/analytics/baker/:bakerId/sources", async (req, res) => {
   }));
   res.json(sources);
 });
-var analytics_default = router10;
+var analytics_default = router9;
 
-// ../api-server/src/routes/chat.ts
-var import_express11 = __toESM(require_express2(), 1);
+// src/routes/chat.ts
+var import_express10 = __toESM(require_express2(), 1);
 
-// ../api-server/src/lib/agent-llm.ts
+// src/lib/agent-llm.ts
 async function generateLlmReply(context) {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) return null;
@@ -59080,7 +59077,7 @@ async function generateLlmReply(context) {
   }
 }
 
-// ../api-server/src/lib/n8n.ts
+// src/lib/n8n.ts
 async function sendN8nEvent(event, payload) {
   const url2 = process.env.N8N_WEBHOOK_URL;
   if (!url2) return;
@@ -59100,7 +59097,7 @@ async function sendN8nEvent(event, payload) {
   }
 }
 
-// ../api-server/src/lib/chat-agent.ts
+// src/lib/chat-agent.ts
 var MENU_SCOPE_KEYWORDS = [
   "menu",
   "product",
@@ -59240,8 +59237,9 @@ function extractPreferences(message, existing) {
   const allergyMatch = lowerMsg.match(/allerg(?:ic|y) to ([a-z\s]+)/);
   if (allergyMatch) {
     const allergies = prefs.allergies ?? [];
-    if (!allergies.includes(allergyMatch[1].trim())) {
-      prefs.allergies = [...allergies, allergyMatch[1].trim()];
+    const allergy = allergyMatch[1].trim().slice(0, 80);
+    if (allergy && !allergies.includes(allergy)) {
+      prefs.allergies = [...allergies.slice(0, 4), allergy];
     }
   }
   return prefs;
@@ -59301,7 +59299,7 @@ async function generateAgentReply(bakerId, buyerId, message, memory) {
     };
   }
   if (buyerId && (lowerMsg.includes("status") || lowerMsg.includes("verify") || lowerMsg.includes("receipt") || lowerMsg.includes("screenshot") || lowerMsg.includes("payment") || lowerMsg.includes("advance"))) {
-    const [latestOrder] = await db.select().from(ordersTable).where(eq(ordersTable.buyerId, buyerId)).orderBy(desc(ordersTable.createdAt)).limit(1);
+    const [latestOrder] = await db.select().from(ordersTable).where(and(eq(ordersTable.buyerId, buyerId), eq(ordersTable.bakerId, bakerId))).orderBy(desc(ordersTable.createdAt)).limit(1);
     if (latestOrder) {
       if (latestOrder.requireAdvance) {
         if (latestOrder.advancePaid) {
@@ -59535,9 +59533,7 @@ ${topChunk.content.split("\n").slice(0, 4).join("\n")}` : `Here's what I know:
 
 ${ragContext.split("\n\n")[0]}`;
     return {
-      reply: `${hint}${memoryContext ? `
-
-${memoryContext}` : ""}
+      reply: `${hint}
 
 Would you like to order or need more details?`,
       action: null,
@@ -59546,14 +59542,18 @@ Would you like to order or need more details?`,
     };
   }
   return {
-    reply: `Thanks for your message!${memoryContext ? ` ${memoryContext}` : ""} I'll let ${baker.businessName} know you reached out. Is there anything specific you're looking for?`,
+    reply: `Thanks for your message! I'll let ${baker.businessName} know you reached out. Is there anything specific you're looking for?`,
     action: null,
     cartItemId: null,
     escalated: false
   };
 }
 async function processChatMessage(input) {
-  const { bakerId, message } = input;
+  const { bakerId } = input;
+  const message = input.message.trim().slice(0, 2e3);
+  if (!message) {
+    throw new Error("Message is required");
+  }
   let buyerId = input.buyerId ?? null;
   if (!buyerId && input.buyerWhatsapp) {
     const whatsappClean = input.buyerWhatsapp.trim();
@@ -59574,7 +59574,7 @@ async function processChatMessage(input) {
       buyerId = newCustomer.id;
     }
   }
-  const sid = input.sessionId ?? (input.channel === "whatsapp" && input.buyerWhatsapp ? `wa-${bakerId}-${input.buyerWhatsapp}` : `session-${bakerId}-${buyerId ?? 0}-${Date.now()}`);
+  const sid = input.sessionId?.trim().slice(0, 120) ?? (input.channel === "whatsapp" && input.buyerWhatsapp ? `wa-${bakerId}-${input.buyerWhatsapp}` : `session-${bakerId}-${buyerId ?? 0}-${Date.now()}`);
   let memory = null;
   if (buyerId) {
     const [existing] = await db.select().from(conversationMemoryTable).where(
@@ -59606,7 +59606,7 @@ async function processChatMessage(input) {
       memory?.preferences ?? {}
     );
     const newCount = (memory?.messageCount ?? 0) + 2;
-    const newSummary = `Last message: "${message.slice(0, 100)}". Agent replied about ${agentReply.escalated ? "escalation" : "query"}.`;
+    const newSummary = agentReply.escalated ? "Customer needs a baker follow-up." : "Recent menu conversation saved.";
     if (memory) {
       await db.update(conversationMemoryTable).set({
         preferences: updatedPrefs,
@@ -59665,42 +59665,32 @@ async function processChatMessage(input) {
   return { ...agentReply, sessionId: sid };
 }
 
-// ../api-server/src/middlewares/rate-limiter.ts
-var ipRequestCounts = /* @__PURE__ */ new Map();
-function rateLimit(limit, windowMs) {
-  return (req, res, next) => {
-    const ip = req.ip || req.socket.remoteAddress || "unknown";
-    const now = Date.now();
-    let record2 = ipRequestCounts.get(ip);
-    if (!record2 || now > record2.resetTime) {
-      record2 = { count: 0, resetTime: now + windowMs };
-    }
-    record2.count++;
-    ipRequestCounts.set(ip, record2);
-    if (record2.count > limit) {
-      res.status(429).json({ error: "Too many requests. Please try again later." });
-      return;
-    }
-    next();
-  };
-}
-
-// ../api-server/src/routes/chat.ts
-var router11 = (0, import_express11.Router)();
-router11.post("/chat", rateLimit(60, 60 * 1e3), async (req, res) => {
+// src/routes/chat.ts
+var router10 = (0, import_express10.Router)();
+router10.post("/chat", rateLimit(60, 60 * 1e3), async (req, res) => {
   const parsed = SendChatMessageBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
-  const { bakerId, buyerId, message, sessionId } = parsed.data;
-  const result = await processChatMessage({
-    bakerId,
-    buyerId: buyerId ?? null,
-    message,
-    sessionId,
-    channel: "web"
-  });
+  const { bakerId, message, sessionId } = parsed.data;
+  let result;
+  try {
+    result = await processChatMessage({
+      bakerId,
+      // A browser visitor has no verified buyer identity. Do not allow a
+      // caller to select another customer's saved profile or long-term memory.
+      // Verified WhatsApp webhooks resolve the buyer server-side instead.
+      buyerId: null,
+      message,
+      sessionId,
+      channel: "web"
+    });
+  } catch (error40) {
+    console.error("Chat processing failed", error40);
+    res.status(500).json({ error: "The bakery assistant is temporarily unavailable. Please try again." });
+    return;
+  }
   res.json({
     reply: result.reply,
     sessionId: result.sessionId,
@@ -59709,7 +59699,7 @@ router11.post("/chat", rateLimit(60, 60 * 1e3), async (req, res) => {
     escalated: result.escalated
   });
 });
-router11.get("/chat/:bakerId/history/:buyerId", async (req, res) => {
+router10.get("/chat/:bakerId/history/:buyerId", requireBakerAuth, requireBakerOwnership, async (req, res) => {
   const params = GetChatHistoryParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
@@ -59723,8 +59713,8 @@ router11.get("/chat/:bakerId/history/:buyerId", async (req, res) => {
   ).orderBy(chatMessagesTable.createdAt);
   res.json(messages);
 });
-router11.get("/chat/:bakerId/conversations", async (req, res) => {
-  const bakerId = parseInt(req.params.bakerId);
+router10.get("/chat/:bakerId/conversations", requireBakerAuth, requireBakerOwnership, async (req, res) => {
+  const bakerId = parseInt(String(req.params.bakerId), 10);
   if (isNaN(bakerId)) {
     res.status(400).json({ error: "Invalid bakerId" });
     return;
@@ -59766,13 +59756,13 @@ router11.get("/chat/:bakerId/conversations", async (req, res) => {
   }
   res.json(conversations);
 });
-var chat_default = router11;
+var chat_default = router10;
 
-// ../api-server/src/routes/knowledge.ts
-var import_express12 = __toESM(require_express2(), 1);
-var router12 = (0, import_express12.Router)();
-router12.post("/bakers/:bakerId/knowledge/reindex", async (req, res) => {
-  const bakerId = parseInt(req.params.bakerId, 10);
+// src/routes/knowledge.ts
+var import_express11 = __toESM(require_express2(), 1);
+var router11 = (0, import_express11.Router)();
+router11.post("/bakers/:bakerId/knowledge/reindex", requireBakerAuth, requireBakerOwnership, async (req, res) => {
+  const bakerId = parseInt(String(req.params.bakerId), 10);
   if (Number.isNaN(bakerId)) {
     res.status(400).json({ error: "Invalid bakerId" });
     return;
@@ -59795,8 +59785,8 @@ router12.post("/bakers/:bakerId/knowledge/reindex", async (req, res) => {
     res.status(500).json({ error: "Failed to reindex knowledge" });
   }
 });
-router12.post("/bakers/:bakerId/knowledge/query", async (req, res) => {
-  const bakerId = parseInt(req.params.bakerId, 10);
+router11.post("/bakers/:bakerId/knowledge/query", requireBakerAuth, requireBakerOwnership, async (req, res) => {
+  const bakerId = parseInt(String(req.params.bakerId), 10);
   const query = typeof req.body?.query === "string" ? req.body.query.trim() : "";
   if (Number.isNaN(bakerId) || !query) {
     res.status(400).json({ error: "bakerId and query are required" });
@@ -59805,11 +59795,11 @@ router12.post("/bakers/:bakerId/knowledge/query", async (req, res) => {
   const result = await runRagQuery(bakerId, query);
   res.json(result);
 });
-var knowledge_default = router12;
+var knowledge_default = router11;
 
-// ../api-server/src/routes/workspace.ts
-var import_express13 = __toESM(require_express2(), 1);
-var router13 = (0, import_express13.Router)();
+// src/routes/workspace.ts
+var import_express12 = __toESM(require_express2(), 1);
+var router12 = (0, import_express12.Router)();
 async function getMonthlyProgress(bakerId, metric) {
   const monthStart = /* @__PURE__ */ new Date();
   monthStart.setDate(1);
@@ -59822,8 +59812,8 @@ async function getMonthlyProgress(bakerId, metric) {
   }
   return orders.length;
 }
-router13.get("/bakers/:bakerId/workspace", async (req, res) => {
-  const bakerId = parseInt(req.params.bakerId, 10);
+router12.get("/bakers/:bakerId/workspace", requireBakerAuth, requireBakerOwnership, async (req, res) => {
+  const bakerId = parseInt(String(req.params.bakerId), 10);
   if (Number.isNaN(bakerId)) {
     res.status(400).json({ error: "Invalid bakerId" });
     return;
@@ -59855,8 +59845,8 @@ router13.get("/bakers/:bakerId/workspace", async (req, res) => {
     }))
   });
 });
-router13.post("/bakers/:bakerId/goals", async (req, res) => {
-  const bakerId = parseInt(req.params.bakerId, 10);
+router12.post("/bakers/:bakerId/goals", requireBakerAuth, requireBakerOwnership, async (req, res) => {
+  const bakerId = parseInt(String(req.params.bakerId), 10);
   const { label, targetValue, metric = "orders", period = "monthly" } = req.body;
   if (Number.isNaN(bakerId) || !label?.trim() || !targetValue || targetValue < 1) {
     res.status(400).json({ error: "label and targetValue are required" });
@@ -59871,8 +59861,8 @@ router13.post("/bakers/:bakerId/goals", async (req, res) => {
   }).returning();
   res.status(201).json(goal);
 });
-router13.post("/bakers/:bakerId/notes", async (req, res) => {
-  const bakerId = parseInt(req.params.bakerId, 10);
+router12.post("/bakers/:bakerId/notes", requireBakerAuth, requireBakerOwnership, async (req, res) => {
+  const bakerId = parseInt(String(req.params.bakerId), 10);
   const { content, pinned = false } = req.body;
   if (Number.isNaN(bakerId) || !content?.trim()) {
     res.status(400).json({ error: "content is required" });
@@ -59885,8 +59875,8 @@ router13.post("/bakers/:bakerId/notes", async (req, res) => {
   }).returning();
   res.status(201).json(note);
 });
-router13.post("/bakers/:bakerId/reminders", async (req, res) => {
-  const bakerId = parseInt(req.params.bakerId, 10);
+router12.post("/bakers/:bakerId/reminders", requireBakerAuth, requireBakerOwnership, async (req, res) => {
+  const bakerId = parseInt(String(req.params.bakerId), 10);
   const { title, dueAt } = req.body;
   if (Number.isNaN(bakerId) || !title?.trim() || !dueAt) {
     res.status(400).json({ error: "title and dueAt are required" });
@@ -59904,26 +59894,26 @@ router13.post("/bakers/:bakerId/reminders", async (req, res) => {
   }).returning();
   res.json({ ...reminder, dueAt: reminder.dueAt.toISOString() });
 });
-router13.patch("/bakers/:bakerId/reminders/:reminderId", async (req, res) => {
-  const reminderId = parseInt(req.params.reminderId, 10);
+router12.patch("/bakers/:bakerId/reminders/:reminderId", requireBakerAuth, requireBakerOwnership, async (req, res) => {
+  const reminderId = parseInt(String(req.params.reminderId), 10);
   const { done } = req.body;
   if (Number.isNaN(reminderId) || typeof done !== "boolean") {
     res.status(400).json({ error: "done boolean required" });
     return;
   }
-  const [reminder] = await db.update(bakerRemindersTable).set({ done }).where(eq(bakerRemindersTable.id, reminderId)).returning();
+  const [reminder] = await db.update(bakerRemindersTable).set({ done }).where(and(eq(bakerRemindersTable.id, reminderId), eq(bakerRemindersTable.bakerId, Number(req.params.bakerId)))).returning();
   if (!reminder) {
     res.status(404).json({ error: "Reminder not found" });
     return;
   }
   res.json({ ...reminder, dueAt: reminder.dueAt.toISOString() });
 });
-var workspace_default = router13;
+var workspace_default = router12;
 
-// ../api-server/src/routes/whatsapp.ts
-var import_express14 = __toESM(require_express2(), 1);
+// src/routes/whatsapp.ts
+var import_express13 = __toESM(require_express2(), 1);
 
-// ../api-server/src/lib/whatsapp.ts
+// src/lib/whatsapp.ts
 var GRAPH_API = "https://graph.facebook.com/v21.0";
 function normalizePhone(phone) {
   return phone.replace(/\D/g, "");
@@ -59986,12 +59976,12 @@ function parseWhatsAppWebhook(body) {
   return messages;
 }
 
-// ../api-server/src/routes/whatsapp.ts
-var router14 = (0, import_express14.Router)();
+// src/routes/whatsapp.ts
+var router13 = (0, import_express13.Router)();
 function resolveVerifyToken(bakerToken) {
   return bakerToken ?? process.env.WHATSAPP_VERIFY_TOKEN;
 }
-router14.get("/webhooks/whatsapp", async (req, res) => {
+router13.get("/webhooks/whatsapp", async (req, res) => {
   const mode = req.query["hub.mode"];
   const token = req.query["hub.verify_token"];
   const challenge = req.query["hub.challenge"];
@@ -60025,7 +60015,7 @@ async function findBakerForInbound(phoneNumberId, displayPhoneNumber) {
   const fallback = bakers.find((b) => b.whatsappAgentEnabled && b.agentActive);
   return fallback ?? null;
 }
-router14.post("/webhooks/whatsapp", rateLimit(100, 60 * 1e3), async (req, res) => {
+router13.post("/webhooks/whatsapp", rateLimit(100, 60 * 1e3), async (req, res) => {
   res.sendStatus(200);
   try {
     const inbound = parseWhatsAppWebhook(req.body);
@@ -60053,7 +60043,7 @@ router14.post("/webhooks/whatsapp", rateLimit(100, 60 * 1e3), async (req, res) =
     logger.error({ err }, "WhatsApp webhook processing failed");
   }
 });
-router14.get("/webhooks/whatsapp/setup", (_req, res) => {
+router13.get("/webhooks/whatsapp/setup", (_req, res) => {
   const base = process.env.PUBLIC_API_URL ?? (process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : `http://localhost:${process.env.PORT ?? 8080}`);
   res.json({
     webhookUrl: `${base}/api/webhooks/whatsapp`,
@@ -60070,26 +60060,26 @@ router14.get("/webhooks/whatsapp/setup", (_req, res) => {
     ]
   });
 });
-var whatsapp_default = router14;
+var whatsapp_default = router13;
 
-// ../api-server/src/routes/index.ts
-var router15 = (0, import_express15.Router)();
-router15.use(health_default);
-router15.use(bakers_default);
-router15.use(notifications_default);
-router15.use(products_default);
-router15.use(orders_default);
-router15.use(cart_default);
-router15.use(reviews_default);
-router15.use(customers_default);
-router15.use(analytics_default);
-router15.use(chat_default);
-router15.use(knowledge_default);
-router15.use(workspace_default);
-router15.use(whatsapp_default);
-var routes_default = router15;
+// src/routes/index.ts
+var router14 = (0, import_express14.Router)();
+router14.use(health_default);
+router14.use(bakers_default);
+router14.use(notifications_default);
+router14.use(products_default);
+router14.use(orders_default);
+router14.use(cart_default);
+router14.use(reviews_default);
+router14.use(customers_default);
+router14.use(analytics_default);
+router14.use(chat_default);
+router14.use(knowledge_default);
+router14.use(workspace_default);
+router14.use(whatsapp_default);
+var routes_default = router14;
 
-// ../api-server/src/bootstrap-schema.sql
+// src/bootstrap-schema.sql
 var bootstrap_schema_default = `CREATE SCHEMA IF NOT EXISTS sweet_tooth;\r
 \r
 CREATE TABLE IF NOT EXISTS sweet_tooth.bakers (\r
@@ -60120,7 +60110,7 @@ CREATE TABLE IF NOT EXISTS sweet_tooth.bakers (\r
   instagram_agent_enabled BOOLEAN NOT NULL DEFAULT false,\r
   meta_webhook_token TEXT,\r
   instagram_page_id TEXT,\r
-  marketplace_visible BOOLEAN NOT NULL DEFAULT false,\r
+  marketplace_visible BOOLEAN NOT NULL DEFAULT false,
   subscription_plan TEXT NOT NULL DEFAULT 'free',\r
   rating_avg REAL NOT NULL DEFAULT 0,\r
   total_orders INTEGER NOT NULL DEFAULT 0,\r
@@ -60343,8 +60333,51 @@ ALTER TABLE sweet_tooth.orders ADD COLUMN IF NOT EXISTS cancelled_at TIMESTAMPTZ
 ALTER TABLE sweet_tooth.reviews ADD COLUMN IF NOT EXISTS order_id INTEGER;
 ALTER TABLE sweet_tooth.reviews ADD COLUMN IF NOT EXISTS rating_product INTEGER;\r
 ALTER TABLE sweet_tooth.reviews ADD COLUMN IF NOT EXISTS rating_packaging INTEGER;\r
-ALTER TABLE sweet_tooth.reviews ADD COLUMN IF NOT EXISTS review_text TEXT;\r
+ALTER TABLE sweet_tooth.reviews ADD COLUMN IF NOT EXISTS review_text TEXT;
 ALTER TABLE sweet_tooth.reviews ADD COLUMN IF NOT EXISTS product_name TEXT;
+
+-- Upgrade older linked databases safely. Every column used by the active API
+-- is added idempotently, so a partial/legacy Neon schema cannot break sign-up,
+-- menus, orders, the inbox, or assistant memory at runtime.
+ALTER TABLE sweet_tooth.products ADD COLUMN IF NOT EXISTS sizes JSONB NOT NULL DEFAULT '[]';
+ALTER TABLE sweet_tooth.products ADD COLUMN IF NOT EXISTS variants TEXT[] NOT NULL DEFAULT '{}';
+ALTER TABLE sweet_tooth.products ADD COLUMN IF NOT EXISTS is_eggless_available BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE sweet_tooth.products ADD COLUMN IF NOT EXISTS is_available BOOLEAN NOT NULL DEFAULT true;
+ALTER TABLE sweet_tooth.products ADD COLUMN IF NOT EXISTS lead_time_days INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE sweet_tooth.products ADD COLUMN IF NOT EXISTS occasion_tags TEXT[] NOT NULL DEFAULT '{}';
+ALTER TABLE sweet_tooth.products ADD COLUMN IF NOT EXISTS dietary_tags TEXT[] NOT NULL DEFAULT '{}';
+ALTER TABLE sweet_tooth.products ADD COLUMN IF NOT EXISTS photo_url TEXT;
+ALTER TABLE sweet_tooth.products ADD COLUMN IF NOT EXISTS total_orders INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE sweet_tooth.products ADD COLUMN IF NOT EXISTS is_best_seller BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE sweet_tooth.products ADD COLUMN IF NOT EXISTS is_top_rated BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE sweet_tooth.products ADD COLUMN IF NOT EXISTS display_order INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE sweet_tooth.products ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+ALTER TABLE sweet_tooth.orders ADD COLUMN IF NOT EXISTS buyer_id INTEGER;
+ALTER TABLE sweet_tooth.orders ADD COLUMN IF NOT EXISTS buyer_area TEXT;
+ALTER TABLE sweet_tooth.orders ADD COLUMN IF NOT EXISTS payment_amount_received INTEGER;
+ALTER TABLE sweet_tooth.orders ADD COLUMN IF NOT EXISTS source TEXT NOT NULL DEFAULT 'marketplace';
+ALTER TABLE sweet_tooth.orders ADD COLUMN IF NOT EXISTS occasion TEXT;
+ALTER TABLE sweet_tooth.orders ADD COLUMN IF NOT EXISTS special_instructions TEXT;
+ALTER TABLE sweet_tooth.orders ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+ALTER TABLE sweet_tooth.customers ADD COLUMN IF NOT EXISTS city TEXT;
+ALTER TABLE sweet_tooth.customers ADD COLUMN IF NOT EXISTS preferred_area TEXT;
+ALTER TABLE sweet_tooth.customers ADD COLUMN IF NOT EXISTS total_orders INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE sweet_tooth.customers ADD COLUMN IF NOT EXISTS total_spent_pkr INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE sweet_tooth.customers ADD COLUMN IF NOT EXISTS is_regular BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE sweet_tooth.customers ADD COLUMN IF NOT EXISTS last_order_at TIMESTAMPTZ;
+ALTER TABLE sweet_tooth.customers ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+ALTER TABLE sweet_tooth.chat_messages ADD COLUMN IF NOT EXISTS buyer_id INTEGER;
+ALTER TABLE sweet_tooth.chat_messages ADD COLUMN IF NOT EXISTS session_id TEXT NOT NULL DEFAULT 'legacy';
+ALTER TABLE sweet_tooth.conversation_memory ADD COLUMN IF NOT EXISTS buyer_name TEXT;
+ALTER TABLE sweet_tooth.conversation_memory ADD COLUMN IF NOT EXISTS preferences JSONB DEFAULT '{}';
+ALTER TABLE sweet_tooth.conversation_memory ADD COLUMN IF NOT EXISTS message_count INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE sweet_tooth.conversation_memory ADD COLUMN IF NOT EXISTS summary TEXT;
+ALTER TABLE sweet_tooth.conversation_memory ADD COLUMN IF NOT EXISTS last_active_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+CREATE INDEX IF NOT EXISTS products_baker_idx ON sweet_tooth.products (baker_id);
+CREATE INDEX IF NOT EXISTS orders_baker_idx ON sweet_tooth.orders (baker_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS customers_baker_idx ON sweet_tooth.customers (baker_id, whatsapp_number);
+CREATE INDEX IF NOT EXISTS chat_messages_baker_session_idx ON sweet_tooth.chat_messages (baker_id, session_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS conversation_memory_baker_idx ON sweet_tooth.conversation_memory (baker_id, last_active_at DESC);
 
 -- A new linked Neon database starts empty. These idempotent demo records keep
 -- the marketplace usable immediately while real bakers add their own catalogues.
@@ -60427,7 +60460,7 @@ WHERE b.slug = 'sana-sweet-studio'
 ON CONFLICT (baker_id, buyer_id) DO UPDATE SET preferences = EXCLUDED.preferences, message_count = EXCLUDED.message_count, summary = EXCLUDED.summary, last_active_at = NOW();
 `;
 
-// ../api-server/src/bootstrap-db.ts
+// src/bootstrap-db.ts
 var bootstrapPromise;
 function ensureDatabase() {
   if (!bootstrapPromise) {
@@ -60436,19 +60469,38 @@ function ensureDatabase() {
   return bootstrapPromise;
 }
 
-// ../api-server/src/app.ts
+// src/app.ts
 await ensureDatabase();
-var app = (0, import_express16.default)();
-app.use((0, import_cors.default)());
-app.use(import_express16.default.json());
-app.use(import_express16.default.urlencoded({ extended: true }));
+var app = (0, import_express15.default)();
+var allowedOrigins = new Set([
+  process.env.FRONTEND_URL,
+  "https://cohort-1-squad-indus-sweet-tooth.vercel.app"
+].filter((origin) => Boolean(origin)));
+function isAllowedBrowserOrigin(origin) {
+  if (allowedOrigins.has(origin)) return true;
+  try {
+    const host = new URL(origin).hostname;
+    return /^cohort-1-squad-indus-sweet-tooth-[a-z0-9-]+\.vercel\.app$/i.test(host);
+  } catch {
+    return false;
+  }
+}
+app.use((0, import_cors.default)({
+  origin(origin, callback) {
+    if (!origin || isAllowedBrowserOrigin(origin)) return callback(null, true);
+    return callback(null, false);
+  },
+  methods: ["GET", "POST", "PATCH", "PUT", "OPTIONS"]
+}));
+app.use(import_express15.default.json({ limit: "256kb" }));
+app.use(import_express15.default.urlencoded({ extended: true, limit: "64kb" }));
 app.get("/", (_req, res) => {
   res.json({ status: "ok", message: "Indus API is running", health: "/api/healthz" });
 });
 app.use("/api", routes_default);
 var app_default = app;
 
-// ../api-server/src/index.ts
+// src/index.ts
 if (!process.env.VERCEL) {
   const rawPort = process.env["PORT"] || "8080";
   const port = Number(rawPort);

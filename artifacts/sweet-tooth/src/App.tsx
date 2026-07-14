@@ -3,13 +3,14 @@ import type { ComponentType } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { setBaseUrl } from "@workspace/api-client-react";
+import { setAuthTokenGetter, setBaseUrl } from "@workspace/api-client-react";
 
 // Read API URL from environment variable, falling back to same-origin proxy
 const apiUrl = import.meta.env.VITE_API_URL || "https://cohort-1-squad-indus-api-server-z3b.vercel.app";
 if (apiUrl) {
   setBaseUrl(apiUrl);
 }
+setAuthTokenGetter(() => getBakerSession()?.token ?? null);
 
 // Public pages: customers reach a baker's menu through a direct shared link.
 import Home from "@/pages/buyer/home";

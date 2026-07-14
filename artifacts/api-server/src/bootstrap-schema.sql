@@ -254,6 +254,49 @@ ALTER TABLE sweet_tooth.reviews ADD COLUMN IF NOT EXISTS rating_packaging INTEGE
 ALTER TABLE sweet_tooth.reviews ADD COLUMN IF NOT EXISTS review_text TEXT;
 ALTER TABLE sweet_tooth.reviews ADD COLUMN IF NOT EXISTS product_name TEXT;
 
+-- Upgrade older linked databases safely. Every column used by the active API
+-- is added idempotently, so a partial/legacy Neon schema cannot break sign-up,
+-- menus, orders, the inbox, or assistant memory at runtime.
+ALTER TABLE sweet_tooth.products ADD COLUMN IF NOT EXISTS sizes JSONB NOT NULL DEFAULT '[]';
+ALTER TABLE sweet_tooth.products ADD COLUMN IF NOT EXISTS variants TEXT[] NOT NULL DEFAULT '{}';
+ALTER TABLE sweet_tooth.products ADD COLUMN IF NOT EXISTS is_eggless_available BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE sweet_tooth.products ADD COLUMN IF NOT EXISTS is_available BOOLEAN NOT NULL DEFAULT true;
+ALTER TABLE sweet_tooth.products ADD COLUMN IF NOT EXISTS lead_time_days INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE sweet_tooth.products ADD COLUMN IF NOT EXISTS occasion_tags TEXT[] NOT NULL DEFAULT '{}';
+ALTER TABLE sweet_tooth.products ADD COLUMN IF NOT EXISTS dietary_tags TEXT[] NOT NULL DEFAULT '{}';
+ALTER TABLE sweet_tooth.products ADD COLUMN IF NOT EXISTS photo_url TEXT;
+ALTER TABLE sweet_tooth.products ADD COLUMN IF NOT EXISTS total_orders INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE sweet_tooth.products ADD COLUMN IF NOT EXISTS is_best_seller BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE sweet_tooth.products ADD COLUMN IF NOT EXISTS is_top_rated BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE sweet_tooth.products ADD COLUMN IF NOT EXISTS display_order INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE sweet_tooth.products ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+ALTER TABLE sweet_tooth.orders ADD COLUMN IF NOT EXISTS buyer_id INTEGER;
+ALTER TABLE sweet_tooth.orders ADD COLUMN IF NOT EXISTS buyer_area TEXT;
+ALTER TABLE sweet_tooth.orders ADD COLUMN IF NOT EXISTS payment_amount_received INTEGER;
+ALTER TABLE sweet_tooth.orders ADD COLUMN IF NOT EXISTS source TEXT NOT NULL DEFAULT 'marketplace';
+ALTER TABLE sweet_tooth.orders ADD COLUMN IF NOT EXISTS occasion TEXT;
+ALTER TABLE sweet_tooth.orders ADD COLUMN IF NOT EXISTS special_instructions TEXT;
+ALTER TABLE sweet_tooth.orders ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+ALTER TABLE sweet_tooth.customers ADD COLUMN IF NOT EXISTS city TEXT;
+ALTER TABLE sweet_tooth.customers ADD COLUMN IF NOT EXISTS preferred_area TEXT;
+ALTER TABLE sweet_tooth.customers ADD COLUMN IF NOT EXISTS total_orders INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE sweet_tooth.customers ADD COLUMN IF NOT EXISTS total_spent_pkr INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE sweet_tooth.customers ADD COLUMN IF NOT EXISTS is_regular BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE sweet_tooth.customers ADD COLUMN IF NOT EXISTS last_order_at TIMESTAMPTZ;
+ALTER TABLE sweet_tooth.customers ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+ALTER TABLE sweet_tooth.chat_messages ADD COLUMN IF NOT EXISTS buyer_id INTEGER;
+ALTER TABLE sweet_tooth.chat_messages ADD COLUMN IF NOT EXISTS session_id TEXT NOT NULL DEFAULT 'legacy';
+ALTER TABLE sweet_tooth.conversation_memory ADD COLUMN IF NOT EXISTS buyer_name TEXT;
+ALTER TABLE sweet_tooth.conversation_memory ADD COLUMN IF NOT EXISTS preferences JSONB DEFAULT '{}';
+ALTER TABLE sweet_tooth.conversation_memory ADD COLUMN IF NOT EXISTS message_count INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE sweet_tooth.conversation_memory ADD COLUMN IF NOT EXISTS summary TEXT;
+ALTER TABLE sweet_tooth.conversation_memory ADD COLUMN IF NOT EXISTS last_active_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+CREATE INDEX IF NOT EXISTS products_baker_idx ON sweet_tooth.products (baker_id);
+CREATE INDEX IF NOT EXISTS orders_baker_idx ON sweet_tooth.orders (baker_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS customers_baker_idx ON sweet_tooth.customers (baker_id, whatsapp_number);
+CREATE INDEX IF NOT EXISTS chat_messages_baker_session_idx ON sweet_tooth.chat_messages (baker_id, session_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS conversation_memory_baker_idx ON sweet_tooth.conversation_memory (baker_id, last_active_at DESC);
+
 -- A new linked Neon database starts empty. These idempotent demo records keep
 -- the marketplace usable immediately while real bakers add their own catalogues.
 INSERT INTO sweet_tooth.bakers (

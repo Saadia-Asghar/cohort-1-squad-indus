@@ -24,4 +24,5 @@ export interface BakerUpdate {
   advanceThresholdPkr?: number;
   advancePercentage?: number;
   paymentDetails?: string;
+  socialLinks?: { instagram?: string; facebook?: string };
 }

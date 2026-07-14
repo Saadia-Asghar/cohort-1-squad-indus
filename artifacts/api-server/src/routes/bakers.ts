@@ -12,8 +12,9 @@ import {
 } from "@workspace/api-zod";
 import { z } from "zod";
 import { hashPassword, verifyPassword, signToken } from "../lib/auth.js";
-import { requireBakerAuth } from "../middlewares/auth.js";
+import { requireBakerAuth, requireBakerOwnership } from "../middlewares/auth.js";
 import { rebuildBakerKnowledgeIndex } from "../lib/rag/pipeline.js";
+import { rateLimit } from "../middlewares/rate-limiter.js";
 
 const router = Router();
 
@@ -86,7 +87,7 @@ router.get("/bakers", async (req, res): Promise<void> => {
 });
 
 // POST /bakers (Register / Signup)
-router.post("/bakers", async (req, res): Promise<void> => {
+router.post("/bakers", rateLimit(10, 15 * 60 * 1000), async (req, res): Promise<void> => {
   // We expect email and password in request body
   const schema = z.object({
     businessName: z.string(),
@@ -143,7 +144,7 @@ router.post("/bakers", async (req, res): Promise<void> => {
 });
 
 // POST /bakers/login
-router.post("/bakers/login", async (req, res): Promise<void> => {
+router.post("/bakers/login", rateLimit(10, 15 * 60 * 1000), async (req, res): Promise<void> => {
   const schema = z.object({
     identifier: z.string().min(3),
     password: z.string(),
@@ -269,7 +270,7 @@ router.get("/bakers/:bakerId/reviews", async (req, res): Promise<void> => {
 });
 
 // GET /bakers/:bakerId/stats
-router.get("/bakers/:bakerId/stats", async (req, res): Promise<void> => {
+router.get("/bakers/:bakerId/stats", requireBakerAuth, requireBakerOwnership, async (req, res): Promise<void> => {
   const params = GetBakerStatsParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
@@ -328,8 +329,8 @@ function maskWebhookToken(token: string | null): { metaWebhookTokenSet: boolean;
 }
 
 // GET /bakers/:bakerId/agent-config
-router.get("/bakers/:bakerId/agent-config", async (req, res): Promise<void> => {
-  const bakerId = parseInt(req.params.bakerId);
+router.get("/bakers/:bakerId/agent-config", requireBakerAuth, requireBakerOwnership, async (req, res): Promise<void> => {
+  const bakerId = parseInt(String(req.params.bakerId), 10);
   if (isNaN(bakerId)) { res.status(400).json({ error: "Invalid bakerId" }); return; }
   const [baker] = await db.select().from(bakersTable).where(eq(bakersTable.id, bakerId));
   if (!baker) { res.status(404).json({ error: "Baker not found" }); return; }
@@ -356,8 +357,8 @@ router.get("/bakers/:bakerId/agent-config", async (req, res): Promise<void> => {
 });
 
 // PUT /bakers/:bakerId/agent-config
-router.put("/bakers/:bakerId/agent-config", async (req, res): Promise<void> => {
-  const bakerId = parseInt(req.params.bakerId);
+router.put("/bakers/:bakerId/agent-config", requireBakerAuth, requireBakerOwnership, async (req, res): Promise<void> => {
+  const bakerId = parseInt(String(req.params.bakerId), 10);
   if (isNaN(bakerId)) { res.status(400).json({ error: "Invalid bakerId" }); return; }
   const body = req.body as {
     agentActive?: boolean;

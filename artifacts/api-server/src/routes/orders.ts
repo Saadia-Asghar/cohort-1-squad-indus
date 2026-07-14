@@ -11,6 +11,7 @@ import {
   ListOrdersQueryParams,
 } from "@workspace/api-zod";
 import { triggerPaymentOCRVerification } from "../lib/ocr.js";
+import { AuthenticatedRequest, requireBakerAuth } from "../middlewares/auth.js";
 
 const router = Router();
 
@@ -84,10 +85,19 @@ router.post("/orders", async (req, res): Promise<void> => {
 });
 
 // POST /orders/:orderId/verify-payment
-router.post("/orders/:orderId/verify-payment", async (req, res): Promise<void> => {
-  const orderId = parseInt(req.params.orderId, 10);
+router.post("/orders/:orderId/verify-payment", requireBakerAuth, async (req, res): Promise<void> => {
+  const orderId = parseInt(String(req.params.orderId), 10);
   if (isNaN(orderId)) {
     res.status(400).json({ error: "Invalid order ID" });
+    return;
+  }
+  const [order] = await db.select({ bakerId: ordersTable.bakerId }).from(ordersTable).where(eq(ordersTable.id, orderId));
+  if (!order) {
+    res.status(404).json({ error: "Order not found" });
+    return;
+  }
+  if (order.bakerId !== (req as AuthenticatedRequest).bakerId) {
+    res.status(403).json({ error: "You can only verify your own orders." });
     return;
   }
   const result = await triggerPaymentOCRVerification(orderId);
@@ -99,7 +109,7 @@ router.post("/orders/:orderId/verify-payment", async (req, res): Promise<void> =
 });
 
 // GET /orders/:orderId
-router.get("/orders/:orderId", async (req, res): Promise<void> => {
+router.get("/orders/:orderId", requireBakerAuth, async (req, res): Promise<void> => {
   const params = GetOrderParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
@@ -110,11 +120,15 @@ router.get("/orders/:orderId", async (req, res): Promise<void> => {
     res.status(404).json({ error: "Order not found" });
     return;
   }
+  if (order.bakerId !== (req as AuthenticatedRequest).bakerId) {
+    res.status(403).json({ error: "You can only access your own orders." });
+    return;
+  }
   res.json(formatOrder(order));
 });
 
 // PATCH /orders/:orderId/status
-router.patch("/orders/:orderId/status", async (req, res): Promise<void> => {
+router.patch("/orders/:orderId/status", requireBakerAuth, async (req, res): Promise<void> => {
   const params = UpdateOrderStatusParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
@@ -133,7 +147,7 @@ router.patch("/orders/:orderId/status", async (req, res): Promise<void> => {
       cancelledBy: isCancelled ? parsed.data.cancelledBy?.trim() || "baker" : null,
       cancelledAt: isCancelled ? new Date() : null,
     })
-    .where(eq(ordersTable.id, params.data.orderId))
+    .where(and(eq(ordersTable.id, params.data.orderId), eq(ordersTable.bakerId, (req as AuthenticatedRequest).bakerId!)))
     .returning();
   if (!order) {
     res.status(404).json({ error: "Order not found" });
@@ -143,7 +157,7 @@ router.patch("/orders/:orderId/status", async (req, res): Promise<void> => {
 });
 
 // PATCH /orders/:orderId/payment
-router.patch("/orders/:orderId/payment", async (req, res): Promise<void> => {
+router.patch("/orders/:orderId/payment", requireBakerAuth, async (req, res): Promise<void> => {
   const params = MarkOrderPaidParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
@@ -156,7 +170,7 @@ router.patch("/orders/:orderId/payment", async (req, res): Promise<void> => {
   }
   const [order] = await db.update(ordersTable)
     .set({ paymentStatus: "paid", paymentAmountReceived: parsed.data.amountReceived })
-    .where(eq(ordersTable.id, params.data.orderId))
+    .where(and(eq(ordersTable.id, params.data.orderId), eq(ordersTable.bakerId, (req as AuthenticatedRequest).bakerId!)))
     .returning();
   if (!order) {
     res.status(404).json({ error: "Order not found" });

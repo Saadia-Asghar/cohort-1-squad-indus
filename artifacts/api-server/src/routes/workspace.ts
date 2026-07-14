@@ -7,6 +7,7 @@ import {
   bakerRemindersTable,
   ordersTable,
 } from "@workspace/db";
+import { requireBakerAuth, requireBakerOwnership } from "../middlewares/auth.js";
 
 const router = Router();
 
@@ -24,8 +25,8 @@ async function getMonthlyProgress(bakerId: number, metric: string) {
 }
 
 // GET /bakers/:bakerId/workspace
-router.get("/bakers/:bakerId/workspace", async (req, res): Promise<void> => {
-  const bakerId = parseInt(req.params.bakerId, 10);
+router.get("/bakers/:bakerId/workspace", requireBakerAuth, requireBakerOwnership, async (req, res): Promise<void> => {
+  const bakerId = parseInt(String(req.params.bakerId), 10);
   if (Number.isNaN(bakerId)) {
     res.status(400).json({ error: "Invalid bakerId" });
     return;
@@ -62,8 +63,8 @@ router.get("/bakers/:bakerId/workspace", async (req, res): Promise<void> => {
 });
 
 // POST /bakers/:bakerId/goals
-router.post("/bakers/:bakerId/goals", async (req, res): Promise<void> => {
-  const bakerId = parseInt(req.params.bakerId, 10);
+router.post("/bakers/:bakerId/goals", requireBakerAuth, requireBakerOwnership, async (req, res): Promise<void> => {
+  const bakerId = parseInt(String(req.params.bakerId), 10);
   const { label, targetValue, metric = "orders", period = "monthly" } = req.body as {
     label?: string;
     targetValue?: number;
@@ -85,8 +86,8 @@ router.post("/bakers/:bakerId/goals", async (req, res): Promise<void> => {
 });
 
 // POST /bakers/:bakerId/notes
-router.post("/bakers/:bakerId/notes", async (req, res): Promise<void> => {
-  const bakerId = parseInt(req.params.bakerId, 10);
+router.post("/bakers/:bakerId/notes", requireBakerAuth, requireBakerOwnership, async (req, res): Promise<void> => {
+  const bakerId = parseInt(String(req.params.bakerId), 10);
   const { content, pinned = false } = req.body as { content?: string; pinned?: boolean };
   if (Number.isNaN(bakerId) || !content?.trim()) {
     res.status(400).json({ error: "content is required" });
@@ -101,8 +102,8 @@ router.post("/bakers/:bakerId/notes", async (req, res): Promise<void> => {
 });
 
 // POST /bakers/:bakerId/reminders
-router.post("/bakers/:bakerId/reminders", async (req, res): Promise<void> => {
-  const bakerId = parseInt(req.params.bakerId, 10);
+router.post("/bakers/:bakerId/reminders", requireBakerAuth, requireBakerOwnership, async (req, res): Promise<void> => {
+  const bakerId = parseInt(String(req.params.bakerId), 10);
   const { title, dueAt } = req.body as { title?: string; dueAt?: string };
   if (Number.isNaN(bakerId) || !title?.trim() || !dueAt) {
     res.status(400).json({ error: "title and dueAt are required" });
@@ -122,8 +123,8 @@ router.post("/bakers/:bakerId/reminders", async (req, res): Promise<void> => {
 });
 
 // PATCH /bakers/:bakerId/reminders/:reminderId
-router.patch("/bakers/:bakerId/reminders/:reminderId", async (req, res): Promise<void> => {
-  const reminderId = parseInt(req.params.reminderId, 10);
+router.patch("/bakers/:bakerId/reminders/:reminderId", requireBakerAuth, requireBakerOwnership, async (req, res): Promise<void> => {
+  const reminderId = parseInt(String(req.params.reminderId), 10);
   const { done } = req.body as { done?: boolean };
   if (Number.isNaN(reminderId) || typeof done !== "boolean") {
     res.status(400).json({ error: "done boolean required" });
@@ -131,7 +132,7 @@ router.patch("/bakers/:bakerId/reminders/:reminderId", async (req, res): Promise
   }
   const [reminder] = await db.update(bakerRemindersTable)
     .set({ done })
-    .where(eq(bakerRemindersTable.id, reminderId))
+    .where(and(eq(bakerRemindersTable.id, reminderId), eq(bakerRemindersTable.bakerId, Number(req.params.bakerId))))
     .returning();
   if (!reminder) {
     res.status(404).json({ error: "Reminder not found" });

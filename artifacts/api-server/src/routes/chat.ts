@@ -4,6 +4,7 @@ import { db, chatMessagesTable, conversationMemoryTable } from "@workspace/db";
 import { SendChatMessageBody, GetChatHistoryParams } from "@workspace/api-zod";
 import { processChatMessage } from "../lib/chat-agent.js";
 import { rateLimit } from "../middlewares/rate-limiter.js";
+import { requireBakerAuth, requireBakerOwnership } from "../middlewares/auth.js";
 
 const router = Router();
 
@@ -14,15 +15,25 @@ router.post("/chat", rateLimit(60, 60 * 1000), async (req, res): Promise<void> =
     res.status(400).json({ error: parsed.error.message });
     return;
   }
-  const { bakerId, buyerId, message, sessionId } = parsed.data;
+  const { bakerId, message, sessionId } = parsed.data;
 
-  const result = await processChatMessage({
-    bakerId,
-    buyerId: buyerId ?? null,
-    message,
-    sessionId,
-    channel: "web",
-  });
+  let result;
+  try {
+    result = await processChatMessage({
+      bakerId,
+      // A browser visitor has no verified buyer identity. Do not allow a
+      // caller to select another customer's saved profile or long-term memory.
+      // Verified WhatsApp webhooks resolve the buyer server-side instead.
+      buyerId: null,
+      message,
+      sessionId,
+      channel: "web",
+    });
+  } catch (error) {
+    console.error("Chat processing failed", error);
+    res.status(500).json({ error: "The bakery assistant is temporarily unavailable. Please try again." });
+    return;
+  }
 
   res.json({
     reply: result.reply,
@@ -34,7 +45,7 @@ router.post("/chat", rateLimit(60, 60 * 1000), async (req, res): Promise<void> =
 });
 
 // GET /chat/:bakerId/history/:buyerId
-router.get("/chat/:bakerId/history/:buyerId", async (req, res): Promise<void> => {
+router.get("/chat/:bakerId/history/:buyerId", requireBakerAuth, requireBakerOwnership, async (req, res): Promise<void> => {
   const params = GetChatHistoryParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
@@ -54,8 +65,8 @@ router.get("/chat/:bakerId/history/:buyerId", async (req, res): Promise<void> =>
 });
 
 // GET /chat/:bakerId/conversations
-router.get("/chat/:bakerId/conversations", async (req, res): Promise<void> => {
-  const bakerId = parseInt(req.params.bakerId);
+router.get("/chat/:bakerId/conversations", requireBakerAuth, requireBakerOwnership, async (req, res): Promise<void> => {
+  const bakerId = parseInt(String(req.params.bakerId), 10);
   if (isNaN(bakerId)) {
     res.status(400).json({ error: "Invalid bakerId" });
     return;

@@ -29,6 +29,11 @@ export const bakersTable = sweetTooth.table("bakers", {
     escalateKeywords?: string[];
     autoReplyEnabled?: boolean;
     customResponses?: Array<{ trigger: string; response: string }>;
+    socialLinks?: { instagram?: string; facebook?: string };
+    menuAccent?: string;
+    availabilityHours?: string;
+    dietaryPolicy?: string;
+    activeOffers?: string;
   }>().default({}),
   whatsappAgentEnabled: boolean("whatsapp_agent_enabled").notNull().default(false),
   instagramAgentEnabled: boolean("instagram_agent_enabled").notNull().default(false),

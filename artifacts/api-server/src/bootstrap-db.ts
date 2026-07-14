@@ -8,5 +8,5 @@ export function ensureDatabase(): Promise<void> {
   if (!bootstrapPromise) {
     bootstrapPromise = pool.query(schemaSql).then(() => undefined);
   }
-  return bootstrapPromise;
+  return bootstrapPromise!;
 }

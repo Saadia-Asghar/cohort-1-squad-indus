@@ -2,11 +2,12 @@ import { Router } from "express";
 import { eq } from "drizzle-orm";
 import { db, ordersTable } from "@workspace/db";
 import { GetBakerAnalyticsParams, GetOrderSourcesParams } from "@workspace/api-zod";
+import { requireBakerAuth, requireBakerOwnership } from "../middlewares/auth.js";
 
 const router = Router();
 
 // GET /analytics/baker/:bakerId/:period
-router.get("/analytics/baker/:bakerId/:period", async (req, res): Promise<void> => {
+router.get("/analytics/baker/:bakerId/:period", requireBakerAuth, requireBakerOwnership, async (req, res): Promise<void> => {
   const params = GetBakerAnalyticsParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
@@ -101,7 +102,7 @@ router.get("/analytics/baker/:bakerId/:period", async (req, res): Promise<void> 
 });
 
 // GET /analytics/baker/:bakerId/sources
-router.get("/analytics/baker/:bakerId/sources", async (req, res): Promise<void> => {
+router.get("/analytics/baker/:bakerId/sources", requireBakerAuth, requireBakerOwnership, async (req, res): Promise<void> => {
   const params = GetOrderSourcesParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });

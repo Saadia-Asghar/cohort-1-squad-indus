@@ -98,8 +98,9 @@ export function extractPreferences(message: string, existing: Record<string, unk
   const allergyMatch = lowerMsg.match(/allerg(?:ic|y) to ([a-z\s]+)/);
   if (allergyMatch) {
     const allergies = (prefs.allergies as string[] ?? []);
-    if (!allergies.includes(allergyMatch[1].trim())) {
-      prefs.allergies = [...allergies, allergyMatch[1].trim()];
+    const allergy = allergyMatch[1].trim().slice(0, 80);
+    if (allergy && !allergies.includes(allergy)) {
+      prefs.allergies = [...allergies.slice(0, 4), allergy];
     }
   }
   return prefs;
@@ -194,7 +195,7 @@ export async function generateAgentReply(
     const [latestOrder] = await db
       .select()
       .from(ordersTable)
-      .where(eq(ordersTable.buyerId, buyerId))
+      .where(and(eq(ordersTable.buyerId, buyerId), eq(ordersTable.bakerId, bakerId)))
       .orderBy(desc(ordersTable.createdAt))
       .limit(1);
 
@@ -482,7 +483,7 @@ export async function generateAgentReply(
         ? `I found something relevant in our menu:\n\n${topChunk.content.split("\n").slice(0, 4).join("\n")}`
         : `Here's what I know:\n\n${ragContext.split("\n\n")[0]}`;
     return {
-      reply: `${hint}${memoryContext ? `\n\n${memoryContext}` : ""}\n\nWould you like to order or need more details?`,
+      reply: `${hint}\n\nWould you like to order or need more details?`,
       action: null,
       cartItemId: null,
       escalated: false,
@@ -490,7 +491,7 @@ export async function generateAgentReply(
   }
 
   return {
-    reply: `Thanks for your message!${memoryContext ? ` ${memoryContext}` : ""} I'll let ${baker.businessName} know you reached out. Is there anything specific you're looking for?`,
+    reply: `Thanks for your message! I'll let ${baker.businessName} know you reached out. Is there anything specific you're looking for?`,
     action: null,
     cartItemId: null,
     escalated: false,
@@ -509,7 +510,11 @@ export type ProcessChatInput = {
 export type ProcessChatResult = AgentReply & { sessionId: string };
 
 export async function processChatMessage(input: ProcessChatInput): Promise<ProcessChatResult> {
-  const { bakerId, message } = input;
+  const { bakerId } = input;
+  const message = input.message.trim().slice(0, 2000);
+  if (!message) {
+    throw new Error("Message is required");
+  }
   let buyerId = input.buyerId ?? null;
 
   // Resolve buyerId for WhatsApp or other channels using phone number
@@ -541,7 +546,7 @@ export async function processChatMessage(input: ProcessChatInput): Promise<Proce
   }
 
   const sid =
-    input.sessionId ??
+    input.sessionId?.trim().slice(0, 120) ??
     (input.channel === "whatsapp" && input.buyerWhatsapp
       ? `wa-${bakerId}-${input.buyerWhatsapp}`
       : `session-${bakerId}-${buyerId ?? 0}-${Date.now()}`);
@@ -584,7 +589,11 @@ export async function processChatMessage(input: ProcessChatInput): Promise<Proce
       (memory?.preferences ?? {}) as Record<string, unknown>,
     );
     const newCount = (memory?.messageCount ?? 0) + 2;
-    const newSummary = `Last message: "${message.slice(0, 100)}". Agent replied about ${agentReply.escalated ? "escalation" : "query"}.`;
+    // Full chat messages are kept in the bakery inbox. Keep long-term memory
+    // minimal and never copy a customer's free-form text into it.
+    const newSummary = agentReply.escalated
+      ? "Customer needs a baker follow-up."
+      : "Recent menu conversation saved.";
     if (memory) {
       await db
         .update(conversationMemoryTable)
