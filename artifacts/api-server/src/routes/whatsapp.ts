@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { eq } from "drizzle-orm";
+import crypto from "crypto";
 import { db, bakersTable } from "@workspace/db";
 import { logger } from "../lib/logger.js";
 import { processChatMessage } from "../lib/chat-agent.js";
@@ -14,6 +15,15 @@ const router = Router();
 
 function resolveVerifyToken(bakerToken?: string | null): string | undefined {
   return bakerToken ?? process.env.WHATSAPP_VERIFY_TOKEN;
+}
+
+function hasValidMetaSignature(rawBody: Buffer, signature: string | undefined): boolean {
+  const appSecret = process.env.WHATSAPP_APP_SECRET;
+  if (!appSecret || !signature?.startsWith("sha256=")) return false;
+  const expected = `sha256=${crypto.createHmac("sha256", appSecret).update(rawBody).digest("hex")}`;
+  const expectedBytes = Buffer.from(expected);
+  const receivedBytes = Buffer.from(signature);
+  return expectedBytes.length === receivedBytes.length && crypto.timingSafeEqual(expectedBytes, receivedBytes);
 }
 
 // Meta webhook verification — GET /webhooks/whatsapp
@@ -59,16 +69,24 @@ async function findBakerForInbound(
     if (byDisplay) return byDisplay;
   }
 
-  const fallback = bakers.find((b) => b.whatsappAgentEnabled && b.agentActive);
-  return fallback ?? null;
+  // A message that cannot be tied to a configured bakery must never be
+  // routed to another bakery merely because its agent happens to be enabled.
+  return null;
 }
 
 // Meta inbound messages — POST /webhooks/whatsapp
 router.post("/webhooks/whatsapp", rateLimit(100, 60 * 1000), async (req, res): Promise<void> => {
+  const rawBody = Buffer.isBuffer(req.body) ? req.body : Buffer.from("");
+  if (!hasValidMetaSignature(rawBody, req.header("x-hub-signature-256"))) {
+    logger.warn("Rejected WhatsApp webhook with invalid signature");
+    res.sendStatus(401);
+    return;
+  }
+
   res.sendStatus(200);
 
   try {
-    const inbound = parseWhatsAppWebhook(req.body);
+    const inbound = parseWhatsAppWebhook(JSON.parse(rawBody.toString("utf8")));
     for (const msg of inbound) {
       const baker = await findBakerForInbound(msg.phoneNumberId, msg.displayPhoneNumber);
       if (!baker) {

@@ -18976,14 +18976,14 @@ var require_etag = __commonJS({
   "../../node_modules/.pnpm/etag@1.8.1/node_modules/etag/index.js"(exports, module) {
     "use strict";
     module.exports = etag;
-    var crypto3 = __require("crypto");
+    var crypto4 = __require("crypto");
     var Stats = __require("fs").Stats;
     var toString = Object.prototype.toString;
     function entitytag(entity) {
       if (entity.length === 0) {
         return '"0-2jmj7l5rSw0yVb/vlWAYkK/YBwk"';
       }
-      var hash = crypto3.createHash("sha1").update(entity, "utf8").digest("base64").substring(0, 27);
+      var hash = crypto4.createHash("sha1").update(entity, "utf8").digest("base64").substring(0, 27);
       var len = typeof entity === "string" ? Buffer.byteLength(entity, "utf8") : entity.length;
       return '"' + len.toString(16) + "-" + hash + '"';
     }
@@ -22470,17 +22470,17 @@ var require_content_disposition = __commonJS({
 // ../../node_modules/.pnpm/cookie-signature@1.2.2/node_modules/cookie-signature/index.js
 var require_cookie_signature = __commonJS({
   "../../node_modules/.pnpm/cookie-signature@1.2.2/node_modules/cookie-signature/index.js"(exports) {
-    var crypto3 = __require("crypto");
+    var crypto4 = __require("crypto");
     exports.sign = function(val, secret) {
       if ("string" != typeof val) throw new TypeError("Cookie value must be provided as a string.");
       if (null == secret) throw new TypeError("Secret key must be provided.");
-      return val + "." + crypto3.createHmac("sha256", secret).update(val).digest("base64").replace(/\=+$/, "");
+      return val + "." + crypto4.createHmac("sha256", secret).update(val).digest("base64").replace(/\=+$/, "");
     };
     exports.unsign = function(input, secret) {
       if ("string" != typeof input) throw new TypeError("Signed cookie string must be provided.");
       if (null == secret) throw new TypeError("Secret key must be provided.");
       var tentativeValue = input.slice(0, input.lastIndexOf(".")), expectedInput = exports.sign(tentativeValue, secret), expectedBuffer = Buffer.from(expectedInput), inputBuffer = Buffer.from(input);
-      return expectedBuffer.length === inputBuffer.length && crypto3.timingSafeEqual(expectedBuffer, inputBuffer) ? tentativeValue : false;
+      return expectedBuffer.length === inputBuffer.length && crypto4.timingSafeEqual(expectedBuffer, inputBuffer) ? tentativeValue : false;
     };
   }
 });
@@ -25424,7 +25424,7 @@ var require_cert_signatures = __commonJS({
 var require_sasl = __commonJS({
   "../../node_modules/.pnpm/pg@8.22.0/node_modules/pg/lib/crypto/sasl.js"(exports, module) {
     "use strict";
-    var crypto3 = require_utils5();
+    var crypto4 = require_utils5();
     var { signatureAlgorithmHashFromCertificate } = require_cert_signatures();
     function saslprep(password) {
       const nonAsciiSpace = /[\u00A0\u1680\u2000-\u200B\u202F\u205F\u3000]/g;
@@ -25442,7 +25442,7 @@ var require_sasl = __commonJS({
       if (mechanism === "SCRAM-SHA-256-PLUS" && typeof stream.getPeerCertificate !== "function") {
         throw new Error("SASL: Mechanism SCRAM-SHA-256-PLUS requires a certificate");
       }
-      const clientNonce = crypto3.randomBytes(18).toString("base64");
+      const clientNonce = crypto4.randomBytes(18).toString("base64");
       const gs2Header = mechanism === "SCRAM-SHA-256-PLUS" ? "p=tls-server-end-point" : stream ? "y" : "n";
       return {
         mechanism,
@@ -25484,20 +25484,20 @@ var require_sasl = __commonJS({
         const peerCert = stream.getPeerCertificate().raw;
         let hashName = signatureAlgorithmHashFromCertificate(peerCert);
         if (hashName === "MD5" || hashName === "SHA-1") hashName = "SHA-256";
-        const certHash = await crypto3.hashByName(hashName, peerCert);
+        const certHash = await crypto4.hashByName(hashName, peerCert);
         const bindingData = Buffer.concat([Buffer.from("p=tls-server-end-point,,"), Buffer.from(certHash)]);
         channelBinding = bindingData.toString("base64");
       }
       const clientFinalMessageWithoutProof = "c=" + channelBinding + ",r=" + sv.nonce;
       const authMessage = clientFirstMessageBare + "," + serverFirstMessage + "," + clientFinalMessageWithoutProof;
       const saltBytes = Buffer.from(sv.salt, "base64");
-      const saltedPassword = await crypto3.deriveKey(saslprep(password), saltBytes, sv.iteration);
-      const clientKey = await crypto3.hmacSha256(saltedPassword, "Client Key");
-      const storedKey = await crypto3.sha256(clientKey);
-      const clientSignature = await crypto3.hmacSha256(storedKey, authMessage);
+      const saltedPassword = await crypto4.deriveKey(saslprep(password), saltBytes, sv.iteration);
+      const clientKey = await crypto4.hmacSha256(saltedPassword, "Client Key");
+      const storedKey = await crypto4.sha256(clientKey);
+      const clientSignature = await crypto4.hmacSha256(storedKey, authMessage);
       const clientProof = xorBuffers(Buffer.from(clientKey), Buffer.from(clientSignature)).toString("base64");
-      const serverKey = await crypto3.hmacSha256(saltedPassword, "Server Key");
-      const serverSignatureBytes = await crypto3.hmacSha256(serverKey, authMessage);
+      const serverKey = await crypto4.hmacSha256(saltedPassword, "Server Key");
+      const serverSignatureBytes = await crypto4.hmacSha256(serverKey, authMessage);
       session.message = "SASLResponse";
       session.serverSignature = Buffer.from(serverSignatureBytes).toString("base64");
       session.response = clientFinalMessageWithoutProof + ",p=" + clientProof;
@@ -27727,7 +27727,7 @@ var require_client = __commonJS({
     var Query2 = require_query();
     var defaults2 = require_defaults();
     var Connection2 = require_connection();
-    var crypto3 = require_utils5();
+    var crypto4 = require_utils5();
     var activeQueryDeprecationNotice = nodeUtils.deprecate(
       () => {
       },
@@ -27978,7 +27978,7 @@ var require_client = __commonJS({
       _handleAuthMD5Password(msg) {
         this._getPassword(async () => {
           try {
-            const hashedPassword = await crypto3.postgresMd5PasswordHash(this.user, this.password, msg.salt);
+            const hashedPassword = await crypto4.postgresMd5PasswordHash(this.user, this.password, msg.salt);
             this.connection.password(hashedPassword);
           } catch (e) {
             this.emit("error", e);
@@ -58704,6 +58704,25 @@ var router5 = (0, import_express5.Router)();
 function formatOrder(o) {
   return { ...o, items: o.items ?? [] };
 }
+function calculateOrderItems(requestedItems, products) {
+  const byId = new Map(products.map((product) => [product.id, product]));
+  return requestedItems.map((requested) => {
+    const product = byId.get(requested.productId);
+    if (!product || !product.isAvailable) throw new Error("One or more selected products are unavailable.");
+    const sizes = product.sizes ?? [];
+    const selectedSize = sizes.find((size) => size.label === requested.sizeLabel);
+    if (sizes.length > 0 && !selectedSize) throw new Error(`Choose a valid size for ${product.name}.`);
+    const unitPricePkr = selectedSize?.pricePkr ?? product.basePricePkr;
+    return {
+      productId: product.id,
+      productName: product.name,
+      quantity: requested.quantity,
+      unitPricePkr,
+      sizeLabel: requested.sizeLabel,
+      variant: requested.variant ?? null
+    };
+  });
+}
 router5.get("/orders", async (req, res) => {
   const query = ListOrdersQueryParams.safeParse(req.query);
   if (!query.success) {
@@ -58723,13 +58742,29 @@ router5.post("/orders", async (req, res) => {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
+  const productIds = [...new Set(parsed.data.items.map((item) => item.productId))];
+  const products = await db.select().from(productsTable).where(
+    and(eq(productsTable.bakerId, parsed.data.bakerId), inArray(productsTable.id, productIds))
+  );
+  let trustedItems;
+  try {
+    trustedItems = calculateOrderItems(parsed.data.items, products);
+  } catch (error40) {
+    res.status(400).json({ error: error40 instanceof Error ? error40.message : "Invalid order items." });
+    return;
+  }
+  if (trustedItems.length !== parsed.data.items.length) {
+    res.status(400).json({ error: "Some selected products do not belong to this bakery." });
+    return;
+  }
+  const trustedTotalPkr = trustedItems.reduce((total, item) => total + item.quantity * item.unitPricePkr, 0);
   const phone = parsed.data.buyerWhatsapp.replace(/\s+/g, "").trim();
   const [existingCustomer] = await db.select().from(customersTable).where(and(eq(customersTable.bakerId, parsed.data.bakerId), eq(customersTable.whatsappNumber, phone)));
   const customer = existingCustomer ? (await db.update(customersTable).set({
     name: parsed.data.buyerName.trim(),
     preferredArea: parsed.data.buyerArea?.trim() || existingCustomer.preferredArea,
     totalOrders: existingCustomer.totalOrders + 1,
-    totalSpentPkr: existingCustomer.totalSpentPkr + parsed.data.totalPkr,
+    totalSpentPkr: existingCustomer.totalSpentPkr + trustedTotalPkr,
     isRegular: existingCustomer.totalOrders + 1 >= 2,
     lastOrderAt: /* @__PURE__ */ new Date()
   }).where(eq(customersTable.id, existingCustomer.id)).returning())[0] : (await db.insert(customersTable).values({
@@ -58738,12 +58773,14 @@ router5.post("/orders", async (req, res) => {
     whatsappNumber: phone,
     preferredArea: parsed.data.buyerArea?.trim() || null,
     totalOrders: 1,
-    totalSpentPkr: parsed.data.totalPkr,
+    totalSpentPkr: trustedTotalPkr,
     isRegular: false,
     lastOrderAt: /* @__PURE__ */ new Date()
   }).returning())[0];
   const [order] = await db.insert(ordersTable).values({
     ...parsed.data,
+    items: trustedItems,
+    totalPkr: trustedTotalPkr,
     buyerId: customer.id,
     buyerWhatsapp: phone
   }).returning();
@@ -59912,6 +59949,7 @@ var workspace_default = router12;
 
 // src/routes/whatsapp.ts
 var import_express13 = __toESM(require_express2(), 1);
+import crypto3 from "crypto";
 
 // src/lib/whatsapp.ts
 var GRAPH_API = "https://graph.facebook.com/v21.0";
@@ -59981,6 +60019,14 @@ var router13 = (0, import_express13.Router)();
 function resolveVerifyToken(bakerToken) {
   return bakerToken ?? process.env.WHATSAPP_VERIFY_TOKEN;
 }
+function hasValidMetaSignature(rawBody, signature) {
+  const appSecret = process.env.WHATSAPP_APP_SECRET;
+  if (!appSecret || !signature?.startsWith("sha256=")) return false;
+  const expected = `sha256=${crypto3.createHmac("sha256", appSecret).update(rawBody).digest("hex")}`;
+  const expectedBytes = Buffer.from(expected);
+  const receivedBytes = Buffer.from(signature);
+  return expectedBytes.length === receivedBytes.length && crypto3.timingSafeEqual(expectedBytes, receivedBytes);
+}
 router13.get("/webhooks/whatsapp", async (req, res) => {
   const mode = req.query["hub.mode"];
   const token = req.query["hub.verify_token"];
@@ -60012,13 +60058,18 @@ async function findBakerForInbound(phoneNumberId, displayPhoneNumber) {
     );
     if (byDisplay) return byDisplay;
   }
-  const fallback = bakers.find((b) => b.whatsappAgentEnabled && b.agentActive);
-  return fallback ?? null;
+  return null;
 }
 router13.post("/webhooks/whatsapp", rateLimit(100, 60 * 1e3), async (req, res) => {
+  const rawBody = Buffer.isBuffer(req.body) ? req.body : Buffer.from("");
+  if (!hasValidMetaSignature(rawBody, req.header("x-hub-signature-256"))) {
+    logger.warn("Rejected WhatsApp webhook with invalid signature");
+    res.sendStatus(401);
+    return;
+  }
   res.sendStatus(200);
   try {
-    const inbound = parseWhatsAppWebhook(req.body);
+    const inbound = parseWhatsAppWebhook(JSON.parse(rawBody.toString("utf8")));
     for (const msg of inbound) {
       const baker = await findBakerForInbound(msg.phoneNumberId, msg.displayPhoneNumber);
       if (!baker) {
@@ -60492,6 +60543,7 @@ app.use((0, import_cors.default)({
   },
   methods: ["GET", "POST", "PATCH", "PUT", "OPTIONS"]
 }));
+app.use("/api/webhooks/whatsapp", import_express15.default.raw({ type: "application/json", limit: "256kb" }));
 app.use(import_express15.default.json({ limit: "256kb" }));
 app.use(import_express15.default.urlencoded({ extended: true, limit: "64kb" }));
 app.get("/", (_req, res) => {

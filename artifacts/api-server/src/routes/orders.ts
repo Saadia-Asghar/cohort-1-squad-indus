@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { eq, and } from "drizzle-orm";
-import { db, customersTable, ordersTable } from "@workspace/db";
+import { eq, and, inArray } from "drizzle-orm";
+import { db, customersTable, ordersTable, productsTable } from "@workspace/db";
 import {
   GetOrderParams,
   UpdateOrderStatusParams,
@@ -17,6 +17,29 @@ const router = Router();
 
 function formatOrder(o: typeof ordersTable.$inferSelect) {
   return { ...o, items: (o.items as unknown[]) ?? [] };
+}
+
+function calculateOrderItems(
+  requestedItems: Array<{ productId: number; quantity: number; sizeLabel: string; variant?: string | null }>,
+  products: Array<typeof productsTable.$inferSelect>,
+) {
+  const byId = new Map(products.map((product) => [product.id, product]));
+  return requestedItems.map((requested) => {
+    const product = byId.get(requested.productId);
+    if (!product || !product.isAvailable) throw new Error("One or more selected products are unavailable.");
+    const sizes = (product.sizes as Array<{ label: string; pricePkr: number }>) ?? [];
+    const selectedSize = sizes.find((size) => size.label === requested.sizeLabel);
+    if (sizes.length > 0 && !selectedSize) throw new Error(`Choose a valid size for ${product.name}.`);
+    const unitPricePkr = selectedSize?.pricePkr ?? product.basePricePkr;
+    return {
+      productId: product.id,
+      productName: product.name,
+      quantity: requested.quantity,
+      unitPricePkr,
+      sizeLabel: requested.sizeLabel,
+      variant: requested.variant ?? null,
+    };
+  });
 }
 
 // GET /orders
@@ -41,6 +64,22 @@ router.post("/orders", async (req, res): Promise<void> => {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
+  const productIds = [...new Set(parsed.data.items.map((item) => item.productId))];
+  const products = await db.select().from(productsTable).where(
+    and(eq(productsTable.bakerId, parsed.data.bakerId), inArray(productsTable.id, productIds)),
+  );
+  let trustedItems;
+  try {
+    trustedItems = calculateOrderItems(parsed.data.items, products);
+  } catch (error) {
+    res.status(400).json({ error: error instanceof Error ? error.message : "Invalid order items." });
+    return;
+  }
+  if (trustedItems.length !== parsed.data.items.length) {
+    res.status(400).json({ error: "Some selected products do not belong to this bakery." });
+    return;
+  }
+  const trustedTotalPkr = trustedItems.reduce((total, item) => total + item.quantity * item.unitPricePkr, 0);
   const phone = parsed.data.buyerWhatsapp.replace(/\s+/g, "").trim();
   const [existingCustomer] = await db.select().from(customersTable)
     .where(and(eq(customersTable.bakerId, parsed.data.bakerId), eq(customersTable.whatsappNumber, phone)));
@@ -51,7 +90,7 @@ router.post("/orders", async (req, res): Promise<void> => {
         name: parsed.data.buyerName.trim(),
         preferredArea: parsed.data.buyerArea?.trim() || existingCustomer.preferredArea,
         totalOrders: existingCustomer.totalOrders + 1,
-        totalSpentPkr: existingCustomer.totalSpentPkr + parsed.data.totalPkr,
+        totalSpentPkr: existingCustomer.totalSpentPkr + trustedTotalPkr,
         isRegular: existingCustomer.totalOrders + 1 >= 2,
         lastOrderAt: new Date(),
       })
@@ -63,13 +102,15 @@ router.post("/orders", async (req, res): Promise<void> => {
         whatsappNumber: phone,
         preferredArea: parsed.data.buyerArea?.trim() || null,
         totalOrders: 1,
-        totalSpentPkr: parsed.data.totalPkr,
+        totalSpentPkr: trustedTotalPkr,
         isRegular: false,
         lastOrderAt: new Date(),
       }).returning())[0];
 
   const [order] = await db.insert(ordersTable).values({
     ...parsed.data,
+    items: trustedItems,
+    totalPkr: trustedTotalPkr,
     buyerId: customer.id,
     buyerWhatsapp: phone,
   } as any).returning();

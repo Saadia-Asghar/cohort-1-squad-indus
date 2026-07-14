@@ -35,6 +35,9 @@ app.use(cors({
   },
   methods: ["GET", "POST", "PATCH", "PUT", "OPTIONS"],
 }));
+// Meta signs the exact webhook bytes. This parser must run before the global
+// JSON parser so the WhatsApp route can verify the signature safely.
+app.use("/api/webhooks/whatsapp", express.raw({ type: "application/json", limit: "256kb" }));
 app.use(express.json({ limit: "256kb" }));
 app.use(express.urlencoded({ extended: true, limit: "64kb" }));
 
