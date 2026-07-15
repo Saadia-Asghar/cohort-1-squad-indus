@@ -71,7 +71,10 @@ export default function BakerProfile() {
     const storageKey = `sweet-tooth-public-chat-${bakerId}`;
     const existing = localStorage.getItem(storageKey);
     if (existing) return existing;
-    const created = `web-${bakerId}-${crypto.randomUUID()}`;
+    const randomId = typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const created = `web-${bakerId}-${randomId}`;
     localStorage.setItem(storageKey, created);
     return created;
   });
