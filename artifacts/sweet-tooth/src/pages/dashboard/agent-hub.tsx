@@ -86,6 +86,7 @@ export default function AgentHub() {
     availabilityHours?: string;
     dietaryPolicy?: string;
     activeOffers?: string;
+    preferredCustomerChannel?: "web" | "whatsapp" | "instagram";
   }>({});
 
   const merged = { ...config, ...localConfig };
@@ -251,6 +252,23 @@ export default function AgentHub() {
                 placeholder={`Assalam-o-Alaikum! Welcome to your baker's shop. How can I help you today?`}
                 className="w-full px-3 py-2 border border-border rounded-lg bg-background text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/30"
               />
+            </div>
+
+            <div className="p-5 rounded-xl border border-border bg-card shadow-sm space-y-3">
+              <div>
+                <p className="font-semibold">Primary customer conversation channel</p>
+                <p className="text-sm text-muted-foreground">Your shared menu remains a catalogue. Send customers to the channel where your agent should handle questions and orders.</p>
+              </div>
+              <select
+                value={merged.preferredCustomerChannel ?? "web"}
+                onChange={(e) => setLocalConfig(prev => ({ ...prev, preferredCustomerChannel: e.target.value as "web" | "whatsapp" | "instagram" }))}
+                className="w-full px-3 py-2 border border-border rounded-lg bg-background text-sm"
+              >
+                <option value="whatsapp">WhatsApp agent (recommended when connected)</option>
+                <option value="instagram">Instagram DMs (only after Meta DM setup)</option>
+                <option value="web">Built-in web assistant</option>
+              </select>
+              <p className="text-xs text-muted-foreground">If the chosen channel has not been connected, the shared menu safely falls back to the built-in assistant.</p>
             </div>
 
             <div className="p-5 rounded-xl border border-border bg-card shadow-sm space-y-3">
@@ -540,6 +558,7 @@ export default function AgentHub() {
                   <li>Link it to a <strong>Facebook Page</strong> in Meta Business Suite</li>
                   <li>Go to <strong>Meta for Developers</strong> → Instagram → Messenger API for Instagram</li>
                   <li>Copy your <strong>Instagram Page ID</strong> and paste below</li>
+                  <li>Complete Meta webhook, access-token, and messaging-permission setup before enabling live DM replies</li>
                 </ol>
               </div>
               <div className="space-y-2">
@@ -560,6 +579,7 @@ export default function AgentHub() {
                 {saving ? "Saving..." : "Save Instagram Config"}
               </button>
             </div>
+            <p className="text-xs text-muted-foreground">Saving a Page ID alone does not connect Instagram DMs. Keep the agent disabled until Meta has approved and connected the messaging webhook.</p>
           </div>
         )}
 

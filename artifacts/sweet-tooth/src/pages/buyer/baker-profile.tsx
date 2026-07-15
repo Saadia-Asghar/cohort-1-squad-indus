@@ -133,9 +133,19 @@ export default function BakerProfile() {
   };
 
   const whatsappChatUrl = (baker as { whatsappChatUrl?: string | null } | undefined)?.whatsappChatUrl;
-  const shopSettings = (baker as { publicShopSettings?: { menuAccent?: string; availabilityHours?: string; dietaryPolicy?: string } } | undefined)?.publicShopSettings;
+  const shopSettings = (baker as { publicShopSettings?: { menuAccent?: string; availabilityHours?: string; dietaryPolicy?: string; preferredCustomerChannel?: "web" | "whatsapp" | "instagram" } } | undefined)?.publicShopSettings;
   const socialLinks = (baker as { socialLinks?: { instagram?: string; facebook?: string } } | undefined)?.socialLinks;
   const menuAccent = /^#[0-9a-fA-F]{6}$/.test(shopSettings?.menuAccent ?? "") ? shopSettings!.menuAccent! : "#7c3aed";
+  const preferredCustomerChannel = shopSettings?.preferredCustomerChannel ?? "web";
+  const instagramUrl = socialLinks?.instagram;
+  const useWebAssistant = preferredCustomerChannel === "web" ||
+    (preferredCustomerChannel === "whatsapp" && !whatsappChatUrl) ||
+    (preferredCustomerChannel === "instagram" && !instagramUrl);
+  const channelHandoff = preferredCustomerChannel === "whatsapp" && whatsappChatUrl
+    ? { href: whatsappChatUrl, label: "Chat with the bakery agent on WhatsApp", icon: "whatsapp" as const }
+    : preferredCustomerChannel === "instagram" && instagramUrl
+      ? { href: instagramUrl, label: "Message the bakery on Instagram", icon: "instagram" as const }
+      : null;
 
   return (
     <BuyerLayout>
@@ -189,14 +199,15 @@ export default function BakerProfile() {
                         Active today
                       </span>
                     )}
-                    {whatsappChatUrl && (
+                    {channelHandoff && (
                       <a
-                        href={whatsappChatUrl}
+                        href={channelHandoff.href}
                         target="_blank"
                         rel="noreferrer"
-                        className="flex items-center gap-1.5 text-green-700 bg-green-50 px-3 py-1 rounded-full text-sm font-medium border border-green-200 hover:bg-green-100"
+                        className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-bold border transition-colors ${channelHandoff.icon === "whatsapp" ? "text-green-700 bg-green-50 border-green-200 hover:bg-green-100" : "text-pink-700 bg-pink-50 border-pink-200 hover:bg-pink-100"}`}
                       >
-                        <Phone className="w-3.5 h-3.5" /> Continue on WhatsApp
+                        {channelHandoff.icon === "whatsapp" ? <Phone className="w-4 h-4" /> : <Instagram className="w-4 h-4" />}
+                        {channelHandoff.label}
                       </a>
                     )}
                   </div>
@@ -260,7 +271,7 @@ export default function BakerProfile() {
                           <div className="flex justify-between items-center">
                             <span className="font-mono font-bold text-primary">PKR {displayPrice.toLocaleString()}</span>
                             <div className="flex gap-2">
-                              {baker.agentActive && product.isAvailable && (
+                              {baker.agentActive && useWebAssistant && product.isAvailable && (
                                 <button
                                   onClick={() => askAboutProduct(product.name)}
                                   className="p-1.5 rounded-md text-primary border border-primary/20 hover:bg-primary/10"
@@ -321,16 +332,16 @@ export default function BakerProfile() {
         )}
       </div>
       
-      {/* Floating Chat Button */}
-      <button 
+      {/* The baker chooses whether the web assistant or a social channel handles conversations. */}
+      {baker?.agentActive && useWebAssistant && <button
         onClick={() => setIsChatOpen(!isChatOpen)}
         className="fixed bottom-8 right-8 w-14 h-14 bg-primary text-primary-foreground rounded-full flex items-center justify-center shadow-lg hover:shadow-xl hover:scale-105 transition-all z-50"
       >
         {isChatOpen ? <X className="w-6 h-6" /> : <MessageCircle className="w-6 h-6" />}
-      </button>
+      </button>}
 
       {/* Chat Widget Panel */}
-      {isChatOpen && (
+      {baker?.agentActive && useWebAssistant && isChatOpen && (
         <div className="fixed bottom-28 right-8 w-80 md:w-96 h-[500px] bg-card border border-border rounded-2xl shadow-2xl flex flex-col z-50 overflow-hidden">
           <div className="bg-primary p-4 text-primary-foreground flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-primary-foreground/20 flex items-center justify-center">

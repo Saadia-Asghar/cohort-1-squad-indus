@@ -58,6 +58,7 @@ function toPublicBaker(baker: Record<string, unknown>) {
       menuAccent: (baker.agentConfig as Record<string, unknown> | null)?.menuAccent ?? "#7c3aed",
       availabilityHours: (baker.agentConfig as Record<string, unknown> | null)?.availabilityHours ?? "",
       dietaryPolicy: (baker.agentConfig as Record<string, unknown> | null)?.dietaryPolicy ?? "",
+      preferredCustomerChannel: (baker.agentConfig as Record<string, unknown> | null)?.preferredCustomerChannel ?? "web",
     },
     socialLinks: (baker.agentConfig as Record<string, unknown> | null)?.socialLinks ?? {},
   };
@@ -352,6 +353,7 @@ router.get("/bakers/:bakerId/agent-config", requireBakerAuth, requireBakerOwners
     availabilityHours: (conf.availabilityHours as string | null) ?? "",
     dietaryPolicy: (conf.dietaryPolicy as string | null) ?? "",
     activeOffers: (conf.activeOffers as string | null) ?? "",
+    preferredCustomerChannel: (conf.preferredCustomerChannel as "web" | "whatsapp" | "instagram" | null) ?? "web",
     whatsappWebhookUrl: "/api/webhooks/whatsapp",
   });
 });
@@ -375,6 +377,7 @@ router.put("/bakers/:bakerId/agent-config", requireBakerAuth, requireBakerOwners
     availabilityHours?: string;
     dietaryPolicy?: string;
     activeOffers?: string;
+    preferredCustomerChannel?: "web" | "whatsapp" | "instagram";
   };
   const agentConfigUpdate: Record<string, unknown> = {};
   if (body.customGreeting !== undefined) agentConfigUpdate.customGreeting = body.customGreeting;
@@ -386,6 +389,7 @@ router.put("/bakers/:bakerId/agent-config", requireBakerAuth, requireBakerOwners
   if (body.availabilityHours !== undefined) agentConfigUpdate.availabilityHours = body.availabilityHours.slice(0, 240);
   if (body.dietaryPolicy !== undefined) agentConfigUpdate.dietaryPolicy = body.dietaryPolicy.slice(0, 600);
   if (body.activeOffers !== undefined) agentConfigUpdate.activeOffers = body.activeOffers.slice(0, 600);
+  if (body.preferredCustomerChannel !== undefined) agentConfigUpdate.preferredCustomerChannel = body.preferredCustomerChannel;
 
   const [existing] = await db.select().from(bakersTable).where(eq(bakersTable.id, bakerId));
   if (!existing) { res.status(404).json({ error: "Baker not found" }); return; }
@@ -422,6 +426,7 @@ router.put("/bakers/:bakerId/agent-config", requireBakerAuth, requireBakerOwners
     availabilityHours: (conf.availabilityHours as string | null) ?? "",
     dietaryPolicy: (conf.dietaryPolicy as string | null) ?? "",
     activeOffers: (conf.activeOffers as string | null) ?? "",
+    preferredCustomerChannel: (conf.preferredCustomerChannel as "web" | "whatsapp" | "instagram" | null) ?? "web",
     whatsappWebhookUrl: "/api/webhooks/whatsapp",
   });
 });
