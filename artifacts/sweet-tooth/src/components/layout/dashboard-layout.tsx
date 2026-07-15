@@ -2,7 +2,6 @@ import { Link, useLocation } from "wouter";
 import { useState } from "react";
 import { useGetBaker } from "@workspace/api-client-react";
 import { useBuyerSession } from "@/hooks/use-session";
-import { forgetGoogleUser, signOutGoogle } from "@/lib/firebase-auth";
 import { clearBakerSession } from "@/lib/baker-session";
 import { NotificationBell } from "@/components/notification-bell";
 import {
@@ -28,16 +27,11 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     { href: "/dashboard/settings", label: "Settings", icon: Settings },
   ];
 
-  const handleLogout = async () => {
+  const handleLogout = () => {
     setIsLoggingOut(true);
-    try {
-      await signOutGoogle();
-    } finally {
-      forgetGoogleUser();
-      clearBakerSession();
-      navigate("/dashboard/login");
-      setIsLoggingOut(false);
-    }
+    clearBakerSession();
+    navigate("/dashboard/login");
+    setIsLoggingOut(false);
   };
 
   return (

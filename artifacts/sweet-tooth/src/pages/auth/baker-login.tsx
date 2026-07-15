@@ -34,7 +34,6 @@ export default function BakerLogin() {
         <button disabled={loading} className="w-full bg-primary text-primary-foreground py-3 rounded-md font-bold disabled:opacity-50">{loading ? "Signing in…" : "Sign in as baker"}</button>
       </div>
       <p className="text-sm text-center text-muted-foreground">New baker? <Link href="/dashboard/register" className="text-primary font-medium hover:underline">Create your bakery account</Link></p>
-      <p className="text-sm text-center text-muted-foreground"><Link href="/login" className="text-primary hover:underline">Choose customer or baker</Link></p>
     </form>
   </div>;
 }
