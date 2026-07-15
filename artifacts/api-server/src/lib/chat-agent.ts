@@ -10,8 +10,6 @@ import {
   ordersTable,
 } from "@workspace/db";
 import { logger } from "./logger.js";
-import { formatRetrievedContext, retrieveKnowledge } from "./rag/retriever.js";
-import { generateLlmReply } from "./agent-llm.js";
 import { sendN8nEvent } from "./n8n.js";
 
 export type AgentReply = {
@@ -234,17 +232,6 @@ export async function generateAgentReply(
     }
   }
 
-  const ragChunks = await retrieveKnowledge(bakerId, message, 3, 0.1);
-  const ragContext = formatRetrievedContext(ragChunks);
-
-  if (agentConf.customResponses?.length) {
-    for (const cr of agentConf.customResponses) {
-      if (lowerMsg.includes(cr.trigger.toLowerCase())) {
-        return { reply: cr.response, action: null, cartItemId: null, escalated: false };
-      }
-    }
-  }
-
   if (agentConf.blockedTopics?.some((t) => lowerMsg.includes(t.toLowerCase()))) {
     return {
       reply: `I'm sorry, I can't help with that. Please contact ${baker.businessName} directly on WhatsApp for more information.`,
@@ -252,6 +239,16 @@ export async function generateAgentReply(
       cartItemId: null,
       escalated: false,
     };
+  }
+
+  // Bakery-authored replies may customise wording, but cannot bypass the
+  // global blocked-topic check above.
+  if (agentConf.customResponses?.length) {
+    for (const cr of agentConf.customResponses) {
+      if (lowerMsg.includes(cr.trigger.toLowerCase())) {
+        return { reply: cr.response, action: null, cartItemId: null, escalated: false };
+      }
+    }
   }
 
   const escalateKeywords = [
@@ -268,42 +265,8 @@ export async function generateAgentReply(
   }
 
   const buyerPrefs = (memory?.preferences ?? {}) as Record<string, unknown>;
-  const memoryContext = memory
-    ? [
-        buyerPrefs.eggless ? "This customer prefers eggless items." : "",
-        buyerPrefs.preferredArea ? `They are usually in ${buyerPrefs.preferredArea}.` : "",
-        buyerPrefs.favoriteProducts
-          ? `Their favourites: ${(buyerPrefs.favoriteProducts as string[]).join(", ")}.`
-          : "",
-        buyerPrefs.allergies
-          ? `ALLERGIES: ${(buyerPrefs.allergies as string[]).join(", ")} — never suggest these.`
-          : "",
-      ]
-        .filter(Boolean)
-        .join(" ")
-    : "";
-
-  // Rules above retain precedence for custom replies, blocked content,
-  // escalations, and sensitive order/payment status. Everything else can use
-  // an LLM when OPENAI_API_KEY is configured, with the local rules as a safe
-  // availability fallback if the provider is unavailable.
-  // Do not use the model without grounded bakery knowledge. Deterministic
-  // handlers below safely handle menu/order questions when retrieval finds no
-  // matching source.
-  const llmReply = ragContext ? await generateLlmReply({
-    businessName: baker.businessName,
-    customerMessage: message,
-    products: products.map((product) => ({
-      name: product.name,
-      category: product.category,
-      basePricePkr: product.basePricePkr,
-      isAvailable: product.isAvailable,
-      isEgglessAvailable: product.isEgglessAvailable,
-    })),
-    knowledge: ragContext,
-    memory: memoryContext,
-  }) : null;
-  if (llmReply) return { reply: llmReply, action: null, cartItemId: null, escalated: false };
+  // Exact-first policy: the customer-facing answers below come from live
+  // bakery records. Unknown questions fail closed to baker confirmation.
 
   if (
     lowerMsg.includes("price") ||
@@ -467,8 +430,11 @@ export async function generateAgentReply(
         product.leadTimeDays > 0
           ? ` Ready in ${product.leadTimeDays} day${product.leadTimeDays > 1 ? "s" : ""}.`
           : "";
+      const descriptionText = product.description ? ` ${product.description}` : "";
+      const dietaryTags = (product.dietaryTags as string[] | null) ?? [];
+      const dietaryText = dietaryTags.length ? ` Dietary labels: ${dietaryTags.join(", ")}.` : "";
       return {
-        reply: `${product.name} is available! ${priceStr}.${leadText}${product.isEgglessAvailable ? " Eggless version available." : ""}\n\nWould you like to add it to your order?`,
+        reply: `${product.name} is available!${descriptionText} ${priceStr}.${leadText}${product.isEgglessAvailable ? " Eggless version available." : ""}${dietaryText}\n\nWould you like to add it to your order?`,
         action: null,
         cartItemId: null,
         escalated: false,
@@ -476,22 +442,8 @@ export async function generateAgentReply(
     }
   }
 
-  if (ragContext) {
-    const topChunk = ragChunks[0];
-    const hint =
-      topChunk?.sourceType === "product"
-        ? `I found something relevant in our menu:\n\n${topChunk.content.split("\n").slice(0, 4).join("\n")}`
-        : `Here's what I know:\n\n${ragContext.split("\n\n")[0]}`;
-    return {
-      reply: `${hint}\n\nWould you like to order or need more details?`,
-      action: null,
-      cartItemId: null,
-      escalated: false,
-    };
-  }
-
   return {
-    reply: `Thanks for your message! I'll let ${baker.businessName} know you reached out. Is there anything specific you're looking for?`,
+    reply: `I do not have a verified answer for that from ${baker.businessName}'s published menu or policies. Please ask the baker to confirm, or ask me about products, prices, dietary labels, delivery, availability, orders, or payment policy.`,
     action: null,
     cartItemId: null,
     escalated: false,

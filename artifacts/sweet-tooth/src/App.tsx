@@ -62,6 +62,9 @@ function Router() {
       <Route path="/dashboard/agent-hub" component={() => <ProtectedDashboard component={DashboardAgentHub} />} />
       <Route path="/dashboard/login" component={BakerLogin} />
       <Route path="/dashboard/register" component={BakerRegister} />
+      {/* Preserve old shared login links, but keep access baker-only. */}
+      <Route path="/login" component={BakerLogin} />
+      <Route path="/login/buyer" component={BakerLogin} />
 
       <Route component={NotFound} />
     </Switch>

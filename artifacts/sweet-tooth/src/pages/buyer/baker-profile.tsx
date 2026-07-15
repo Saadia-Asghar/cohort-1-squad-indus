@@ -4,13 +4,11 @@ import {
   useGetBaker, 
   useGetBakerProducts, 
   useGetBakerReviews,
-  useGetChatHistory,
   useSendChatMessage,
   useAddToCart,
   getGetBakerQueryKey, 
   getGetBakerProductsQueryKey,
   getGetBakerReviewsQueryKey,
-  getGetChatHistoryQueryKey,
   getGetCartQueryKey
 } from "@workspace/api-client-react";
 import { useParams } from "wouter";
@@ -20,6 +18,12 @@ import { useQueryClient } from "@tanstack/react-query";
 import { MessageCircle, X, Send, User, Star, Phone, Sparkles, Facebook, Instagram } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
+
+type PublicChatMessage = {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+};
 
 export default function BakerProfile() {
   const { id } = useParams<{ id: string }>();
@@ -62,7 +66,15 @@ export default function BakerProfile() {
   // Chat Widget State
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [message, setMessage] = useState("");
-  const { data: chatHistory } = useGetChatHistory(bakerId, buyerId, { query: { enabled: isChatOpen, queryKey: getGetChatHistoryQueryKey(bakerId, buyerId), refetchInterval: 5000 } });
+  const [publicMessages, setPublicMessages] = useState<PublicChatMessage[]>([]);
+  const [chatSessionId, setChatSessionId] = useState(() => {
+    const storageKey = `sweet-tooth-public-chat-${bakerId}`;
+    const existing = localStorage.getItem(storageKey);
+    if (existing) return existing;
+    const created = `web-${bakerId}-${crypto.randomUUID()}`;
+    localStorage.setItem(storageKey, created);
+    return created;
+  });
   const sendMessage = useSendChatMessage();
   const chatScrollRef = useRef<HTMLDivElement>(null);
 
@@ -70,31 +82,46 @@ export default function BakerProfile() {
     if (chatScrollRef.current) {
       chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
     }
-  }, [chatHistory, isChatOpen]);
+  }, [publicMessages, isChatOpen]);
+
+  const sendPublicMessage = (text: string) => {
+    const trimmed = text.trim();
+    if (!trimmed || sendMessage.isPending) return;
+
+    const messageId = `user-${Date.now()}`;
+    setPublicMessages((current) => [...current, { id: messageId, role: "user", content: trimmed }]);
+    sendMessage.mutate({
+      data: { bakerId, message: trimmed, sessionId: chatSessionId },
+    }, {
+      onSuccess: (response) => {
+        const storageKey = `sweet-tooth-public-chat-${bakerId}`;
+        setChatSessionId(response.sessionId);
+        localStorage.setItem(storageKey, response.sessionId);
+        setPublicMessages((current) => [...current, {
+          id: `assistant-${Date.now()}`,
+          role: "assistant",
+          content: response.reply,
+        }]);
+      },
+      onError: () => {
+        setPublicMessages((current) => [...current, {
+          id: `assistant-error-${Date.now()}`,
+          role: "assistant",
+          content: "The bakery assistant is temporarily unavailable. Please contact the baker directly.",
+        }]);
+      },
+    });
+  };
 
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
     if (!message.trim()) return;
-
-    sendMessage.mutate({
-      data: { bakerId, buyerId, message }
-    }, {
-      onSuccess: () => {
-        setMessage("");
-        queryClient.invalidateQueries({ queryKey: getGetChatHistoryQueryKey(bakerId, buyerId) });
-      }
-    });
+    sendPublicMessage(message);
+    setMessage("");
   };
 
   const handleQuickMessage = (text: string) => {
-    if (sendMessage.isPending) return;
-    sendMessage.mutate({
-      data: { bakerId, buyerId, message: text }
-    }, {
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: getGetChatHistoryQueryKey(bakerId, buyerId) });
-      }
-    });
+    sendPublicMessage(text);
   };
 
   const askAboutProduct = (productName: string) => {
@@ -325,7 +352,7 @@ export default function BakerProfile() {
               </div>
             </div>
 
-            {chatHistory?.map(msg => (
+            {publicMessages.map(msg => (
               <div key={msg.id} className={`flex gap-2 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
                 {msg.role !== 'user' && (
                   <div className="w-8 h-8 rounded-full bg-primary/10 shrink-0 flex items-center justify-center text-primary">
