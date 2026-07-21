@@ -1,5 +1,7 @@
 {
   "version": 2,
+  "installCommand": "echo 'Skipping install'",
+  "buildCommand": "echo 'Using pre-built bundle'",
   "builds": [
     {
       "src": "artifacts/api-server/dist/index.mjs",
