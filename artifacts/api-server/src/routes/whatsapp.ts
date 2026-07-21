@@ -19,7 +19,7 @@ import { decryptSecret } from "../lib/secret-box.js";
 const router = Router();
 
 function resolveVerifyToken(bakerToken?: string | null): string | undefined {
-  return bakerToken ?? process.env.WHATSAPP_VERIFY_TOKEN;
+  return bakerToken ?? process.env.META_WEBHOOK_VERIFY_TOKEN ?? process.env.WHATSAPP_VERIFY_TOKEN;
 }
 
 function hasValidMetaSignature(rawBody: Buffer, signature: string | undefined): boolean {

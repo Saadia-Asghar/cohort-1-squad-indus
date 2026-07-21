@@ -20706,27 +20706,27 @@ var require_router = __commonJS({
     var slice = Array.prototype.slice;
     var flatten = Array.prototype.flat;
     var methods = METHODS.map((method) => method.toLowerCase());
-    module.exports = Router16;
+    module.exports = Router17;
     module.exports.Route = Route;
-    function Router16(options) {
-      if (!(this instanceof Router16)) {
-        return new Router16(options);
+    function Router17(options) {
+      if (!(this instanceof Router17)) {
+        return new Router17(options);
       }
       const opts = options || {};
-      function router16(req, res, next) {
-        router16.handle(req, res, next);
+      function router17(req, res, next) {
+        router17.handle(req, res, next);
       }
-      Object.setPrototypeOf(router16, this);
-      router16.caseSensitive = opts.caseSensitive;
-      router16.mergeParams = opts.mergeParams;
-      router16.params = {};
-      router16.strict = opts.strict;
-      router16.stack = [];
-      return router16;
+      Object.setPrototypeOf(router17, this);
+      router17.caseSensitive = opts.caseSensitive;
+      router17.mergeParams = opts.mergeParams;
+      router17.params = {};
+      router17.strict = opts.strict;
+      router17.stack = [];
+      return router17;
     }
-    Router16.prototype = function() {
+    Router17.prototype = function() {
     };
-    Router16.prototype.param = function param(name, fn) {
+    Router17.prototype.param = function param(name, fn) {
       if (!name) {
         throw new TypeError("argument name is required");
       }
@@ -20746,7 +20746,7 @@ var require_router = __commonJS({
       params.push(fn);
       return this;
     };
-    Router16.prototype.handle = function handle(req, res, callback) {
+    Router17.prototype.handle = function handle(req, res, callback) {
       if (!callback) {
         throw new TypeError("argument callback is required");
       }
@@ -20873,7 +20873,7 @@ var require_router = __commonJS({
         }
       }
     };
-    Router16.prototype.use = function use(handler) {
+    Router17.prototype.use = function use(handler) {
       let offset = 0;
       let path = "/";
       if (typeof handler !== "function") {
@@ -20906,7 +20906,7 @@ var require_router = __commonJS({
       }
       return this;
     };
-    Router16.prototype.route = function route(path) {
+    Router17.prototype.route = function route(path) {
       const route2 = new Route(path);
       const layer = new Layer(path, {
         sensitive: this.caseSensitive,
@@ -20921,7 +20921,7 @@ var require_router = __commonJS({
       return route2;
     };
     methods.concat("all").forEach(function(method) {
-      Router16.prototype[method] = function(path) {
+      Router17.prototype[method] = function(path) {
         const route = this.route(path);
         route[method].apply(route, slice.call(arguments, 1));
         return this;
@@ -21104,13 +21104,13 @@ var require_application = __commonJS({
     var compileTrust = require_utils3().compileTrust;
     var resolve = __require("node:path").resolve;
     var once = require_once();
-    var Router16 = require_router();
+    var Router17 = require_router();
     var slice = Array.prototype.slice;
     var flatten = Array.prototype.flat;
     var app2 = exports = module.exports = {};
     var trustProxyDefaultSymbol = "@@symbol:trust_proxy_default";
     app2.init = function init() {
-      var router16 = null;
+      var router17 = null;
       this.cache = /* @__PURE__ */ Object.create(null);
       this.engines = /* @__PURE__ */ Object.create(null);
       this.settings = /* @__PURE__ */ Object.create(null);
@@ -21119,13 +21119,13 @@ var require_application = __commonJS({
         configurable: true,
         enumerable: true,
         get: function getrouter() {
-          if (router16 === null) {
-            router16 = new Router16({
+          if (router17 === null) {
+            router17 = new Router17({
               caseSensitive: this.enabled("case sensitive routing"),
               strict: this.enabled("strict routing")
             });
           }
-          return router16;
+          return router17;
         }
       });
     };
@@ -21196,15 +21196,15 @@ var require_application = __commonJS({
       if (fns.length === 0) {
         throw new TypeError("app.use() requires a middleware function");
       }
-      var router16 = this.router;
+      var router17 = this.router;
       fns.forEach(function(fn2) {
         if (!fn2 || !fn2.handle || !fn2.set) {
-          return router16.use(path, fn2);
+          return router17.use(path, fn2);
         }
         debug(".use app under %s", path);
         fn2.mountpath = path;
         fn2.parent = this;
-        router16.use(path, function mounted_app(req, res, next) {
+        router17.use(path, function mounted_app(req, res, next) {
           var orig = req.app;
           fn2.handle(req, res, function(err) {
             Object.setPrototypeOf(req, orig.request);
@@ -23789,7 +23789,7 @@ var require_express = __commonJS({
     var EventEmitter = __require("node:events").EventEmitter;
     var mixin = require_merge_descriptors();
     var proto = require_application();
-    var Router16 = require_router();
+    var Router17 = require_router();
     var req = require_request();
     var res = require_response();
     exports = module.exports = createApplication;
@@ -23811,8 +23811,8 @@ var require_express = __commonJS({
     exports.application = proto;
     exports.request = req;
     exports.response = res;
-    exports.Route = Router16.Route;
-    exports.Router = Router16;
+    exports.Route = Router17.Route;
+    exports.Router = Router17;
     exports.json = bodyParser.json;
     exports.raw = bodyParser.raw;
     exports.static = require_serve_static();
@@ -37790,7 +37790,7 @@ var require_pino = __commonJS({
 });
 
 // src/app.ts
-var import_express18 = __toESM(require_express2(), 1);
+var import_express19 = __toESM(require_express2(), 1);
 var import_cors = __toESM(require_lib3(), 1);
 
 // ../../node_modules/.pnpm/@clerk+shared@4.25.5_react-_0cfcaeb2ba2247b95cb54eec58c12d85/node_modules/@clerk/shared/dist/underscore.mjs
@@ -47260,7 +47260,7 @@ var getAuth = ((req, options) => {
 });
 
 // src/routes/index.ts
-var import_express17 = __toESM(require_express2(), 1);
+var import_express18 = __toESM(require_express2(), 1);
 
 // src/routes/health.ts
 var import_express = __toESM(require_express2(), 1);
@@ -73953,7 +73953,7 @@ var import_express15 = __toESM(require_express2(), 1);
 import crypto5 from "crypto";
 
 // src/lib/whatsapp.ts
-var GRAPH_API = "https://graph.facebook.com/v23.0";
+var GRAPH_API = "https://graph.facebook.com/v25.0";
 function normalizePhone(phone) {
   return phone.replace(/\D/g, "");
 }
@@ -74026,6 +74026,24 @@ function decodeKey(encodedKey) {
   }
   return key;
 }
+function encryptSecret(plaintext, encodedKey) {
+  if (!plaintext) throw new Error("Cannot encrypt an empty secret.");
+  const key = decodeKey(encodedKey);
+  const iv = crypto4.randomBytes(12);
+  const cipher = crypto4.createCipheriv("aes-256-gcm", key, iv);
+  cipher.setAAD(AAD);
+  const ciphertext = Buffer.concat([
+    cipher.update(plaintext, "utf8"),
+    cipher.final()
+  ]);
+  const tag = cipher.getAuthTag();
+  return [
+    VERSION,
+    iv.toString("base64url"),
+    tag.toString("base64url"),
+    ciphertext.toString("base64url")
+  ].join(".");
+}
 function decryptSecret(payload, encodedKey) {
   const [version3, ivValue, tagValue, ciphertextValue] = payload.split(".");
   if (version3 !== VERSION || !ivValue || !tagValue || !ciphertextValue) {
@@ -74048,7 +74066,7 @@ function decryptSecret(payload, encodedKey) {
 // src/routes/whatsapp.ts
 var router13 = (0, import_express15.Router)();
 function resolveVerifyToken(bakerToken) {
-  return bakerToken ?? process.env.WHATSAPP_VERIFY_TOKEN;
+  return bakerToken ?? process.env.META_WEBHOOK_VERIFY_TOKEN ?? process.env.WHATSAPP_VERIFY_TOKEN;
 }
 function hasValidMetaSignature(rawBody, signature) {
   const appSecret = process.env.META_APP_SECRET;
@@ -74203,7 +74221,7 @@ var import_express16 = __toESM(require_express2(), 1);
 import crypto6 from "node:crypto";
 
 // src/lib/instagram.ts
-var GRAPH_API2 = "https://graph.facebook.com/v23.0";
+var GRAPH_API2 = "https://graph.instagram.com/v25.0";
 function parseInstagramWebhook(body) {
   const payload = body;
   if (payload.object !== "instagram") return [];
@@ -74343,23 +74361,139 @@ router14.post("/webhooks/instagram", async (req, res) => {
 });
 var instagram_default = router14;
 
-// src/routes/index.ts
+// src/routes/meta-connect.ts
+var import_express17 = __toESM(require_express2(), 1);
 var router15 = (0, import_express17.Router)();
-router15.use(health_default);
-router15.use(bakers_default);
-router15.use(notifications_default);
-router15.use(products_default);
-router15.use(orders_default);
-router15.use(cart_default);
-router15.use(reviews_default);
-router15.use(customers_default);
-router15.use(analytics_default);
-router15.use(chat_default);
-router15.use(knowledge_default);
-router15.use(workspace_default);
-router15.use(whatsapp_default);
-router15.use(instagram_default);
-var routes_default = router15;
+var GRAPH_API3 = "https://graph.facebook.com/v25.0";
+function requiredMetaConfiguration() {
+  const appId = process.env.META_APP_ID;
+  const appSecret = process.env.META_APP_SECRET;
+  const encryptionKey = process.env.TOKEN_ENCRYPTION_KEY;
+  if (!appId || !appSecret || !encryptionKey) {
+    throw new Error("Meta connection credentials are not configured.");
+  }
+  return { appId, appSecret, encryptionKey };
+}
+async function graphJson(path, accessToken, init = {}) {
+  const headers = new Headers(init.headers);
+  if (accessToken) headers.set("Authorization", `Bearer ${accessToken}`);
+  const response = await fetch(`${GRAPH_API3}${path}`, { ...init, headers });
+  const payload = await response.json();
+  if (!response.ok || payload.error) {
+    throw new Error(`Meta API request failed (${payload.error?.code ?? response.status}).`);
+  }
+  return payload;
+}
+router15.get("/meta/connections", requireBakerAuth, async (req, res) => {
+  const bakerId = req.bakerId;
+  const [connection] = await db.select().from(metaConnectionsTable).where(eq(metaConnectionsTable.bakerId, bakerId)).limit(1);
+  res.json({
+    whatsapp: {
+      connected: Boolean(connection?.whatsappPhoneNumberId),
+      phoneNumberId: connection?.whatsappPhoneNumberId ?? null,
+      wabaId: connection?.whatsappBusinessAccountId ?? null
+    },
+    instagram: {
+      connected: Boolean(connection?.instagramAccountId),
+      accountId: connection?.instagramAccountId ?? null,
+      pageId: connection?.instagramPageId ?? null
+    },
+    status: connection?.status ?? "not_connected",
+    lastVerifiedAt: connection?.lastVerifiedAt ?? null
+  });
+});
+router15.post(
+  "/meta/whatsapp/complete",
+  requireBakerAuth,
+  async (req, res) => {
+    const parsed = external_exports.object({
+      code: external_exports.string().min(10).max(2e3),
+      wabaId: external_exports.string().regex(/^\d{5,40}$/),
+      phoneNumberId: external_exports.string().regex(/^\d{5,40}$/)
+    }).safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: "Invalid Embedded Signup response." });
+      return;
+    }
+    const { appId, appSecret, encryptionKey } = requiredMetaConfiguration();
+    const tokenResult = await graphJson(
+      `/oauth/access_token?client_id=${encodeURIComponent(appId)}&client_secret=${encodeURIComponent(appSecret)}&code=${encodeURIComponent(parsed.data.code)}`
+    );
+    const appAccessToken = `${appId}|${appSecret}`;
+    const debug = await graphJson(
+      `/debug_token?input_token=${encodeURIComponent(tokenResult.access_token)}&access_token=${encodeURIComponent(appAccessToken)}`
+    );
+    const wabaAllowed = debug.data.granular_scopes?.some(
+      (scope) => scope.scope === "whatsapp_business_management" && scope.target_ids?.includes(parsed.data.wabaId)
+    );
+    if (!debug.data.is_valid || debug.data.app_id !== appId || !debug.data.scopes?.includes("whatsapp_business_messaging") || !wabaAllowed) {
+      res.status(403).json({ error: "Meta did not grant the required WhatsApp permissions." });
+      return;
+    }
+    const phoneNumbers = await graphJson(
+      `/${parsed.data.wabaId}/phone_numbers?fields=id,display_phone_number,verified_name`,
+      tokenResult.access_token
+    );
+    const phone = phoneNumbers.data.find((item) => item.id === parsed.data.phoneNumberId);
+    if (!phone) {
+      res.status(403).json({ error: "The selected phone number does not belong to the granted WhatsApp account." });
+      return;
+    }
+    await graphJson(
+      `/${parsed.data.wabaId}/subscribed_apps`,
+      tokenResult.access_token,
+      { method: "POST" }
+    );
+    const bakerId = req.bakerId;
+    const encryptedToken = encryptSecret(tokenResult.access_token, encryptionKey);
+    const tokenExpiresAt = debug.data.expires_at && debug.data.expires_at > 0 ? new Date(debug.data.expires_at * 1e3) : null;
+    const values = {
+      bakerId,
+      whatsappBusinessAccountId: parsed.data.wabaId,
+      whatsappPhoneNumberId: parsed.data.phoneNumberId,
+      whatsappAccessTokenEncrypted: encryptedToken,
+      grantedScopes: debug.data.scopes ?? [],
+      tokenExpiresAt,
+      lastVerifiedAt: /* @__PURE__ */ new Date(),
+      status: "connected",
+      metadata: {
+        whatsappDisplayNumber: phone.display_phone_number ?? null,
+        whatsappVerifiedName: phone.verified_name ?? null
+      }
+    };
+    const [connection] = await db.insert(metaConnectionsTable).values(values).onConflictDoUpdate({
+      target: metaConnectionsTable.bakerId,
+      set: values
+    }).returning();
+    res.json({
+      connected: true,
+      phoneNumberId: connection.whatsappPhoneNumberId,
+      wabaId: connection.whatsappBusinessAccountId,
+      displayPhoneNumber: phone.display_phone_number ?? null,
+      verifiedName: phone.verified_name ?? null
+    });
+  }
+);
+var meta_connect_default = router15;
+
+// src/routes/index.ts
+var router16 = (0, import_express18.Router)();
+router16.use(health_default);
+router16.use(bakers_default);
+router16.use(notifications_default);
+router16.use(products_default);
+router16.use(orders_default);
+router16.use(cart_default);
+router16.use(reviews_default);
+router16.use(customers_default);
+router16.use(analytics_default);
+router16.use(chat_default);
+router16.use(knowledge_default);
+router16.use(workspace_default);
+router16.use(whatsapp_default);
+router16.use(instagram_default);
+router16.use(meta_connect_default);
+var routes_default = router16;
 
 // src/bootstrap-schema.sql
 var bootstrap_schema_default = `CREATE SCHEMA IF NOT EXISTS sweet_tooth;\r
@@ -74794,7 +74928,7 @@ function ensureDatabase() {
 
 // src/app.ts
 await ensureDatabase();
-var app = (0, import_express18.default)();
+var app = (0, import_express19.default)();
 if (process.env.CLERK_SECRET_KEY) {
   app.use(clerkMiddleware());
 }
@@ -74818,10 +74952,10 @@ app.use((0, import_cors.default)({
   },
   methods: ["GET", "POST", "PATCH", "PUT", "OPTIONS"]
 }));
-app.use("/api/webhooks/whatsapp", import_express18.default.raw({ type: "application/json", limit: "256kb" }));
-app.use("/api/webhooks/instagram", import_express18.default.raw({ type: "application/json", limit: "256kb" }));
-app.use(import_express18.default.json({ limit: "256kb" }));
-app.use(import_express18.default.urlencoded({ extended: true, limit: "64kb" }));
+app.use("/api/webhooks/whatsapp", import_express19.default.raw({ type: "application/json", limit: "256kb" }));
+app.use("/api/webhooks/instagram", import_express19.default.raw({ type: "application/json", limit: "256kb" }));
+app.use(import_express19.default.json({ limit: "256kb" }));
+app.use(import_express19.default.urlencoded({ extended: true, limit: "64kb" }));
 app.get("/", (_req, res) => {
   res.json({ status: "ok", message: "Indus API is running", health: "/api/healthz" });
 });
