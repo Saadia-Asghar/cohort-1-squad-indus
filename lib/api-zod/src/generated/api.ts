@@ -193,6 +193,10 @@ export const CreateBakerResponse = zod.object({
   "advanceThresholdPkr": zod.number().optional(),
   "advancePercentage": zod.number().optional(),
   "paymentDetails": zod.string().optional(),
+  "socialLinks": zod.object({
+  "instagram": zod.string().url().optional(),
+  "facebook": zod.string().url().optional()
+}).optional(),
   "createdAt": zod.string()
 })
 
@@ -235,6 +239,10 @@ export const LoginBakerResponse = zod.object({
   "advanceThresholdPkr": zod.number().optional(),
   "advancePercentage": zod.number().optional(),
   "paymentDetails": zod.string().optional(),
+  "socialLinks": zod.object({
+  "instagram": zod.string().url().optional(),
+  "facebook": zod.string().url().optional()
+}).optional(),
   "createdAt": zod.string()
 })
 })
@@ -275,6 +283,10 @@ export const GetBakerResponse = zod.object({
   "advanceThresholdPkr": zod.number().optional(),
   "advancePercentage": zod.number().optional(),
   "paymentDetails": zod.string().optional(),
+  "socialLinks": zod.object({
+  "instagram": zod.string().url().optional(),
+  "facebook": zod.string().url().optional()
+}).optional(),
   "createdAt": zod.string()
 })
 
@@ -304,7 +316,10 @@ export const UpdateBakerBody = zod.object({
   "advanceThresholdPkr": zod.number().optional(),
   "advancePercentage": zod.number().optional(),
   "paymentDetails": zod.string().optional(),
-  "socialLinks": zod.object({ "instagram": zod.string().url().optional(), "facebook": zod.string().url().optional() }).optional()
+  "socialLinks": zod.object({
+  "instagram": zod.string().url().optional(),
+  "facebook": zod.string().url().optional()
+}).optional()
 })
 
 export const UpdateBakerResponse = zod.object({
@@ -335,6 +350,10 @@ export const UpdateBakerResponse = zod.object({
   "advanceThresholdPkr": zod.number().optional(),
   "advancePercentage": zod.number().optional(),
   "paymentDetails": zod.string().optional(),
+  "socialLinks": zod.object({
+  "instagram": zod.string().url().optional(),
+  "facebook": zod.string().url().optional()
+}).optional(),
   "createdAt": zod.string()
 })
 
@@ -1042,6 +1061,27 @@ export const GetBakerAnalyticsResponse = zod.object({
   "orders": zod.number(),
   "revenue": zod.number()
 })),
+  "topDeliveryAreas": zod.array(zod.object({
+  "area": zod.string(),
+  "orders": zod.number()
+})).optional(),
+  "priceBands": zod.array(zod.object({
+  "name": zod.string(),
+  "orders": zod.number(),
+  "revenue": zod.number()
+})).optional(),
+  "productTrends": zod.array(zod.object({
+  "name": zod.string(),
+  "currentOrders": zod.number(),
+  "previousOrders": zod.number(),
+  "changePercent": zod.number()
+})).optional(),
+  "salesForecast": zod.object({
+  "next7DaysOrders": zod.number(),
+  "next7DaysRevenue": zod.number(),
+  "confidence": zod.enum(['low', 'medium', 'high']),
+  "method": zod.string()
+}).optional(),
   "newCustomers": zod.number().optional(),
   "repeatCustomers": zod.number().optional(),
   "cancellationAnalytics": zod.object({
@@ -1300,3 +1340,5 @@ export const ListConversationsResponseItem = zod.object({
   "summary": zod.string().nullish()
 })
 export const ListConversationsResponse = zod.array(ListConversationsResponseItem)
+
+

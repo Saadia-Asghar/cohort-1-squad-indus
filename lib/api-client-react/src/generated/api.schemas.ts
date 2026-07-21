@@ -31,6 +31,11 @@ export interface BakerCard {
   startingPrice?: number | null;
 }
 
+export type BakerSocialLinks = {
+  instagram?: string;
+  facebook?: string;
+};
+
 export interface Baker {
   id: number;
   businessName: string;
@@ -69,7 +74,7 @@ export interface Baker {
   advanceThresholdPkr?: number;
   advancePercentage?: number;
   paymentDetails?: string;
-  socialLinks?: { instagram?: string; facebook?: string };
+  socialLinks?: BakerSocialLinks;
   createdAt: string;
 }
 
@@ -95,6 +100,11 @@ export interface BakerInput {
   paymentDetails?: string;
 }
 
+export type BakerUpdateSocialLinks = {
+  instagram?: string;
+  facebook?: string;
+};
+
 export interface BakerUpdate {
   businessName?: string;
   ownerName?: string;
@@ -113,7 +123,7 @@ export interface BakerUpdate {
   advanceThresholdPkr?: number;
   advancePercentage?: number;
   paymentDetails?: string;
-  socialLinks?: { instagram?: string; facebook?: string };
+  socialLinks?: BakerUpdateSocialLinks;
 }
 
 export interface BakerStats {
@@ -382,6 +392,40 @@ export interface TopProduct {
   revenue: number;
 }
 
+export interface DeliveryAreaStat {
+  area: string;
+  orders: number;
+}
+
+export interface PriceBandStat {
+  name: string;
+  orders: number;
+  revenue: number;
+}
+
+export interface ProductTrend {
+  name: string;
+  currentOrders: number;
+  previousOrders: number;
+  changePercent: number;
+}
+
+export type SalesForecastConfidence = typeof SalesForecastConfidence[keyof typeof SalesForecastConfidence];
+
+
+export const SalesForecastConfidence = {
+  low: 'low',
+  medium: 'medium',
+  high: 'high',
+} as const;
+
+export interface SalesForecast {
+  next7DaysOrders: number;
+  next7DaysRevenue: number;
+  confidence: SalesForecastConfidence;
+  method: string;
+}
+
 export interface AnalyticsData {
   period: string;
   dataPoints: AnalyticsDataPoint[];
@@ -389,6 +433,10 @@ export interface AnalyticsData {
   totalRevenue: number;
   avgOrderValue: number;
   topProducts: TopProduct[];
+  topDeliveryAreas?: DeliveryAreaStat[];
+  priceBands?: PriceBandStat[];
+  productTrends?: ProductTrend[];
+  salesForecast?: SalesForecast;
   newCustomers?: number;
   repeatCustomers?: number;
   cancellationAnalytics?: AnalyticsDataCancellationAnalytics;
@@ -591,3 +639,4 @@ buyerId: number;
 export type ListCustomersParams = {
 bakerId: number;
 };
+

@@ -12,6 +12,8 @@ import chatRouter from "./chat.js";
 import knowledgeRouter from "./knowledge.js";
 import workspaceRouter from "./workspace.js";
 import whatsappRouter from "./whatsapp.js";
+import instagramRouter from "./instagram.js";
+import metaConnectRouter from "./meta-connect.js";
 
 const router = Router();
 
@@ -28,5 +30,7 @@ router.use(chatRouter);
 router.use(knowledgeRouter);
 router.use(workspaceRouter);
 router.use(whatsappRouter);
+router.use(instagramRouter);
+router.use(metaConnectRouter);
 
 export default router;

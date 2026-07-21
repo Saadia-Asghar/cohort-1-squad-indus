@@ -7,6 +7,10 @@
  */
 import type { AnalyticsDataCancellationAnalytics } from './analyticsDataCancellationAnalytics';
 import type { AnalyticsDataPoint } from './analyticsDataPoint';
+import type { DeliveryAreaStat } from './deliveryAreaStat';
+import type { PriceBandStat } from './priceBandStat';
+import type { ProductTrend } from './productTrend';
+import type { SalesForecast } from './salesForecast';
 import type { TopProduct } from './topProduct';
 
 export interface AnalyticsData {
@@ -16,6 +20,10 @@ export interface AnalyticsData {
   totalRevenue: number;
   avgOrderValue: number;
   topProducts: TopProduct[];
+  topDeliveryAreas?: DeliveryAreaStat[];
+  priceBands?: PriceBandStat[];
+  productTrends?: ProductTrend[];
+  salesForecast?: SalesForecast;
   newCustomers?: number;
   repeatCustomers?: number;
   cancellationAnalytics?: AnalyticsDataCancellationAnalytics;

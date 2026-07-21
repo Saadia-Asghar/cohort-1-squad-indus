@@ -11,6 +11,7 @@ import {
 } from "@workspace/db";
 import { logger } from "./logger.js";
 import { sendN8nEvent } from "./n8n.js";
+import { deriveCustomerInsights } from "./customer-insights.js";
 
 export type AgentReply = {
   reply: string;
@@ -109,6 +110,7 @@ export async function generateAgentReply(
   buyerId: number | null,
   message: string,
   memory: typeof conversationMemoryTable.$inferSelect | null,
+  historyPreferences: Record<string, unknown> = {},
 ): Promise<AgentReply> {
   const [baker] = await db.select().from(bakersTable).where(eq(bakersTable.id, bakerId));
   if (!baker) return { reply: "Baker not found.", action: null, cartItemId: null, escalated: false };
@@ -264,7 +266,10 @@ export async function generateAgentReply(
     };
   }
 
-  const buyerPrefs = (memory?.preferences ?? {}) as Record<string, unknown>;
+  const buyerPrefs = {
+    ...((memory?.preferences ?? {}) as Record<string, unknown>),
+    ...historyPreferences,
+  };
   // Exact-first policy: the customer-facing answers below come from live
   // bakery records. Unknown questions fail closed to baker confirmation.
 
@@ -276,6 +281,13 @@ export async function generateAgentReply(
   ) {
     let available = products.filter((p) => p.isAvailable);
     if (buyerPrefs.eggless) available = available.filter((p) => p.isEgglessAvailable);
+    const favorites = Array.isArray(buyerPrefs.favoriteProducts)
+      ? new Set(buyerPrefs.favoriteProducts as string[])
+      : new Set<string>();
+    available = [...available].sort(
+      (a, b) =>
+        Number(favorites.has(b.name)) - Number(favorites.has(a.name)),
+    );
     if (available.length === 0) {
       return {
         reply: `${baker.businessName} doesn't have any ${buyerPrefs.eggless ? "eggless " : ""}products listed yet.`,
@@ -296,6 +308,8 @@ export async function generateAgentReply(
       .join("\n");
     const personalNote = buyerPrefs.eggless
       ? "\n\n(Showing eggless items only based on your preference)"
+      : favorites.size > 0
+        ? "\n\n(Your past favorites are shown first.)"
       : "";
     return {
       reply: `Here's ${baker.businessName}'s menu:\n\n${list}${personalNote}\n\nWhat would you like to order?`,
@@ -455,8 +469,9 @@ export type ProcessChatInput = {
   buyerId?: number | null;
   message: string;
   sessionId?: string;
-  channel?: "web" | "whatsapp";
+  channel?: "web" | "whatsapp" | "instagram";
   buyerWhatsapp?: string;
+  buyerExternalId?: string;
 };
 
 export type ProcessChatResult = AgentReply & { sessionId: string };
@@ -469,16 +484,20 @@ export async function processChatMessage(input: ProcessChatInput): Promise<Proce
   }
   let buyerId = input.buyerId ?? null;
 
-  // Resolve buyerId for WhatsApp or other channels using phone number
-  if (!buyerId && input.buyerWhatsapp) {
-    const whatsappClean = input.buyerWhatsapp.trim();
+  // Resolve a channel-scoped customer identity server-side. Instagram IDs are
+  // prefixed so they cannot collide with WhatsApp phone numbers.
+  const externalCustomerKey = input.buyerWhatsapp?.trim() ||
+    (input.channel === "instagram" && input.buyerExternalId
+      ? `instagram:${input.buyerExternalId.trim()}`
+      : null);
+  if (!buyerId && externalCustomerKey) {
     const [existingCustomer] = await db
       .select()
       .from(customersTable)
       .where(
         and(
           eq(customersTable.bakerId, bakerId),
-          eq(customersTable.whatsappNumber, whatsappClean)
+          eq(customersTable.whatsappNumber, externalCustomerKey)
         )
       );
 
@@ -488,8 +507,10 @@ export async function processChatMessage(input: ProcessChatInput): Promise<Proce
       const [newCustomer] = await db
         .insert(customersTable)
         .values({
-          name: `WhatsApp Guest (${whatsappClean.slice(-4)})`,
-          whatsappNumber: whatsappClean,
+          name: input.channel === "instagram"
+            ? `Instagram Guest (${externalCustomerKey.slice(-6)})`
+            : `WhatsApp Guest (${externalCustomerKey.slice(-4)})`,
+          whatsappNumber: externalCustomerKey,
           bakerId,
         })
         .returning();
@@ -499,11 +520,13 @@ export async function processChatMessage(input: ProcessChatInput): Promise<Proce
 
   const sid =
     input.sessionId?.trim().slice(0, 120) ??
-    (input.channel === "whatsapp" && input.buyerWhatsapp
-      ? `wa-${bakerId}-${input.buyerWhatsapp}`
+    ((input.channel === "whatsapp" && input.buyerWhatsapp) ||
+    (input.channel === "instagram" && input.buyerExternalId)
+      ? `${input.channel === "instagram" ? "ig" : "wa"}-${bakerId}-${input.buyerExternalId ?? input.buyerWhatsapp}`
       : `session-${bakerId}-${buyerId ?? 0}-${Date.now()}`);
 
   let memory: typeof conversationMemoryTable.$inferSelect | null = null;
+  let historyPreferences: Record<string, unknown> = {};
   if (buyerId) {
     const [existing] = await db
       .select()
@@ -515,6 +538,23 @@ export async function processChatMessage(input: ProcessChatInput): Promise<Proce
         ),
       );
     memory = existing ?? null;
+
+    const orderHistory = await db
+      .select({
+        totalPkr: ordersTable.totalPkr,
+        buyerArea: ordersTable.buyerArea,
+        status: ordersTable.status,
+        createdAt: ordersTable.createdAt,
+        items: ordersTable.items,
+      })
+      .from(ordersTable)
+      .where(
+        and(
+          eq(ordersTable.bakerId, bakerId),
+          eq(ordersTable.buyerId, buyerId),
+        ),
+      );
+    historyPreferences = deriveCustomerInsights(orderHistory);
   }
 
   await db.insert(chatMessagesTable).values({
@@ -525,7 +565,13 @@ export async function processChatMessage(input: ProcessChatInput): Promise<Proce
     content: message,
   });
 
-  const agentReply = await generateAgentReply(bakerId, buyerId, message, memory);
+  const agentReply = await generateAgentReply(
+    bakerId,
+    buyerId,
+    message,
+    memory,
+    historyPreferences,
+  );
 
   await db.insert(chatMessagesTable).values({
     bakerId,
@@ -538,7 +584,10 @@ export async function processChatMessage(input: ProcessChatInput): Promise<Proce
   if (buyerId) {
     const updatedPrefs = extractPreferences(
       message,
-      (memory?.preferences ?? {}) as Record<string, unknown>,
+      {
+        ...((memory?.preferences ?? {}) as Record<string, unknown>),
+        ...historyPreferences,
+      },
     );
     const newCount = (memory?.messageCount ?? 0) + 2;
     // Full chat messages are kept in the bakery inbox. Keep long-term memory
@@ -589,7 +638,12 @@ export async function processChatMessage(input: ProcessChatInput): Promise<Proce
       "chat",
     );
   } else if (!memory || memory.messageCount === 0) {
-    const channelLabel = input.channel === "whatsapp" ? "WhatsApp" : "your shop";
+    const channelLabel =
+      input.channel === "whatsapp"
+        ? "WhatsApp"
+        : input.channel === "instagram"
+          ? "Instagram"
+          : "your shop";
     await notify(
       bakerId,
       "new_message",

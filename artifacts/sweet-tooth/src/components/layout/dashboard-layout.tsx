@@ -1,8 +1,8 @@
 import { Link, useLocation } from "wouter";
 import { useState } from "react";
+import { useClerk } from "@clerk/react";
 import { useGetBaker } from "@workspace/api-client-react";
 import { useBuyerSession } from "@/hooks/use-session";
-import { clearBakerSession } from "@/lib/baker-session";
 import { NotificationBell } from "@/components/notification-bell";
 import {
   LayoutDashboard, ShoppingBag, Grid, DollarSign,
@@ -12,6 +12,7 @@ import {
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [location, navigate] = useLocation();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const { signOut } = useClerk();
   const { bakerId } = useBuyerSession();
   const { data: baker } = useGetBaker(bakerId, { query: { enabled: !!bakerId, queryKey: ["baker", bakerId] } });
 
@@ -27,9 +28,10 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     { href: "/dashboard/settings", label: "Settings", icon: Settings },
   ];
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     setIsLoggingOut(true);
-    clearBakerSession();
+    await signOut();
+    localStorage.removeItem("bakerId");
     navigate("/dashboard/login");
     setIsLoggingOut(false);
   };

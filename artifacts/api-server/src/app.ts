@@ -1,5 +1,6 @@
 import express from "express";
 import cors from "cors";
+import { clerkMiddleware } from "@clerk/express";
 import router from "./routes/index.js";
 import { ensureDatabase } from "./bootstrap-db.js";
 
@@ -8,6 +9,10 @@ import { ensureDatabase } from "./bootstrap-db.js";
 await ensureDatabase();
 
 const app = express();
+
+if (process.env.CLERK_SECRET_KEY) {
+  app.use(clerkMiddleware());
+}
 
 const allowedOrigins = new Set([
   process.env.FRONTEND_URL,
@@ -38,6 +43,7 @@ app.use(cors({
 // Meta signs the exact webhook bytes. This parser must run before the global
 // JSON parser so the WhatsApp route can verify the signature safely.
 app.use("/api/webhooks/whatsapp", express.raw({ type: "application/json", limit: "256kb" }));
+app.use("/api/webhooks/instagram", express.raw({ type: "application/json", limit: "256kb" }));
 app.use(express.json({ limit: "256kb" }));
 app.use(express.urlencoded({ extended: true, limit: "64kb" }));
 

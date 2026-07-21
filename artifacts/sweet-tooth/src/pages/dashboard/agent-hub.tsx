@@ -12,6 +12,7 @@ import {
 } from "@workspace/api-client-react";
 import type { KnowledgeReindexResult } from "@workspace/api-client-react";
 import { useBuyerSession } from "@/hooks/use-session";
+import { WhatsAppEmbeddedSignup } from "@/components/whatsapp-embedded-signup";
 import { useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import {
@@ -486,39 +487,18 @@ export default function AgentHub() {
             </div>
 
             <div className="p-5 rounded-xl border border-border bg-card shadow-sm space-y-4">
-              <h3 className="font-semibold flex items-center gap-2"><Settings className="w-4 h-4 text-muted-foreground" />Meta Webhook Setup</h3>
+              <h3 className="font-semibold flex items-center gap-2"><Settings className="w-4 h-4 text-muted-foreground" />Connect with Meta</h3>
               <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800 space-y-1">
-                <p className="font-medium">How to connect WhatsApp Business:</p>
+                <p className="font-medium">Secure multi-bakery WhatsApp onboarding:</p>
                 <ol className="list-decimal list-inside space-y-1 text-blue-700">
-                  <li>Go to <strong>Meta for Developers</strong> → Create an App → WhatsApp</li>
-                  <li>Generate a <strong>Webhook Verify Token</strong> (any random string)</li>
-                  <li>Set the webhook URL to: <code className="bg-blue-100 px-1 rounded break-all">/api/webhooks/whatsapp</code> (on your deployed API domain)</li>
-                  <li>Add <code className="bg-blue-100 px-1 rounded">WHATSAPP_ACCESS_TOKEN</code> to server environment</li>
-                  <li>Paste your verify token below and save — then enable the toggle above</li>
+                  <li>Click connect and sign in to the bakery's Meta Business account.</li>
+                  <li>Select or create the WhatsApp Business account and phone number.</li>
+                  <li>Sweet Tooth verifies the granted account, subscribes webhooks, and encrypts the token.</li>
+                  <li>Enable the agent toggle only after the connection shows as successful.</li>
                 </ol>
               </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Webhook Verify Token</label>
-                <input
-                  type="password"
-                  value={merged.metaWebhookToken ?? ""}
-                  onChange={e => setLocalConfig(prev => ({ ...prev, metaWebhookToken: e.target.value }))}
-                  placeholder={
-                    (config as { metaWebhookTokenPreview?: string | null })?.metaWebhookTokenPreview
-                      ? `Saved: ${(config as { metaWebhookTokenPreview?: string }).metaWebhookTokenPreview} — enter new to replace`
-                      : "Paste your Meta webhook verify token"
-                  }
-                  className="w-full px-3 py-2 border border-border rounded-lg bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-                />
-              </div>
-              <button
-                onClick={handleSave}
-                disabled={saving}
-                className="flex items-center gap-2 px-6 py-2.5 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors disabled:opacity-50"
-              >
-                <Save className="w-4 h-4" />
-                {saving ? "Saving..." : "Save WhatsApp Config"}
-              </button>
+              <WhatsAppEmbeddedSignup />
+              <p className="text-xs text-muted-foreground">The shared app webhook is configured once by the platform owner; bakers never paste access tokens into this page.</p>
             </div>
 
             <div className="p-5 rounded-xl border border-dashed border-border bg-muted/30 text-center">

@@ -1,6 +1,6 @@
 import { logger } from "./logger.js";
 
-const GRAPH_API = "https://graph.facebook.com/v21.0";
+const GRAPH_API = "https://graph.facebook.com/v25.0";
 
 export function normalizePhone(phone: string): string {
   return phone.replace(/\D/g, "");
@@ -19,8 +19,9 @@ export async function sendWhatsAppTextMessage(
   phoneNumberId: string,
   to: string,
   body: string,
+  accessToken?: string,
 ): Promise<boolean> {
-  const token = process.env.WHATSAPP_ACCESS_TOKEN;
+  const token = accessToken ?? process.env.WHATSAPP_ACCESS_TOKEN;
   if (!token) {
     logger.warn("WHATSAPP_ACCESS_TOKEN not set — skipping outbound WhatsApp reply");
     return false;

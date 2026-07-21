@@ -1,16 +1,20 @@
 import { Switch, Route, Router as WouterRouter } from "wouter";
 import type { ComponentType } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { useAuth } from "@clerk/react";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { setAuthTokenGetter, setBaseUrl } from "@workspace/api-client-react";
+import { setBaseUrl } from "@workspace/api-client-react";
+import {
+  ManagedAuthProvider,
+  useManagedBaker,
+} from "@/lib/managed-auth";
 
 // Read API URL from environment variable, falling back to same-origin proxy
 const apiUrl = import.meta.env.VITE_API_URL || "https://cohort-1-squad-indus-api-server-z3b.vercel.app";
 if (apiUrl) {
   setBaseUrl(apiUrl);
 }
-setAuthTokenGetter(() => getBakerSession()?.token ?? null);
 
 // Public pages: customers reach a baker's menu through a direct shared link.
 import Home from "@/pages/buyer/home";
@@ -31,14 +35,25 @@ import DashboardCalendar from "@/pages/dashboard/calendar";
 import DashboardAgentHub from "@/pages/dashboard/agent-hub";
 import BakerLogin from "@/pages/auth/baker-login";
 import BakerRegister from "@/pages/auth/baker-register";
-import { getBakerSession } from "@/lib/baker-session";
+import BakerOnboarding from "@/pages/auth/baker-onboarding";
 
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient();
 
 function ProtectedDashboard({ component: Component }: { component: ComponentType }) {
-  return getBakerSession() ? <Component /> : <BakerLogin />;
+  const { isLoaded: clerkLoaded, isSignedIn } = useAuth();
+  const managed = useManagedBaker();
+
+  if (!clerkLoaded || !managed.isLoaded) {
+    return <div className="min-h-screen bg-background px-6 py-20 text-center text-muted-foreground">Loading your secure session…</div>;
+  }
+  if (!isSignedIn) return <BakerLogin />;
+  if (managed.error) {
+    return <div role="alert" className="min-h-screen bg-background px-6 py-20 text-center text-destructive">{managed.error}</div>;
+  }
+  if (managed.needsOnboarding) return <BakerOnboarding />;
+  return managed.bakerId ? <Component /> : <BakerOnboarding />;
 }
 
 function Router() {
@@ -62,6 +77,7 @@ function Router() {
       <Route path="/dashboard/agent-hub" component={() => <ProtectedDashboard component={DashboardAgentHub} />} />
       <Route path="/dashboard/login" component={BakerLogin} />
       <Route path="/dashboard/register" component={BakerRegister} />
+      <Route path="/dashboard/onboarding" component={BakerOnboarding} />
       {/* Preserve old shared login links, but keep access baker-only. */}
       <Route path="/login" component={BakerLogin} />
       <Route path="/login/buyer" component={BakerLogin} />
@@ -74,12 +90,14 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-          <Router />
-        </WouterRouter>
-        <Toaster />
-      </TooltipProvider>
+      <ManagedAuthProvider>
+        <TooltipProvider>
+          <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+            <Router />
+          </WouterRouter>
+          <Toaster />
+        </TooltipProvider>
+      </ManagedAuthProvider>
     </QueryClientProvider>
   );
 }

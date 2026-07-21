@@ -11,6 +11,8 @@ CREATE TABLE IF NOT EXISTS sweet_tooth.bakers (
   whatsapp_number TEXT NOT NULL UNIQUE,
   email TEXT UNIQUE,
   password_hash TEXT,
+  clerk_user_id TEXT UNIQUE,
+  clerk_organization_id TEXT UNIQUE,
   require_advance BOOLEAN NOT NULL DEFAULT false,
   cancellation_reason TEXT,
   cancelled_by TEXT,
@@ -36,6 +38,39 @@ CREATE TABLE IF NOT EXISTS sweet_tooth.bakers (
   photo_url TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS sweet_tooth.meta_connections (
+  id SERIAL PRIMARY KEY,
+  baker_id INTEGER NOT NULL UNIQUE,
+  meta_business_id TEXT,
+  whatsapp_business_account_id TEXT,
+  whatsapp_phone_number_id TEXT UNIQUE,
+  whatsapp_access_token_encrypted TEXT,
+  instagram_page_id TEXT,
+  instagram_account_id TEXT UNIQUE,
+  instagram_access_token_encrypted TEXT,
+  granted_scopes TEXT[] NOT NULL DEFAULT '{}',
+  status TEXT NOT NULL DEFAULT 'pending',
+  token_expires_at TIMESTAMPTZ,
+  last_verified_at TIMESTAMPTZ,
+  metadata JSONB DEFAULT '{}',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS sweet_tooth.channel_events (
+  id SERIAL PRIMARY KEY,
+  provider TEXT NOT NULL,
+  external_id TEXT NOT NULL,
+  baker_id INTEGER NOT NULL,
+  channel TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'processing',
+  payload_hash TEXT NOT NULL,
+  last_error_code TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  completed_at TIMESTAMPTZ,
+  CONSTRAINT channel_events_provider_external_uniq UNIQUE (provider, external_id)
 );
 
 CREATE TABLE IF NOT EXISTS sweet_tooth.products (
@@ -216,6 +251,12 @@ CREATE INDEX IF NOT EXISTS baker_reminders_baker_idx ON sweet_tooth.baker_remind
 ALTER TABLE sweet_tooth.customers ADD COLUMN IF NOT EXISTS is_at_risk BOOLEAN NOT NULL DEFAULT false;
 ALTER TABLE sweet_tooth.bakers ADD COLUMN IF NOT EXISTS email TEXT UNIQUE;
 ALTER TABLE sweet_tooth.bakers ADD COLUMN IF NOT EXISTS password_hash TEXT;
+ALTER TABLE sweet_tooth.bakers ADD COLUMN IF NOT EXISTS clerk_user_id TEXT UNIQUE;
+ALTER TABLE sweet_tooth.bakers ADD COLUMN IF NOT EXISTS clerk_organization_id TEXT UNIQUE;
+CREATE UNIQUE INDEX IF NOT EXISTS bakers_clerk_user_id_uniq
+  ON sweet_tooth.bakers (clerk_user_id) WHERE clerk_user_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS bakers_clerk_organization_id_uniq
+  ON sweet_tooth.bakers (clerk_organization_id) WHERE clerk_organization_id IS NOT NULL;
 ALTER TABLE sweet_tooth.bakers ADD COLUMN IF NOT EXISTS require_advance BOOLEAN NOT NULL DEFAULT false;
 ALTER TABLE sweet_tooth.bakers ADD COLUMN IF NOT EXISTS advance_threshold_pkr INTEGER NOT NULL DEFAULT 2000;
 ALTER TABLE sweet_tooth.bakers ADD COLUMN IF NOT EXISTS advance_percentage INTEGER NOT NULL DEFAULT 50;

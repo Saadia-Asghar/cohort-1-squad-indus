@@ -277,6 +277,46 @@ export default function DashboardAnalytics() {
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+                    <h3 className="font-serif text-xl font-bold">7-day sales estimate</h3>
+                    <p className="mt-3 text-3xl font-bold font-mono text-primary">
+                      PKR {analytics?.salesForecast?.next7DaysRevenue.toLocaleString() ?? 0}
+                    </p>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      About {analytics?.salesForecast?.next7DaysOrders ?? 0} orders · {analytics?.salesForecast?.confidence ?? "low"} confidence
+                    </p>
+                    <p className="mt-3 text-xs text-muted-foreground">
+                      Simple {analytics?.salesForecast?.method ?? "historical run-rate estimate"}; this is planning guidance, not a guarantee.
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+                    <h3 className="font-serif text-xl font-bold mb-3">Customer price bands</h3>
+                    <div className="space-y-3">
+                      {analytics?.priceBands?.map((band) => (
+                        <div key={band.name} className="flex items-center justify-between gap-3 text-sm">
+                          <div><p className="font-medium">{band.name}</p><p className="text-xs text-muted-foreground">{band.orders} orders</p></div>
+                          <span className="font-mono">PKR {band.revenue.toLocaleString()}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+                    <h3 className="font-serif text-xl font-bold mb-3">Product momentum</h3>
+                    <div className="space-y-3">
+                      {analytics?.productTrends?.map((trend) => (
+                        <div key={trend.name} className="flex items-center justify-between gap-3 text-sm">
+                          <div><p className="font-medium">{trend.name}</p><p className="text-xs text-muted-foreground">{trend.currentOrders} vs {trend.previousOrders} prior</p></div>
+                          <span className={`font-mono font-semibold ${trend.changePercent >= 0 ? "text-emerald-600" : "text-destructive"}`}>
+                            {trend.changePercent >= 0 ? "+" : ""}{trend.changePercent}%
+                          </span>
+                        </div>
+                      ))}
+                      {!analytics?.productTrends?.length && <p className="text-sm text-muted-foreground">Product trends appear after orders are recorded.</p>}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                   <div className="p-6 rounded-xl border border-border bg-card shadow-sm">
                     <h3 className="font-serif text-xl font-bold">Order cancellations</h3>
                     <p className="mt-2 text-3xl font-bold font-mono text-destructive">{analytics?.cancellationAnalytics?.total ?? 0}</p>
@@ -302,12 +342,12 @@ export default function DashboardAnalytics() {
                   <h3 className="font-serif text-xl font-bold">Most requested delivery areas</h3>
                   <p className="mt-1 text-sm text-muted-foreground">Based on checkout locations from your marketplace orders.</p>
                   <div className="mt-4 flex flex-wrap gap-3">
-                    {((analytics as any)?.topDeliveryAreas ?? []).map((item: { area: string; orders: number }) => (
+                    {(analytics?.topDeliveryAreas ?? []).map((item) => (
                       <div key={item.area} className="rounded-lg bg-primary/10 px-4 py-3 text-sm text-primary">
                         <span className="font-semibold">{item.area}</span><span className="ml-2 font-mono text-xs">{item.orders} orders</span>
                       </div>
                     ))}
-                    {!((analytics as any)?.topDeliveryAreas?.length) && <p className="text-sm text-muted-foreground">Delivery-area data appears after customers complete checkout.</p>}
+                    {!analytics?.topDeliveryAreas?.length && <p className="text-sm text-muted-foreground">Delivery-area data appears after customers complete checkout.</p>}
                   </div>
                 </div>
               </>

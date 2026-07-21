@@ -14,6 +14,8 @@ export const bakersTable = sweetTooth.table("bakers", {
   whatsappNumber: text("whatsapp_number").notNull().unique(),
   email: text("email").unique(),
   passwordHash: text("password_hash"),
+  clerkUserId: text("clerk_user_id").unique(),
+  clerkOrganizationId: text("clerk_organization_id").unique(),
   requireAdvance: boolean("require_advance").notNull().default(false),
   advanceThresholdPkr: integer("advance_threshold_pkr").notNull().default(2000),
   advancePercentage: integer("advance_percentage").notNull().default(50),

@@ -1289,6 +1289,20 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/TopProduct"
+        topDeliveryAreas:
+          type: array
+          items:
+            $ref: "#/components/schemas/DeliveryAreaStat"
+        priceBands:
+          type: array
+          items:
+            $ref: "#/components/schemas/PriceBandStat"
+        productTrends:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProductTrend"
+        salesForecast:
+          $ref: "#/components/schemas/SalesForecast"
         newCustomers: { type: integer }
         repeatCustomers: { type: integer }
         cancellationAnalytics:
@@ -1313,6 +1327,39 @@ components:
         name: { type: string }
         orders: { type: integer }
         revenue: { type: integer }
+
+    DeliveryAreaStat:
+      type: object
+      required: [area, orders]
+      properties:
+        area: { type: string }
+        orders: { type: integer }
+
+    PriceBandStat:
+      type: object
+      required: [name, orders, revenue]
+      properties:
+        name: { type: string }
+        orders: { type: integer }
+        revenue: { type: integer }
+
+    ProductTrend:
+      type: object
+      required: [name, currentOrders, previousOrders, changePercent]
+      properties:
+        name: { type: string }
+        currentOrders: { type: integer }
+        previousOrders: { type: integer }
+        changePercent: { type: integer }
+
+    SalesForecast:
+      type: object
+      required: [next7DaysOrders, next7DaysRevenue, confidence, method]
+      properties:
+        next7DaysOrders: { type: integer }
+        next7DaysRevenue: { type: integer }
+        confidence: { type: string, enum: [low, medium, high] }
+        method: { type: string }
 
     OrderSourceStat:
       type: object

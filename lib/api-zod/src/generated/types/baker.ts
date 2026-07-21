@@ -5,6 +5,7 @@
  * Sweet Tooth — Pakistan's Home Baker Platform API
  * OpenAPI spec version: 0.1.0
  */
+import type { BakerSocialLinks } from './bakerSocialLinks';
 
 export interface Baker {
   id: number;
@@ -44,5 +45,6 @@ export interface Baker {
   advanceThresholdPkr?: number;
   advancePercentage?: number;
   paymentDetails?: string;
+  socialLinks?: BakerSocialLinks;
   createdAt: string;
 }

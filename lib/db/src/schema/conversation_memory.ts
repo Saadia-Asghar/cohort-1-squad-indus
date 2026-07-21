@@ -15,6 +15,12 @@ export const conversationMemoryTable = sweetTooth.table("conversation_memory", {
     favoriteProducts?: string[];
     allergies?: string[];
     usualOrderSize?: string;
+    averageOrderValuePkr?: number;
+    priceBand?: "budget" | "mid-range" | "premium";
+    minOrderValuePkr?: number;
+    maxOrderValuePkr?: number;
+    orderCount?: number;
+    lastOrderAt?: string;
   }>().default({}),
   messageCount: integer("message_count").notNull().default(0),
   lastActiveAt: timestamp("last_active_at", { withTimezone: true }).notNull().defaultNow(),

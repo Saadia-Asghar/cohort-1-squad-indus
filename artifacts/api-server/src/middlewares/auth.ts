@@ -1,11 +1,79 @@
 import type { Request, Response, NextFunction } from "express";
+import { getAuth } from "@clerk/express";
+import { eq } from "drizzle-orm";
+import { db, bakersTable } from "@workspace/db";
 import { verifyToken } from "../lib/auth.js";
 
 export interface AuthenticatedRequest extends Request {
   bakerId?: number;
+  clerkUserId?: string;
+  clerkOrganizationId?: string;
 }
 
-export function requireBakerAuth(req: Request, res: Response, next: NextFunction): void {
+function clerkIsRequired(): boolean {
+  if (process.env.AUTH_MODE === "legacy") return false;
+  return process.env.AUTH_MODE === "clerk" || process.env.NODE_ENV === "production";
+}
+
+export function requireClerkUser(req: Request, res: Response, next: NextFunction): void {
+  if (!process.env.CLERK_SECRET_KEY) {
+    res.status(503).json({ error: "Managed authentication is not configured." });
+    return;
+  }
+
+  const auth = getAuth(req);
+  if (!auth.userId) {
+    res.status(401).json({ error: "Sign in is required." });
+    return;
+  }
+
+  const request = req as AuthenticatedRequest;
+  request.clerkUserId = auth.userId;
+  request.clerkOrganizationId = auth.orgId ?? undefined;
+  next();
+}
+
+export async function requireBakerAuth(req: Request, res: Response, next: NextFunction): Promise<void> {
+  if (process.env.CLERK_SECRET_KEY && process.env.AUTH_MODE !== "legacy") {
+    const auth = getAuth(req);
+    if (!auth.userId) {
+      res.status(401).json({ error: "Sign in is required." });
+      return;
+    }
+
+    const [baker] = auth.orgId
+      ? await db
+          .select({ id: bakersTable.id })
+          .from(bakersTable)
+          .where(eq(bakersTable.clerkOrganizationId, auth.orgId))
+          .limit(1)
+      : await db
+          .select({ id: bakersTable.id })
+          .from(bakersTable)
+          .where(eq(bakersTable.clerkUserId, auth.userId))
+          .limit(1);
+
+    if (!baker) {
+      res.status(403).json({
+        error: "Complete bakery onboarding before accessing the dashboard.",
+        code: "BAKER_ONBOARDING_REQUIRED",
+      });
+      return;
+    }
+
+    const request = req as AuthenticatedRequest;
+    request.bakerId = baker.id;
+    request.clerkUserId = auth.userId;
+    request.clerkOrganizationId = auth.orgId ?? undefined;
+    next();
+    return;
+  }
+
+  if (clerkIsRequired()) {
+    res.status(503).json({ error: "Managed authentication is not configured." });
+    return;
+  }
+
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
     res.status(401).json({ error: "Access denied. No token provided." });

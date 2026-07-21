@@ -1,4 +1,5 @@
 import { Router } from "express";
+import crypto from "node:crypto";
 import { eq, inArray, or, sql } from "drizzle-orm";
 import { db, bakersTable, productsTable, reviewsTable, ordersTable } from "@workspace/db";
 import {
@@ -11,8 +12,19 @@ import {
   CreateBakerBody,
 } from "@workspace/api-zod";
 import { z } from "zod";
-import { hashPassword, verifyPassword, signToken } from "../lib/auth.js";
-import { requireBakerAuth, requireBakerOwnership } from "../middlewares/auth.js";
+import { clerkClient } from "@clerk/express";
+import {
+  hashPassword,
+  needsPasswordRehash,
+  verifyPassword,
+  signToken,
+} from "../lib/auth.js";
+import {
+  type AuthenticatedRequest,
+  requireBakerAuth,
+  requireBakerOwnership,
+  requireClerkUser,
+} from "../middlewares/auth.js";
 import { rebuildBakerKnowledgeIndex } from "../lib/rag/pipeline.js";
 import { rateLimit } from "../middlewares/rate-limiter.js";
 
@@ -44,7 +56,16 @@ function databaseErrorCode(error: unknown): string | undefined {
 }
 
 function toPublicBaker(baker: Record<string, unknown>) {
-  const { passwordHash, metaWebhookToken, whatsappNumber, email, paymentDetails, ...publicBaker } = baker;
+  const {
+    passwordHash,
+    metaWebhookToken,
+    whatsappNumber,
+    email,
+    paymentDetails,
+    clerkUserId,
+    clerkOrganizationId,
+    ...publicBaker
+  } = baker;
   const digits = String(whatsappNumber ?? "").replace(/\D/g, "");
   const internationalNumber = digits.startsWith("0") ? `92${digits.slice(1)}` : digits;
   return {
@@ -65,7 +86,13 @@ function toPublicBaker(baker: Record<string, unknown>) {
 }
 
 function toAuthenticatedBaker(baker: Record<string, unknown>) {
-  const { passwordHash, metaWebhookToken, ...safeBaker } = baker;
+  const {
+    passwordHash,
+    metaWebhookToken,
+    clerkUserId,
+    clerkOrganizationId,
+    ...safeBaker
+  } = baker;
   return safeBaker;
 }
 
@@ -87,8 +114,160 @@ router.get("/bakers", async (req, res): Promise<void> => {
   res.json(bakerCards);
 });
 
+async function getVerifiedClerkEmail(userId: string): Promise<string> {
+  const user = await clerkClient.users.getUser(userId);
+  const primary = user.emailAddresses.find(
+    (email) =>
+      email.id === user.primaryEmailAddressId &&
+      email.verification?.status === "verified",
+  );
+  if (!primary) {
+    throw new Error("A verified primary email is required.");
+  }
+  return primary.emailAddress.trim().toLowerCase();
+}
+
+async function findClerkBaker(request: AuthenticatedRequest) {
+  if (request.clerkOrganizationId) {
+    const [organizationBaker] = await db
+      .select()
+      .from(bakersTable)
+      .where(eq(bakersTable.clerkOrganizationId, request.clerkOrganizationId))
+      .limit(1);
+    if (organizationBaker) return organizationBaker;
+  }
+
+  if (request.clerkUserId) {
+    const [userBaker] = await db
+      .select()
+      .from(bakersTable)
+      .where(eq(bakersTable.clerkUserId, request.clerkUserId))
+      .limit(1);
+    if (userBaker) return userBaker;
+  }
+
+  return null;
+}
+
+// GET /bakers/clerk/session — resolve a managed Clerk identity to its bakery.
+router.get("/bakers/clerk/session", requireClerkUser, async (req, res): Promise<void> => {
+  const request = req as AuthenticatedRequest;
+  const linked = await findClerkBaker(request);
+  if (linked) {
+    res.json({
+      needsOnboarding: false,
+      baker: { ...toAuthenticatedBaker(linked), deliveryAreas: linked.deliveryAreas ?? [] },
+    });
+    return;
+  }
+
+  const email = await getVerifiedClerkEmail(request.clerkUserId!);
+  const [existingByEmail] = await db
+    .select()
+    .from(bakersTable)
+    .where(eq(bakersTable.email, email))
+    .limit(1);
+
+  if (existingByEmail?.clerkUserId && existingByEmail.clerkUserId !== request.clerkUserId) {
+    res.status(409).json({ error: "This bakery is already linked to another managed account." });
+    return;
+  }
+
+  if (existingByEmail) {
+    const [claimed] = await db
+      .update(bakersTable)
+      .set({
+        clerkUserId: request.clerkUserId!,
+        ...(request.clerkOrganizationId
+          ? { clerkOrganizationId: request.clerkOrganizationId }
+          : {}),
+      })
+      .where(eq(bakersTable.id, existingByEmail.id))
+      .returning();
+    res.json({
+      needsOnboarding: false,
+      baker: { ...toAuthenticatedBaker(claimed), deliveryAreas: claimed.deliveryAreas ?? [] },
+    });
+    return;
+  }
+
+  res.json({ needsOnboarding: true, email });
+});
+
+// POST /bakers/clerk/onboard — create the bakery after Clerk has verified identity.
+router.post(
+  "/bakers/clerk/onboard",
+  requireClerkUser,
+  rateLimit(5, 15 * 60 * 1000),
+  async (req, res): Promise<void> => {
+    const schema = z.object({
+      businessName: z.string().trim().min(2).max(120),
+      ownerName: z.string().trim().min(2).max(120),
+      city: z.string().trim().min(2).max(80),
+      whatsappNumber: z.string().trim().min(10).max(30),
+    });
+    const parsed = schema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: parsed.error.message });
+      return;
+    }
+
+    const request = req as AuthenticatedRequest;
+    if (await findClerkBaker(request)) {
+      res.status(409).json({ error: "This managed account already has a bakery." });
+      return;
+    }
+
+    const email = await getVerifiedClerkEmail(request.clerkUserId!);
+    const normalizedPhone = normalizePakistanPhone(parsed.data.whatsappNumber);
+    if (!normalizedPhone) {
+      res.status(400).json({ error: "Enter a valid Pakistani WhatsApp number." });
+      return;
+    }
+
+    const phoneVariants = phoneLookupVariants(parsed.data.whatsappNumber, normalizedPhone);
+    const [existing] = await db
+      .select({ id: bakersTable.id })
+      .from(bakersTable)
+      .where(or(eq(bakersTable.email, email), inArray(bakersTable.whatsappNumber, phoneVariants)));
+    if (existing) {
+      res.status(409).json({
+        error: "A bakery already uses this email or WhatsApp number. Sign in with its verified email to link it.",
+      });
+      return;
+    }
+
+    const slugBase =
+      parsed.data.businessName
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/(^-|-$)/g, "") || "bakery";
+    const [baker] = await db
+      .insert(bakersTable)
+      .values({
+        ...parsed.data,
+        whatsappNumber: normalizedPhone,
+        email,
+        slug: `${slugBase}-${crypto.randomBytes(4).toString("hex")}`,
+        clerkUserId: request.clerkUserId!,
+        clerkOrganizationId: request.clerkOrganizationId ?? null,
+        passwordHash: null,
+      })
+      .returning();
+
+    res.status(201).json({
+      needsOnboarding: false,
+      baker: { ...toAuthenticatedBaker(baker), deliveryAreas: baker.deliveryAreas ?? [] },
+    });
+  },
+);
+
 // POST /bakers (Register / Signup)
 router.post("/bakers", rateLimit(10, 15 * 60 * 1000), async (req, res): Promise<void> => {
+  if (process.env.AUTH_MODE !== "legacy" && (process.env.CLERK_SECRET_KEY || process.env.NODE_ENV === "production")) {
+    res.status(410).json({ error: "Use managed sign-up to create a bakery account." });
+    return;
+  }
   // We expect email and password in request body
   const schema = z.object({
     businessName: z.string(),
@@ -97,7 +276,7 @@ router.post("/bakers", rateLimit(10, 15 * 60 * 1000), async (req, res): Promise<
     whatsappNumber: z.string(),
     slug: z.string(),
     email: z.string().email(),
-    password: z.string().min(6),
+    password: z.string().min(12).max(128),
     tagline: z.string().optional(),
     bio: z.string().optional(),
   });
@@ -146,6 +325,10 @@ router.post("/bakers", rateLimit(10, 15 * 60 * 1000), async (req, res): Promise<
 
 // POST /bakers/login
 router.post("/bakers/login", rateLimit(10, 15 * 60 * 1000), async (req, res): Promise<void> => {
+  if (process.env.AUTH_MODE !== "legacy" && (process.env.CLERK_SECRET_KEY || process.env.NODE_ENV === "production")) {
+    res.status(410).json({ error: "Use managed sign-in to access the bakery dashboard." });
+    return;
+  }
   const schema = z.object({
     identifier: z.string().min(3),
     password: z.string(),
@@ -174,6 +357,13 @@ router.post("/bakers/login", rateLimit(10, 15 * 60 * 1000), async (req, res): Pr
   if (!isMatch) {
     res.status(401).json({ error: "Invalid email/number or password" });
     return;
+  }
+
+  if (needsPasswordRehash(baker.passwordHash)) {
+    await db
+      .update(bakersTable)
+      .set({ passwordHash: hashPassword(password) })
+      .where(eq(bakersTable.id, baker.id));
   }
 
   const token = signToken({ bakerId: baker.id, email: baker.email });
