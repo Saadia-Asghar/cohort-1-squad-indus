@@ -1,7 +1,7 @@
-import { SignIn, SignUp, useAuth } from "@clerk/react";
+import { SignIn, SignUp } from "@clerk/react";
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { ArrowLeft, Store, Mail, Lock, Sparkles, User, Phone } from "lucide-react";
+import { ArrowLeft, Store, Mail, Lock, Phone, ChevronDown, ChevronUp, UserCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,10 +10,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 export default function BakerLogin({ initialTab = "login" }: { initialTab?: "login" | "register" }) {
   const [activeTab, setActiveTab] = useState<"login" | "register">(initialTab);
   const [, setLocation] = useLocation();
-  const { isLoaded: clerkLoaded } = useAuth();
+  const [showClerkSSO, setShowClerkSSO] = useState(false);
   
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [ownerName, setOwnerName] = useState("");
   const [businessName, setBusinessName] = useState("");
   const [whatsappNumber, setWhatsappNumber] = useState("");
   const [loading, setLoading] = useState(false);
@@ -21,7 +22,6 @@ export default function BakerLogin({ initialTab = "login" }: { initialTab?: "log
   const handleCustomSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    // Redirect to onboarding or dashboard
     setTimeout(() => {
       setLoading(false);
       setLocation("/dashboard");
@@ -51,7 +51,7 @@ export default function BakerLogin({ initialTab = "login" }: { initialTab?: "log
             Baker Portal
           </CardTitle>
           <CardDescription className="text-sm">
-            Manage your kitchen orders, catalog & AI assistant
+            Manage kitchen orders, product catalog & AI assistant
           </CardDescription>
         </CardHeader>
 
@@ -67,108 +67,160 @@ export default function BakerLogin({ initialTab = "login" }: { initialTab?: "log
             </TabsList>
 
             <TabsContent value="login" className="space-y-4 focus-visible:outline-none">
-              <div className="flex justify-center min-h-[320px] items-center">
-                <SignIn
-                  routing="hash"
-                  fallbackRedirectUrl="/dashboard"
-                  signUpUrl="/dashboard/register"
-                />
-              </div>
-
-              {/* Fallback form if Clerk JS takes time or is blocked */}
-              <div className="pt-4 border-t border-border/60 text-center">
-                <p className="text-xs text-muted-foreground mb-3">Or quick login with credentials:</p>
-                <form onSubmit={handleCustomSubmit} className="space-y-3 text-left">
+              <form onSubmit={handleCustomSubmit} className="space-y-3">
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground block mb-1">Email or Phone Number</label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                     <Input
-                      type="email"
-                      placeholder="Baker Email address"
+                      type="text"
+                      placeholder="baker@example.com or +92 300 1234567"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       className="pl-9 text-sm"
                       required
                     />
                   </div>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground block mb-1">Password</label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                     <Input
                       type="password"
-                      placeholder="Password"
+                      placeholder="••••••••••••"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       className="pl-9 text-sm"
                       required
                     />
                   </div>
-                  <Button type="submit" className="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium" disabled={loading}>
-                    {loading ? "Signing in..." : "Enter Baker Dashboard"}
-                  </Button>
-                </form>
+                </div>
+                <Button type="submit" className="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium h-10 shadow-sm" disabled={loading}>
+                  {loading ? "Signing in..." : "Sign In to Dashboard"}
+                </Button>
+              </form>
+
+              {/* Optional Clerk Managed Auth toggle */}
+              <div className="pt-3 border-t border-border/60 text-center">
+                <button
+                  type="button"
+                  onClick={() => setShowClerkSSO(!showClerkSSO)}
+                  className="text-xs font-medium text-purple-600 dark:text-purple-400 hover:underline inline-flex items-center gap-1"
+                >
+                  {showClerkSSO ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                  {showClerkSSO ? "Hide Clerk Social Sign-In" : "Or Sign In with Clerk / Google"}
+                </button>
+
+                {showClerkSSO && (
+                  <div className="mt-3 flex justify-center">
+                    <SignIn
+                      routing="hash"
+                      fallbackRedirectUrl="/dashboard"
+                      signUpUrl="/dashboard/register"
+                    />
+                  </div>
+                )}
               </div>
             </TabsContent>
 
             <TabsContent value="register" className="space-y-4 focus-visible:outline-none">
-              <div className="flex justify-center min-h-[320px] items-center">
-                <SignUp
-                  routing="hash"
-                  fallbackRedirectUrl="/dashboard/onboarding"
-                  signInUrl="/dashboard/login"
-                />
-              </div>
-
-              {/* Fallback Register Form */}
-              <div className="pt-4 border-t border-border/60 text-center">
-                <p className="text-xs text-muted-foreground mb-3">Or create bakery directly:</p>
-                <form onSubmit={handleCustomSubmit} className="space-y-3 text-left">
+              <form onSubmit={handleCustomSubmit} className="space-y-3">
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground block mb-1">Bakery / Kitchen Name</label>
                   <div className="relative">
                     <Store className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                     <Input
                       type="text"
-                      placeholder="Bakery / Kitchen Name"
+                      placeholder="e.g. Meethi Khushiyan Bakery"
                       value={businessName}
                       onChange={(e) => setBusinessName(e.target.value)}
                       className="pl-9 text-sm"
                       required
                     />
                   </div>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground block mb-1">Owner Name</label>
+                  <div className="relative">
+                    <UserCheck className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      type="text"
+                      placeholder="e.g. Fatima Ali"
+                      value={ownerName}
+                      onChange={(e) => setOwnerName(e.target.value)}
+                      className="pl-9 text-sm"
+                      required
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground block mb-1">Email Address</label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                     <Input
                       type="email"
-                      placeholder="Email address"
+                      placeholder="fatima@example.com"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       className="pl-9 text-sm"
                       required
                     />
                   </div>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground block mb-1">WhatsApp Business Number</label>
                   <div className="relative">
                     <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                     <Input
                       type="tel"
-                      placeholder="WhatsApp Number (+92...)"
+                      placeholder="+92 300 1234567"
                       value={whatsappNumber}
                       onChange={(e) => setWhatsappNumber(e.target.value)}
                       className="pl-9 text-sm"
                       required
                     />
                   </div>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground block mb-1">Password</label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                     <Input
                       type="password"
-                      placeholder="Choose Password"
+                      placeholder="At least 8 characters"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       className="pl-9 text-sm"
                       required
                     />
                   </div>
-                  <Button type="submit" className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-medium shadow-sm" disabled={loading}>
-                    {loading ? "Registering..." : "Create Bakery Account"}
-                  </Button>
-                </form>
+                </div>
+                <Button type="submit" className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-medium h-10 shadow-sm" disabled={loading}>
+                  {loading ? "Creating Bakery..." : "Create Bakery Account"}
+                </Button>
+              </form>
+
+              {/* Optional Clerk Managed Register toggle */}
+              <div className="pt-3 border-t border-border/60 text-center">
+                <button
+                  type="button"
+                  onClick={() => setShowClerkSSO(!showClerkSSO)}
+                  className="text-xs font-medium text-purple-600 dark:text-purple-400 hover:underline inline-flex items-center gap-1"
+                >
+                  {showClerkSSO ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                  {showClerkSSO ? "Hide Clerk Social Sign-Up" : "Or Register with Clerk / Google"}
+                </button>
+
+                {showClerkSSO && (
+                  <div className="mt-3 flex justify-center">
+                    <SignUp
+                      routing="hash"
+                      fallbackRedirectUrl="/dashboard/onboarding"
+                      signInUrl="/dashboard/login"
+                    />
+                  </div>
+                )}
               </div>
             </TabsContent>
           </Tabs>
