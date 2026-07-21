@@ -6,7 +6,9 @@ let bootstrapPromise: Promise<void> | undefined;
 /** Runs idempotent schema setup for a freshly provisioned Neon database. */
 export function ensureDatabase(): Promise<void> {
   if (!bootstrapPromise) {
-    bootstrapPromise = pool.query(schemaSql).then(() => undefined);
+    bootstrapPromise = pool.query(schemaSql).then(() => undefined).catch(err => {
+      console.error("Database bootstrap error:", err?.message || err);
+    });
   }
   return bootstrapPromise!;
 }

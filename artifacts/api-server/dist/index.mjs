@@ -74921,7 +74921,9 @@ ON CONFLICT (baker_id, buyer_id) DO UPDATE SET preferences = EXCLUDED.preference
 var bootstrapPromise;
 function ensureDatabase() {
   if (!bootstrapPromise) {
-    bootstrapPromise = pool.query(bootstrap_schema_default).then(() => void 0);
+    bootstrapPromise = pool.query(bootstrap_schema_default).then(() => void 0).catch((err) => {
+      console.error("Database bootstrap error:", err?.message || err);
+    });
   }
   return bootstrapPromise;
 }
