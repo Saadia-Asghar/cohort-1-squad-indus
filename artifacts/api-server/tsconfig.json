@@ -6,6 +6,7 @@
     "incremental": true,
     "noEmitOnError": false,
     "noEmit": false,
+    "lib": ["es2022", "dom"],
     "tsBuildInfoFile": ".tsbuildinfo",
     "outDir": "dist",
     "rootDir": "src",
