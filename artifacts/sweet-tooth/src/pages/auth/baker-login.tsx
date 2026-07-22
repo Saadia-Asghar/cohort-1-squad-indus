@@ -37,7 +37,7 @@ export default function BakerLogin({ initialTab = "login" }: { initialTab?: "log
         >
           <ArrowLeft className="h-4 w-4" /> Back to Sweet Tooth
         </Link>
-        <span className="font-serif text-xl font-bold bg-gradient-to-r from-purple-700 via-pink-600 to-amber-600 bg-clip-text text-transparent">
+        <span className="font-serif text-2xl font-bold text-primary">
           Sweet Tooth
         </span>
       </div>

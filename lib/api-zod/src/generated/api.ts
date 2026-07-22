@@ -319,7 +319,8 @@ export const UpdateBakerBody = zod.object({
   "socialLinks": zod.object({
   "instagram": zod.string().url().optional(),
   "facebook": zod.string().url().optional()
-}).optional()
+}).optional(),
+  "blockedDates": zod.array(zod.string()).optional()
 })
 
 export const UpdateBakerResponse = zod.object({

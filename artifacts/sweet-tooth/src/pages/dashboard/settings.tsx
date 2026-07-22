@@ -22,6 +22,9 @@ export default function DashboardSettings() {
   const [deliveryAreasText, setDeliveryAreasText] = useState("");
   const [instagramUrl, setInstagramUrl] = useState("");
   const [facebookUrl, setFacebookUrl] = useState("");
+  const [maxOrdersPerDay, setMaxOrdersPerDay] = useState(10);
+  const [blockedDates, setBlockedDates] = useState<string[]>([]);
+  const [newBlockDate, setNewBlockDate] = useState("");
   const shopUrl = typeof window === "undefined" ? "" : `${window.location.origin}/menu/${bakerId}`;
   const qrCodeUrl = shopUrl ? `https://quickchart.io/qr?size=260&text=${encodeURIComponent(shopUrl)}` : "";
 
@@ -38,6 +41,20 @@ export default function DashboardSettings() {
     await copyShopLink();
   };
 
+  const addBlockedDate = () => {
+    if (!newBlockDate) return;
+    if (blockedDates.includes(newBlockDate)) {
+      alert("This date is already blocked!");
+      return;
+    }
+    setBlockedDates([...blockedDates, newBlockDate].sort());
+    setNewBlockDate("");
+  };
+
+  const removeBlockedDate = (dateToRemove: string) => {
+    setBlockedDates(blockedDates.filter(d => d !== dateToRemove));
+  };
+
   useEffect(() => {
     if (baker) {
       setBusinessName(baker.businessName ?? "");
@@ -49,6 +66,9 @@ export default function DashboardSettings() {
       setAdvancePercentage(baker.advancePercentage ?? 50);
       setPaymentDetails(baker.paymentDetails ?? "");
       setDeliveryAreasText((baker.deliveryAreas ?? []).join(", "));
+      setMaxOrdersPerDay(baker.maxOrdersPerDay ?? 10);
+      const conf = (baker as any).agentConfig ?? {};
+      setBlockedDates(conf.blockedDates ?? []);
       const links = (baker as any).socialLinks ?? {};
       setInstagramUrl(links.instagram ?? "");
       setFacebookUrl(links.facebook ?? "");
@@ -73,6 +93,8 @@ export default function DashboardSettings() {
         paymentDetails,
         deliveryAreas: deliveryAreasText.split(",").map((area) => area.trim()).filter(Boolean),
         socialLinks,
+        maxOrdersPerDay,
+        blockedDates,
       }
     }, {
       onSuccess: () => {
@@ -231,6 +253,63 @@ export default function DashboardSettings() {
                 value={codPolicy}
                 onChange={e => setCodPolicy(e.target.value)}
               />
+            </div>
+          </div>
+
+          <div className="p-6 rounded-xl border border-border bg-card shadow-sm space-y-4">
+            <h3 className="font-serif text-xl font-bold">📅 Calendar Capacity & Date Blocking</h3>
+            
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">Maximum orders per day</label>
+              <input 
+                type="number"
+                min="1"
+                className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary" 
+                value={maxOrdersPerDay}
+                onChange={e => setMaxOrdersPerDay(Number(e.target.value))}
+              />
+              <p className="text-xs text-muted-foreground">The calendar will display alerts when this limit is reached for a specific day.</p>
+            </div>
+
+            <div className="space-y-3 pt-4 border-t border-border/50">
+              <label className="text-sm font-medium text-foreground block">Block custom dates (e.g. Vacations or Holidays)</label>
+              <div className="flex gap-2">
+                <input 
+                  type="date"
+                  className="flex-1 px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary" 
+                  value={newBlockDate}
+                  onChange={e => setNewBlockDate(e.target.value)}
+                />
+                <button
+                  type="button"
+                  onClick={addBlockedDate}
+                  className="px-4 py-2 bg-secondary text-primary hover:bg-secondary/90 font-medium rounded-md transition-colors cursor-pointer"
+                >
+                  Block Date
+                </button>
+              </div>
+
+              {blockedDates.length > 0 ? (
+                <div className="flex flex-wrap gap-2 pt-2">
+                  {blockedDates.map((date) => (
+                    <span 
+                      key={date} 
+                      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-destructive/10 text-destructive text-xs font-semibold border border-destructive/20 animate-in fade-in duration-100"
+                    >
+                      {date}
+                      <button 
+                        type="button" 
+                        onClick={() => removeBlockedDate(date)}
+                        className="hover:text-destructive/80 font-bold focus:outline-none cursor-pointer"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground italic">No dates currently blocked.</p>
+              )}
             </div>
           </div>
           

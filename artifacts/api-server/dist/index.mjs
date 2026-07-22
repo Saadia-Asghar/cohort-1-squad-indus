@@ -51568,7 +51568,8 @@ var UpdateBakerBody = objectType({
   "socialLinks": objectType({
     "instagram": stringType().url().optional(),
     "facebook": stringType().url().optional()
-  }).optional()
+  }).optional(),
+  "blockedDates": arrayType(stringType()).optional()
 });
 var UpdateBakerResponse = objectType({
   "id": numberType(),
@@ -72152,7 +72153,7 @@ router2.patch("/bakers/:bakerId", requireBakerAuth, async (req, res) => {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
-  const { socialLinks, ...profileUpdates } = parsed.data;
+  const { socialLinks, blockedDates, ...profileUpdates } = parsed.data;
   const [existing] = await db.select().from(bakersTable).where(eq(bakersTable.id, params.data.bakerId));
   if (!existing) {
     res.status(404).json({ error: "Baker not found" });
@@ -72161,7 +72162,11 @@ router2.patch("/bakers/:bakerId", requireBakerAuth, async (req, res) => {
   const currentConfig = existing.agentConfig ?? {};
   const [baker] = await db.update(bakersTable).set({
     ...profileUpdates,
-    ...socialLinks !== void 0 ? { agentConfig: { ...currentConfig, socialLinks } } : {}
+    agentConfig: {
+      ...currentConfig,
+      ...socialLinks !== void 0 ? { socialLinks } : {},
+      ...blockedDates !== void 0 ? { blockedDates } : {}
+    }
   }).where(eq(bakersTable.id, params.data.bakerId)).returning();
   if (!baker) {
     res.status(404).json({ error: "Baker not found" });
@@ -72279,6 +72284,7 @@ router2.get("/bakers/:bakerId/agent-config", requireBakerAuth, requireBakerOwner
     dietaryPolicy: conf.dietaryPolicy ?? "",
     activeOffers: conf.activeOffers ?? "",
     preferredCustomerChannel: conf.preferredCustomerChannel ?? "web",
+    blockedDates: conf.blockedDates ?? [],
     whatsappWebhookUrl: "/api/webhooks/whatsapp"
   });
 });
@@ -72300,6 +72306,7 @@ router2.put("/bakers/:bakerId/agent-config", requireBakerAuth, requireBakerOwner
   if (body.dietaryPolicy !== void 0) agentConfigUpdate.dietaryPolicy = body.dietaryPolicy.slice(0, 600);
   if (body.activeOffers !== void 0) agentConfigUpdate.activeOffers = body.activeOffers.slice(0, 600);
   if (body.preferredCustomerChannel !== void 0) agentConfigUpdate.preferredCustomerChannel = body.preferredCustomerChannel;
+  if (body.blockedDates !== void 0) agentConfigUpdate.blockedDates = body.blockedDates;
   const [existing] = await db.select().from(bakersTable).where(eq(bakersTable.id, bakerId));
   if (!existing) {
     res.status(404).json({ error: "Baker not found" });
@@ -72339,6 +72346,7 @@ router2.put("/bakers/:bakerId/agent-config", requireBakerAuth, requireBakerOwner
     dietaryPolicy: conf.dietaryPolicy ?? "",
     activeOffers: conf.activeOffers ?? "",
     preferredCustomerChannel: conf.preferredCustomerChannel ?? "web",
+    blockedDates: conf.blockedDates ?? [],
     whatsappWebhookUrl: "/api/webhooks/whatsapp"
   });
 });

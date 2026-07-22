@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
-import { useListOrders, getListOrdersQueryKey } from "@workspace/api-client-react";
+import { useListOrders, getListOrdersQueryKey, useGetBaker } from "@workspace/api-client-react";
 import { useBuyerSession } from "@/hooks/use-session";
 import {
   format,
@@ -13,7 +13,7 @@ import {
   startOfWeek,
   endOfWeek,
 } from "date-fns";
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, MapPin, Phone, DollarSign, Tag, Gift } from "lucide-react";
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, MapPin, Phone, DollarSign, Tag, Gift, AlertCircle, Ban } from "lucide-react";
 
 export default function DashboardCalendar() {
   const { bakerId } = useBuyerSession();
@@ -25,6 +25,11 @@ export default function DashboardCalendar() {
     { bakerId },
     { query: { enabled: !!bakerId, queryKey: getListOrdersQueryKey({ bakerId }), refetchInterval: 10000 } }
   );
+
+  // Fetch baker config for capacity caps and date blocking
+  const { data: baker } = useGetBaker(bakerId, { query: { enabled: !!bakerId } });
+  const maxOrders = baker?.maxOrdersPerDay ?? 10;
+  const blockedDates = (baker as any)?.agentConfig?.blockedDates ?? [];
 
   const prevMonth = () => setCurrentDate(subMonths(currentDate, 1));
   const nextMonth = () => setCurrentDate(addMonths(currentDate, 1));
@@ -88,19 +93,50 @@ export default function DashboardCalendar() {
               {days.map((day, idx) => {
                 const dayOrders = getOrdersForDay(day);
                 const isCurrentMonth = day.getMonth() === currentDate.getMonth();
+                const dayStr = format(day, "yyyy-MM-dd");
+                const isBlocked = blockedDates.includes(dayStr);
+                const isOverCap = dayOrders.length >= maxOrders;
 
                 return (
                   <div
                     key={idx}
-                    className={`border-b border-r border-border p-2 flex flex-col min-h-24 ${
-                      isCurrentMonth ? "bg-card" : "bg-muted/10 text-muted-foreground"
+                    className={`border-b border-r border-border p-2 flex flex-col min-h-24 transition-colors relative ${
+                      isBlocked
+                        ? "bg-red-50/30 dark:bg-red-950/5 text-red-900/60"
+                        : isCurrentMonth
+                        ? "bg-card"
+                        : "bg-muted/10 text-muted-foreground"
                     }`}
                   >
-                    <span className={`text-xs font-semibold ${isCurrentMonth ? "text-foreground" : "text-muted-foreground/50"}`}>
-                      {format(day, "d")}
-                    </span>
+                    <div className="flex justify-between items-center mb-1">
+                      <span className={`text-xs font-semibold ${
+                        isBlocked 
+                          ? "text-red-600 dark:text-red-400 font-bold" 
+                          : isCurrentMonth 
+                          ? "text-foreground" 
+                          : "text-muted-foreground/50"
+                      }`}>
+                        {format(day, "d")}
+                      </span>
+                      
+                      {isBlocked && (
+                        <span className="text-[9px] px-1 py-0.5 rounded bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-200 font-bold inline-flex items-center gap-0.5" title="Date blocked by baker">
+                          <Ban className="w-2.5 h-2.5" /> Blocked
+                        </span>
+                      )}
 
-                    <div className="flex-1 space-y-1 mt-1 overflow-y-auto max-h-20 scrollbar-none">
+                      {!isBlocked && dayOrders.length > 0 && (
+                        <span className={`text-[9px] px-1 py-0.5 rounded font-bold ${
+                          isOverCap 
+                            ? "bg-orange-100 text-orange-800 dark:bg-orange-950 dark:text-orange-200" 
+                            : "bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-200"
+                        }`} title={`Orders booked: ${dayOrders.length}/${maxOrders}`}>
+                          {isOverCap ? "Full Capacity" : `${dayOrders.length}/${maxOrders}`}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="flex-1 space-y-1 overflow-y-auto max-h-20 scrollbar-none">
                       {dayOrders.map((order) => (
                         <button
                           key={order.id}
