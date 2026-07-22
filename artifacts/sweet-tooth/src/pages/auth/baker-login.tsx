@@ -1,16 +1,19 @@
 import { SignIn, SignUp } from "@clerk/react";
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { ArrowLeft, Store, Mail, Lock, Phone, ChevronDown, ChevronUp, UserCheck } from "lucide-react";
+import { ArrowLeft, Store, Mail, Lock, Phone, ChevronDown, ChevronUp, UserCheck, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useManagedBaker } from "@/lib/managed-auth";
+import { customFetch } from "@workspace/api-client-react";
 
 export default function BakerLogin({ initialTab = "login" }: { initialTab?: "login" | "register" }) {
   const [activeTab, setActiveTab] = useState<"login" | "register">(initialTab);
   const [, setLocation] = useLocation();
   const [showClerkSSO, setShowClerkSSO] = useState(false);
+  const { loginNatively } = useManagedBaker();
   
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -18,14 +21,25 @@ export default function BakerLogin({ initialTab = "login" }: { initialTab?: "log
   const [businessName, setBusinessName] = useState("");
   const [whatsappNumber, setWhatsappNumber] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  const handleCustomSubmit = (e: React.FormEvent) => {
+  const handleCustomSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
+    setError("");
+    try {
+      const response = await customFetch<{ token: string; baker: { id: number } }>("/api/bakers/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ identifier: email, password }),
+      });
+      loginNatively(response.token, response.baker.id);
       setLocation("/dashboard");
-    }, 600);
+    } catch (err: any) {
+      setError(err?.message || "Invalid email/number or password");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -67,6 +81,12 @@ export default function BakerLogin({ initialTab = "login" }: { initialTab?: "log
             </TabsList>
 
             <TabsContent value="login" className="space-y-4 focus-visible:outline-none">
+              {error && (
+                <div className="flex items-center gap-2 p-3 text-xs font-semibold text-destructive rounded-lg bg-destructive/10 border border-destructive/20">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <span>{error}</span>
+                </div>
+              )}
               <form onSubmit={handleCustomSubmit} className="space-y-3">
                 <div>
                   <label className="text-xs font-semibold text-muted-foreground block mb-1">Email or Phone Number</label>
@@ -96,10 +116,28 @@ export default function BakerLogin({ initialTab = "login" }: { initialTab?: "log
                     />
                   </div>
                 </div>
-                <Button type="submit" className="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium h-10 shadow-sm" disabled={loading}>
+                <Button type="submit" className="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium h-10 shadow-sm cursor-pointer" disabled={loading}>
                   {loading ? "Signing in..." : "Sign In to Dashboard"}
                 </Button>
               </form>
+
+              <div className="rounded-xl border border-dashed border-purple-200 dark:border-purple-900/40 p-3 bg-purple-50/50 dark:bg-purple-950/10 space-y-2 mt-4">
+                <span className="text-xs font-bold text-purple-700 dark:text-purple-300 block">💡 Quick Demo Login details:</span>
+                <div className="text-[11px] text-muted-foreground space-y-1">
+                  <div><strong>Email:</strong> <code className="bg-background px-1.5 py-0.5 rounded border border-border select-all font-mono font-bold text-foreground">sana@studio.com</code></div>
+                  <div><strong>Password:</strong> <code className="bg-background px-1.5 py-0.5 rounded border border-border select-all font-mono font-bold text-foreground">sana123</code></div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEmail("sana@studio.com");
+                    setPassword("sana123");
+                  }}
+                  className="w-full text-center text-xs font-bold text-purple-600 hover:underline pt-1 block cursor-pointer"
+                >
+                  Auto-fill demo credentials
+                </button>
+              </div>
 
               {/* Optional Clerk Managed Auth toggle */}
               <div className="pt-3 border-t border-border/60 text-center">

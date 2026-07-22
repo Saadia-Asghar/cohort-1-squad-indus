@@ -25,25 +25,63 @@ type ManagedBakerContextValue = {
   needsOnboarding: boolean;
   error: string | null;
   refresh: () => Promise<void>;
+  loginNatively: (token: string, bakerId: number) => void;
+  logoutNatively: () => void;
 };
 
 const ManagedBakerContext = createContext<ManagedBakerContextValue | null>(null);
 
 export function ManagedAuthProvider({ children }: { children: ReactNode }) {
-  const { getToken, isLoaded: clerkLoaded, isSignedIn } = useAuth();
+  const { getToken: getClerkToken, isLoaded: clerkLoaded, isSignedIn: clerkSignedIn } = useAuth();
+  
+  const [nativeToken, setNativeToken] = useState<string | null>(() => 
+    typeof window !== "undefined" ? localStorage.getItem("baker_token") : null
+  );
+  const [nativeBakerId, setNativeBakerId] = useState<number>(() => 
+    typeof window !== "undefined" ? Number(localStorage.getItem("bakerId") || 0) : 0
+  );
+
   const [session, setSession] = useState<ClerkBakerSession | null>(null);
   const [loadingSession, setLoadingSession] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    setAuthTokenGetter(() => getToken());
+    if (nativeToken) {
+      setAuthTokenGetter(() => Promise.resolve(nativeToken));
+    } else {
+      setAuthTokenGetter(() => getClerkToken());
+    }
     return () => setAuthTokenGetter(null);
-  }, [getToken]);
+  }, [getClerkToken, nativeToken]);
+
+  const loginNatively = useCallback((token: string, bakerId: number) => {
+    localStorage.setItem("baker_token", token);
+    localStorage.setItem("bakerId", String(bakerId));
+    setNativeToken(token);
+    setNativeBakerId(bakerId);
+    setError(null);
+  }, []);
+
+  const logoutNatively = useCallback(() => {
+    localStorage.removeItem("baker_token");
+    localStorage.removeItem("bakerId");
+    setNativeToken(null);
+    setNativeBakerId(0);
+    setSession(null);
+  }, []);
 
   const refresh = useCallback(async () => {
-    if (!clerkLoaded || !isSignedIn) {
+    if (nativeToken && nativeBakerId) {
+      // Natively authenticated, skip Clerk session fetch
+      setLoadingSession(false);
+      return;
+    }
+
+    if (!clerkLoaded || !clerkSignedIn) {
       setSession(null);
-      localStorage.removeItem("bakerId");
+      if (!nativeToken) {
+        localStorage.removeItem("bakerId");
+      }
       return;
     }
 
@@ -57,16 +95,20 @@ export function ManagedAuthProvider({ children }: { children: ReactNode }) {
       if (next.baker?.id) {
         localStorage.setItem("bakerId", String(next.baker.id));
       } else {
-        localStorage.removeItem("bakerId");
+        if (!nativeToken) {
+          localStorage.removeItem("bakerId");
+        }
       }
     } catch (cause) {
       setSession(null);
-      localStorage.removeItem("bakerId");
+      if (!nativeToken) {
+        localStorage.removeItem("bakerId");
+      }
       setError(cause instanceof Error ? cause.message : "Could not load your bakery account.");
     } finally {
       setLoadingSession(false);
     }
-  }, [clerkLoaded, isSignedIn]);
+  }, [clerkLoaded, clerkSignedIn, nativeToken, nativeBakerId]);
 
   useEffect(() => {
     void refresh();
@@ -74,13 +116,17 @@ export function ManagedAuthProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<ManagedBakerContextValue>(
     () => ({
-      bakerId: session?.baker?.id ?? 0,
-      isLoaded: clerkLoaded && !loadingSession && (!isSignedIn || session !== null || error !== null),
-      needsOnboarding: Boolean(isSignedIn && session?.needsOnboarding),
+      bakerId: nativeToken ? nativeBakerId : (session?.baker?.id ?? 0),
+      isLoaded: nativeToken 
+        ? true 
+        : (clerkLoaded && !loadingSession && (!clerkSignedIn || session !== null || error !== null)),
+      needsOnboarding: nativeToken ? false : Boolean(clerkSignedIn && session?.needsOnboarding),
       error,
       refresh,
+      loginNatively,
+      logoutNatively,
     }),
-    [clerkLoaded, error, isSignedIn, loadingSession, refresh, session],
+    [clerkLoaded, error, clerkSignedIn, loadingSession, refresh, session, nativeToken, nativeBakerId, loginNatively, logoutNatively],
   );
 
   return (

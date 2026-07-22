@@ -45,6 +45,15 @@ function ProtectedDashboard({ component: Component }: { component: ComponentType
   const { isLoaded: clerkLoaded, isSignedIn } = useAuth();
   const managed = useManagedBaker();
 
+  const hasNativeSession = typeof window !== "undefined" && !!localStorage.getItem("baker_token");
+
+  if (hasNativeSession) {
+    if (!managed.isLoaded) {
+      return <div className="min-h-screen bg-background px-6 py-20 text-center text-muted-foreground">Loading your secure session…</div>;
+    }
+    return managed.bakerId ? <Component /> : <BakerOnboarding />;
+  }
+
   if (!clerkLoaded || !managed.isLoaded) {
     return <div className="min-h-screen bg-background px-6 py-20 text-center text-muted-foreground">Loading your secure session…</div>;
   }

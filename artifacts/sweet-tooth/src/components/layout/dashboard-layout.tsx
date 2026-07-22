@@ -5,6 +5,7 @@ import { useGetBaker } from "@workspace/api-client-react";
 import { useBuyerSession } from "@/hooks/use-session";
 import { NotificationBell } from "@/components/notification-bell";
 import { InAppBrowserModal } from "@/components/ui/in-app-browser";
+import { useManagedBaker } from "@/lib/managed-auth";
 import {
   LayoutDashboard, ShoppingBag, Grid, DollarSign,
   BarChart3, Users, Calendar, Settings, LogOut, Bot, Globe,
@@ -15,6 +16,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [browserUrl, setBrowserUrl] = useState<string | null>(null);
   const { signOut } = useClerk();
+  const { logoutNatively } = useManagedBaker();
   const { bakerId } = useBuyerSession();
   const { data: baker } = useGetBaker(bakerId, { query: { enabled: !!bakerId, queryKey: ["baker", bakerId] } });
 
@@ -32,8 +34,12 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
-    await signOut();
-    localStorage.removeItem("bakerId");
+    try {
+      await signOut();
+    } catch (e) {
+      console.warn("Clerk signout ignored:", e);
+    }
+    logoutNatively();
     navigate("/dashboard/login");
     setIsLoggingOut(false);
   };
