@@ -45,6 +45,7 @@ export interface Baker {
   advanceThresholdPkr?: number;
   advancePercentage?: number;
   paymentDetails?: string;
+  blockedDates?: Date[];
   socialLinks?: BakerSocialLinks;
   createdAt: string;
 }

@@ -946,6 +946,7 @@ components:
         advanceThresholdPkr: { type: integer }
         advancePercentage: { type: integer }
         paymentDetails: { type: string }
+        blockedDates: { type: array, items: { type: string, format: date } }
         socialLinks:
           type: object
           properties:
@@ -997,6 +998,7 @@ components:
         advanceThresholdPkr: { type: integer }
         advancePercentage: { type: integer }
         paymentDetails: { type: string }
+        blockedDates: { type: array, items: { type: string, format: date } }
         socialLinks:
           type: object
           properties:

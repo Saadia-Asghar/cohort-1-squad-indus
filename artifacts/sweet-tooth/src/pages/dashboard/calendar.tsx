@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
-import { useListOrders, getListOrdersQueryKey, useGetBaker } from "@workspace/api-client-react";
+import { useListOrders, getListOrdersQueryKey, useGetBaker, getGetBakerQueryKey } from "@workspace/api-client-react";
 import { useBuyerSession } from "@/hooks/use-session";
 import {
   format,
@@ -27,7 +27,9 @@ export default function DashboardCalendar() {
   );
 
   // Fetch baker config for capacity caps and date blocking
-  const { data: baker } = useGetBaker(bakerId, { query: { enabled: !!bakerId } });
+  const { data: baker } = useGetBaker(bakerId, {
+    query: { enabled: !!bakerId, queryKey: getGetBakerQueryKey(bakerId) },
+  });
   const maxOrders = baker?.maxOrdersPerDay ?? 10;
   const blockedDates = (baker as any)?.agentConfig?.blockedDates ?? [];
 

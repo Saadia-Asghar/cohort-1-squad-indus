@@ -22,6 +22,7 @@ type ClerkBakerSession = {
 type ManagedBakerContextValue = {
   bakerId: number;
   isLoaded: boolean;
+  hasNativeSession: boolean;
   needsOnboarding: boolean;
   error: string | null;
   refresh: () => Promise<void>;
@@ -46,13 +47,15 @@ export function ManagedAuthProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (nativeToken) {
-      setAuthTokenGetter(() => Promise.resolve(nativeToken));
-    } else {
-      setAuthTokenGetter(() => getClerkToken());
-    }
+    // Never await Clerk getToken while Clerk is broken/unloaded — it hangs forever
+    // on production domains with a pk_test key, which blocked native login entirely.
+    setAuthTokenGetter(() => {
+      if (nativeToken) return nativeToken;
+      if (!clerkLoaded || !clerkSignedIn) return null;
+      return getClerkToken();
+    });
     return () => setAuthTokenGetter(null);
-  }, [getClerkToken, nativeToken]);
+  }, [clerkLoaded, clerkSignedIn, getClerkToken, nativeToken]);
 
   const loginNatively = useCallback((token: string, bakerId: number) => {
     localStorage.setItem("baker_token", token);
@@ -117,8 +120,9 @@ export function ManagedAuthProvider({ children }: { children: ReactNode }) {
   const value = useMemo<ManagedBakerContextValue>(
     () => ({
       bakerId: nativeToken ? nativeBakerId : (session?.baker?.id ?? 0),
-      isLoaded: nativeToken 
-        ? true 
+      hasNativeSession: Boolean(nativeToken),
+      isLoaded: nativeToken
+        ? true
         : (clerkLoaded && !loadingSession && (!clerkSignedIn || session !== null || error !== null)),
       needsOnboarding: nativeToken ? false : Boolean(clerkSignedIn && session?.needsOnboarding),
       error,

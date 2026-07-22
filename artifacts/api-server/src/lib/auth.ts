@@ -65,7 +65,7 @@ export function verifyPassword(password: string, storedHash: string): boolean {
         scheme !== "pbkdf2" ||
         algorithm !== PASSWORD_ALGORITHM ||
         !Number.isInteger(iterations) ||
-        iterations < PASSWORD_ITERATIONS ||
+        iterations < 1 ||
         !salt ||
         !hash
       ) {

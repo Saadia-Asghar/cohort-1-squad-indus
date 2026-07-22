@@ -10,8 +10,10 @@ import {
   useManagedBaker,
 } from "@/lib/managed-auth";
 
-// Read API URL from environment variable, falling back to same-origin proxy
-const apiUrl = import.meta.env.VITE_API_URL || "https://cohort-1-squad-indus-api-server.vercel.app";
+// Read API URL from environment variable, falling back to the live production API alias.
+const apiUrl =
+  import.meta.env.VITE_API_URL ||
+  "https://cohort-1-squad-indus-api-server-z3b.vercel.app";
 if (apiUrl) {
   setBaseUrl(apiUrl);
 }
@@ -45,16 +47,14 @@ function ProtectedDashboard({ component: Component }: { component: ComponentType
   const { isLoaded: clerkLoaded, isSignedIn } = useAuth();
   const managed = useManagedBaker();
 
-  const hasNativeSession = typeof window !== "undefined" && !!localStorage.getItem("baker_token");
-
-  if (hasNativeSession) {
-    if (!managed.isLoaded) {
-      return <div className="min-h-screen bg-background px-6 py-20 text-center text-muted-foreground">Loading your secure session…</div>;
-    }
+  if (managed.hasNativeSession) {
     return managed.bakerId ? <Component /> : <BakerOnboarding />;
   }
 
-  if (!clerkLoaded || !managed.isLoaded) {
+  // Clerk development instances cannot initialize on a production domain.
+  // Keep the native, hardened login available instead of hanging forever.
+  if (!clerkLoaded) return <BakerLogin />;
+  if (!managed.isLoaded) {
     return <div className="min-h-screen bg-background px-6 py-20 text-center text-muted-foreground">Loading your secure session…</div>;
   }
   if (!isSignedIn) return <BakerLogin />;
@@ -84,12 +84,12 @@ function Router() {
       <Route path="/dashboard/customers" component={() => <ProtectedDashboard component={DashboardCustomers} />} />
       <Route path="/dashboard/calendar" component={() => <ProtectedDashboard component={DashboardCalendar} />} />
       <Route path="/dashboard/agent-hub" component={() => <ProtectedDashboard component={DashboardAgentHub} />} />
-      <Route path="/dashboard/login" component={BakerLogin} />
+      <Route path="/dashboard/login" component={() => <BakerLogin />} />
       <Route path="/dashboard/register" component={BakerRegister} />
       <Route path="/dashboard/onboarding" component={BakerOnboarding} />
       {/* Preserve old shared login links, but keep access baker-only. */}
-      <Route path="/login" component={BakerLogin} />
-      <Route path="/login/buyer" component={BakerLogin} />
+      <Route path="/login" component={() => <BakerLogin />} />
+      <Route path="/login/buyer" component={() => <BakerLogin />} />
 
       <Route component={NotFound} />
     </Switch>

@@ -21,12 +21,12 @@ describe("password hashing", () => {
     expect(needsPasswordRehash(hash)).toBe(false);
   });
 
-  it("reads legacy hashes only so they can be upgraded at login", () => {
+  it("still verifies older pbkdf2 work factors so login can rehash them", () => {
     const salt = crypto.randomBytes(16).toString("hex");
-    const legacyHash = crypto.pbkdf2Sync("legacy-password", salt, 1_000, 64, "sha512").toString("hex");
-    const stored = `${salt}:${legacyHash}`;
+    const hash = crypto.pbkdf2Sync("upgrade-me-now", salt, 100_000, 64, "sha512").toString("hex");
+    const stored = `pbkdf2$sha512$100000$${salt}$${hash}`;
 
-    expect(verifyPassword("legacy-password", stored)).toBe(true);
+    expect(verifyPassword("upgrade-me-now", stored)).toBe(true);
     expect(needsPasswordRehash(stored)).toBe(true);
   });
 

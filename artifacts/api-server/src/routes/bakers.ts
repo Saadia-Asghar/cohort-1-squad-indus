@@ -264,7 +264,7 @@ router.post(
 
 // POST /bakers (Register / Signup)
 router.post("/bakers", rateLimit(10, 15 * 60 * 1000), async (req, res): Promise<void> => {
-  if (process.env.AUTH_MODE !== "legacy" && (process.env.CLERK_SECRET_KEY || process.env.NODE_ENV === "production")) {
+  if (process.env.AUTH_MODE === "clerk-only") {
     res.status(410).json({ error: "Use managed sign-up to create a bakery account." });
     return;
   }

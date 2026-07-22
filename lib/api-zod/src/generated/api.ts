@@ -193,6 +193,7 @@ export const CreateBakerResponse = zod.object({
   "advanceThresholdPkr": zod.number().optional(),
   "advancePercentage": zod.number().optional(),
   "paymentDetails": zod.string().optional(),
+  "blockedDates": zod.array(zod.coerce.date()).optional(),
   "socialLinks": zod.object({
   "instagram": zod.string().url().optional(),
   "facebook": zod.string().url().optional()
@@ -239,6 +240,7 @@ export const LoginBakerResponse = zod.object({
   "advanceThresholdPkr": zod.number().optional(),
   "advancePercentage": zod.number().optional(),
   "paymentDetails": zod.string().optional(),
+  "blockedDates": zod.array(zod.coerce.date()).optional(),
   "socialLinks": zod.object({
   "instagram": zod.string().url().optional(),
   "facebook": zod.string().url().optional()
@@ -283,6 +285,7 @@ export const GetBakerResponse = zod.object({
   "advanceThresholdPkr": zod.number().optional(),
   "advancePercentage": zod.number().optional(),
   "paymentDetails": zod.string().optional(),
+  "blockedDates": zod.array(zod.coerce.date()).optional(),
   "socialLinks": zod.object({
   "instagram": zod.string().url().optional(),
   "facebook": zod.string().url().optional()
@@ -316,11 +319,11 @@ export const UpdateBakerBody = zod.object({
   "advanceThresholdPkr": zod.number().optional(),
   "advancePercentage": zod.number().optional(),
   "paymentDetails": zod.string().optional(),
+  "blockedDates": zod.array(zod.coerce.date()).optional(),
   "socialLinks": zod.object({
   "instagram": zod.string().url().optional(),
   "facebook": zod.string().url().optional()
-}).optional(),
-  "blockedDates": zod.array(zod.string()).optional()
+}).optional()
 })
 
 export const UpdateBakerResponse = zod.object({
@@ -351,6 +354,7 @@ export const UpdateBakerResponse = zod.object({
   "advanceThresholdPkr": zod.number().optional(),
   "advancePercentage": zod.number().optional(),
   "paymentDetails": zod.string().optional(),
+  "blockedDates": zod.array(zod.coerce.date()).optional(),
   "socialLinks": zod.object({
   "instagram": zod.string().url().optional(),
   "facebook": zod.string().url().optional()

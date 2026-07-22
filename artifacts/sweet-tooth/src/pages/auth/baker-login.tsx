@@ -20,10 +20,16 @@ export default function BakerLogin({ initialTab = "login" }: { initialTab?: "log
   const [ownerName, setOwnerName] = useState("");
   const [businessName, setBusinessName] = useState("");
   const [whatsappNumber, setWhatsappNumber] = useState("");
+  const [city, setCity] = useState("Karachi");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const handleCustomSubmit = async (e: React.FormEvent) => {
+  const finishAuth = (token: string, bakerId: number) => {
+    loginNatively(token, bakerId);
+    setLocation("/dashboard");
+  };
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError("");
@@ -31,12 +37,47 @@ export default function BakerLogin({ initialTab = "login" }: { initialTab?: "log
       const response = await customFetch<{ token: string; baker: { id: number } }>("/api/bakers/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ identifier: email, password }),
+        body: JSON.stringify({ identifier: email.trim(), password }),
       });
-      loginNatively(response.token, response.baker.id);
-      setLocation("/dashboard");
-    } catch (err: any) {
-      setError(err?.message || "Invalid email/number or password");
+      finishAuth(response.token, response.baker.id);
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message.replace(/^HTTP \d+\s*[^:]*:\s*/, "") : "Invalid email/number or password";
+      setError(message || "Invalid email/number or password");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+    try {
+      const slug = businessName
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "")
+        .slice(0, 48) || "bakery";
+      const response = await customFetch<{ token: string; baker: { id: number } }>("/api/bakers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          businessName: businessName.trim(),
+          ownerName: ownerName.trim(),
+          city: city.trim() || "Karachi",
+          whatsappNumber: whatsappNumber.trim(),
+          slug,
+          email: email.trim().toLowerCase(),
+          password,
+        }),
+      });
+      finishAuth(response.token, response.baker.id);
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message.replace(/^HTTP \d+\s*[^:]*:\s*/, "") : "Could not create your bakery account";
+      setError(message || "Could not create your bakery account");
     } finally {
       setLoading(false);
     }
@@ -87,7 +128,7 @@ export default function BakerLogin({ initialTab = "login" }: { initialTab?: "log
                   <span>{error}</span>
                 </div>
               )}
-              <form onSubmit={handleCustomSubmit} className="space-y-3">
+              <form onSubmit={handleLogin} className="space-y-3">
                 <div>
                   <label className="text-xs font-semibold text-muted-foreground block mb-1">Email or Phone Number</label>
                   <div className="relative">
@@ -121,24 +162,6 @@ export default function BakerLogin({ initialTab = "login" }: { initialTab?: "log
                 </Button>
               </form>
 
-              <div className="rounded-xl border border-dashed border-purple-200 dark:border-purple-900/40 p-3 bg-purple-50/50 dark:bg-purple-950/10 space-y-2 mt-4">
-                <span className="text-xs font-bold text-purple-700 dark:text-purple-300 block">💡 Quick Demo Login details:</span>
-                <div className="text-[11px] text-muted-foreground space-y-1">
-                  <div><strong>Email:</strong> <code className="bg-background px-1.5 py-0.5 rounded border border-border select-all font-mono font-bold text-foreground">sana@studio.com</code></div>
-                  <div><strong>Password:</strong> <code className="bg-background px-1.5 py-0.5 rounded border border-border select-all font-mono font-bold text-foreground">sana123</code></div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEmail("sana@studio.com");
-                    setPassword("sana123");
-                  }}
-                  className="w-full text-center text-xs font-bold text-purple-600 hover:underline pt-1 block cursor-pointer"
-                >
-                  Auto-fill demo credentials
-                </button>
-              </div>
-
               {/* Optional Clerk Managed Auth toggle */}
               <div className="pt-3 border-t border-border/60 text-center">
                 <button
@@ -163,7 +186,13 @@ export default function BakerLogin({ initialTab = "login" }: { initialTab?: "log
             </TabsContent>
 
             <TabsContent value="register" className="space-y-4 focus-visible:outline-none">
-              <form onSubmit={handleCustomSubmit} className="space-y-3">
+              {error && (
+                <div className="flex items-center gap-2 p-3 text-xs font-semibold text-destructive rounded-lg bg-destructive/10 border border-destructive/20">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <span>{error}</span>
+                </div>
+              )}
+              <form onSubmit={handleRegister} className="space-y-3">
                 <div>
                   <label className="text-xs font-semibold text-muted-foreground block mb-1">Bakery / Kitchen Name</label>
                   <div className="relative">
@@ -191,6 +220,17 @@ export default function BakerLogin({ initialTab = "login" }: { initialTab?: "log
                       required
                     />
                   </div>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground block mb-1">City</label>
+                  <Input
+                    type="text"
+                    placeholder="Karachi"
+                    value={city}
+                    onChange={(e) => setCity(e.target.value)}
+                    className="text-sm"
+                    required
+                  />
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-muted-foreground block mb-1">Email Address</label>
@@ -226,10 +266,11 @@ export default function BakerLogin({ initialTab = "login" }: { initialTab?: "log
                     <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                     <Input
                       type="password"
-                      placeholder="At least 8 characters"
+                      placeholder="At least 12 characters"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       className="pl-9 text-sm"
+                      minLength={12}
                       required
                     />
                   </div>
