@@ -27,19 +27,21 @@ import { PlanPicker } from "@/components/marketing/plan-picker";
 function OfferCard({
   offer,
   period,
+  featured: customFeatured,
   registerHref = "/dashboard/register",
 }: {
   offer: OfferPlan;
   period: Exclude<BillingPeriod, "quarterly">;
+  featured?: boolean;
   registerHref?: string;
 }) {
   const price = displayOfferPrice(offer, period);
-  const featured = offer.featured;
+  const featured = customFeatured !== undefined ? customFeatured : offer.featured;
   const services = serviceLabels(offer.serviceIds);
 
   return (
     <article
-      className={`relative flex flex-col rounded-2xl border p-6 shadow-sm ${
+      className={`relative flex flex-col h-full rounded-2xl border p-6 shadow-sm ${
         featured
           ? "border-primary bg-primary text-primary-foreground shadow-lg"
           : "border-border bg-card"
@@ -100,7 +102,7 @@ function OfferCard({
         <p className={`text-xs font-bold uppercase tracking-wide mb-2 ${featured ? "text-white/70" : "text-muted-foreground"}`}>
           Included services
         </p>
-        <ul className="space-y-2 text-sm max-h-56 overflow-y-auto pr-1">
+        <ul className="space-y-2 text-sm">
           {services.map((feature) => (
             <li key={feature} className="flex gap-2">
               <CheckCircle2
@@ -121,19 +123,21 @@ function OfferCard({
         </p>
       )}
 
-      <Link
-        href={`${registerHref}?plan=${offer.planId}&offer=${offer.id}&billing=${period}`}
-        className={`mt-6 inline-flex w-full items-center justify-center gap-2 rounded-xl px-5 py-3 font-bold transition-colors ${
-          featured
-            ? "bg-secondary text-primary hover:bg-secondary/90"
-            : offer.monthlyPkr === 0
-              ? "border border-primary text-primary hover:bg-primary/5"
-              : "bg-primary text-primary-foreground hover:bg-primary/90"
-        }`}
-      >
-        {offer.monthlyPkr === 0 ? "Start free" : `Choose ${offer.name}`}
-        <ArrowRight className="h-4 w-4" />
-      </Link>
+      <div className="mt-auto pt-6">
+        <Link
+          href={`${registerHref}?plan=${offer.planId}&offer=${offer.id}&billing=${period}`}
+          className={`inline-flex w-full items-center justify-center gap-2 rounded-xl px-5 py-3 font-bold transition-colors ${
+            featured
+              ? "bg-secondary text-primary hover:bg-secondary/90"
+              : offer.monthlyPkr === 0
+                ? "border border-primary text-primary hover:bg-primary/5"
+                : "bg-primary text-primary-foreground hover:bg-primary/90"
+          }`}
+        >
+          {offer.monthlyPkr === 0 ? "Start free" : `Choose ${offer.name}`}
+          <ArrowRight className="h-4 w-4" />
+        </Link>
+      </div>
     </article>
   );
 }
@@ -143,7 +147,13 @@ export function PricingSection({ compact = false }: { compact?: boolean }) {
   const [channel, setChannel] = useState<ChannelBundle>("whatsapp_only");
   const [billing, setBilling] = useState<Exclude<BillingPeriod, "quarterly">>("monthly");
 
-  const offers = useMemo(() => getOffersForFilters(size, channel), [size, channel]);
+  const offers = useMemo(() => {
+    return [
+      getOffersForFilters("small", channel)[0],
+      getOffersForFilters("medium", channel)[0],
+      getOffersForFilters("large", channel)[0],
+    ].filter(Boolean);
+  }, [channel]);
 
   return (
     <section id="pricing" className="scroll-mt-20 bg-muted px-4 py-16 md:py-20">
@@ -178,7 +188,7 @@ export function PricingSection({ compact = false }: { compact?: boolean }) {
           </p>
           <div className="mt-4 grid gap-4 sm:grid-cols-3">
             <label className="text-sm font-medium">
-              Bakery size
+              Bakery size (recommendation highlight)
               <select
                 value={size}
                 onChange={(e) => setSize(e.target.value as BakerSize)}
@@ -233,10 +243,18 @@ export function PricingSection({ compact = false }: { compact?: boolean }) {
           </div>
         </div>
 
-        <div className="mt-8 grid gap-6 md:grid-cols-2 xl:grid-cols-2">
-          {offers.map((offer) => (
-            <OfferCard key={offer.id} offer={offer} period={billing} />
-          ))}
+        <div className="mt-8 grid gap-6 lg:grid-cols-3">
+          {offers.map((offer) => {
+            const isFeatured = offer.size === size;
+            return (
+              <OfferCard
+                key={offer.id}
+                offer={offer}
+                period={billing}
+                featured={isFeatured}
+              />
+            );
+          })}
         </div>
 
         {offers.length === 0 && (
