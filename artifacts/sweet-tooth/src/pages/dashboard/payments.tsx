@@ -29,6 +29,9 @@ export default function DashboardPayments() {
 
   const markPaid = useMarkOrderPaid();
   const [screenshotUrls, setScreenshotUrls] = useState<Record<number, string>>({});
+  const [receiptFiles, setReceiptFiles] = useState<
+    Record<number, { base64: string; contentType: "image/jpeg" | "image/png" | "image/webp" }>
+  >({});
   const [ocrResults, setOcrResults] = useState<Record<number, OcrResult | null>>({});
   const [ocrErrors, setOcrErrors] = useState<Record<number, string | null>>({});
   const [verifyingId, setVerifyingId] = useState<number | null>(null);
@@ -46,26 +49,43 @@ export default function DashboardPayments() {
 
   const handleCheckReceipt = async (orderId: number, existingUrl?: string | null) => {
     const url = (screenshotUrls[orderId] ?? existingUrl ?? "").trim();
-    if (!url) {
-      setOcrErrors((prev) => ({ ...prev, [orderId]: "Paste an HTTPS receipt image URL first." }));
+    const fileData = receiptFiles[orderId];
+    if (!url && !fileData) {
+      setOcrErrors((prev) => ({
+        ...prev,
+        [orderId]: "Upload a receipt photo or paste an HTTPS image URL first.",
+      }));
       return;
     }
     setVerifyingId(orderId);
     setOcrErrors((prev) => ({ ...prev, [orderId]: null }));
     setOcrResults((prev) => ({ ...prev, [orderId]: null }));
     try {
-      if (url !== existingUrl) {
-        await customFetch(`/api/orders/${orderId}/payment-screenshot`, {
-          method: "PATCH",
+      if (fileData) {
+        const result = await customFetch<OcrResult>(`/api/orders/${orderId}/verify-payment`, {
+          method: "POST",
           responseType: "json",
-          body: JSON.stringify({ paymentScreenshotUrl: url }),
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            imageBase64: fileData.base64,
+            contentType: fileData.contentType,
+          }),
         });
+        setOcrResults((prev) => ({ ...prev, [orderId]: result }));
+      } else {
+        if (url !== existingUrl) {
+          await customFetch(`/api/orders/${orderId}/payment-screenshot`, {
+            method: "PATCH",
+            responseType: "json",
+            body: JSON.stringify({ paymentScreenshotUrl: url }),
+          });
+        }
+        const result = await customFetch<OcrResult>(`/api/orders/${orderId}/verify-payment`, {
+          method: "POST",
+          responseType: "json",
+        });
+        setOcrResults((prev) => ({ ...prev, [orderId]: result }));
       }
-      const result = await customFetch<OcrResult>(`/api/orders/${orderId}/verify-payment`, {
-        method: "POST",
-        responseType: "json",
-      });
-      setOcrResults((prev) => ({ ...prev, [orderId]: result }));
       queryClient.invalidateQueries({ queryKey: getListOrdersQueryKey({ bakerId }) });
     } catch (cause) {
       setOcrErrors((prev) => ({
@@ -75,6 +95,36 @@ export default function DashboardPayments() {
     } finally {
       setVerifyingId(null);
     }
+  };
+
+  const onReceiptFile = (orderId: number, file: File | null) => {
+    if (!file) {
+      setReceiptFiles((prev) => {
+        const next = { ...prev };
+        delete next[orderId];
+        return next;
+      });
+      return;
+    }
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      setOcrErrors((prev) => ({ ...prev, [orderId]: "Use a JPEG, PNG, or WebP receipt photo." }));
+      return;
+    }
+    if (file.size > 4 * 1024 * 1024) {
+      setOcrErrors((prev) => ({ ...prev, [orderId]: "Receipt must be under 4 MB." }));
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = String(reader.result ?? "");
+      const base64 = dataUrl.replace(/^data:image\/\w+;base64,/, "");
+      setReceiptFiles((prev) => ({
+        ...prev,
+        [orderId]: { base64, contentType: file.type as "image/jpeg" | "image/png" | "image/webp" },
+      }));
+      setOcrErrors((prev) => ({ ...prev, [orderId]: null }));
+    };
+    reader.readAsDataURL(file);
   };
 
   // Pending payments: delivered COD plus any other pending order that can attach a screenshot
@@ -88,8 +138,15 @@ export default function DashboardPayments() {
   return (
     <DashboardLayout>
       <div className="p-8 max-w-4xl">
-        <h1 className="text-4xl font-bold mb-2 font-serif text-primary">COD Payments Log</h1>
-        <p className="text-muted-foreground mb-8">Track collections and optionally review receipt screenshots (OCR is advisory only)</p>
+        <h1 className="text-4xl font-bold mb-2 font-serif text-primary">Payments & receipts</h1>
+        <p className="text-muted-foreground mb-8">
+          Track outstanding and paid orders. Upload a JazzCash / Easypaisa screenshot for advisory OCR — it never marks
+          paid automatically.
+        </p>
+        <div className="mb-6 rounded-lg border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+          Prefer <strong className="text-foreground">Upload receipt</strong> — no Cloudinary or image host setup needed.
+          HTTPS URL paste still works if you already host the image.
+        </div>
 
         {/* Summary cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-10">
@@ -177,17 +234,14 @@ export default function DashboardPayments() {
 
                         <div className="border-t border-orange-100 pt-3 space-y-2">
                           <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                            Receipt image URL (HTTPS)
+                            Receipt photo
                           </label>
                           <div className="flex flex-col sm:flex-row gap-2">
                             <input
-                              type="url"
-                              value={inputValue}
-                              onChange={(e) =>
-                                setScreenshotUrls((prev) => ({ ...prev, [order.id]: e.target.value }))
-                              }
-                              placeholder="https://…"
-                              className="flex-1 px-3 py-2 border border-border rounded-lg bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                              type="file"
+                              accept="image/jpeg,image/png,image/webp"
+                              onChange={(e) => onReceiptFile(order.id, e.target.files?.[0] ?? null)}
+                              className="flex-1 text-sm file:mr-3 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-primary-foreground"
                             />
                             <button
                               type="button"
@@ -199,9 +253,24 @@ export default function DashboardPayments() {
                               {verifyingId === order.id ? "Checking…" : "Check receipt"}
                             </button>
                           </div>
-                          {existingUrl && !screenshotUrls[order.id] && (
+                          {receiptFiles[order.id] && (
+                            <p className="text-xs text-muted-foreground">Photo ready — tap Check receipt.</p>
+                          )}
+                          <details className="text-xs text-muted-foreground">
+                            <summary className="cursor-pointer font-medium">Or paste HTTPS image URL</summary>
+                            <input
+                              type="url"
+                              value={inputValue}
+                              onChange={(e) =>
+                                setScreenshotUrls((prev) => ({ ...prev, [order.id]: e.target.value }))
+                              }
+                              placeholder="https://…"
+                              className="mt-2 w-full px-3 py-2 border border-border rounded-lg bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                            />
+                          </details>
+                          {existingUrl && !screenshotUrls[order.id] && !receiptFiles[order.id] && (
                             <p className="text-xs text-muted-foreground truncate">
-                              Saved screenshot on file — you can re-check without pasting again.
+                              Saved screenshot on file — you can re-check without uploading again.
                             </p>
                           )}
                           {ocrError && (

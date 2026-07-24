@@ -10,7 +10,9 @@ import {
   getGetBakerReviewsQueryKey
 } from "@workspace/api-client-react";
 import { useParams } from "wouter";
-import { MessageCircle, X, Send, User, Star, Phone, Sparkles, Facebook, Instagram, ShoppingBag } from "lucide-react";
+import { MessageCircle, X, Send, User, Star, Phone, Sparkles, Facebook, Instagram, ShoppingBag, Clock, Truck } from "lucide-react";
+import { formatLeadTime, buildWhatsAppOrderText } from "@/lib/shop-settings";
+import { resolveConversationFlow, type ResolvedConversationFlow } from "@/lib/conversation-flow";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { addGuestCartItem } from "@/pages/buyer/cart";
@@ -102,19 +104,50 @@ export default function BakerProfile() {
     handleQuickMessage(`Tell me about ${productName}. Is it available, and can I order it today?`);
   };
 
+  const whatsappChatUrl = (baker as { whatsappChatUrl?: string | null } | undefined)?.whatsappChatUrl;
+  const publicPaymentPolicy = (baker as { publicPaymentPolicy?: { mode: string; summary: string } } | undefined)?.publicPaymentPolicy;
+  const publicOccasion = (baker as { publicOccasion?: { banner: string; orderDeadline?: string | null; freshDays?: number | null } | null } | undefined)?.publicOccasion;
+  const shopSettings = (baker as { publicShopSettings?: { menuAccent?: string; availabilityHours?: string; dietaryPolicy?: string; preferredCustomerChannel?: "web" | "whatsapp" | "instagram"; allowPickup?: boolean; allowDelivery?: boolean; pickupAddress?: string } } | undefined)?.publicShopSettings;
+  const socialLinks = (baker as { socialLinks?: { instagram?: string; facebook?: string } } | undefined)?.socialLinks;
+  const menuAccent = /^#[0-9a-fA-F]{6}$/.test(shopSettings?.menuAccent ?? "") ? shopSettings!.menuAccent! : "#7c3aed";
+  const instagramUrl = socialLinks?.instagram;
+  const serverFlow = (baker as { conversationFlow?: ResolvedConversationFlow } | undefined)?.conversationFlow;
+  const flow = serverFlow ?? resolveConversationFlow({
+    preferredChannel: shopSettings?.preferredCustomerChannel,
+    agentActive: baker?.agentActive,
+    whatsappAgentEnabled: (baker as { whatsappAgentConnected?: boolean } | undefined)?.whatsappAgentConnected,
+    instagramAgentEnabled: (baker as { instagramAgentConnected?: boolean } | undefined)?.instagramAgentConnected,
+    hasWhatsAppNumber: Boolean(whatsappChatUrl) || Boolean((baker as { whatsappAgentConnected?: boolean } | undefined)?.whatsappAgentConnected),
+    hasInstagramUrl: Boolean(instagramUrl),
+    subscriptionPlan: (baker as { subscriptionPlan?: string } | undefined)?.subscriptionPlan,
+  });
+  const showWebChat = flow.showWebChat;
+  const showWhatsAppCta = flow.showWhatsAppCta && Boolean(whatsappChatUrl);
+  const showInstagramCta = flow.showInstagramCta && Boolean(instagramUrl);
+
   const orderProduct = (productName: string) => {
-    if (!channelHandoff) {
-      askAboutProduct(productName);
-      return;
-    }
-    if (channelHandoff.icon === "whatsapp") {
-      const url = new URL(channelHandoff.href);
-      url.searchParams.set("text", `Assalam-o-Alaikum! I would like to order ${productName}. Please share available sizes, date options, and delivery details.`);
+    if (flow.active === "whatsapp" && whatsappChatUrl) {
+      const url = new URL(whatsappChatUrl);
+      url.searchParams.set("text", buildWhatsAppOrderText(productName, baker?.businessName));
       window.open(url.toString(), "_blank", "noopener,noreferrer");
       return;
     }
-    window.open(channelHandoff.href, "_blank", "noopener,noreferrer");
-    toast({ title: "Instagram opened", description: `Message the bakery to order ${productName}.` });
+    if (flow.active === "instagram" && instagramUrl) {
+      window.open(instagramUrl, "_blank", "noopener,noreferrer");
+      toast({ title: "Instagram opened", description: `Message the bakery to order ${productName}.` });
+      return;
+    }
+    askAboutProduct(productName);
+  };
+
+  const openWhatsAppGeneral = () => {
+    if (!whatsappChatUrl) return;
+    window.open(whatsappChatUrl, "_blank", "noopener,noreferrer");
+  };
+
+  const openInstagram = () => {
+    if (!instagramUrl) return;
+    window.open(instagramUrl, "_blank", "noopener,noreferrer");
   };
 
   const addProductToBag = (product: {
@@ -137,21 +170,6 @@ export default function BakerProfile() {
     toast({ title: "Added to bag", description: `${product.name} is ready in your cart.` });
   };
 
-  const whatsappChatUrl = (baker as { whatsappChatUrl?: string | null } | undefined)?.whatsappChatUrl;
-  const shopSettings = (baker as { publicShopSettings?: { menuAccent?: string; availabilityHours?: string; dietaryPolicy?: string; preferredCustomerChannel?: "web" | "whatsapp" | "instagram" } } | undefined)?.publicShopSettings;
-  const socialLinks = (baker as { socialLinks?: { instagram?: string; facebook?: string } } | undefined)?.socialLinks;
-  const menuAccent = /^#[0-9a-fA-F]{6}$/.test(shopSettings?.menuAccent ?? "") ? shopSettings!.menuAccent! : "#7c3aed";
-  const preferredCustomerChannel = shopSettings?.preferredCustomerChannel ?? "web";
-  const instagramUrl = socialLinks?.instagram;
-  const useWebAssistant = preferredCustomerChannel === "web" ||
-    (preferredCustomerChannel === "whatsapp" && !whatsappChatUrl) ||
-    (preferredCustomerChannel === "instagram" && !instagramUrl);
-  const channelHandoff = preferredCustomerChannel === "whatsapp" && whatsappChatUrl
-    ? { href: whatsappChatUrl, label: "Chat with the bakery agent on WhatsApp", icon: "whatsapp" as const }
-    : preferredCustomerChannel === "instagram" && instagramUrl
-      ? { href: instagramUrl, label: "Message the bakery on Instagram", icon: "instagram" as const }
-      : null;
-
   return (
     <BuyerLayout>
       <div className="container mx-auto px-4 py-8 max-w-5xl relative">
@@ -161,6 +179,13 @@ export default function BakerProfile() {
           </div>
         ) : baker ? (
           <>
+            {publicOccasion?.banner && (
+              <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-950">
+                <p className="font-semibold">Special orders</p>
+                <p className="mt-1">{publicOccasion.banner}</p>
+              </div>
+            )}
+
             <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden mb-12">
               <div className="h-48 relative" style={{ backgroundColor: `${menuAccent}1a` }}>
                 {baker.photoUrl ? (
@@ -183,7 +208,8 @@ export default function BakerProfile() {
                         <span className="font-bold text-foreground">Delivery Areas:</span> {baker.deliveryAreas?.join(", ") || baker.area || baker.city}
                       </div>
                       <div className="bg-muted px-3 py-1.5 rounded-md">
-                        <span className="font-bold text-foreground">COD Policy:</span> {baker.codPolicy || "Standard"}
+                        <span className="font-bold text-foreground">Payment:</span>{" "}
+                        {publicPaymentPolicy?.summary ?? baker.codPolicy ?? "Ask the assistant"}
                       </div>
                       {shopSettings?.availabilityHours && <div className="bg-muted px-3 py-1.5 rounded-md"><span className="font-bold text-foreground">Order hours:</span> {shopSettings.availabilityHours}</div>}
                     </div>
@@ -204,23 +230,63 @@ export default function BakerProfile() {
                         Active today
                       </span>
                     )}
-                    {channelHandoff && (
-                      <a
-                        href={channelHandoff.href}
-                        target="_blank"
-                        rel="noreferrer"
-                        className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-bold border transition-colors ${channelHandoff.icon === "whatsapp" ? "text-green-700 bg-green-50 border-green-200 hover:bg-green-100" : "text-pink-700 bg-pink-50 border-pink-200 hover:bg-pink-100"}`}
+                    {showWhatsAppCta && (
+                      <button
+                        type="button"
+                        onClick={openWhatsAppGeneral}
+                        className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-bold border transition-colors ${
+                          flow.active === "whatsapp"
+                            ? "text-white bg-green-600 border-green-600 hover:bg-green-700"
+                            : "text-green-700 bg-green-50 border-green-200 hover:bg-green-100"
+                        }`}
                       >
-                        {channelHandoff.icon === "whatsapp" ? <Phone className="w-4 h-4" /> : <Instagram className="w-4 h-4" />}
-                        {channelHandoff.label}
-                      </a>
+                        <Phone className="w-4 h-4" />
+                        {flow.active === "whatsapp" ? "Order on WhatsApp" : "Also on WhatsApp"}
+                      </button>
+                    )}
+                    {showInstagramCta && (
+                      <button
+                        type="button"
+                        onClick={openInstagram}
+                        className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-bold border transition-colors ${
+                          flow.active === "instagram"
+                            ? "text-white bg-pink-600 border-pink-600 hover:bg-pink-700"
+                            : "text-pink-700 bg-pink-50 border-pink-200 hover:bg-pink-100"
+                        }`}
+                      >
+                        <Instagram className="w-4 h-4" />
+                        {flow.active === "instagram" ? "Message on Instagram" : "Also on Instagram"}
+                      </button>
+                    )}
+                    {showWebChat && (
+                      <button
+                        type="button"
+                        onClick={() => setIsChatOpen(true)}
+                        className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-bold border transition-colors ${
+                          flow.active === "web"
+                            ? "text-primary-foreground bg-primary border-primary hover:bg-primary/90"
+                            : "border-primary/30 text-primary bg-primary/5 hover:bg-primary/10"
+                        }`}
+                      >
+                        <MessageCircle className="w-4 h-4" />
+                        {flow.active === "web" ? "Chat with assistant" : "Web chat"}
+                      </button>
                     )}
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="mb-8"><h2 className="text-3xl font-bold font-serif">Menu</h2><p className="mt-2 text-sm text-muted-foreground">Choose an item, then continue your order in the bakery’s selected conversation channel.</p></div>
+            <div className="mb-8">
+              <h2 className="text-3xl font-bold font-serif">Menu</h2>
+              <p className="mt-2 text-sm text-muted-foreground">
+                {flow.active === "whatsapp"
+                  ? "Browse the menu here, then continue booking on WhatsApp — no need to reopen the website."
+                  : flow.active === "instagram"
+                    ? "Browse the menu here, then message the bakery on Instagram to book."
+                    : "Ask the built-in assistant about items, or add to bag. WhatsApp/Instagram appear when the baker has those agents on."}
+              </p>
+            </div>
             
             {loadingProducts ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-16">
@@ -252,13 +318,44 @@ export default function BakerProfile() {
                             {product.isEgglessAvailable && <span className="text-[10px] uppercase font-bold tracking-wider bg-green-50 text-green-700 px-2 py-0.5 rounded border border-green-200 ml-2 shrink-0">Eggless</span>}
                           </div>
                           <p className="text-sm text-muted-foreground line-clamp-2">{product.description}</p>
+                          {formatLeadTime((product as { leadTimeDays?: number }).leadTimeDays, (product as { leadTimeHours?: number | null }).leadTimeHours) && (
+                            <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+                              <Clock className="h-3 w-3" />
+                              {formatLeadTime((product as { leadTimeDays?: number }).leadTimeDays, (product as { leadTimeHours?: number | null }).leadTimeHours)}
+                            </p>
+                          )}
+                          {((product as { occasionTags?: string[] }).occasionTags ?? []).length > 0 && (
+                            <div className="mt-2 flex flex-wrap gap-1">
+                              {((product as { occasionTags?: string[] }).occasionTags ?? []).slice(0, 3).map((tag) => (
+                                <span key={tag} className="rounded-full bg-amber-50 border border-amber-200 px-1.5 py-0.5 text-[10px] font-medium text-amber-800">{tag}</span>
+                              ))}
+                            </div>
+                          )}
                           {(product.dietaryTags ?? []).length > 0 && (
-                            <div className="mt-2 flex flex-wrap gap-1" aria-label={`Dietary and allergen labels for ${product.name}`}>
+                            <div className="mt-2 flex flex-wrap gap-1" aria-label={`Dietary labels for ${product.name}`}>
                               {(product.dietaryTags ?? []).map((label) => (
                                 <span key={label} className="rounded-full border border-primary/20 bg-primary/5 px-1.5 py-0.5 text-[10px] font-medium text-primary">{label}</span>
                               ))}
                             </div>
                           )}
+                          {((product as { allergens?: string[] }).allergens ?? []).length > 0 && (
+                            <p className="mt-1 text-[10px] text-muted-foreground line-clamp-1">
+                              Allergens: {((product as { allergens?: string[] }).allergens ?? []).join(", ")}
+                            </p>
+                          )}
+                          {((product as { ingredients?: string[] }).ingredients ?? []).length > 0 && (
+                            <p className="mt-1 text-[10px] text-muted-foreground line-clamp-1">
+                              Contains: {((product as { ingredients?: string[] }).ingredients ?? []).slice(0, 4).join(", ")}
+                            </p>
+                          )}
+                          <div className="mt-1 flex gap-2 text-[10px] text-muted-foreground">
+                            {(product as { deliveryAvailable?: boolean }).deliveryAvailable !== false && (
+                              <span className="inline-flex items-center gap-0.5"><Truck className="h-3 w-3" /> Delivery</span>
+                            )}
+                            {(product as { pickupAvailable?: boolean }).pickupAvailable !== false && (
+                              <span>Pickup</span>
+                            )}
+                          </div>
                         </div>
                         
                         <div className="mt-4 flex flex-col gap-2">
@@ -275,8 +372,8 @@ export default function BakerProfile() {
                           )}
                           <div className="flex justify-between items-center">
                             <span className="font-mono font-bold text-primary">PKR {displayPrice.toLocaleString()}</span>
-                            <div className="flex gap-2">
-                              {useWebAssistant && product.isAvailable && (
+                            <div className="flex gap-2 flex-wrap justify-end">
+                              {showWebChat && product.isAvailable && (
                                 <button
                                   onClick={() => addProductToBag(product)}
                                   className="p-1.5 rounded-md text-primary border border-primary/20 hover:bg-primary/10"
@@ -286,14 +383,26 @@ export default function BakerProfile() {
                                   <ShoppingBag className="w-4 h-4" />
                                 </button>
                               )}
-                              {baker.agentActive && useWebAssistant && product.isAvailable && (
+                              {showWebChat && product.isAvailable && (
                                 <button
                                   onClick={() => askAboutProduct(product.name)}
                                   className="p-1.5 rounded-md text-primary border border-primary/20 hover:bg-primary/10"
                                   aria-label={`Ask the assistant about ${product.name}`}
-                                  title="Ask the assistant"
+                                  title="Ask assistant"
                                 >
                                   <Sparkles className="w-4 h-4" />
+                                </button>
+                              )}
+                              {showWhatsAppCta && product.isAvailable && (
+                                <button
+                                  onClick={() => {
+                                    const url = new URL(whatsappChatUrl!);
+                                    url.searchParams.set("text", buildWhatsAppOrderText(product.name, baker?.businessName));
+                                    window.open(url.toString(), "_blank", "noopener,noreferrer");
+                                  }}
+                                  className="px-3 py-1.5 rounded-md text-sm font-bold border text-green-700 border-green-200 bg-green-50 hover:bg-green-100"
+                                >
+                                  WhatsApp
                                 </button>
                               )}
                               <button
@@ -301,7 +410,7 @@ export default function BakerProfile() {
                                 disabled={!product.isAvailable}
                                 className="bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground px-4 py-1.5 rounded-md text-sm font-bold transition-colors disabled:opacity-50"
                               >
-                                {product.isAvailable ? channelHandoff?.icon === "whatsapp" ? "Order on WhatsApp" : channelHandoff?.icon === "instagram" ? "Order on Instagram" : "Ask to order" : "Out"}
+                                {product.isAvailable ? flow.primaryCtaLabel : "Out"}
                               </button>
                             </div>
                           </div>
@@ -348,7 +457,7 @@ export default function BakerProfile() {
       </div>
       
       {/* The baker chooses whether the web assistant or a social channel handles conversations. */}
-      {baker?.agentActive && useWebAssistant && <button
+      {baker?.agentActive && showWebChat && <button
         onClick={() => setIsChatOpen(!isChatOpen)}
         className="fixed bottom-8 right-8 w-14 h-14 bg-primary text-primary-foreground rounded-full flex items-center justify-center shadow-lg hover:shadow-xl hover:scale-105 transition-all z-50"
       >
@@ -356,7 +465,7 @@ export default function BakerProfile() {
       </button>}
 
       {/* Chat Widget Panel */}
-      {baker?.agentActive && useWebAssistant && isChatOpen && (
+      {baker?.agentActive && showWebChat && isChatOpen && (
         <div className="fixed bottom-28 right-8 w-80 md:w-96 h-[500px] bg-card border border-border rounded-2xl shadow-2xl flex flex-col z-50 overflow-hidden">
           <div className="bg-primary p-4 text-primary-foreground flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-primary-foreground/20 flex items-center justify-center">
@@ -431,8 +540,26 @@ export default function BakerProfile() {
               disabled={sendMessage.isPending}
               className="text-[11px] px-2.5 py-1 rounded-full border border-primary/20 bg-primary/5 text-primary font-medium hover:bg-primary/10 transition-all cursor-pointer disabled:opacity-50"
             >
-              💳 Payment Policy
+              💳 Payment
             </button>
+            {showWhatsAppCta && (
+              <button
+                type="button"
+                onClick={openWhatsAppGeneral}
+                className="text-[11px] px-2.5 py-1 rounded-full border border-green-200 bg-green-50 text-green-800 font-medium hover:bg-green-100"
+              >
+                📱 WhatsApp
+              </button>
+            )}
+            {showInstagramCta && (
+              <button
+                type="button"
+                onClick={openInstagram}
+                className="text-[11px] px-2.5 py-1 rounded-full border border-pink-200 bg-pink-50 text-pink-800 font-medium hover:bg-pink-100"
+              >
+                📷 Instagram
+              </button>
+            )}
             <button
               onClick={() => handleQuickMessage("What is my order status?")}
               disabled={sendMessage.isPending}

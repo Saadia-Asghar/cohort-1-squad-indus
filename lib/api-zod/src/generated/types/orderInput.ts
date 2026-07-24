@@ -16,7 +16,11 @@ export interface OrderInput {
   buyerAddress: string;
   buyerArea?: string;
   items: OrderItem[];
-  totalPkr: number;
+  /**
+     * Ignored — server prices from catalog
+     * @deprecated
+     */
+  totalPkr?: number;
   deliveryDate?: string;
   source?: string;
   occasion?: string;

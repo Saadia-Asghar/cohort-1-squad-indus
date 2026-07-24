@@ -5,11 +5,18 @@
  * Usage: DATABASE_URL=... pnpm --filter @workspace/api-server run seed:enrich
  */
 import { db } from "@workspace/db";
-import { bakersTable, ordersTable, productsTable } from "@workspace/db/schema";
+import {
+  bakersTable,
+  inventoryItemsTable,
+  ordersTable,
+  productsTable,
+} from "@workspace/db/schema";
 import { eq, sql } from "drizzle-orm";
 import { seedBakerDemoData, syncBakerStats } from "./lib/seed-baker-demo.js";
+import { seedFullFeaturePack } from "./lib/seed-feature-packs.js";
 import { reindexBakerKnowledge } from "./lib/rag/indexer.js";
 import { hashPassword } from "./lib/auth.js";
+import { pathToFileURL } from "node:url";
 
 const DEMO_PASSWORDS: Record<string, string> = {
   "sana-sweet-studio": "SanaSweet2026!",
@@ -31,7 +38,11 @@ const AREAS: Record<string, string[]> = {
   "amna-bakes": ["F-7", "F-8", "G-9", "Blue Area"],
 };
 
-import { pathToFileURL } from "node:url";
+const CHANNELS: Record<string, { wa: boolean; ig: boolean }> = {
+  "sana-sweet-studio": { wa: true, ig: true },
+  "fatima-cakery": { wa: true, ig: false },
+  "amna-bakes": { wa: false, ig: false },
+};
 
 export async function enrichPitchData(): Promise<void> {
   for (const slug of DEMO_SLUGS) {
@@ -54,33 +65,51 @@ export async function enrichPitchData(): Promise<void> {
       .from(ordersTable)
       .where(eq(ordersTable.bakerId, baker.id));
 
-    if (count >= 8) {
-      console.log(`Skip ${baker.businessName}: already has ${count} orders`);
-      await syncBakerStats(baker.id);
-      continue;
+    if (count < 8) {
+      const products = await db
+        .select({ id: productsTable.id, name: productsTable.name, basePricePkr: productsTable.basePricePkr })
+        .from(productsTable)
+        .where(eq(productsTable.bakerId, baker.id))
+        .limit(2);
+
+      if (products.length === 0) {
+        console.log(`Skip ${baker.businessName}: no products`);
+        continue;
+      }
+
+      console.log(`Enriching ${baker.businessName} (${count} orders → adding demo pack)`);
+      await seedBakerDemoData({
+        id: baker.id,
+        businessName: baker.businessName,
+        ownerName: baker.ownerName,
+        city: baker.city,
+        areas: AREAS[slug],
+        products,
+        phoneBase: PHONE_BASE[slug],
+      });
+    } else {
+      console.log(`${baker.businessName}: already has ${count} orders`);
     }
 
-    const products = await db
-      .select({ id: productsTable.id, name: productsTable.name, basePricePkr: productsTable.basePricePkr })
-      .from(productsTable)
-      .where(eq(productsTable.bakerId, baker.id))
-      .limit(2);
+    const [{ invCount }] = await db
+      .select({ invCount: sql<number>`count(*)::int` })
+      .from(inventoryItemsTable)
+      .where(eq(inventoryItemsTable.bakerId, baker.id));
 
-    if (products.length === 0) {
-      console.log(`Skip ${baker.businessName}: no products`);
-      continue;
+    if (invCount === 0) {
+      const ch = CHANNELS[slug];
+      console.log(`  Adding feature pack (Khata, notifications, chats…) for ${baker.businessName}`);
+      await seedFullFeaturePack({
+        id: baker.id,
+        businessName: baker.businessName,
+        ownerName: baker.ownerName,
+        phoneBase: PHONE_BASE[slug],
+        includeWhatsAppChats: ch.wa,
+        includeInstagramChats: ch.ig,
+      });
+    } else {
+      console.log(`  Feature pack already present (${invCount} inventory rows)`);
     }
-
-    console.log(`Enriching ${baker.businessName} (${count} orders → adding demo pack)`);
-    await seedBakerDemoData({
-      id: baker.id,
-      businessName: baker.businessName,
-      ownerName: baker.ownerName,
-      city: baker.city,
-      areas: AREAS[slug],
-      products,
-      phoneBase: PHONE_BASE[slug],
-    });
 
     const indexed = await reindexBakerKnowledge(baker.id);
     console.log(`  RAG: ${indexed.chunks} chunks`);

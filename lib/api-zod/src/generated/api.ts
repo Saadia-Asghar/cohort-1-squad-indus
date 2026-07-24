@@ -102,6 +102,7 @@ export const SearchMarketplaceResponse = zod.object({
   "isBestSeller": zod.boolean().optional(),
   "isTopRated": zod.boolean().optional(),
   "displayOrder": zod.number().optional(),
+  "recipeCostPkr": zod.number().nullish(),
   "createdAt": zod.string()
 }))
 })
@@ -421,6 +422,7 @@ export const GetBakerProductsResponseItem = zod.object({
   "isBestSeller": zod.boolean().optional(),
   "isTopRated": zod.boolean().optional(),
   "displayOrder": zod.number().optional(),
+  "recipeCostPkr": zod.number().nullish(),
   "createdAt": zod.string()
 })
 export const GetBakerProductsResponse = zod.array(GetBakerProductsResponseItem)
@@ -508,6 +510,7 @@ export const ListProductsResponseItem = zod.object({
   "isBestSeller": zod.boolean().optional(),
   "isTopRated": zod.boolean().optional(),
   "displayOrder": zod.number().optional(),
+  "recipeCostPkr": zod.number().nullish(),
   "createdAt": zod.string()
 })
 export const ListProductsResponse = zod.array(ListProductsResponseItem)
@@ -537,8 +540,9 @@ export const CreateProductBody = zod.object({
   "suggestionTags": zod.array(zod.string()).optional(),
   "pickupAvailable": zod.boolean().optional(),
   "deliveryAvailable": zod.boolean().optional(),
-  "leadTimeHours": zod.number().optional(),
-  "photoUrl": zod.string().optional()
+  "leadTimeHours": zod.number().nullish(),
+  "photoUrl": zod.string().optional(),
+  "recipeCostPkr": zod.number().nullish()
 })
 
 export const CreateProductResponse = zod.object({
@@ -569,6 +573,7 @@ export const CreateProductResponse = zod.object({
   "isBestSeller": zod.boolean().optional(),
   "isTopRated": zod.boolean().optional(),
   "displayOrder": zod.number().optional(),
+  "recipeCostPkr": zod.number().nullish(),
   "createdAt": zod.string()
 })
 
@@ -608,6 +613,7 @@ export const GetProductResponse = zod.object({
   "isBestSeller": zod.boolean().optional(),
   "isTopRated": zod.boolean().optional(),
   "displayOrder": zod.number().optional(),
+  "recipeCostPkr": zod.number().nullish(),
   "createdAt": zod.string()
 })
 
@@ -641,6 +647,7 @@ export const UpdateProductBody = zod.object({
   "deliveryAvailable": zod.boolean().optional(),
   "leadTimeHours": zod.number().nullish(),
   "photoUrl": zod.string().optional(),
+  "recipeCostPkr": zod.number().nullish(),
   "displayOrder": zod.number().optional()
 })
 
@@ -672,6 +679,7 @@ export const UpdateProductResponse = zod.object({
   "isBestSeller": zod.boolean().optional(),
   "isTopRated": zod.boolean().optional(),
   "displayOrder": zod.number().optional(),
+  "recipeCostPkr": zod.number().nullish(),
   "createdAt": zod.string()
 })
 
@@ -721,6 +729,7 @@ export const ToggleProductStockResponse = zod.object({
   "isBestSeller": zod.boolean().optional(),
   "isTopRated": zod.boolean().optional(),
   "displayOrder": zod.number().optional(),
+  "recipeCostPkr": zod.number().nullish(),
   "createdAt": zod.string()
 })
 
@@ -791,7 +800,7 @@ export const CreateOrderBody = zod.object({
   "sizeLabel": zod.string(),
   "variant": zod.string().nullish()
 })),
-  "totalPkr": zod.number(),
+  "totalPkr": zod.number().optional().describe('Ignored — server prices from catalog'),
   "deliveryDate": zod.string().optional(),
   "source": zod.string().optional(),
   "occasion": zod.string().optional(),
@@ -988,30 +997,88 @@ export const MarkOrderPaidResponse = zod.object({
 
 
 /**
- * @summary Get cart items for a buyer
+ * @summary Advisory OCR on a receipt (never marks paid). Accepts uploaded image or saved screenshot URL.
+ */
+export const VerifyOrderPaymentParams = zod.object({
+  "orderId": zod.coerce.number()
+})
+
+export const VerifyOrderPaymentBody = zod.object({
+  "imageBase64": zod.string().optional().describe('Raw base64 or data URL of JPEG\/PNG\/WebP receipt'),
+  "contentType": zod.enum(['image/jpeg', 'image/png', 'image/webp']).optional()
+})
+
+export const VerifyOrderPaymentResponse = zod.object({
+  "verified": zod.boolean(),
+  "message": zod.string(),
+  "decision": zod.string().optional(),
+  "confidence": zod.number().optional()
+})
+
+
+/**
+ * @summary Save receipt image URL or data URL for OCR (does not mark paid)
+ */
+export const SetOrderPaymentScreenshotParams = zod.object({
+  "orderId": zod.coerce.number()
+})
+
+export const SetOrderPaymentScreenshotBody = zod.object({
+  "paymentScreenshotUrl": zod.string()
+})
+
+export const SetOrderPaymentScreenshotResponse = zod.object({
+  "id": zod.number(),
+  "bakerId": zod.number(),
+  "buyerId": zod.number().nullish(),
+  "buyerName": zod.string(),
+  "buyerWhatsapp": zod.string(),
+  "buyerAddress": zod.string(),
+  "buyerArea": zod.string().nullish(),
+  "items": zod.array(zod.object({
+  "productId": zod.number(),
+  "productName": zod.string(),
+  "quantity": zod.number(),
+  "unitPricePkr": zod.number(),
+  "sizeLabel": zod.string(),
+  "variant": zod.string().nullish()
+})).optional(),
+  "totalPkr": zod.number(),
+  "deliveryDate": zod.string().nullish(),
+  "status": zod.string(),
+  "paymentStatus": zod.string(),
+  "paymentAmountReceived": zod.number().nullish(),
+  "source": zod.string(),
+  "occasion": zod.string().nullish(),
+  "specialInstructions": zod.string().nullish(),
+  "flavour": zod.string().nullish(),
+  "textOnCake": zod.string().nullish(),
+  "paymentScreenshotUrl": zod.string().nullish(),
+  "advancePaid": zod.boolean().optional(),
+  "requireAdvance": zod.boolean().optional(),
+  "fulfillmentType": zod.enum(['delivery', 'pickup']).optional(),
+  "deliveredAt": zod.coerce.date().nullish(),
+  "serviceFeedback": zod.enum(['loved_it', 'okay', 'had_issue']).nullish(),
+  "feedbackNote": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string().optional()
+})
+
+
+/**
+ * @deprecated
+ * @summary Deprecated — browser cart removed
  */
 export const GetCartQueryParams = zod.object({
   "buyerId": zod.coerce.number()
 })
 
-export const GetCartResponseItem = zod.object({
-  "id": zod.number(),
-  "buyerId": zod.number(),
-  "bakerId": zod.number(),
-  "productId": zod.number(),
-  "productName": zod.string(),
-  "sizeLabel": zod.string(),
-  "variant": zod.string().nullish(),
-  "quantity": zod.number(),
-  "unitPricePkr": zod.number(),
-  "photoUrl": zod.string().nullish(),
-  "addedAt": zod.string()
-})
-export const GetCartResponse = zod.array(GetCartResponseItem)
+export const GetCartResponse = zod.void()
 
 
 /**
- * @summary Add item to cart
+ * @deprecated
+ * @summary Deprecated — browser cart removed
  */
 export const AddToCartBody = zod.object({
   "buyerId": zod.number(),
@@ -1025,23 +1092,12 @@ export const AddToCartBody = zod.object({
   "photoUrl": zod.string().optional()
 })
 
-export const AddToCartResponse = zod.object({
-  "id": zod.number(),
-  "buyerId": zod.number(),
-  "bakerId": zod.number(),
-  "productId": zod.number(),
-  "productName": zod.string(),
-  "sizeLabel": zod.string(),
-  "variant": zod.string().nullish(),
-  "quantity": zod.number(),
-  "unitPricePkr": zod.number(),
-  "photoUrl": zod.string().nullish(),
-  "addedAt": zod.string()
-})
+export const AddToCartResponse = zod.void()
 
 
 /**
- * @summary Remove item from cart
+ * @deprecated
+ * @summary Deprecated — browser cart removed
  */
 export const RemoveFromCartParams = zod.object({
   "cartItemId": zod.coerce.number()
@@ -1051,7 +1107,8 @@ export const RemoveFromCartResponse = zod.void()
 
 
 /**
- * @summary Clear all cart items for a buyer
+ * @deprecated
+ * @summary Deprecated — browser cart removed
  */
 export const ClearCartQueryParams = zod.object({
   "buyerId": zod.coerce.number()
@@ -1411,6 +1468,352 @@ export const QueryBakerKnowledgeResponse = zod.object({
   "metadata": zod.record(zod.string(), zod.unknown()).optional()
 }))
 })
+
+
+/**
+ * @summary Public platform payment instructions (JazzCash / bank + WhatsApp)
+ */
+export const GetPlatformBillingResponse = zod.object({
+  "enabled": zod.boolean(),
+  "ownerName": zod.string(),
+  "whatsappNumber": zod.string().nullable(),
+  "whatsappChatUrl": zod.string().nullable(),
+  "paymentDetails": zod.string(),
+  "instructions": zod.string()
+})
+
+
+/**
+ * @summary Baker subscription + pending upgrade state
+ */
+export const GetBakerBillingParams = zod.object({
+  "bakerId": zod.coerce.number()
+})
+
+export const GetBakerBillingResponse = zod.object({
+  "subscriptionPlan": zod.string(),
+  "pending": zod.union([zod.object({
+  "planId": zod.enum(['starter', 'pro', 'bakery_plus']),
+  "name": zod.string(),
+  "amountLabel": zod.string(),
+  "requestedAt": zod.string().nullable()
+}),zod.null()]),
+  "platform": zod.object({
+  "enabled": zod.boolean(),
+  "ownerName": zod.string(),
+  "whatsappNumber": zod.string().nullable(),
+  "whatsappChatUrl": zod.string().nullable(),
+  "paymentDetails": zod.string(),
+  "instructions": zod.string()
+})
+})
+
+
+/**
+ * @summary Record pending plan and return WhatsApp deep link for payment confirmation
+ */
+export const RequestBakerPlanUpgradeParams = zod.object({
+  "bakerId": zod.coerce.number()
+})
+
+export const requestBakerPlanUpgradeBodyNoteMax = 240;
+
+
+
+export const RequestBakerPlanUpgradeBody = zod.object({
+  "planId": zod.enum(['starter', 'pro', 'bakery_plus']),
+  "note": zod.string().max(requestBakerPlanUpgradeBodyNoteMax).optional()
+})
+
+export const RequestBakerPlanUpgradeResponse = zod.object({
+  "ok": zod.boolean(),
+  "pendingPlanId": zod.string().optional(),
+  "billingRequestedAt": zod.string().optional(),
+  "platform": zod.object({
+  "enabled": zod.boolean(),
+  "ownerName": zod.string(),
+  "whatsappNumber": zod.string().nullable(),
+  "whatsappChatUrl": zod.string().nullable(),
+  "paymentDetails": zod.string(),
+  "instructions": zod.string()
+}),
+  "plan": zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "amountLabel": zod.string()
+}),
+  "whatsappUrl": zod.string().nullable(),
+  "message": zod.string()
+})
+
+
+/**
+ * Requires Authorization Bearer JWT_SECRET or ENRICH_DEMO_SECRET.
+ * @summary Manually activate a paid plan after WhatsApp payment confirmation
+ */
+export const adminActivatePlanBodyClearTrialDefault = true;
+
+export const AdminActivatePlanBody = zod.object({
+  "bakerId": zod.number(),
+  "planId": zod.enum(['starter', 'pro', 'bakery_plus']),
+  "clearTrial": zod.boolean().default(adminActivatePlanBodyClearTrialDefault)
+})
+
+export const AdminActivatePlanResponse = zod.object({
+  "ok": zod.boolean(),
+  "bakerId": zod.number(),
+  "subscriptionPlan": zod.string(),
+  "trialEndsAt": zod.string().nullish(),
+  "message": zod.string()
+})
+
+
+/**
+ * @summary Set platform WhatsApp / JazzCash details at runtime
+ */
+export const AdminSetPlatformBillingBody = zod.object({
+  "whatsapp": zod.string().optional(),
+  "paymentDetails": zod.string().optional(),
+  "ownerName": zod.string().optional()
+})
+
+export const AdminSetPlatformBillingResponse = zod.unknown()
+
+
+/**
+ * @summary Buyer self-serve order status by WhatsApp number
+ */
+export const LookupOrdersByPhoneQueryParams = zod.object({
+  "phone": zod.coerce.string()
+})
+
+export const LookupOrdersByPhoneResponseItem = zod.record(zod.string(), zod.unknown())
+export const LookupOrdersByPhoneResponse = zod.array(LookupOrdersByPhoneResponseItem)
+
+
+/**
+ * @summary Public feedback page status after delivery
+ */
+export const GetOrderFeedbackStatusParams = zod.object({
+  "orderId": zod.coerce.number()
+})
+
+export const GetOrderFeedbackStatusResponse = zod.unknown()
+
+
+/**
+ * @summary Buyer submits delivery feedback
+ */
+export const SubmitOrderFeedbackParams = zod.object({
+  "orderId": zod.coerce.number()
+})
+
+export const SubmitOrderFeedbackBody = zod.object({
+  "feedback": zod.enum(['loved_it', 'okay', 'had_issue']),
+  "note": zod.string().optional(),
+  "buyerWhatsapp": zod.string()
+})
+
+export const SubmitOrderFeedbackResponse = zod.unknown()
+
+
+/**
+ * @summary Guest buyer uploads JazzCash/Easypaisa receipt (phone must match order)
+ */
+export const UploadGuestOrderReceiptParams = zod.object({
+  "orderId": zod.coerce.number()
+})
+
+export const UploadGuestOrderReceiptBody = zod.object({
+  "buyerWhatsapp": zod.string(),
+  "imageBase64": zod.string(),
+  "contentType": zod.enum(['image/jpeg', 'image/png', 'image/webp']).optional()
+})
+
+export const UploadGuestOrderReceiptResponse = zod.unknown()
+
+
+/**
+ * @summary Send WhatsApp broadcast to a CRM segment (requires Meta WhatsApp connect)
+ */
+export const BroadcastToCustomersParams = zod.object({
+  "bakerId": zod.coerce.number()
+})
+
+export const BroadcastToCustomersBody = zod.object({
+  "message": zod.string(),
+  "testPhone": zod.string().optional(),
+  "limit": zod.number().optional(),
+  "segment": zod.enum(['all', 'frequent_buyers', 'inactive_loyalists', 'festival_buyers']).optional()
+})
+
+export const BroadcastToCustomersResponse = zod.unknown()
+
+
+/**
+ * @summary Goals, notes, and reminders for the baker dashboard
+ */
+export const GetBakerWorkspaceParams = zod.object({
+  "bakerId": zod.coerce.number()
+})
+
+export const GetBakerWorkspaceResponse = zod.record(zod.string(), zod.unknown())
+
+
+/**
+ * @summary Create a monthly goal
+ */
+export const CreateBakerGoalParams = zod.object({
+  "bakerId": zod.coerce.number()
+})
+
+export const CreateBakerGoalBody = zod.record(zod.string(), zod.unknown())
+
+export const CreateBakerGoalResponse = zod.void()
+
+
+/**
+ * @summary Create a workspace note
+ */
+export const CreateBakerNoteParams = zod.object({
+  "bakerId": zod.coerce.number()
+})
+
+export const CreateBakerNoteBody = zod.record(zod.string(), zod.unknown())
+
+export const CreateBakerNoteResponse = zod.void()
+
+
+/**
+ * @summary Create a reminder
+ */
+export const CreateBakerReminderParams = zod.object({
+  "bakerId": zod.coerce.number()
+})
+
+export const CreateBakerReminderBody = zod.record(zod.string(), zod.unknown())
+
+export const CreateBakerReminderResponse = zod.void()
+
+
+/**
+ * @summary Update or complete a reminder
+ */
+export const UpdateBakerReminderParams = zod.object({
+  "bakerId": zod.coerce.number(),
+  "reminderId": zod.coerce.number()
+})
+
+export const UpdateBakerReminderBody = zod.record(zod.string(), zod.unknown())
+
+export const UpdateBakerReminderResponse = zod.unknown()
+
+
+/**
+ * @summary List inventory items
+ */
+export const ListInventoryItemsParams = zod.object({
+  "bakerId": zod.coerce.number()
+})
+
+export const ListInventoryItemsResponseItem = zod.record(zod.string(), zod.unknown())
+export const ListInventoryItemsResponse = zod.array(ListInventoryItemsResponseItem)
+
+
+/**
+ * @summary Create inventory item
+ */
+export const CreateInventoryItemParams = zod.object({
+  "bakerId": zod.coerce.number()
+})
+
+export const CreateInventoryItemBody = zod.record(zod.string(), zod.unknown())
+
+export const CreateInventoryItemResponse = zod.void()
+
+
+/**
+ * @summary Update inventory item
+ */
+export const UpdateInventoryItemParams = zod.object({
+  "bakerId": zod.coerce.number(),
+  "itemId": zod.coerce.number()
+})
+
+export const UpdateInventoryItemBody = zod.record(zod.string(), zod.unknown())
+
+export const UpdateInventoryItemResponse = zod.unknown()
+
+
+/**
+ * @summary Delete inventory item
+ */
+export const DeleteInventoryItemParams = zod.object({
+  "bakerId": zod.coerce.number(),
+  "itemId": zod.coerce.number()
+})
+
+export const DeleteInventoryItemResponse = zod.unknown()
+
+
+/**
+ * @summary List ledger entries
+ */
+export const ListLedgerEntriesParams = zod.object({
+  "bakerId": zod.coerce.number()
+})
+
+export const ListLedgerEntriesResponseItem = zod.record(zod.string(), zod.unknown())
+export const ListLedgerEntriesResponse = zod.array(ListLedgerEntriesResponseItem)
+
+
+/**
+ * @summary Create ledger entry
+ */
+export const CreateLedgerEntryParams = zod.object({
+  "bakerId": zod.coerce.number()
+})
+
+export const CreateLedgerEntryBody = zod.record(zod.string(), zod.unknown())
+
+export const CreateLedgerEntryResponse = zod.void()
+
+
+/**
+ * @summary Delete ledger entry
+ */
+export const DeleteLedgerEntryParams = zod.object({
+  "bakerId": zod.coerce.number(),
+  "entryId": zod.coerce.number()
+})
+
+export const DeleteLedgerEntryResponse = zod.unknown()
+
+
+/**
+ * @summary Available months for Khata analytics
+ */
+export const ListKhataMonthsParams = zod.object({
+  "bakerId": zod.coerce.number()
+})
+
+export const ListKhataMonthsResponse = zod.unknown()
+
+
+/**
+ * @summary Khata margin and expense analytics
+ */
+export const GetKhataAnalyticsParams = zod.object({
+  "bakerId": zod.coerce.number()
+})
+
+export const GetKhataAnalyticsQueryParams = zod.object({
+  "month": zod.coerce.string().optional(),
+  "from": zod.coerce.string().optional(),
+  "to": zod.coerce.string().optional()
+})
+
+export const GetKhataAnalyticsResponse = zod.unknown()
 
 
 /**

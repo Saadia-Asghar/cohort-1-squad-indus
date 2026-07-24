@@ -20,16 +20,22 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  AdminActivatePlanRequest,
+  AdminActivatePlanResponse,
+  AdminSetPlatformBillingBody,
   AgentConfig,
   AgentConfigInput,
   AnalyticsData,
   Baker,
+  BakerBillingState,
   BakerCard,
   BakerInput,
   BakerNotification,
   BakerStats,
   BakerUpdate,
-  CartItem,
+  BillingUpgradeRequest,
+  BillingUpgradeResponse,
+  BroadcastToCustomersBody,
   CartItemInput,
   Category,
   ChatMessage,
@@ -37,24 +43,36 @@ import type {
   ChatResponse,
   ClearCartParams,
   ConversationSummary,
+  CreateBakerGoalBody,
+  CreateBakerNoteBody,
+  CreateBakerReminderBody,
+  CreateInventoryItemBody,
+  CreateLedgerEntryBody,
   Customer,
+  GetBakerWorkspace200,
   GetCartParams,
   GetFeaturedBakersParams,
+  GetKhataAnalyticsParams,
   HealthStatus,
   KnowledgeQueryInput,
   KnowledgeQueryResult,
   KnowledgeReindexResult,
   ListBakersParams,
   ListCustomersParams,
+  ListInventoryItems200Item,
+  ListLedgerEntries200Item,
   ListOrdersParams,
   ListProductsParams,
   LoginBaker200,
   LoginBakerBody,
+  LookupOrdersByPhone200Item,
+  LookupOrdersByPhoneParams,
   Order,
   OrderInput,
   OrderSourceStat,
   OrderStatusUpdate,
   PaymentUpdate,
+  PlatformBillingConfig,
   Product,
   ProductInput,
   ProductUpdate,
@@ -62,7 +80,14 @@ import type {
   ReviewInput,
   SearchMarketplaceParams,
   SearchResults,
-  SuccessResponse
+  SetOrderPaymentScreenshotBody,
+  SubmitOrderFeedbackBody,
+  SuccessResponse,
+  UpdateBakerReminderBody,
+  UpdateInventoryItemBody,
+  UploadGuestOrderReceiptBody,
+  VerifyOrderPayment200,
+  VerifyOrderPaymentBody
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -1842,6 +1867,150 @@ export const useMarkOrderPaid = <TError = ErrorType<unknown>,
       return useMutation(getMarkOrderPaidMutationOptions(options));
     }
 
+export const getVerifyOrderPaymentUrl = (orderId: number,) => {
+
+
+
+
+  return `/api/orders/${orderId}/verify-payment`
+}
+
+/**
+ * @summary Advisory OCR on a receipt (never marks paid). Accepts uploaded image or saved screenshot URL.
+ */
+export const verifyOrderPayment = async (orderId: number,
+    verifyOrderPaymentBody?: VerifyOrderPaymentBody, options?: RequestInit): Promise<VerifyOrderPayment200> => {
+
+  return customFetch<VerifyOrderPayment200>(getVerifyOrderPaymentUrl(orderId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(verifyOrderPaymentBody)
+  }
+);}
+
+
+
+
+
+export const getVerifyOrderPaymentMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof verifyOrderPayment>>, TError,{orderId: number;data?: BodyType<VerifyOrderPaymentBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof verifyOrderPayment>>, TError,{orderId: number;data?: BodyType<VerifyOrderPaymentBody>}, TContext> => {
+
+const mutationKey = ['verifyOrderPayment'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof verifyOrderPayment>>, {orderId: number;data?: BodyType<VerifyOrderPaymentBody>}> = (props) => {
+          const {orderId,data} = props ?? {};
+
+          return  verifyOrderPayment(orderId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type VerifyOrderPaymentMutationResult = NonNullable<Awaited<ReturnType<typeof verifyOrderPayment>>>
+    export type VerifyOrderPaymentMutationBody = BodyType<VerifyOrderPaymentBody> | undefined
+    export type VerifyOrderPaymentMutationError = ErrorType<void>
+
+    /**
+ * @summary Advisory OCR on a receipt (never marks paid). Accepts uploaded image or saved screenshot URL.
+ */
+export const useVerifyOrderPayment = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof verifyOrderPayment>>, TError,{orderId: number;data?: BodyType<VerifyOrderPaymentBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof verifyOrderPayment>>,
+        TError,
+        {orderId: number;data?: BodyType<VerifyOrderPaymentBody>},
+        TContext
+      > => {
+      return useMutation(getVerifyOrderPaymentMutationOptions(options));
+    }
+
+export const getSetOrderPaymentScreenshotUrl = (orderId: number,) => {
+
+
+
+
+  return `/api/orders/${orderId}/payment-screenshot`
+}
+
+/**
+ * @summary Save receipt image URL or data URL for OCR (does not mark paid)
+ */
+export const setOrderPaymentScreenshot = async (orderId: number,
+    setOrderPaymentScreenshotBody: SetOrderPaymentScreenshotBody, options?: RequestInit): Promise<Order> => {
+
+  return customFetch<Order>(getSetOrderPaymentScreenshotUrl(orderId),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(setOrderPaymentScreenshotBody)
+  }
+);}
+
+
+
+
+
+export const getSetOrderPaymentScreenshotMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setOrderPaymentScreenshot>>, TError,{orderId: number;data: BodyType<SetOrderPaymentScreenshotBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof setOrderPaymentScreenshot>>, TError,{orderId: number;data: BodyType<SetOrderPaymentScreenshotBody>}, TContext> => {
+
+const mutationKey = ['setOrderPaymentScreenshot'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof setOrderPaymentScreenshot>>, {orderId: number;data: BodyType<SetOrderPaymentScreenshotBody>}> = (props) => {
+          const {orderId,data} = props ?? {};
+
+          return  setOrderPaymentScreenshot(orderId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SetOrderPaymentScreenshotMutationResult = NonNullable<Awaited<ReturnType<typeof setOrderPaymentScreenshot>>>
+    export type SetOrderPaymentScreenshotMutationBody = BodyType<SetOrderPaymentScreenshotBody>
+    export type SetOrderPaymentScreenshotMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Save receipt image URL or data URL for OCR (does not mark paid)
+ */
+export const useSetOrderPaymentScreenshot = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setOrderPaymentScreenshot>>, TError,{orderId: number;data: BodyType<SetOrderPaymentScreenshotBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof setOrderPaymentScreenshot>>,
+        TError,
+        {orderId: number;data: BodyType<SetOrderPaymentScreenshotBody>},
+        TContext
+      > => {
+      return useMutation(getSetOrderPaymentScreenshotMutationOptions(options));
+    }
+
 export const getGetCartUrl = (params: GetCartParams,) => {
   const normalizedParams = new URLSearchParams();
 
@@ -1858,11 +2027,12 @@ export const getGetCartUrl = (params: GetCartParams,) => {
 }
 
 /**
- * @summary Get cart items for a buyer
+ * @deprecated
+ * @summary Deprecated — browser cart removed
  */
-export const getCart = async (params: GetCartParams, options?: RequestInit): Promise<CartItem[]> => {
+export const getCart = async (params: GetCartParams, options?: RequestInit): Promise<unknown> => {
 
-  return customFetch<CartItem[]>(getGetCartUrl(params),
+  return customFetch<unknown>(getGetCartUrl(params),
   {
     ...options,
     method: 'GET'
@@ -1882,7 +2052,7 @@ export const getGetCartQueryKey = (params?: GetCartParams,) => {
     }
 
 
-export const getGetCartQueryOptions = <TData = Awaited<ReturnType<typeof getCart>>, TError = ErrorType<unknown>>(params: GetCartParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCart>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getGetCartQueryOptions = <TData = Awaited<ReturnType<typeof getCart>>, TError = ErrorType<void>>(params: GetCartParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCart>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -1901,14 +2071,15 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 }
 
 export type GetCartQueryResult = NonNullable<Awaited<ReturnType<typeof getCart>>>
-export type GetCartQueryError = ErrorType<unknown>
+export type GetCartQueryError = ErrorType<void>
 
 
 /**
- * @summary Get cart items for a buyer
+ * @deprecated
+ * @summary Deprecated — browser cart removed
  */
 
-export function useGetCart<TData = Awaited<ReturnType<typeof getCart>>, TError = ErrorType<unknown>>(
+export function useGetCart<TData = Awaited<ReturnType<typeof getCart>>, TError = ErrorType<void>>(
  params: GetCartParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCart>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
@@ -1935,11 +2106,12 @@ export const getAddToCartUrl = () => {
 }
 
 /**
- * @summary Add item to cart
+ * @deprecated
+ * @summary Deprecated — browser cart removed
  */
-export const addToCart = async (cartItemInput: CartItemInput, options?: RequestInit): Promise<CartItem> => {
+export const addToCart = async (cartItemInput: CartItemInput, options?: RequestInit): Promise<unknown> => {
 
-  return customFetch<CartItem>(getAddToCartUrl(),
+  return customFetch<unknown>(getAddToCartUrl(),
   {
     ...options,
     method: 'POST',
@@ -1952,7 +2124,7 @@ export const addToCart = async (cartItemInput: CartItemInput, options?: RequestI
 
 
 
-export const getAddToCartMutationOptions = <TError = ErrorType<unknown>,
+export const getAddToCartMutationOptions = <TError = ErrorType<void>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof addToCart>>, TError,{data: BodyType<CartItemInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof addToCart>>, TError,{data: BodyType<CartItemInput>}, TContext> => {
 
@@ -1981,12 +2153,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type AddToCartMutationResult = NonNullable<Awaited<ReturnType<typeof addToCart>>>
     export type AddToCartMutationBody = BodyType<CartItemInput>
-    export type AddToCartMutationError = ErrorType<unknown>
+    export type AddToCartMutationError = ErrorType<void>
 
     /**
- * @summary Add item to cart
+ * @deprecated
+ * @summary Deprecated — browser cart removed
  */
-export const useAddToCart = <TError = ErrorType<unknown>,
+export const useAddToCart = <TError = ErrorType<void>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof addToCart>>, TError,{data: BodyType<CartItemInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof addToCart>>,
@@ -2006,11 +2179,12 @@ export const getRemoveFromCartUrl = (cartItemId: number,) => {
 }
 
 /**
- * @summary Remove item from cart
+ * @deprecated
+ * @summary Deprecated — browser cart removed
  */
-export const removeFromCart = async (cartItemId: number, options?: RequestInit): Promise<void> => {
+export const removeFromCart = async (cartItemId: number, options?: RequestInit): Promise<unknown> => {
 
-  return customFetch<void>(getRemoveFromCartUrl(cartItemId),
+  return customFetch<unknown>(getRemoveFromCartUrl(cartItemId),
   {
     ...options,
     method: 'DELETE'
@@ -2023,7 +2197,7 @@ export const removeFromCart = async (cartItemId: number, options?: RequestInit):
 
 
 
-export const getRemoveFromCartMutationOptions = <TError = ErrorType<unknown>,
+export const getRemoveFromCartMutationOptions = <TError = ErrorType<void>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof removeFromCart>>, TError,{cartItemId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof removeFromCart>>, TError,{cartItemId: number}, TContext> => {
 
@@ -2052,12 +2226,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type RemoveFromCartMutationResult = NonNullable<Awaited<ReturnType<typeof removeFromCart>>>
 
-    export type RemoveFromCartMutationError = ErrorType<unknown>
+    export type RemoveFromCartMutationError = ErrorType<void>
 
     /**
- * @summary Remove item from cart
+ * @deprecated
+ * @summary Deprecated — browser cart removed
  */
-export const useRemoveFromCart = <TError = ErrorType<unknown>,
+export const useRemoveFromCart = <TError = ErrorType<void>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof removeFromCart>>, TError,{cartItemId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof removeFromCart>>,
@@ -2084,11 +2259,12 @@ export const getClearCartUrl = (params: ClearCartParams,) => {
 }
 
 /**
- * @summary Clear all cart items for a buyer
+ * @deprecated
+ * @summary Deprecated — browser cart removed
  */
-export const clearCart = async (params: ClearCartParams, options?: RequestInit): Promise<void> => {
+export const clearCart = async (params: ClearCartParams, options?: RequestInit): Promise<unknown> => {
 
-  return customFetch<void>(getClearCartUrl(params),
+  return customFetch<unknown>(getClearCartUrl(params),
   {
     ...options,
     method: 'DELETE'
@@ -2101,7 +2277,7 @@ export const clearCart = async (params: ClearCartParams, options?: RequestInit):
 
 
 
-export const getClearCartMutationOptions = <TError = ErrorType<unknown>,
+export const getClearCartMutationOptions = <TError = ErrorType<void>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof clearCart>>, TError,{params: ClearCartParams}, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof clearCart>>, TError,{params: ClearCartParams}, TContext> => {
 
@@ -2130,12 +2306,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type ClearCartMutationResult = NonNullable<Awaited<ReturnType<typeof clearCart>>>
 
-    export type ClearCartMutationError = ErrorType<unknown>
+    export type ClearCartMutationError = ErrorType<void>
 
     /**
- * @summary Clear all cart items for a buyer
+ * @deprecated
+ * @summary Deprecated — browser cart removed
  */
-export const useClearCart = <TError = ErrorType<unknown>,
+export const useClearCart = <TError = ErrorType<void>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof clearCart>>, TError,{params: ClearCartParams}, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof clearCart>>,
@@ -3202,6 +3379,1803 @@ export const useQueryBakerKnowledge = <TError = ErrorType<unknown>,
       > => {
       return useMutation(getQueryBakerKnowledgeMutationOptions(options));
     }
+
+export const getGetPlatformBillingUrl = () => {
+
+
+
+
+  return `/api/billing/platform`
+}
+
+/**
+ * @summary Public platform payment instructions (JazzCash / bank + WhatsApp)
+ */
+export const getPlatformBilling = async ( options?: RequestInit): Promise<PlatformBillingConfig> => {
+
+  return customFetch<PlatformBillingConfig>(getGetPlatformBillingUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPlatformBillingQueryKey = () => {
+    return [
+    `/api/billing/platform`
+    ] as const;
+    }
+
+
+export const getGetPlatformBillingQueryOptions = <TData = Awaited<ReturnType<typeof getPlatformBilling>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPlatformBilling>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPlatformBillingQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPlatformBilling>>> = ({ signal }) => getPlatformBilling({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPlatformBilling>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetPlatformBillingQueryResult = NonNullable<Awaited<ReturnType<typeof getPlatformBilling>>>
+export type GetPlatformBillingQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Public platform payment instructions (JazzCash / bank + WhatsApp)
+ */
+
+export function useGetPlatformBilling<TData = Awaited<ReturnType<typeof getPlatformBilling>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPlatformBilling>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetPlatformBillingQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetBakerBillingUrl = (bakerId: number,) => {
+
+
+
+
+  return `/api/bakers/${bakerId}/billing`
+}
+
+/**
+ * @summary Baker subscription + pending upgrade state
+ */
+export const getBakerBilling = async (bakerId: number, options?: RequestInit): Promise<BakerBillingState> => {
+
+  return customFetch<BakerBillingState>(getGetBakerBillingUrl(bakerId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetBakerBillingQueryKey = (bakerId: number,) => {
+    return [
+    `/api/bakers/${bakerId}/billing`
+    ] as const;
+    }
+
+
+export const getGetBakerBillingQueryOptions = <TData = Awaited<ReturnType<typeof getBakerBilling>>, TError = ErrorType<void>>(bakerId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getBakerBilling>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetBakerBillingQueryKey(bakerId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getBakerBilling>>> = ({ signal }) => getBakerBilling(bakerId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: bakerId !== null && bakerId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getBakerBilling>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetBakerBillingQueryResult = NonNullable<Awaited<ReturnType<typeof getBakerBilling>>>
+export type GetBakerBillingQueryError = ErrorType<void>
+
+
+/**
+ * @summary Baker subscription + pending upgrade state
+ */
+
+export function useGetBakerBilling<TData = Awaited<ReturnType<typeof getBakerBilling>>, TError = ErrorType<void>>(
+ bakerId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getBakerBilling>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetBakerBillingQueryOptions(bakerId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getRequestBakerPlanUpgradeUrl = (bakerId: number,) => {
+
+
+
+
+  return `/api/bakers/${bakerId}/billing/request-upgrade`
+}
+
+/**
+ * @summary Record pending plan and return WhatsApp deep link for payment confirmation
+ */
+export const requestBakerPlanUpgrade = async (bakerId: number,
+    billingUpgradeRequest: BillingUpgradeRequest, options?: RequestInit): Promise<BillingUpgradeResponse> => {
+
+  return customFetch<BillingUpgradeResponse>(getRequestBakerPlanUpgradeUrl(bakerId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(billingUpgradeRequest)
+  }
+);}
+
+
+
+
+
+export const getRequestBakerPlanUpgradeMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requestBakerPlanUpgrade>>, TError,{bakerId: number;data: BodyType<BillingUpgradeRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof requestBakerPlanUpgrade>>, TError,{bakerId: number;data: BodyType<BillingUpgradeRequest>}, TContext> => {
+
+const mutationKey = ['requestBakerPlanUpgrade'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof requestBakerPlanUpgrade>>, {bakerId: number;data: BodyType<BillingUpgradeRequest>}> = (props) => {
+          const {bakerId,data} = props ?? {};
+
+          return  requestBakerPlanUpgrade(bakerId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RequestBakerPlanUpgradeMutationResult = NonNullable<Awaited<ReturnType<typeof requestBakerPlanUpgrade>>>
+    export type RequestBakerPlanUpgradeMutationBody = BodyType<BillingUpgradeRequest>
+    export type RequestBakerPlanUpgradeMutationError = ErrorType<void>
+
+    /**
+ * @summary Record pending plan and return WhatsApp deep link for payment confirmation
+ */
+export const useRequestBakerPlanUpgrade = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requestBakerPlanUpgrade>>, TError,{bakerId: number;data: BodyType<BillingUpgradeRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof requestBakerPlanUpgrade>>,
+        TError,
+        {bakerId: number;data: BodyType<BillingUpgradeRequest>},
+        TContext
+      > => {
+      return useMutation(getRequestBakerPlanUpgradeMutationOptions(options));
+    }
+
+export const getAdminActivatePlanUrl = () => {
+
+
+
+
+  return `/api/admin/activate-plan`
+}
+
+/**
+ * Requires Authorization Bearer JWT_SECRET or ENRICH_DEMO_SECRET.
+ * @summary Manually activate a paid plan after WhatsApp payment confirmation
+ */
+export const adminActivatePlan = async (adminActivatePlanRequest: AdminActivatePlanRequest, options?: RequestInit): Promise<AdminActivatePlanResponse> => {
+
+  return customFetch<AdminActivatePlanResponse>(getAdminActivatePlanUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(adminActivatePlanRequest)
+  }
+);}
+
+
+
+
+
+export const getAdminActivatePlanMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminActivatePlan>>, TError,{data: BodyType<AdminActivatePlanRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof adminActivatePlan>>, TError,{data: BodyType<AdminActivatePlanRequest>}, TContext> => {
+
+const mutationKey = ['adminActivatePlan'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof adminActivatePlan>>, {data: BodyType<AdminActivatePlanRequest>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  adminActivatePlan(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AdminActivatePlanMutationResult = NonNullable<Awaited<ReturnType<typeof adminActivatePlan>>>
+    export type AdminActivatePlanMutationBody = BodyType<AdminActivatePlanRequest>
+    export type AdminActivatePlanMutationError = ErrorType<void>
+
+    /**
+ * @summary Manually activate a paid plan after WhatsApp payment confirmation
+ */
+export const useAdminActivatePlan = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminActivatePlan>>, TError,{data: BodyType<AdminActivatePlanRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof adminActivatePlan>>,
+        TError,
+        {data: BodyType<AdminActivatePlanRequest>},
+        TContext
+      > => {
+      return useMutation(getAdminActivatePlanMutationOptions(options));
+    }
+
+export const getAdminSetPlatformBillingUrl = () => {
+
+
+
+
+  return `/api/admin/platform-billing`
+}
+
+/**
+ * @summary Set platform WhatsApp / JazzCash details at runtime
+ */
+export const adminSetPlatformBilling = async (adminSetPlatformBillingBody: AdminSetPlatformBillingBody, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getAdminSetPlatformBillingUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(adminSetPlatformBillingBody)
+  }
+);}
+
+
+
+
+
+export const getAdminSetPlatformBillingMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminSetPlatformBilling>>, TError,{data: BodyType<AdminSetPlatformBillingBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof adminSetPlatformBilling>>, TError,{data: BodyType<AdminSetPlatformBillingBody>}, TContext> => {
+
+const mutationKey = ['adminSetPlatformBilling'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof adminSetPlatformBilling>>, {data: BodyType<AdminSetPlatformBillingBody>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  adminSetPlatformBilling(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AdminSetPlatformBillingMutationResult = NonNullable<Awaited<ReturnType<typeof adminSetPlatformBilling>>>
+    export type AdminSetPlatformBillingMutationBody = BodyType<AdminSetPlatformBillingBody>
+    export type AdminSetPlatformBillingMutationError = ErrorType<void>
+
+    /**
+ * @summary Set platform WhatsApp / JazzCash details at runtime
+ */
+export const useAdminSetPlatformBilling = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminSetPlatformBilling>>, TError,{data: BodyType<AdminSetPlatformBillingBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof adminSetPlatformBilling>>,
+        TError,
+        {data: BodyType<AdminSetPlatformBillingBody>},
+        TContext
+      > => {
+      return useMutation(getAdminSetPlatformBillingMutationOptions(options));
+    }
+
+export const getLookupOrdersByPhoneUrl = (params: LookupOrdersByPhoneParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/orders/lookup?${stringifiedParams}` : `/api/orders/lookup`
+}
+
+/**
+ * @summary Buyer self-serve order status by WhatsApp number
+ */
+export const lookupOrdersByPhone = async (params: LookupOrdersByPhoneParams, options?: RequestInit): Promise<LookupOrdersByPhone200Item[]> => {
+
+  return customFetch<LookupOrdersByPhone200Item[]>(getLookupOrdersByPhoneUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getLookupOrdersByPhoneQueryKey = (params?: LookupOrdersByPhoneParams,) => {
+    return [
+    `/api/orders/lookup`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getLookupOrdersByPhoneQueryOptions = <TData = Awaited<ReturnType<typeof lookupOrdersByPhone>>, TError = ErrorType<unknown>>(params: LookupOrdersByPhoneParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof lookupOrdersByPhone>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getLookupOrdersByPhoneQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof lookupOrdersByPhone>>> = ({ signal }) => lookupOrdersByPhone(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof lookupOrdersByPhone>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type LookupOrdersByPhoneQueryResult = NonNullable<Awaited<ReturnType<typeof lookupOrdersByPhone>>>
+export type LookupOrdersByPhoneQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Buyer self-serve order status by WhatsApp number
+ */
+
+export function useLookupOrdersByPhone<TData = Awaited<ReturnType<typeof lookupOrdersByPhone>>, TError = ErrorType<unknown>>(
+ params: LookupOrdersByPhoneParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof lookupOrdersByPhone>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getLookupOrdersByPhoneQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetOrderFeedbackStatusUrl = (orderId: number,) => {
+
+
+
+
+  return `/api/orders/${orderId}/feedback`
+}
+
+/**
+ * @summary Public feedback page status after delivery
+ */
+export const getOrderFeedbackStatus = async (orderId: number, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getGetOrderFeedbackStatusUrl(orderId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetOrderFeedbackStatusQueryKey = (orderId: number,) => {
+    return [
+    `/api/orders/${orderId}/feedback`
+    ] as const;
+    }
+
+
+export const getGetOrderFeedbackStatusQueryOptions = <TData = Awaited<ReturnType<typeof getOrderFeedbackStatus>>, TError = ErrorType<void>>(orderId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getOrderFeedbackStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetOrderFeedbackStatusQueryKey(orderId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getOrderFeedbackStatus>>> = ({ signal }) => getOrderFeedbackStatus(orderId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: orderId !== null && orderId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getOrderFeedbackStatus>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetOrderFeedbackStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getOrderFeedbackStatus>>>
+export type GetOrderFeedbackStatusQueryError = ErrorType<void>
+
+
+/**
+ * @summary Public feedback page status after delivery
+ */
+
+export function useGetOrderFeedbackStatus<TData = Awaited<ReturnType<typeof getOrderFeedbackStatus>>, TError = ErrorType<void>>(
+ orderId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getOrderFeedbackStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetOrderFeedbackStatusQueryOptions(orderId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getSubmitOrderFeedbackUrl = (orderId: number,) => {
+
+
+
+
+  return `/api/orders/${orderId}/feedback`
+}
+
+/**
+ * @summary Buyer submits delivery feedback
+ */
+export const submitOrderFeedback = async (orderId: number,
+    submitOrderFeedbackBody: SubmitOrderFeedbackBody, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getSubmitOrderFeedbackUrl(orderId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(submitOrderFeedbackBody)
+  }
+);}
+
+
+
+
+
+export const getSubmitOrderFeedbackMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof submitOrderFeedback>>, TError,{orderId: number;data: BodyType<SubmitOrderFeedbackBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof submitOrderFeedback>>, TError,{orderId: number;data: BodyType<SubmitOrderFeedbackBody>}, TContext> => {
+
+const mutationKey = ['submitOrderFeedback'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof submitOrderFeedback>>, {orderId: number;data: BodyType<SubmitOrderFeedbackBody>}> = (props) => {
+          const {orderId,data} = props ?? {};
+
+          return  submitOrderFeedback(orderId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SubmitOrderFeedbackMutationResult = NonNullable<Awaited<ReturnType<typeof submitOrderFeedback>>>
+    export type SubmitOrderFeedbackMutationBody = BodyType<SubmitOrderFeedbackBody>
+    export type SubmitOrderFeedbackMutationError = ErrorType<void>
+
+    /**
+ * @summary Buyer submits delivery feedback
+ */
+export const useSubmitOrderFeedback = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof submitOrderFeedback>>, TError,{orderId: number;data: BodyType<SubmitOrderFeedbackBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof submitOrderFeedback>>,
+        TError,
+        {orderId: number;data: BodyType<SubmitOrderFeedbackBody>},
+        TContext
+      > => {
+      return useMutation(getSubmitOrderFeedbackMutationOptions(options));
+    }
+
+export const getUploadGuestOrderReceiptUrl = (orderId: number,) => {
+
+
+
+
+  return `/api/orders/${orderId}/guest-receipt`
+}
+
+/**
+ * @summary Guest buyer uploads JazzCash/Easypaisa receipt (phone must match order)
+ */
+export const uploadGuestOrderReceipt = async (orderId: number,
+    uploadGuestOrderReceiptBody: UploadGuestOrderReceiptBody, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getUploadGuestOrderReceiptUrl(orderId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(uploadGuestOrderReceiptBody)
+  }
+);}
+
+
+
+
+
+export const getUploadGuestOrderReceiptMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof uploadGuestOrderReceipt>>, TError,{orderId: number;data: BodyType<UploadGuestOrderReceiptBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof uploadGuestOrderReceipt>>, TError,{orderId: number;data: BodyType<UploadGuestOrderReceiptBody>}, TContext> => {
+
+const mutationKey = ['uploadGuestOrderReceipt'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof uploadGuestOrderReceipt>>, {orderId: number;data: BodyType<UploadGuestOrderReceiptBody>}> = (props) => {
+          const {orderId,data} = props ?? {};
+
+          return  uploadGuestOrderReceipt(orderId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UploadGuestOrderReceiptMutationResult = NonNullable<Awaited<ReturnType<typeof uploadGuestOrderReceipt>>>
+    export type UploadGuestOrderReceiptMutationBody = BodyType<UploadGuestOrderReceiptBody>
+    export type UploadGuestOrderReceiptMutationError = ErrorType<void>
+
+    /**
+ * @summary Guest buyer uploads JazzCash/Easypaisa receipt (phone must match order)
+ */
+export const useUploadGuestOrderReceipt = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof uploadGuestOrderReceipt>>, TError,{orderId: number;data: BodyType<UploadGuestOrderReceiptBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof uploadGuestOrderReceipt>>,
+        TError,
+        {orderId: number;data: BodyType<UploadGuestOrderReceiptBody>},
+        TContext
+      > => {
+      return useMutation(getUploadGuestOrderReceiptMutationOptions(options));
+    }
+
+export const getBroadcastToCustomersUrl = (bakerId: number,) => {
+
+
+
+
+  return `/api/bakers/${bakerId}/broadcast`
+}
+
+/**
+ * @summary Send WhatsApp broadcast to a CRM segment (requires Meta WhatsApp connect)
+ */
+export const broadcastToCustomers = async (bakerId: number,
+    broadcastToCustomersBody: BroadcastToCustomersBody, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getBroadcastToCustomersUrl(bakerId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(broadcastToCustomersBody)
+  }
+);}
+
+
+
+
+
+export const getBroadcastToCustomersMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof broadcastToCustomers>>, TError,{bakerId: number;data: BodyType<BroadcastToCustomersBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof broadcastToCustomers>>, TError,{bakerId: number;data: BodyType<BroadcastToCustomersBody>}, TContext> => {
+
+const mutationKey = ['broadcastToCustomers'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof broadcastToCustomers>>, {bakerId: number;data: BodyType<BroadcastToCustomersBody>}> = (props) => {
+          const {bakerId,data} = props ?? {};
+
+          return  broadcastToCustomers(bakerId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type BroadcastToCustomersMutationResult = NonNullable<Awaited<ReturnType<typeof broadcastToCustomers>>>
+    export type BroadcastToCustomersMutationBody = BodyType<BroadcastToCustomersBody>
+    export type BroadcastToCustomersMutationError = ErrorType<void>
+
+    /**
+ * @summary Send WhatsApp broadcast to a CRM segment (requires Meta WhatsApp connect)
+ */
+export const useBroadcastToCustomers = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof broadcastToCustomers>>, TError,{bakerId: number;data: BodyType<BroadcastToCustomersBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof broadcastToCustomers>>,
+        TError,
+        {bakerId: number;data: BodyType<BroadcastToCustomersBody>},
+        TContext
+      > => {
+      return useMutation(getBroadcastToCustomersMutationOptions(options));
+    }
+
+export const getGetBakerWorkspaceUrl = (bakerId: number,) => {
+
+
+
+
+  return `/api/bakers/${bakerId}/workspace`
+}
+
+/**
+ * @summary Goals, notes, and reminders for the baker dashboard
+ */
+export const getBakerWorkspace = async (bakerId: number, options?: RequestInit): Promise<GetBakerWorkspace200> => {
+
+  return customFetch<GetBakerWorkspace200>(getGetBakerWorkspaceUrl(bakerId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetBakerWorkspaceQueryKey = (bakerId: number,) => {
+    return [
+    `/api/bakers/${bakerId}/workspace`
+    ] as const;
+    }
+
+
+export const getGetBakerWorkspaceQueryOptions = <TData = Awaited<ReturnType<typeof getBakerWorkspace>>, TError = ErrorType<unknown>>(bakerId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getBakerWorkspace>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetBakerWorkspaceQueryKey(bakerId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getBakerWorkspace>>> = ({ signal }) => getBakerWorkspace(bakerId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: bakerId !== null && bakerId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getBakerWorkspace>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetBakerWorkspaceQueryResult = NonNullable<Awaited<ReturnType<typeof getBakerWorkspace>>>
+export type GetBakerWorkspaceQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Goals, notes, and reminders for the baker dashboard
+ */
+
+export function useGetBakerWorkspace<TData = Awaited<ReturnType<typeof getBakerWorkspace>>, TError = ErrorType<unknown>>(
+ bakerId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getBakerWorkspace>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetBakerWorkspaceQueryOptions(bakerId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateBakerGoalUrl = (bakerId: number,) => {
+
+
+
+
+  return `/api/bakers/${bakerId}/goals`
+}
+
+/**
+ * @summary Create a monthly goal
+ */
+export const createBakerGoal = async (bakerId: number,
+    createBakerGoalBody: CreateBakerGoalBody, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getCreateBakerGoalUrl(bakerId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(createBakerGoalBody)
+  }
+);}
+
+
+
+
+
+export const getCreateBakerGoalMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createBakerGoal>>, TError,{bakerId: number;data: BodyType<CreateBakerGoalBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createBakerGoal>>, TError,{bakerId: number;data: BodyType<CreateBakerGoalBody>}, TContext> => {
+
+const mutationKey = ['createBakerGoal'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createBakerGoal>>, {bakerId: number;data: BodyType<CreateBakerGoalBody>}> = (props) => {
+          const {bakerId,data} = props ?? {};
+
+          return  createBakerGoal(bakerId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateBakerGoalMutationResult = NonNullable<Awaited<ReturnType<typeof createBakerGoal>>>
+    export type CreateBakerGoalMutationBody = BodyType<CreateBakerGoalBody>
+    export type CreateBakerGoalMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Create a monthly goal
+ */
+export const useCreateBakerGoal = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createBakerGoal>>, TError,{bakerId: number;data: BodyType<CreateBakerGoalBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createBakerGoal>>,
+        TError,
+        {bakerId: number;data: BodyType<CreateBakerGoalBody>},
+        TContext
+      > => {
+      return useMutation(getCreateBakerGoalMutationOptions(options));
+    }
+
+export const getCreateBakerNoteUrl = (bakerId: number,) => {
+
+
+
+
+  return `/api/bakers/${bakerId}/notes`
+}
+
+/**
+ * @summary Create a workspace note
+ */
+export const createBakerNote = async (bakerId: number,
+    createBakerNoteBody: CreateBakerNoteBody, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getCreateBakerNoteUrl(bakerId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(createBakerNoteBody)
+  }
+);}
+
+
+
+
+
+export const getCreateBakerNoteMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createBakerNote>>, TError,{bakerId: number;data: BodyType<CreateBakerNoteBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createBakerNote>>, TError,{bakerId: number;data: BodyType<CreateBakerNoteBody>}, TContext> => {
+
+const mutationKey = ['createBakerNote'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createBakerNote>>, {bakerId: number;data: BodyType<CreateBakerNoteBody>}> = (props) => {
+          const {bakerId,data} = props ?? {};
+
+          return  createBakerNote(bakerId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateBakerNoteMutationResult = NonNullable<Awaited<ReturnType<typeof createBakerNote>>>
+    export type CreateBakerNoteMutationBody = BodyType<CreateBakerNoteBody>
+    export type CreateBakerNoteMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Create a workspace note
+ */
+export const useCreateBakerNote = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createBakerNote>>, TError,{bakerId: number;data: BodyType<CreateBakerNoteBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createBakerNote>>,
+        TError,
+        {bakerId: number;data: BodyType<CreateBakerNoteBody>},
+        TContext
+      > => {
+      return useMutation(getCreateBakerNoteMutationOptions(options));
+    }
+
+export const getCreateBakerReminderUrl = (bakerId: number,) => {
+
+
+
+
+  return `/api/bakers/${bakerId}/reminders`
+}
+
+/**
+ * @summary Create a reminder
+ */
+export const createBakerReminder = async (bakerId: number,
+    createBakerReminderBody: CreateBakerReminderBody, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getCreateBakerReminderUrl(bakerId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(createBakerReminderBody)
+  }
+);}
+
+
+
+
+
+export const getCreateBakerReminderMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createBakerReminder>>, TError,{bakerId: number;data: BodyType<CreateBakerReminderBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createBakerReminder>>, TError,{bakerId: number;data: BodyType<CreateBakerReminderBody>}, TContext> => {
+
+const mutationKey = ['createBakerReminder'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createBakerReminder>>, {bakerId: number;data: BodyType<CreateBakerReminderBody>}> = (props) => {
+          const {bakerId,data} = props ?? {};
+
+          return  createBakerReminder(bakerId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateBakerReminderMutationResult = NonNullable<Awaited<ReturnType<typeof createBakerReminder>>>
+    export type CreateBakerReminderMutationBody = BodyType<CreateBakerReminderBody>
+    export type CreateBakerReminderMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Create a reminder
+ */
+export const useCreateBakerReminder = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createBakerReminder>>, TError,{bakerId: number;data: BodyType<CreateBakerReminderBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createBakerReminder>>,
+        TError,
+        {bakerId: number;data: BodyType<CreateBakerReminderBody>},
+        TContext
+      > => {
+      return useMutation(getCreateBakerReminderMutationOptions(options));
+    }
+
+export const getUpdateBakerReminderUrl = (bakerId: number,
+    reminderId: number,) => {
+
+
+
+
+  return `/api/bakers/${bakerId}/reminders/${reminderId}`
+}
+
+/**
+ * @summary Update or complete a reminder
+ */
+export const updateBakerReminder = async (bakerId: number,
+    reminderId: number,
+    updateBakerReminderBody: UpdateBakerReminderBody, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getUpdateBakerReminderUrl(bakerId,reminderId),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(updateBakerReminderBody)
+  }
+);}
+
+
+
+
+
+export const getUpdateBakerReminderMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateBakerReminder>>, TError,{bakerId: number;reminderId: number;data: BodyType<UpdateBakerReminderBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateBakerReminder>>, TError,{bakerId: number;reminderId: number;data: BodyType<UpdateBakerReminderBody>}, TContext> => {
+
+const mutationKey = ['updateBakerReminder'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateBakerReminder>>, {bakerId: number;reminderId: number;data: BodyType<UpdateBakerReminderBody>}> = (props) => {
+          const {bakerId,reminderId,data} = props ?? {};
+
+          return  updateBakerReminder(bakerId,reminderId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateBakerReminderMutationResult = NonNullable<Awaited<ReturnType<typeof updateBakerReminder>>>
+    export type UpdateBakerReminderMutationBody = BodyType<UpdateBakerReminderBody>
+    export type UpdateBakerReminderMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Update or complete a reminder
+ */
+export const useUpdateBakerReminder = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateBakerReminder>>, TError,{bakerId: number;reminderId: number;data: BodyType<UpdateBakerReminderBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateBakerReminder>>,
+        TError,
+        {bakerId: number;reminderId: number;data: BodyType<UpdateBakerReminderBody>},
+        TContext
+      > => {
+      return useMutation(getUpdateBakerReminderMutationOptions(options));
+    }
+
+export const getListInventoryItemsUrl = (bakerId: number,) => {
+
+
+
+
+  return `/api/inventory/baker/${bakerId}`
+}
+
+/**
+ * @summary List inventory items
+ */
+export const listInventoryItems = async (bakerId: number, options?: RequestInit): Promise<ListInventoryItems200Item[]> => {
+
+  return customFetch<ListInventoryItems200Item[]>(getListInventoryItemsUrl(bakerId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListInventoryItemsQueryKey = (bakerId: number,) => {
+    return [
+    `/api/inventory/baker/${bakerId}`
+    ] as const;
+    }
+
+
+export const getListInventoryItemsQueryOptions = <TData = Awaited<ReturnType<typeof listInventoryItems>>, TError = ErrorType<unknown>>(bakerId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listInventoryItems>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListInventoryItemsQueryKey(bakerId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listInventoryItems>>> = ({ signal }) => listInventoryItems(bakerId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: bakerId !== null && bakerId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listInventoryItems>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListInventoryItemsQueryResult = NonNullable<Awaited<ReturnType<typeof listInventoryItems>>>
+export type ListInventoryItemsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List inventory items
+ */
+
+export function useListInventoryItems<TData = Awaited<ReturnType<typeof listInventoryItems>>, TError = ErrorType<unknown>>(
+ bakerId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listInventoryItems>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListInventoryItemsQueryOptions(bakerId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateInventoryItemUrl = (bakerId: number,) => {
+
+
+
+
+  return `/api/inventory/baker/${bakerId}/items`
+}
+
+/**
+ * @summary Create inventory item
+ */
+export const createInventoryItem = async (bakerId: number,
+    createInventoryItemBody: CreateInventoryItemBody, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getCreateInventoryItemUrl(bakerId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(createInventoryItemBody)
+  }
+);}
+
+
+
+
+
+export const getCreateInventoryItemMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createInventoryItem>>, TError,{bakerId: number;data: BodyType<CreateInventoryItemBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createInventoryItem>>, TError,{bakerId: number;data: BodyType<CreateInventoryItemBody>}, TContext> => {
+
+const mutationKey = ['createInventoryItem'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createInventoryItem>>, {bakerId: number;data: BodyType<CreateInventoryItemBody>}> = (props) => {
+          const {bakerId,data} = props ?? {};
+
+          return  createInventoryItem(bakerId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateInventoryItemMutationResult = NonNullable<Awaited<ReturnType<typeof createInventoryItem>>>
+    export type CreateInventoryItemMutationBody = BodyType<CreateInventoryItemBody>
+    export type CreateInventoryItemMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Create inventory item
+ */
+export const useCreateInventoryItem = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createInventoryItem>>, TError,{bakerId: number;data: BodyType<CreateInventoryItemBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createInventoryItem>>,
+        TError,
+        {bakerId: number;data: BodyType<CreateInventoryItemBody>},
+        TContext
+      > => {
+      return useMutation(getCreateInventoryItemMutationOptions(options));
+    }
+
+export const getUpdateInventoryItemUrl = (bakerId: number,
+    itemId: number,) => {
+
+
+
+
+  return `/api/inventory/baker/${bakerId}/items/${itemId}`
+}
+
+/**
+ * @summary Update inventory item
+ */
+export const updateInventoryItem = async (bakerId: number,
+    itemId: number,
+    updateInventoryItemBody: UpdateInventoryItemBody, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getUpdateInventoryItemUrl(bakerId,itemId),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(updateInventoryItemBody)
+  }
+);}
+
+
+
+
+
+export const getUpdateInventoryItemMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateInventoryItem>>, TError,{bakerId: number;itemId: number;data: BodyType<UpdateInventoryItemBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateInventoryItem>>, TError,{bakerId: number;itemId: number;data: BodyType<UpdateInventoryItemBody>}, TContext> => {
+
+const mutationKey = ['updateInventoryItem'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateInventoryItem>>, {bakerId: number;itemId: number;data: BodyType<UpdateInventoryItemBody>}> = (props) => {
+          const {bakerId,itemId,data} = props ?? {};
+
+          return  updateInventoryItem(bakerId,itemId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateInventoryItemMutationResult = NonNullable<Awaited<ReturnType<typeof updateInventoryItem>>>
+    export type UpdateInventoryItemMutationBody = BodyType<UpdateInventoryItemBody>
+    export type UpdateInventoryItemMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Update inventory item
+ */
+export const useUpdateInventoryItem = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateInventoryItem>>, TError,{bakerId: number;itemId: number;data: BodyType<UpdateInventoryItemBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateInventoryItem>>,
+        TError,
+        {bakerId: number;itemId: number;data: BodyType<UpdateInventoryItemBody>},
+        TContext
+      > => {
+      return useMutation(getUpdateInventoryItemMutationOptions(options));
+    }
+
+export const getDeleteInventoryItemUrl = (bakerId: number,
+    itemId: number,) => {
+
+
+
+
+  return `/api/inventory/baker/${bakerId}/items/${itemId}`
+}
+
+/**
+ * @summary Delete inventory item
+ */
+export const deleteInventoryItem = async (bakerId: number,
+    itemId: number, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getDeleteInventoryItemUrl(bakerId,itemId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteInventoryItemMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteInventoryItem>>, TError,{bakerId: number;itemId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteInventoryItem>>, TError,{bakerId: number;itemId: number}, TContext> => {
+
+const mutationKey = ['deleteInventoryItem'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteInventoryItem>>, {bakerId: number;itemId: number}> = (props) => {
+          const {bakerId,itemId} = props ?? {};
+
+          return  deleteInventoryItem(bakerId,itemId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteInventoryItemMutationResult = NonNullable<Awaited<ReturnType<typeof deleteInventoryItem>>>
+
+    export type DeleteInventoryItemMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Delete inventory item
+ */
+export const useDeleteInventoryItem = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteInventoryItem>>, TError,{bakerId: number;itemId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteInventoryItem>>,
+        TError,
+        {bakerId: number;itemId: number},
+        TContext
+      > => {
+      return useMutation(getDeleteInventoryItemMutationOptions(options));
+    }
+
+export const getListLedgerEntriesUrl = (bakerId: number,) => {
+
+
+
+
+  return `/api/ledger/baker/${bakerId}/entries`
+}
+
+/**
+ * @summary List ledger entries
+ */
+export const listLedgerEntries = async (bakerId: number, options?: RequestInit): Promise<ListLedgerEntries200Item[]> => {
+
+  return customFetch<ListLedgerEntries200Item[]>(getListLedgerEntriesUrl(bakerId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListLedgerEntriesQueryKey = (bakerId: number,) => {
+    return [
+    `/api/ledger/baker/${bakerId}/entries`
+    ] as const;
+    }
+
+
+export const getListLedgerEntriesQueryOptions = <TData = Awaited<ReturnType<typeof listLedgerEntries>>, TError = ErrorType<unknown>>(bakerId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listLedgerEntries>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListLedgerEntriesQueryKey(bakerId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listLedgerEntries>>> = ({ signal }) => listLedgerEntries(bakerId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: bakerId !== null && bakerId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listLedgerEntries>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListLedgerEntriesQueryResult = NonNullable<Awaited<ReturnType<typeof listLedgerEntries>>>
+export type ListLedgerEntriesQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List ledger entries
+ */
+
+export function useListLedgerEntries<TData = Awaited<ReturnType<typeof listLedgerEntries>>, TError = ErrorType<unknown>>(
+ bakerId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listLedgerEntries>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListLedgerEntriesQueryOptions(bakerId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateLedgerEntryUrl = (bakerId: number,) => {
+
+
+
+
+  return `/api/ledger/baker/${bakerId}/entries`
+}
+
+/**
+ * @summary Create ledger entry
+ */
+export const createLedgerEntry = async (bakerId: number,
+    createLedgerEntryBody: CreateLedgerEntryBody, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getCreateLedgerEntryUrl(bakerId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(createLedgerEntryBody)
+  }
+);}
+
+
+
+
+
+export const getCreateLedgerEntryMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createLedgerEntry>>, TError,{bakerId: number;data: BodyType<CreateLedgerEntryBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createLedgerEntry>>, TError,{bakerId: number;data: BodyType<CreateLedgerEntryBody>}, TContext> => {
+
+const mutationKey = ['createLedgerEntry'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createLedgerEntry>>, {bakerId: number;data: BodyType<CreateLedgerEntryBody>}> = (props) => {
+          const {bakerId,data} = props ?? {};
+
+          return  createLedgerEntry(bakerId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateLedgerEntryMutationResult = NonNullable<Awaited<ReturnType<typeof createLedgerEntry>>>
+    export type CreateLedgerEntryMutationBody = BodyType<CreateLedgerEntryBody>
+    export type CreateLedgerEntryMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Create ledger entry
+ */
+export const useCreateLedgerEntry = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createLedgerEntry>>, TError,{bakerId: number;data: BodyType<CreateLedgerEntryBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createLedgerEntry>>,
+        TError,
+        {bakerId: number;data: BodyType<CreateLedgerEntryBody>},
+        TContext
+      > => {
+      return useMutation(getCreateLedgerEntryMutationOptions(options));
+    }
+
+export const getDeleteLedgerEntryUrl = (bakerId: number,
+    entryId: number,) => {
+
+
+
+
+  return `/api/ledger/baker/${bakerId}/entries/${entryId}`
+}
+
+/**
+ * @summary Delete ledger entry
+ */
+export const deleteLedgerEntry = async (bakerId: number,
+    entryId: number, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getDeleteLedgerEntryUrl(bakerId,entryId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteLedgerEntryMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteLedgerEntry>>, TError,{bakerId: number;entryId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteLedgerEntry>>, TError,{bakerId: number;entryId: number}, TContext> => {
+
+const mutationKey = ['deleteLedgerEntry'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteLedgerEntry>>, {bakerId: number;entryId: number}> = (props) => {
+          const {bakerId,entryId} = props ?? {};
+
+          return  deleteLedgerEntry(bakerId,entryId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteLedgerEntryMutationResult = NonNullable<Awaited<ReturnType<typeof deleteLedgerEntry>>>
+
+    export type DeleteLedgerEntryMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Delete ledger entry
+ */
+export const useDeleteLedgerEntry = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteLedgerEntry>>, TError,{bakerId: number;entryId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteLedgerEntry>>,
+        TError,
+        {bakerId: number;entryId: number},
+        TContext
+      > => {
+      return useMutation(getDeleteLedgerEntryMutationOptions(options));
+    }
+
+export const getListKhataMonthsUrl = (bakerId: number,) => {
+
+
+
+
+  return `/api/analytics/baker/${bakerId}/khata/months`
+}
+
+/**
+ * @summary Available months for Khata analytics
+ */
+export const listKhataMonths = async (bakerId: number, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getListKhataMonthsUrl(bakerId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListKhataMonthsQueryKey = (bakerId: number,) => {
+    return [
+    `/api/analytics/baker/${bakerId}/khata/months`
+    ] as const;
+    }
+
+
+export const getListKhataMonthsQueryOptions = <TData = Awaited<ReturnType<typeof listKhataMonths>>, TError = ErrorType<unknown>>(bakerId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listKhataMonths>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListKhataMonthsQueryKey(bakerId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listKhataMonths>>> = ({ signal }) => listKhataMonths(bakerId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: bakerId !== null && bakerId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listKhataMonths>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListKhataMonthsQueryResult = NonNullable<Awaited<ReturnType<typeof listKhataMonths>>>
+export type ListKhataMonthsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Available months for Khata analytics
+ */
+
+export function useListKhataMonths<TData = Awaited<ReturnType<typeof listKhataMonths>>, TError = ErrorType<unknown>>(
+ bakerId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listKhataMonths>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListKhataMonthsQueryOptions(bakerId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetKhataAnalyticsUrl = (bakerId: number,
+    params?: GetKhataAnalyticsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/analytics/baker/${bakerId}/khata?${stringifiedParams}` : `/api/analytics/baker/${bakerId}/khata`
+}
+
+/**
+ * @summary Khata margin and expense analytics
+ */
+export const getKhataAnalytics = async (bakerId: number,
+    params?: GetKhataAnalyticsParams, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getGetKhataAnalyticsUrl(bakerId,params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetKhataAnalyticsQueryKey = (bakerId: number,
+    params?: GetKhataAnalyticsParams,) => {
+    return [
+    `/api/analytics/baker/${bakerId}/khata`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetKhataAnalyticsQueryOptions = <TData = Awaited<ReturnType<typeof getKhataAnalytics>>, TError = ErrorType<unknown>>(bakerId: number,
+    params?: GetKhataAnalyticsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getKhataAnalytics>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetKhataAnalyticsQueryKey(bakerId,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getKhataAnalytics>>> = ({ signal }) => getKhataAnalytics(bakerId,params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: bakerId !== null && bakerId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getKhataAnalytics>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetKhataAnalyticsQueryResult = NonNullable<Awaited<ReturnType<typeof getKhataAnalytics>>>
+export type GetKhataAnalyticsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Khata margin and expense analytics
+ */
+
+export function useGetKhataAnalytics<TData = Awaited<ReturnType<typeof getKhataAnalytics>>, TError = ErrorType<unknown>>(
+ bakerId: number,
+    params?: GetKhataAnalyticsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getKhataAnalytics>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetKhataAnalyticsQueryOptions(bakerId,params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getListConversationsUrl = (bakerId: number,) => {
 

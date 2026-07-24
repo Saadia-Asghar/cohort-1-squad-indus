@@ -1,15 +1,15 @@
 import { Router } from "express";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
-import { db, metaConnectionsTable, customersTable } from "@workspace/db";
+import { db, metaConnectionsTable, customersTable, bakersTable } from "@workspace/db";
 import {
-  type AuthenticatedRequest,
   requireBakerAuth,
   requireBakerOwnership,
 } from "../middlewares/auth.js";
 import { decryptSecret } from "../lib/secret-box.js";
 import { sendWhatsAppTextMessage } from "../lib/whatsapp.js";
 import { rateLimit } from "../middlewares/rate-limiter.js";
+import { isPlanAccessActive } from "../lib/subscription.js";
 
 const router = Router();
 
@@ -25,9 +25,23 @@ router.post(
       /** When set, send a single test message instead of segment blast. */
       testPhone: z.string().trim().min(10).max(24).optional(),
       limit: z.number().int().min(1).max(100).optional(),
+      /** Real CRM filters — matches Analytics segment ids */
+      segment: z.enum(["all", "frequent_buyers", "inactive_loyalists", "festival_buyers"]).optional(),
     }).safeParse(req.body);
     if (!parsed.success) {
       res.status(400).json({ error: parsed.error.message });
+      return;
+    }
+
+    const [baker] = await db.select().from(bakersTable).where(eq(bakersTable.id, bakerId)).limit(1);
+    if (!baker) {
+      res.status(404).json({ error: "Baker not found" });
+      return;
+    }
+    if (!isPlanAccessActive(baker)) {
+      res.status(403).json({
+        error: "Your 3-day Launch Free trial has ended. Upgrade to broadcast again.",
+      });
       return;
     }
 
@@ -74,11 +88,25 @@ router.post(
       return;
     }
 
-    const customers = await db
-      .select({ phone: customersTable.whatsappNumber, name: customersTable.name })
+    const allCustomers = await db
+      .select({
+        phone: customersTable.whatsappNumber,
+        name: customersTable.name,
+        isRegular: customersTable.isRegular,
+        isAtRisk: customersTable.isAtRisk,
+        totalOrders: customersTable.totalOrders,
+      })
       .from(customersTable)
-      .where(eq(customersTable.bakerId, bakerId))
-      .limit(parsed.data.limit ?? 50);
+      .where(eq(customersTable.bakerId, bakerId));
+
+    const segment = parsed.data.segment ?? "all";
+    const filtered = allCustomers.filter((c) => {
+      if (segment === "frequent_buyers") return c.isRegular && !c.isAtRisk;
+      if (segment === "inactive_loyalists") return c.isAtRisk;
+      if (segment === "festival_buyers") return !c.isRegular && !c.isAtRisk && (c.totalOrders ?? 0) > 0;
+      return true;
+    });
+    const customers = filtered.slice(0, parsed.data.limit ?? 50);
 
     let sent = 0;
     let failed = 0;
@@ -99,7 +127,9 @@ router.post(
 
     res.json({
       mode: "segment",
+      segment,
       targeted: customers.length,
+      matched: filtered.length,
       sent,
       failed,
       connected: true,

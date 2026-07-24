@@ -12,3 +12,4 @@ export * from "./baker_workspace";
 export * from "./inventory_ledger";
 export * from "./meta_connections";
 export * from "./channel_events";
+export * from "./baker_members";

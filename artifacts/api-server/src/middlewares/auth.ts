@@ -1,13 +1,16 @@
 import type { Request, Response, NextFunction } from "express";
 import { getAuth } from "@clerk/express";
-import { eq } from "drizzle-orm";
-import { db, bakersTable } from "@workspace/db";
+import { and, eq } from "drizzle-orm";
+import { bakerMembersTable, bakersTable, db } from "@workspace/db";
 import { verifyToken } from "../lib/auth.js";
 
 export interface AuthenticatedRequest extends Request {
   bakerId?: number;
   clerkUserId?: string;
   clerkOrganizationId?: string;
+  /** owner (default) | staff */
+  memberRole?: string;
+  memberId?: number;
 }
 
 function clerkIsRequired(): boolean {
@@ -55,7 +58,32 @@ export async function requireBakerAuth(req: Request, res: Response, next: NextFu
             .where(eq(bakersTable.clerkUserId, auth.userId))
             .limit(1);
 
-      if (!baker) {
+      if (baker) {
+        const request = req as AuthenticatedRequest;
+        request.bakerId = baker.id;
+        request.clerkUserId = auth.userId;
+        request.clerkOrganizationId = auth.orgId ?? undefined;
+        request.memberRole = "owner";
+        next();
+        return;
+      }
+
+      const [member] = await db
+        .select({
+          id: bakerMembersTable.id,
+          bakerId: bakerMembersTable.bakerId,
+          role: bakerMembersTable.role,
+        })
+        .from(bakerMembersTable)
+        .where(
+          and(
+            eq(bakerMembersTable.clerkUserId, auth.userId),
+            eq(bakerMembersTable.active, true),
+          ),
+        )
+        .limit(1);
+
+      if (!member) {
         res.status(403).json({
           error: "Complete bakery onboarding before accessing the dashboard.",
           code: "BAKER_ONBOARDING_REQUIRED",
@@ -64,9 +92,10 @@ export async function requireBakerAuth(req: Request, res: Response, next: NextFu
       }
 
       const request = req as AuthenticatedRequest;
-      request.bakerId = baker.id;
+      request.bakerId = member.bakerId;
       request.clerkUserId = auth.userId;
-      request.clerkOrganizationId = auth.orgId ?? undefined;
+      request.memberRole = member.role;
+      request.memberId = member.id;
       next();
       return;
     }
@@ -91,7 +120,10 @@ export async function requireBakerAuth(req: Request, res: Response, next: NextFu
     return;
   }
 
-  (req as AuthenticatedRequest).bakerId = decoded.bakerId;
+  const request = req as AuthenticatedRequest;
+  request.bakerId = decoded.bakerId;
+  request.memberRole = typeof decoded.role === "string" ? decoded.role : "owner";
+  if (typeof decoded.memberId === "number") request.memberId = decoded.memberId;
   next();
 }
 

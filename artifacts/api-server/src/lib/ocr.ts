@@ -16,8 +16,7 @@ export { verifyReceiptText } from "./receipt-analyzer.js";
  * This function intentionally has no mock receipt fallback. Payment evidence must
  * never be fabricated or treated as proof that a transfer happened.
  */
-export async function performReceiptOCR(imageUrl: string): Promise<string> {
-  const image = await downloadReceiptImage(imageUrl);
+async function recognizeReceiptBytes(image: Buffer): Promise<string> {
   const langPath = process.env.TESSERACT_LANG_PATH?.trim();
   const worker = await createWorker(
     "eng",
@@ -34,6 +33,14 @@ export async function performReceiptOCR(imageUrl: string): Promise<string> {
   } finally {
     await worker.terminate();
   }
+}
+
+export async function performReceiptOCR(imageUrl: string): Promise<string> {
+  return recognizeReceiptBytes(await downloadReceiptImage(imageUrl));
+}
+
+export async function performReceiptOCRFromBytes(image: Buffer): Promise<string> {
+  return recognizeReceiptBytes(image);
 }
 
 /**

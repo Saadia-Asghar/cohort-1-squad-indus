@@ -21,7 +21,6 @@ import {
   AlertTriangle,
   ArrowRight,
   TrendingUp,
-  MessageSquare,
   ExternalLink,
 } from "lucide-react";
 
@@ -236,22 +235,6 @@ export default function DashboardHome() {
                 <QuickLink href="/dashboard/catalog" icon={ShoppingBag} label="Update menu & prices" />
                 <QuickLink href="/dashboard/analytics" icon={TrendingUp} label="See sales & forecasts" />
                 <QuickLink href="/dashboard/customers" icon={Users} label={`CRM · ${regularCount} regulars`} />
-              </div>
-            </section>
-
-            <section className="rounded-xl border border-purple-200 bg-purple-50/40 p-5 shadow-sm">
-              <div className="flex items-start gap-3">
-                <MessageSquare className="h-5 w-5 text-purple-700 mt-0.5" />
-                <div>
-                  <h3 className="font-semibold text-purple-900">Pitch tip</h3>
-                  <p className="text-sm text-purple-800/90 mt-1 leading-relaxed">
-                    Open <strong>Agent Hub</strong> and tap a demo question — buyers get instant answers on eggless options,
-                    delivery areas, and offers using your real menu + policies.
-                  </p>
-                  <Link href="/dashboard/agent-hub" className="inline-flex items-center gap-1 mt-3 text-sm font-semibold text-purple-700 hover:underline">
-                    Open Agent Hub <ArrowRight className="h-3.5 w-3.5" />
-                  </Link>
-                </div>
               </div>
             </section>
 

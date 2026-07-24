@@ -17,11 +17,12 @@
 * Tokens are encrypted per bakery (`TOKEN_ENCRYPTION_KEY`).
 
 ### 3. 🔍 OCR payment slip review (advisory)
-* Bakers paste a receipt image URL on Payments and run **Check receipt**.
-* OCR matches amount/recipient signals for **manual review only** — it never auto-marks paid.
+* Buyers can upload a JazzCash / Easypaisa screenshot after checkout on the cart success screen.
+* Bakers can also upload/check receipts on **Payments**. OCR is advisory only — it never auto-marks paid.
+* File upload works without Cloudinary; `RECEIPT_IMAGE_HOSTS` is only needed for pasted external URLs.
 
 ### 4. 🧠 Smart AI assistant & RAG memory
-* Rule-based replies first; RAG fallback for catalog/policy questions.
+* Rule-based replies first; **RAG fallback** from indexed menu/policy chunks when rules miss.
 * Conversation memory + knowledge reindex after catalog/policy changes.
 
 ### 5. 📊 Analytics & outreach
@@ -61,6 +62,12 @@ Frontend: copy `artifacts/sweet-tooth/.env.example` and set at least `VITE_API_U
 
 Meta connect also needs on the API: `META_APP_ID`, `META_APP_SECRET`, `META_WEBHOOK_VERIFY_TOKEN`, `TOKEN_ENCRYPTION_KEY`.
 OCR hosts: `RECEIPT_IMAGE_HOSTS`.
+
+**Optional agent observability (free Hobby):** [Langfuse Cloud](https://cloud.langfuse.com) — set `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`, and optionally `LANGFUSE_BASE_URL` (default EU cloud). No credit card; traces every chat turn (web/WhatsApp/Instagram) so you can see escalations and weak replies. Without these keys, tracing is off.
+
+**Optional n8n automations:** set `N8N_WEBHOOK_URL` (+ `N8N_WEBHOOK_SECRET`). Events: `order.created`, `chat.received`, `chat.escalated`, `payment.advance_reminder`, `billing.upgrade_requested`, `billing.plan_activated`. Use n8n for WhatsApp follow-ups / Slack alerts — keep RAG + caps in the API.
+
+**Platform billing (free, no JazzCash API):** set `PLATFORM_WHATSAPP`, `PLATFORM_PAYMENT_DETAILS`, and optional `PLATFORM_BILLING_NAME`. Bakers pick a plan in Settings → transfer → WhatsApp you with a receipt. Activate with `POST /api/admin/activate-plan` and `Authorization: Bearer <JWT_SECRET>` body `{ "bakerId": 1, "planId": "starter" }`.
 
 **Optional Google sign-in:** follow [docs/CLERK_SETUP.md](docs/CLERK_SETUP.md), then run `.\scripts\sync-clerk-vercel.ps1`.
 

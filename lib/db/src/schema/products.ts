@@ -9,6 +9,7 @@ export const productsTable = sweetTooth.table("products", {
   name: text("name").notNull(),
   description: text("description"),
   basePricePkr: integer("base_price_pkr").notNull(),
+  recipeCostPkr: integer("recipe_cost_pkr"),
   sizes: jsonb("sizes").notNull().default([]),
   variants: text("variants").array().notNull().default([]),
   isEgglessAvailable: boolean("is_eggless_available").notNull().default(false),

@@ -35,5 +35,7 @@ export interface Product {
   isBestSeller?: boolean;
   isTopRated?: boolean;
   displayOrder?: number;
+  /** @nullable */
+  recipeCostPkr?: number | null;
   createdAt: string;
 }

@@ -4,9 +4,16 @@ import { useBuyerSession } from "@/hooks/use-session";
 import { useGetBaker, useUpdateBaker, getGetBakerQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
-import { Link } from "wouter";
 import { Copy, Facebook, Instagram, QrCode, Share2, Sparkles, ArrowRight } from "lucide-react";
-import { getPlanById, FOUNDER_OFFER_ACTIVE } from "@/lib/pricing-plans";
+import { getPlanById, FOUNDER_OFFER_ACTIVE, formatExtraReplyPkr, getFounderOfferLines, displayPrice } from "@/lib/pricing-plans";
+import { PlatformBillingPanel } from "@/components/dashboard/platform-billing-panel";
+import { TeamAccessPanel } from "@/components/dashboard/team-access-panel";
+import {
+  OCCASION_PRESET_OPTIONS,
+  PAYMENT_MODE_OPTIONS,
+  type OccasionPreset,
+  type PaymentMode,
+} from "@/lib/shop-settings";
 
 export default function DashboardSettings() {
   const { bakerId } = useBuyerSession();
@@ -18,10 +25,15 @@ export default function DashboardSettings() {
   const [tagline, setTagline] = useState("");
   const [whatsappNumber, setWhatsappNumber] = useState("");
   const [codPolicy, setCodPolicy] = useState("");
-  const [requireAdvance, setRequireAdvance] = useState(false);
+  const [paymentMode, setPaymentMode] = useState<PaymentMode>("cod");
   const [advanceThresholdPkr, setAdvanceThresholdPkr] = useState(2000);
   const [advancePercentage, setAdvancePercentage] = useState(50);
   const [paymentDetails, setPaymentDetails] = useState("");
+  const [occasionPreset, setOccasionPreset] = useState<OccasionPreset>("normal");
+  const [occasionCustomLabel, setOccasionCustomLabel] = useState("");
+  const [occasionOrderDeadline, setOccasionOrderDeadline] = useState("");
+  const [occasionFreshDays, setOccasionFreshDays] = useState("2");
+  const [occasionNote, setOccasionNote] = useState("");
   const [deliveryAreasText, setDeliveryAreasText] = useState("");
   const [instagramUrl, setInstagramUrl] = useState("");
   const [facebookUrl, setFacebookUrl] = useState("");
@@ -70,13 +82,27 @@ export default function DashboardSettings() {
       setTagline(baker.tagline ?? "");
       setWhatsappNumber(baker.whatsappNumber ?? "");
       setCodPolicy(baker.codPolicy ?? "");
-      setRequireAdvance(baker.requireAdvance ?? false);
       setAdvanceThresholdPkr(baker.advanceThresholdPkr ?? 2000);
       setAdvancePercentage(baker.advancePercentage ?? 50);
       setPaymentDetails(baker.paymentDetails ?? "");
       setDeliveryAreasText((baker.deliveryAreas ?? []).join(", "));
       setMaxOrdersPerDay(baker.maxOrdersPerDay ?? 10);
       const conf = (baker as any).agentConfig ?? {};
+      const mode = conf.paymentMode as PaymentMode | undefined;
+      if (mode === "cod" || mode === "partial_advance" || mode === "full_advance") {
+        setPaymentMode(mode);
+      } else if (baker.requireAdvance && (baker.advancePercentage ?? 0) >= 100) {
+        setPaymentMode("full_advance");
+      } else if (baker.requireAdvance) {
+        setPaymentMode("partial_advance");
+      } else {
+        setPaymentMode("cod");
+      }
+      setOccasionPreset(conf.occasionPreset ?? "normal");
+      setOccasionCustomLabel(conf.occasionCustomLabel ?? "");
+      setOccasionOrderDeadline(conf.occasionOrderDeadline ?? "");
+      setOccasionFreshDays(String(conf.occasionFreshDays ?? 2));
+      setOccasionNote(conf.occasionNote ?? "");
       setBlockedDates(conf.blockedDates ?? []);
       setPickupAddress(conf.pickupAddress ?? "");
       setAllowPickup(conf.allowPickup !== false);
@@ -102,21 +128,26 @@ export default function DashboardSettings() {
         businessName,
         tagline,
         codPolicy,
-        requireAdvance,
-        advanceThresholdPkr,
-        advancePercentage,
+        paymentMode,
+        advanceThresholdPkr: paymentMode === "partial_advance" ? advanceThresholdPkr : paymentMode === "full_advance" ? 0 : advanceThresholdPkr,
+        advancePercentage: paymentMode === "full_advance" ? 100 : paymentMode === "partial_advance" ? advancePercentage : 0,
         paymentDetails,
         deliveryAreas: deliveryAreasText.split(",").map((area) => area.trim()).filter(Boolean),
         socialLinks,
         maxOrdersPerDay,
         blockedDates,
+        occasionPreset,
+        occasionCustomLabel: occasionCustomLabel.trim(),
+        occasionOrderDeadline: occasionOrderDeadline || undefined,
+        occasionFreshDays: occasionPreset === "normal" ? undefined : parseInt(occasionFreshDays, 10) || 0,
+        occasionNote: occasionNote.trim(),
         pickupAddress: pickupAddress.trim(),
         allowPickup,
         allowDelivery,
         cancellationAllowed,
         cancellationHoursBefore: parseInt(cancellationHoursBefore, 10) || 0,
         cancellationPolicy: cancellationPolicy.trim(),
-      }
+      } as Record<string, unknown>,
     }, {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: getGetBakerQueryKey(bakerId) });
@@ -156,32 +187,65 @@ export default function DashboardSettings() {
                     {getPlanById(baker.subscriptionPlan)?.tagline}
                   </span>
                 </div>
+                {(baker as { trial?: { isFree?: boolean; expired?: boolean; daysLeft?: number | null } }).trial?.isFree && (
+                  <p className={`mt-2 text-sm ${(baker as { trial?: { expired?: boolean } }).trial?.expired ? "text-destructive font-medium" : "text-muted-foreground"}`}>
+                    {(baker as { trial?: { expired?: boolean; daysLeft?: number | null } }).trial?.expired
+                      ? "3-day trial ended — upgrade to restore the agent and broadcasts."
+                      : `Trial: ${(baker as { trial?: { daysLeft?: number | null } }).trial?.daysLeft ?? 0} day(s) left.`}
+                  </p>
+                )}
                 {(() => {
                   const plan = getPlanById(baker.subscriptionPlan) ?? getPlanById("free")!;
+                  const price = displayPrice(plan, FOUNDER_OFFER_ACTIVE ? "quarterly" : "monthly");
                   return (
-                    <p className="mt-2 text-sm text-muted-foreground">
-                      {plan.commissionPercent > 0
-                        ? `${plan.commissionPercent}% commission on checkout orders (max ${plan.commissionCapPkr.toLocaleString()} PKR/mo) · `
-                        : "0% commission · "}
-                      Extra AI replies {plan.extraReplyPkr === 2.5 ? "PKR 2.50" : `PKR ${plan.extraReplyPkr}`} each
-                    </p>
+                    <>
+                      {plan.monthlyPkr > 0 && (
+                        <p className="mt-2 text-sm font-semibold text-foreground">
+                          {price.primary} <span className="font-normal text-muted-foreground">{price.suffix}</span>
+                          {price.sub && <span className="block text-xs text-muted-foreground mt-0.5">{price.sub}</span>}
+                        </p>
+                      )}
+                      <p className="mt-2 text-sm text-muted-foreground">
+                        {plan.commissionPercent > 0
+                          ? `${plan.commissionPercent}% commission on checkout orders (max ${plan.commissionCapPkr.toLocaleString()} PKR/mo) · `
+                          : "0% commission · "}
+                        Extra agent replies {formatExtraReplyPkr(plan.extraReplyPkr)} each
+                      </p>
+                      <p className="mt-1 text-xs text-muted-foreground">{plan.limits.aiReplies} included · {plan.limits.whatsappChats}</p>
+                    </>
                   );
                 })()}
               </div>
-              <Link
-                href="/#pricing"
+              <a
+                href="#platform-billing"
                 className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
               >
                 <Sparkles className="h-4 w-4" />
-                {baker.subscriptionPlan === "pro" ? "View plans" : "Upgrade"}
+                {baker.subscriptionPlan === "free" || baker.subscriptionPlan === "starter" ? "Upgrade" : "Change plan"}
                 <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
+              </a>
             </div>
-            {FOUNDER_OFFER_ACTIVE && baker.subscriptionPlan !== "pro" && (
-              <p className="mt-4 text-xs text-primary font-medium">
-                Founder offer: Ghar Starter PKR 1,499 / 3 months or Pro Kitchen PKR 2,999 / 3 months — first month 0% commission.
-              </p>
+            {FOUNDER_OFFER_ACTIVE && baker.subscriptionPlan === "free" && (
+              <div className="mt-4 rounded-lg border border-primary/20 bg-background/80 p-3">
+                <p className="text-xs font-bold text-primary">Founder rate — lock in for 3 months</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {getFounderOfferLines().join(" · ")}
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">First month 0% commission on checkout orders.</p>
+              </div>
             )}
+          </div>
+        )}
+
+        {bakerId > 0 && (
+          <div id="platform-billing" className="mb-8 scroll-mt-6">
+            <PlatformBillingPanel bakerId={bakerId} currentPlanId={baker?.subscriptionPlan} />
+          </div>
+        )}
+
+        {bakerId > 0 && (
+          <div id="team-access" className="mb-8 scroll-mt-6">
+            <TeamAccessPanel bakerId={bakerId} />
           </div>
         )}
         
@@ -255,69 +319,143 @@ export default function DashboardSettings() {
           </div>
 
           <div className="p-6 rounded-xl border border-border bg-card shadow-sm space-y-4">
-            <h3 className="font-serif text-xl font-bold">Payments & advance deposit</h3>
-            
-            <div className="flex items-center gap-3">
-              <input 
-                type="checkbox" 
-                id="requireAdvance"
-                checked={requireAdvance}
-                onChange={e => setRequireAdvance(e.target.checked)}
-                className="w-4 h-4 rounded text-primary focus:ring-primary border-border"
-              />
-              <label htmlFor="requireAdvance" className="text-sm font-medium text-foreground cursor-pointer">
-                Require advance deposit for high-value orders
-              </label>
+            <h3 className="font-serif text-xl font-bold">Occasion orders (Eid & special dates)</h3>
+            <p className="text-sm text-muted-foreground">
+              Choose how your menu behaves during Eid or a custom rush. Shown as a banner on your shared menu link.
+            </p>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">Occasion mode</label>
+              <select
+                value={occasionPreset}
+                onChange={(e) => setOccasionPreset(e.target.value as OccasionPreset)}
+                className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground"
+              >
+                {OCCASION_PRESET_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
             </div>
-
-            <div className="space-y-4 pt-2 border-t border-border/50 animate-in fade-in duration-200">
-                <div className="grid grid-cols-2 gap-4">
+            {occasionPreset === "custom" && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground">Custom occasion name</label>
+                <input
+                  type="text"
+                  className="w-full px-3 py-2 border border-border rounded-md bg-background"
+                  placeholder="e.g. Ramadan pre-orders, Wedding season"
+                  value={occasionCustomLabel}
+                  onChange={(e) => setOccasionCustomLabel(e.target.value)}
+                />
+              </div>
+            )}
+            {occasionPreset !== "normal" && (
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-foreground">Minimum Order (PKR) for Deposit</label>
-                    <input 
-                      type="number" 
-                      className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary" 
-                      value={advanceThresholdPkr}
-                      onChange={e => setAdvanceThresholdPkr(Number(e.target.value))}
+                    <label className="text-sm font-medium text-foreground">Last date to accept orders</label>
+                    <input
+                      type="date"
+                      className="w-full px-3 py-2 border border-border rounded-md bg-background"
+                      value={occasionOrderDeadline}
+                      onChange={(e) => setOccasionOrderDeadline(e.target.value)}
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-foreground">Deposit Percentage (%)</label>
-                    <input 
-                      type="number" 
-                      className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary" 
-                      value={advancePercentage}
-                      onChange={e => setAdvancePercentage(Number(e.target.value))}
+                    <label className="text-sm font-medium text-foreground">Baked fresh (days before delivery)</label>
+                    <input
+                      type="number"
+                      min={0}
+                      max={14}
+                      className="w-full px-3 py-2 border border-border rounded-md bg-background"
+                      value={occasionFreshDays}
+                      onChange={(e) => setOccasionFreshDays(e.target.value)}
                     />
+                    <p className="text-xs text-muted-foreground">How many days before the event you start baking fresh.</p>
                   </div>
                 </div>
-
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground">Payment Account Information</label>
-                  <textarea 
-                    className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary min-h-[80px]" 
-                    placeholder="e.g. Easypaisa Account: 0300-1234567 (Sana Asghar)"
-                    value={paymentDetails}
-                    onChange={e => setPaymentDetails(e.target.value)}
+                  <label className="text-sm font-medium text-foreground">Note for customers (optional)</label>
+                  <textarea
+                    className="w-full px-3 py-2 border border-border rounded-md bg-background min-h-[72px]"
+                    placeholder="e.g. Eid boxes available for pickup only. Order early — slots fill fast."
+                    value={occasionNote}
+                    onChange={(e) => setOccasionNote(e.target.value)}
                   />
-                  <p className="text-xs text-muted-foreground">
-                    This account information will be printed directly in the buyer's checkout window.
-                  </p>
+                </div>
+              </>
+            )}
+          </div>
+
+          <div className="p-6 rounded-xl border border-border bg-card shadow-sm space-y-4">
+            <h3 className="font-serif text-xl font-bold">Payment options for customers</h3>
+            <p className="text-sm text-muted-foreground">Select how buyers pay. This appears on your menu and at checkout.</p>
+            <div className="space-y-3">
+              {PAYMENT_MODE_OPTIONS.map((opt) => (
+                <label key={opt.value} className={`flex gap-3 rounded-lg border p-4 cursor-pointer ${paymentMode === opt.value ? "border-primary bg-primary/5" : "border-border"}`}>
+                  <input
+                    type="radio"
+                    name="paymentMode"
+                    value={opt.value}
+                    checked={paymentMode === opt.value}
+                    onChange={() => setPaymentMode(opt.value)}
+                    className="mt-1"
+                  />
+                  <span>
+                    <span className="block text-sm font-semibold">{opt.label}</span>
+                    <span className="block text-xs text-muted-foreground mt-0.5">{opt.hint}</span>
+                  </span>
+                </label>
+              ))}
+            </div>
+
+            {paymentMode === "partial_advance" && (
+              <div className="grid grid-cols-2 gap-4 pt-2 border-t border-border/50">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground">Minimum order (PKR) for advance</label>
+                  <input
+                    type="number"
+                    className="w-full px-3 py-2 border border-border rounded-md bg-background"
+                    value={advanceThresholdPkr}
+                    onChange={(e) => setAdvanceThresholdPkr(Number(e.target.value))}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground">Advance percentage (%)</label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={99}
+                    className="w-full px-3 py-2 border border-border rounded-md bg-background"
+                    value={advancePercentage}
+                    onChange={(e) => setAdvancePercentage(Number(e.target.value))}
+                  />
                 </div>
               </div>
-          </div>
-          
-          <div className="p-6 rounded-xl border border-border bg-card shadow-sm space-y-4">
-            <h3 className="font-serif text-xl font-bold">Policies</h3>
-            
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">Cash on Delivery (COD) Policy Description</label>
-              <textarea 
-                className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary min-h-[100px]" 
-                value={codPolicy}
-                onChange={e => setCodPolicy(e.target.value)}
-              />
-            </div>
+            )}
+
+            {paymentMode !== "cod" && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground">Payment account details</label>
+                <textarea
+                  className="w-full px-3 py-2 border border-border rounded-md bg-background min-h-[80px]"
+                  placeholder="e.g. Easypaisa: 0300-1234567 (Sana Asghar) · Bank: HBL ..."
+                  value={paymentDetails}
+                  onChange={(e) => setPaymentDetails(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">Shown to buyers when advance payment is required.</p>
+              </div>
+            )}
+
+            {paymentMode === "cod" && (
+              <div className="space-y-2 pt-2 border-t border-border/50">
+                <label className="text-sm font-medium text-foreground">Cash on delivery policy (shown on menu)</label>
+                <textarea
+                  className="w-full px-3 py-2 border border-border rounded-md bg-background min-h-[80px]"
+                  value={codPolicy}
+                  onChange={(e) => setCodPolicy(e.target.value)}
+                  placeholder="e.g. Full payment in cash when your order is delivered."
+                />
+              </div>
+            )}
           </div>
 
           <div className="p-6 rounded-xl border border-border bg-card shadow-sm space-y-4">

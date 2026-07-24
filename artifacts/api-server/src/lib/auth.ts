@@ -8,7 +8,11 @@ const LEGACY_PASSWORD_ITERATIONS = 1_000;
 
 function getJwtSecret(): string {
   const secret = process.env.JWT_SECRET;
+  const isProd = process.env.NODE_ENV === "production" || Boolean(process.env.VERCEL);
   if (!secret || secret.length < 32) {
+    if (isProd) {
+      throw new Error("JWT_SECRET must be set to at least 32 characters in production.");
+    }
     return "placeholder-jwt-secret-sweet-tooth-app-development-key-32-chars";
   }
   return secret;

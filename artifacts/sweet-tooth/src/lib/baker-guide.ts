@@ -38,7 +38,7 @@ export const BAKER_GUIDE_SECTIONS: GuideSection[] = [
     steps: [
       "Agent Hub → test sample questions before buyers see replies.",
       "Set dietary policy, offers, and kitchen hours in Agent Hub.",
-      "After menu changes, tap Reindex Knowledge so embeddings stay fresh.",
+      "After menu changes, tap Reindex Knowledge so the agent’s RAG fallback stays up to date.",
       "Escalation keywords notify you when a buyer needs a human.",
     ],
   },

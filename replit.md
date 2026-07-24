@@ -10,6 +10,8 @@ _Replace the heading above with the project's name, and this line with one sente
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
 - Required env: `DATABASE_URL` — Postgres connection string
+- Optional agent traces (free Hobby): `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY` — see https://cloud.langfuse.com
+- Platform billing (manual WhatsApp): `PLATFORM_WHATSAPP`, `PLATFORM_PAYMENT_DETAILS` — activate via `POST /api/admin/activate-plan`
 
 ## Stack
 

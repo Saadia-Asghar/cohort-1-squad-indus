@@ -208,6 +208,7 @@ export default function DashboardAnalytics() {
         responseType: "json",
         body: JSON.stringify({
           message: campaignMessage.trim(),
+          segment: selectedSegment?.id ?? "all",
           limit: Math.min(selectedSegment?.count || 50, 50),
         }),
       });
@@ -706,7 +707,7 @@ export default function DashboardAnalytics() {
                       <p className="text-xs text-muted-foreground">{lastBroadcastSummary}</p>
                     )}
                     <p className="text-[11px] text-muted-foreground">
-                      Requires a connected WhatsApp Business number in Agent Hub. Segment counts are estimates until live CRM filters ship.
+                      Requires a connected WhatsApp Business number in Agent Hub. Broadcasts use real CRM segment filters (loyal / inactive / occasional).
                     </p>
                   </div>
                 </div>

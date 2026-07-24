@@ -12,6 +12,11 @@ import {
 import { logger } from "./logger.js";
 import { sendN8nEvent } from "./n8n.js";
 import { deriveCustomerInsights } from "./customer-insights.js";
+import { applyAgentLanguage, normalizeAgentLanguage } from "./agent-language.js";
+import { traceAgentTurn } from "./langfuse.js";
+import { formatRetrievedContext, retrieveKnowledge } from "./rag/retriever.js";
+import { isPlanAccessActive, TRIAL_EXPIRED_BUYER_REPLY } from "./subscription.js";
+import { AI_REPLY_CAP_BUYER_REPLY, isAiReplyCapReached } from "./plan-limits.js";
 
 export type AgentReply = {
   reply: string;
@@ -29,6 +34,8 @@ const MENU_SCOPE_KEYWORDS = [
   "egg", "vegan", "vegetarian", "gluten", "dairy", "nut", "allergy", "allergen", "halal",
   "discount", "offer", "promo", "coupon", "sale", "deal", "ingredient", "recommend", "occasion",
   "birthday", "wedding", "anniversary", "thank", "thanks", "hello", "hi", "salam", "assalam",
+  "kya", "kitna", "kitne", "batao", "bata dein", "chahiye", "mangna", "mangwana",
+  "meetha", "mithai",
 ];
 
 const PROMPT_INJECTION_PATTERNS = [
@@ -115,9 +122,28 @@ export async function generateAgentReply(
   const [baker] = await db.select().from(bakersTable).where(eq(bakersTable.id, bakerId));
   if (!baker) return { reply: "Baker not found.", action: null, cartItemId: null, escalated: false };
 
+  if (!isPlanAccessActive(baker)) {
+    return {
+      reply: TRIAL_EXPIRED_BUYER_REPLY,
+      action: null,
+      cartItemId: null,
+      escalated: false,
+    };
+  }
+
   if (!baker.agentActive) {
     return {
       reply: `${baker.businessName}'s assistant is currently unavailable. Please try again later.`,
+      action: null,
+      cartItemId: null,
+      escalated: false,
+    };
+  }
+
+  const replyCap = await isAiReplyCapReached(baker.id, baker.subscriptionPlan);
+  if (replyCap.capped) {
+    return {
+      reply: AI_REPLY_CAP_BUYER_REPLY,
       action: null,
       cartItemId: null,
       escalated: false,
@@ -200,24 +226,32 @@ export async function generateAgentReply(
       .limit(1);
 
     if (latestOrder) {
+      const advancePct = baker.advancePercentage ?? 50;
+      const paymentMode = (baker.agentConfig as { paymentMode?: string } | null)?.paymentMode;
+      const fullAdvance = paymentMode === "full_advance" || advancePct >= 100;
+      const advanceAmountPkr = fullAdvance
+        ? latestOrder.totalPkr
+        : Math.ceil((latestOrder.totalPkr * advancePct) / 100);
+      const advanceLabel = fullAdvance ? "full advance payment" : `${advancePct}% advance deposit`;
+
       if (latestOrder.requireAdvance) {
         if (latestOrder.advancePaid) {
           return {
-            reply: `I checked your Order #${latestOrder.id} status. Good news! Your 50% advance deposit (PKR ${(latestOrder.totalPkr * 0.5).toLocaleString()}) has been successfully verified! We've already started preparing your delicious custom cake. Let me know if you need to make any design tweaks!`,
+            reply: `I checked your Order #${latestOrder.id} status. Good news! Your ${advanceLabel} (PKR ${advanceAmountPkr.toLocaleString()}) has been successfully verified! We've already started preparing your order. Let me know if you need any tweaks.`,
             action: null,
             cartItemId: null,
             escalated: false,
           };
         } else if (latestOrder.paymentScreenshotUrl) {
           return {
-            reply: `We've received the transfer receipt or transaction reference for Order #${latestOrder.id}. The agent can extract helpful details from a receipt image, but payment stays pending until ${baker.businessName} manually confirms the transfer.`,
+            reply: `We've received the transfer receipt or transaction reference for Order #${latestOrder.id}. Payment stays pending until ${baker.businessName} manually confirms the transfer.`,
             action: null,
             cartItemId: null,
             escalated: false,
           };
         } else {
           return {
-            reply: `Your Order #${latestOrder.id} is currently pending confirmation. Since the total is PKR ${latestOrder.totalPkr.toLocaleString()}, a 50% advance deposit (PKR ${(latestOrder.totalPkr * 0.5).toLocaleString()}) is required. Please transfer using the payment details shared by ${baker.businessName}, then send a receipt screenshot or transaction ID. The baker will manually confirm it.`,
+            reply: `Your Order #${latestOrder.id} is currently pending confirmation. Since the total is PKR ${latestOrder.totalPkr.toLocaleString()}, a ${advanceLabel} (PKR ${advanceAmountPkr.toLocaleString()}) is required. Please transfer using the payment details shared by ${baker.businessName}, then send a receipt screenshot or transaction ID. The baker will manually confirm it.`,
             action: null,
             cartItemId: null,
             escalated: false,
@@ -257,7 +291,16 @@ export async function generateAgentReply(
     "complain", "problem", "issue", "wrong", "bad",
     ...(agentConf.escalateKeywords ?? []),
   ];
-  if (escalateKeywords.some((k) => lowerMsg.includes(k))) {
+  const hitsEscalate = escalateKeywords.some((raw) => {
+    const k = raw.toLowerCase().trim();
+    if (!k) return false;
+    // Short tokens need word boundaries ("bad" must not match "badam")
+    if (k.length <= 3) {
+      return new RegExp(`\\b${k.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i").test(lowerMsg);
+    }
+    return lowerMsg.includes(k);
+  });
+  if (hitsEscalate) {
     return {
       reply: `I'm sorry to hear you're having an issue. I've flagged this for ${baker.businessName} and they'll be in touch shortly. You can also reach them directly on WhatsApp.`,
       action: "escalate",
@@ -359,10 +402,16 @@ export async function generateAgentReply(
     lowerMsg.includes("pay") ||
     lowerMsg.includes("payment") ||
     lowerMsg.includes("cod") ||
-    lowerMsg.includes("cash")
+    lowerMsg.includes("cash") ||
+    lowerMsg.includes("advance")
   ) {
-    const policy =
-      baker.codPolicy ?? "Cash on delivery (COD) only. Full payment required at the time of delivery.";
+    const agentConf = (baker.agentConfig ?? {}) as { paymentMode?: string };
+    const mode = agentConf.paymentMode;
+    const policy = mode === "full_advance"
+      ? "Full advance is required before your order is confirmed."
+      : mode === "partial_advance"
+        ? `Partial advance (${baker.advancePercentage}%) on orders from PKR ${baker.advanceThresholdPkr.toLocaleString()}. Balance on delivery.`
+        : baker.codPolicy ?? "Cash on delivery (COD) only. Full payment required at the time of delivery.";
     return { reply: `Payment policy: ${policy}`, action: null, cartItemId: null, escalated: false };
   }
 
@@ -456,6 +505,23 @@ export async function generateAgentReply(
     }
   }
 
+  // RAG fallback — indexed menu/policy chunks when rules miss
+  const ragChunks = await retrieveKnowledge(bakerId, message, 3, 0.1);
+  const ragContext = formatRetrievedContext(ragChunks);
+  if (ragContext) {
+    const topChunk = ragChunks[0];
+    const hint =
+      topChunk?.sourceType === "product"
+        ? `I found something relevant on our menu:\n\n${topChunk.content.split("\n").slice(0, 4).join("\n")}`
+        : `Here's what I know from ${baker.businessName}'s published info:\n\n${ragContext.split("\n\n")[0]}`;
+    return {
+      reply: `${hint}\n\nWould you like to order or need more details?`,
+      action: "rag",
+      cartItemId: null,
+      escalated: false,
+    };
+  }
+
   return {
     reply: `I do not have a verified answer for that from ${baker.businessName}'s published menu or policies. Please ask the baker to confirm, or ask me about products, prices, dietary labels, delivery, availability, orders, or payment policy.`,
     action: null,
@@ -477,6 +543,7 @@ export type ProcessChatInput = {
 export type ProcessChatResult = AgentReply & { sessionId: string };
 
 export async function processChatMessage(input: ProcessChatInput): Promise<ProcessChatResult> {
+  const startedAt = Date.now();
   const { bakerId } = input;
   const message = input.message.trim().slice(0, 2000);
   if (!message) {
@@ -573,6 +640,12 @@ export async function processChatMessage(input: ProcessChatInput): Promise<Proce
     historyPreferences,
   );
 
+  const [bakerRow] = await db.select().from(bakersTable).where(eq(bakersTable.id, bakerId));
+  const agentLanguage = normalizeAgentLanguage(
+    (bakerRow?.agentConfig as { agentLanguage?: string } | null)?.agentLanguage,
+  );
+  agentReply.reply = applyAgentLanguage(agentReply.reply, agentLanguage, bakerRow?.businessName ?? "Bakery");
+
   await db.insert(chatMessagesTable).values({
     bakerId,
     buyerId,
@@ -662,6 +735,19 @@ export async function processChatMessage(input: ProcessChatInput): Promise<Proce
     message: message.slice(0, 2000),
     reply: agentReply.reply,
     escalated: agentReply.escalated,
+  });
+
+  // Optional free Hobby / self-hosted Langfuse — no-op without keys
+  traceAgentTurn({
+    bakerId,
+    buyerId,
+    sessionId: sid,
+    channel: input.channel ?? "web",
+    message,
+    reply: agentReply.reply,
+    action: agentReply.action,
+    escalated: agentReply.escalated,
+    latencyMs: Date.now() - startedAt,
   });
 
   return { ...agentReply, sessionId: sid };

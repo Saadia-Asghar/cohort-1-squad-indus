@@ -1,6 +1,12 @@
 import { logger } from "./logger.js";
 
-export type N8nEvent = "chat.received" | "chat.escalated" | "order.created";
+export type N8nEvent =
+  | "chat.received"
+  | "chat.escalated"
+  | "order.created"
+  | "payment.advance_reminder"
+  | "billing.upgrade_requested"
+  | "billing.plan_activated";
 
 /** Forward non-secret operational events to an n8n Webhook when configured. */
 export async function sendN8nEvent(event: N8nEvent, payload: Record<string, unknown>): Promise<void> {

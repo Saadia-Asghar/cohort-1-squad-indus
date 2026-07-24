@@ -25,6 +25,9 @@ export interface ProductInput {
   suggestionTags?: string[];
   pickupAvailable?: boolean;
   deliveryAvailable?: boolean;
-  leadTimeHours?: number;
+  /** @nullable */
+  leadTimeHours?: number | null;
   photoUrl?: string;
+  /** @nullable */
+  recipeCostPkr?: number | null;
 }

@@ -2,7 +2,8 @@ import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { 
   useGetBakerProducts, 
   useToggleProductStock, 
-  useUpdateProduct, 
+  useUpdateProduct,
+  useCreateProduct,
   getGetBakerProductsQueryKey,
   useGetBaker,
   useUpdateBaker,
@@ -11,7 +12,7 @@ import {
 import { useBuyerSession } from "@/hooks/use-session";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { Calendar, Tag, Trash2, Clock, Sparkles, AlertCircle, Settings2 } from "lucide-react";
+import { Calendar, Tag, Trash2, Clock, Sparkles, AlertCircle, Settings2, Plus } from "lucide-react";
 import { ProductEditorPanel } from "@/components/dashboard/product-editor";
 
 const DIETARY_AND_ALLERGEN_LABELS = [
@@ -33,11 +34,20 @@ export default function DashboardCatalog() {
 
   const toggleStock = useToggleProductStock();
   const updateProduct = useUpdateProduct();
+  const createProduct = useCreateProduct();
   const updateBaker = useUpdateBaker();
 
   const [activeTab, setActiveTab] = useState<"items" | "drops">("items");
   const [editingLabelsFor, setEditingLabelsFor] = useState<number | null>(null);
   const [managingProduct, setManagingProduct] = useState<(NonNullable<typeof products>[number]) | null>(null);
+  const [showCreate, setShowCreate] = useState(false);
+  const [createForm, setCreateForm] = useState({
+    name: "",
+    category: "Cakes",
+    basePricePkr: "",
+    description: "",
+  });
+  const [createError, setCreateError] = useState<string | null>(null);
 
   // Drops Form State
   const [selectedProductId, setSelectedProductId] = useState<string>("");
@@ -46,6 +56,39 @@ export default function DashboardCatalog() {
   const [limitStock, setLimitStock] = useState<number>(20);
 
   const currentDrops = (baker as any)?.agentConfig?.drops ?? [];
+
+  const handleCreateProduct = (e: React.FormEvent) => {
+    e.preventDefault();
+    setCreateError(null);
+    const price = parseInt(createForm.basePricePkr, 10);
+    if (!createForm.name.trim() || !createForm.category.trim() || !Number.isFinite(price) || price < 1) {
+      setCreateError("Name, category, and a valid price are required.");
+      return;
+    }
+    createProduct.mutate(
+      {
+        data: {
+          bakerId,
+          name: createForm.name.trim(),
+          category: createForm.category.trim(),
+          basePricePkr: price,
+          description: createForm.description.trim() || undefined,
+          isAvailable: true,
+          sizes: [{ label: "Standard", pricePkr: price }],
+        },
+      },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: getGetBakerProductsQueryKey(bakerId) });
+          setShowCreate(false);
+          setCreateForm({ name: "", category: "Cakes", basePricePkr: "", description: "" });
+        },
+        onError: (err) => {
+          setCreateError((err as Error)?.message || "Could not create product.");
+        },
+      },
+    );
+  };
 
   const handleToggle = (productId: number) => {
     toggleStock.mutate({ productId }, {
@@ -134,14 +177,24 @@ export default function DashboardCatalog() {
             <p className="text-sm text-muted-foreground mt-1">Manage kitchen menu items and schedule limited-quantity flash pre-order releases.</p>
           </div>
 
-          <div className="flex bg-muted/60 p-1 rounded-xl border border-border">
+          <div className="flex flex-wrap items-center gap-3">
+            {activeTab === "items" && (
+              <button
+                type="button"
+                onClick={() => setShowCreate(true)}
+                className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90"
+              >
+                <Plus className="h-4 w-4" /> Add product
+              </button>
+            )}
+            <div className="flex bg-muted/60 p-1 rounded-xl border border-border">
             <button
               onClick={() => setActiveTab("items")}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                 activeTab === "items" ? "bg-background shadow-xs text-primary font-bold" : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              🍰 Menu Items
+              Menu Items
             </button>
             <button
               onClick={() => setActiveTab("drops")}
@@ -149,16 +202,83 @@ export default function DashboardCatalog() {
                 activeTab === "drops" ? "bg-background shadow-xs text-primary font-bold" : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              ⚡ Flash Drops
+              Flash Drops
             </button>
+            </div>
           </div>
         </div>
+
+        {showCreate && (
+          <form onSubmit={handleCreateProduct} className="rounded-xl border border-border bg-card p-5 space-y-3 max-w-xl">
+            <h2 className="font-serif text-xl font-bold">New menu item</h2>
+            <input
+              required
+              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+              placeholder="Product name"
+              value={createForm.name}
+              onChange={(e) => setCreateForm((p) => ({ ...p, name: e.target.value }))}
+            />
+            <div className="grid grid-cols-2 gap-3">
+              <input
+                required
+                className="rounded-md border border-border bg-background px-3 py-2 text-sm"
+                placeholder="Category (e.g. Cakes)"
+                value={createForm.category}
+                onChange={(e) => setCreateForm((p) => ({ ...p, category: e.target.value }))}
+              />
+              <input
+                required
+                type="number"
+                min={1}
+                className="rounded-md border border-border bg-background px-3 py-2 text-sm"
+                placeholder="Base price PKR"
+                value={createForm.basePricePkr}
+                onChange={(e) => setCreateForm((p) => ({ ...p, basePricePkr: e.target.value }))}
+              />
+            </div>
+            <textarea
+              rows={2}
+              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+              placeholder="Short description (optional)"
+              value={createForm.description}
+              onChange={(e) => setCreateForm((p) => ({ ...p, description: e.target.value }))}
+            />
+            {createError && <p className="text-sm text-destructive">{createError}</p>}
+            <div className="flex gap-2">
+              <button
+                type="submit"
+                disabled={createProduct.isPending}
+                className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+              >
+                {createProduct.isPending ? "Saving…" : "Save product"}
+              </button>
+              <button
+                type="button"
+                onClick={() => { setShowCreate(false); setCreateError(null); }}
+                className="rounded-lg border border-border px-4 py-2 text-sm"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        )}
 
         {activeTab === "items" ? (
           <div>
             {isLoading ? (
               <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
                 {[1, 2, 3, 4].map(i => <div key={i} className="h-64 bg-muted rounded-xl animate-pulse"></div>)}
+              </div>
+            ) : (products?.length ?? 0) === 0 ? (
+              <div className="rounded-xl border border-dashed border-border p-10 text-center space-y-3">
+                <p className="text-muted-foreground">No products yet. Add your first cake or treat.</p>
+                <button
+                  type="button"
+                  onClick={() => setShowCreate(true)}
+                  className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
+                >
+                  <Plus className="h-4 w-4" /> Add product
+                </button>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">

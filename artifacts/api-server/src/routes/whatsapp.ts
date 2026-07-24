@@ -1,15 +1,20 @@
 import { Router } from "express";
-import { and, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import crypto from "crypto";
 import {
   bakersTable,
   channelEventsTable,
   db,
   metaConnectionsTable,
+  notificationsTable,
+  ordersTable,
 } from "@workspace/db";
 import { logger } from "../lib/logger.js";
 import { processChatMessage } from "../lib/chat-agent.js";
+import { isWhatsAppCapReached } from "../lib/plan-limits.js";
 import {
+  enrichWhatsAppMessagesWithMedia,
+  ocrWhatsAppImageHint,
   parseWhatsAppWebhook,
   phonesMatch,
   sendWhatsAppTextMessage,
@@ -20,6 +25,8 @@ import {
   parseFeedbackReply,
   recordOrderFeedback,
 } from "../lib/order-feedback.js";
+import { toReceiptDataUrl } from "../lib/receipt-image.js";
+import { normalizePakistanPhone } from "../lib/phone.js";
 
 const router = Router();
 
@@ -49,7 +56,9 @@ router.get("/webhooks/whatsapp", async (req, res): Promise<void> => {
 
   const bakers = await db.select().from(bakersTable);
   const matched = bakers.some((b) => resolveVerifyToken(b.metaWebhookToken) === token);
-  const envMatch = process.env.WHATSAPP_VERIFY_TOKEN === token;
+  const envMatch =
+    process.env.WHATSAPP_VERIFY_TOKEN === token ||
+    process.env.META_WEBHOOK_VERIFY_TOKEN === token;
 
   if (matched || envMatch) {
     logger.info("WhatsApp webhook verified");
@@ -157,15 +166,16 @@ router.post("/webhooks/whatsapp", async (req, res): Promise<void> => {
   }
 
   try {
-    const inbound = parseWhatsAppWebhook(JSON.parse(rawBody.toString("utf8")));
+    const parsed = parseWhatsAppWebhook(JSON.parse(rawBody.toString("utf8")));
     const payloadHash = crypto.createHash("sha256").update(rawBody).digest("hex");
-    for (const msg of inbound) {
-      const resolved = await findBakerForInbound(msg.phoneNumberId, msg.displayPhoneNumber);
+    for (const rawMsg of parsed) {
+      const resolved = await findBakerForInbound(rawMsg.phoneNumberId, rawMsg.displayPhoneNumber);
       if (!resolved) {
-        logger.warn({ phoneNumberId: msg.phoneNumberId }, "No baker matched for WhatsApp message");
+        logger.warn({ phoneNumberId: rawMsg.phoneNumberId }, "No baker matched for WhatsApp message");
         continue;
       }
       const { baker, accessToken } = resolved;
+      const [msg] = await enrichWhatsAppMessagesWithMedia([rawMsg], accessToken);
 
       if (!baker.whatsappAgentEnabled || !baker.agentActive) {
         logger.info({ bakerId: baker.id }, "WhatsApp agent disabled — skipping auto-reply");
@@ -179,6 +189,51 @@ router.post("/webhooks/whatsapp", async (req, res): Promise<void> => {
       }
 
       try {
+        if (msg.imageBytes && msg.imageContentType) {
+          const phone = normalizePakistanPhone(msg.from) ?? msg.from;
+          const match = (
+            await db
+              .select()
+              .from(ordersTable)
+              .where(and(eq(ordersTable.bakerId, baker.id), eq(ordersTable.paymentStatus, "pending")))
+              .orderBy(desc(ordersTable.createdAt))
+              .limit(30)
+          ).find((o) => phonesMatch(o.buyerWhatsapp, phone));
+
+          if (match) {
+            try {
+              const dataUrl = toReceiptDataUrl(msg.imageBytes, msg.imageContentType);
+              await db
+                .update(ordersTable)
+                .set({ paymentScreenshotUrl: dataUrl })
+                .where(eq(ordersTable.id, match.id));
+              await db.insert(notificationsTable).values({
+                bakerId: baker.id,
+                type: "payment.receipt_uploaded",
+                title: `WhatsApp receipt for order #${match.id}`,
+                message: `${match.buyerName} sent a payment photo on WhatsApp. Review in Payments.`,
+                relatedId: match.id,
+                relatedType: "order",
+              });
+              const ocrHint = await ocrWhatsAppImageHint(
+                msg.imageBytes,
+                match.totalPkr,
+                baker.advancePercentage ?? 50,
+                baker.whatsappNumber,
+                baker.businessName,
+              );
+              if (ocrHint) {
+                msg.text = `${msg.text}\n${ocrHint}`;
+              }
+            } catch (attachErr) {
+              logger.warn({ err: attachErr, orderId: match.id }, "Could not attach WA receipt image");
+            }
+          } else {
+            const ocrHint = await ocrWhatsAppImageHint(msg.imageBytes);
+            if (ocrHint) msg.text = `${msg.text}\nOCR preview: ${ocrHint.slice(0, 300)}`;
+          }
+        }
+
         const pendingFeedback = await findPendingFeedbackOrder(baker.id, msg.from);
         const feedbackReply = parseFeedbackReply(msg.text);
         if (pendingFeedback && feedbackReply) {
@@ -198,6 +253,23 @@ router.post("/webhooks/whatsapp", async (req, res): Promise<void> => {
           await db
             .update(channelEventsTable)
             .set({ status: "completed", completedAt: new Date(), lastErrorCode: null })
+            .where(eq(channelEventsTable.id, eventId));
+          continue;
+        }
+
+        const cap = await isWhatsAppCapReached(baker.id, baker.subscriptionPlan);
+        if (cap.capped) {
+          const outboundPhoneNumberId =
+            ((baker.agentConfig ?? {}) as { whatsappPhoneNumberId?: string }).whatsappPhoneNumberId ??
+            msg.phoneNumberId;
+          const capMessage =
+            cap.limit <= 0
+              ? `Thanks for messaging ${baker.businessName}! WhatsApp agent is available on paid plans. Visit our web menu to order, or message the baker directly.`
+              : `Thanks for messaging ${baker.businessName}! Our WhatsApp chat limit for this month (${cap.limit} conversations) has been reached. Please visit our menu link or call us to place your order.`;
+          await sendWhatsAppTextMessage(outboundPhoneNumberId, msg.from, capMessage, accessToken);
+          await db
+            .update(channelEventsTable)
+            .set({ status: "completed", completedAt: new Date(), lastErrorCode: "WHATSAPP_CAP" })
             .where(eq(channelEventsTable.id, eventId));
           continue;
         }

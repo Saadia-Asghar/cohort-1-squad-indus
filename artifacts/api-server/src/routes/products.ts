@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { eq } from "drizzle-orm";
-import { db, productsTable } from "@workspace/db";
+import { db, productsTable, bakersTable } from "@workspace/db";
 import {
   GetProductParams,
   UpdateProductParams,
@@ -12,6 +12,7 @@ import {
 } from "@workspace/api-zod";
 import { requireBakerAuth } from "../middlewares/auth.js";
 import { rebuildBakerKnowledgeIndex } from "../lib/rag/pipeline.js";
+import { isProductCapReached } from "../lib/plan-limits.js";
 
 const router = Router();
 
@@ -55,6 +56,19 @@ router.post("/products", requireBakerAuth, async (req, res): Promise<void> => {
   const tokenBakerId = (req as any).bakerId;
   if (tokenBakerId !== parsed.data.bakerId) {
     res.status(403).json({ error: "Unauthorized access: cannot create products for other bakers." });
+    return;
+  }
+
+  const [baker] = await db.select().from(bakersTable).where(eq(bakersTable.id, tokenBakerId)).limit(1);
+  if (!baker) {
+    res.status(404).json({ error: "Baker not found" });
+    return;
+  }
+  const productCap = await isProductCapReached(tokenBakerId, baker.subscriptionPlan);
+  if (productCap.capped) {
+    res.status(403).json({
+      error: `Product limit reached (${productCap.used}/${productCap.limit}). Upgrade your plan to add more menu items.`,
+    });
     return;
   }
 

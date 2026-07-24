@@ -1,7 +1,7 @@
 import { Router } from "express";
-import { eq, and, inArray } from "drizzle-orm";
+import { eq, and, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
-import { db, ordersTable, productsTable, bakersTable } from "@workspace/db";
+import { db, ordersTable, productsTable, bakersTable, customersTable, notificationsTable } from "@workspace/db";
 import {
   GetOrderParams,
   UpdateOrderStatusParams,
@@ -19,6 +19,11 @@ import {
   sendDeliveryFeedbackRequest,
   type ServiceFeedback,
 } from "../lib/order-feedback.js";
+import { maybeSendAdvanceReminder } from "../lib/advance-reminder.js";
+import { syncBakerStats } from "../lib/seed-baker-demo.js";
+import { sendN8nEvent } from "../lib/n8n.js";
+import { isOrderCapReached } from "../lib/plan-limits.js";
+import { toReceiptDataUrl } from "../lib/receipt-image.js";
 
 const router = Router();
 
@@ -109,6 +114,14 @@ router.post("/orders", rateLimit(15, 15 * 60 * 1000), async (req, res): Promise<
     return;
   }
 
+  const orderCap = await isOrderCapReached(baker.id, baker.subscriptionPlan);
+  if (orderCap.capped) {
+    res.status(403).json({
+      error: "This bakery has reached its monthly order limit. Please WhatsApp them directly or try again next month.",
+    });
+    return;
+  }
+
   const productIds = [...new Set(parsed.data.items.map((item) => item.productId))];
   const products = await db
     .select()
@@ -152,8 +165,48 @@ router.post("/orders", rateLimit(15, 15 * 60 * 1000), async (req, res): Promise<
   const totalPkr = lineItems.reduce((sum, item) => sum + item.unitPricePkr * item.quantity, 0);
 
   try {
+    const [existingCustomer] = await db
+      .select()
+      .from(customersTable)
+      .where(and(eq(customersTable.bakerId, parsed.data.bakerId), eq(customersTable.whatsappNumber, phone)))
+      .limit(1);
+
+    let buyerId: number | null = existingCustomer?.id ?? null;
+    if (existingCustomer) {
+      await db
+        .update(customersTable)
+        .set({
+          name: parsed.data.buyerName,
+          preferredArea: parsed.data.buyerArea ?? existingCustomer.preferredArea,
+          totalOrders: existingCustomer.totalOrders + 1,
+          totalSpentPkr: existingCustomer.totalSpentPkr + totalPkr,
+          lastOrderAt: new Date(),
+          isAtRisk: false,
+          isRegular: existingCustomer.totalOrders + 1 >= 3,
+        })
+        .where(eq(customersTable.id, existingCustomer.id));
+    } else {
+      const [created] = await db
+        .insert(customersTable)
+        .values({
+          bakerId: parsed.data.bakerId,
+          name: parsed.data.buyerName,
+          whatsappNumber: phone,
+          city: baker.city,
+          preferredArea: parsed.data.buyerArea ?? null,
+          totalOrders: 1,
+          totalSpentPkr: totalPkr,
+          lastOrderAt: new Date(),
+          isRegular: false,
+          isAtRisk: false,
+        })
+        .returning();
+      buyerId = created.id;
+    }
+
     const [order] = await db.insert(ordersTable).values({
       bakerId: parsed.data.bakerId,
+      buyerId,
       buyerName: parsed.data.buyerName,
       buyerWhatsapp: phone,
       buyerAddress: parsed.data.buyerAddress,
@@ -168,6 +221,23 @@ router.post("/orders", rateLimit(15, 15 * 60 * 1000), async (req, res): Promise<
       paymentStatus: "pending",
       requireAdvance: Boolean(baker.requireAdvance),
     }).returning();
+
+    for (const item of lineItems) {
+      await db
+        .update(productsTable)
+        .set({ totalOrders: sql`${productsTable.totalOrders} + ${item.quantity}` })
+        .where(eq(productsTable.id, item.productId));
+    }
+    await syncBakerStats(parsed.data.bakerId);
+    void maybeSendAdvanceReminder(order.id);
+    void sendN8nEvent("order.created", {
+      bakerId: order.bakerId,
+      orderId: order.id,
+      totalPkr: order.totalPkr,
+      buyerWhatsapp: order.buyerWhatsapp,
+      source: order.source,
+      requireAdvance: order.requireAdvance,
+    });
     res.status(201).json(formatOrder(order));
   } catch (cause) {
     console.error("Guest order create failed", cause);
@@ -191,12 +261,44 @@ router.post("/orders/:orderId/verify-payment", requireBakerAuth, async (req, res
     res.status(403).json({ error: "You can only verify your own orders." });
     return;
   }
-  const result = await triggerPaymentOCRVerification(orderId);
-  if (!result) {
-    res.status(400).json({ error: "No screenshot URL found on this order or verification failed." });
-    return;
+
+  // Optional direct file upload (base64) — no Cloudinary / paid host required.
+  const upload = z
+    .object({
+      imageBase64: z.string().min(32).max(6_000_000).optional(),
+      contentType: z.enum(["image/jpeg", "image/png", "image/webp"]).optional(),
+    })
+    .safeParse(req.body ?? {});
+  if (upload.success && upload.data.imageBase64) {
+    const { toReceiptDataUrl } = await import("../lib/receipt-image.js");
+    const raw = upload.data.imageBase64.replace(/^data:image\/\w+;base64,/, "");
+    const bytes = Buffer.from(raw, "base64");
+    const contentType = upload.data.contentType ?? "image/jpeg";
+    let dataUrl: string;
+    try {
+      dataUrl = toReceiptDataUrl(bytes, contentType);
+    } catch (err) {
+      res.status(400).json({ error: err instanceof Error ? err.message : "Invalid receipt image." });
+      return;
+    }
+    await db
+      .update(ordersTable)
+      .set({ paymentScreenshotUrl: dataUrl })
+      .where(and(eq(ordersTable.id, orderId), eq(ordersTable.bakerId, (req as AuthenticatedRequest).bakerId!)));
   }
-  res.json(result);
+
+  try {
+    const result = await triggerPaymentOCRVerification(orderId);
+    if (!result) {
+      res.status(400).json({
+        error: "Upload a receipt image (or paste an HTTPS URL) first, then check again.",
+      });
+      return;
+    }
+    res.json(result);
+  } catch (err) {
+    res.status(400).json({ error: err instanceof Error ? err.message : "Receipt check failed." });
+  }
 });
 
 // GET /orders/:orderId
@@ -316,6 +418,78 @@ router.get("/orders/:orderId/feedback", async (req, res): Promise<void> => {
   });
 });
 
+/**
+ * Guest buyer uploads JazzCash/Easypaisa receipt after checkout (phone must match order).
+ * Does not mark paid — baker reviews in Payments.
+ */
+router.post("/orders/:orderId/guest-receipt", rateLimit(20, 15 * 60 * 1000), async (req, res): Promise<void> => {
+  const orderId = parseInt(String(req.params.orderId), 10);
+  if (isNaN(orderId)) {
+    res.status(400).json({ error: "Invalid order ID" });
+    return;
+  }
+  const parsed = z
+    .object({
+      buyerWhatsapp: z.string().trim().min(10).max(24),
+      imageBase64: z.string().min(32).max(6_000_000),
+      contentType: z.enum(["image/jpeg", "image/png", "image/webp"]).optional(),
+    })
+    .safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+  const phone = normalizePakistanPhone(parsed.data.buyerWhatsapp);
+  if (!phone) {
+    res.status(400).json({ error: "Enter a valid Pakistani WhatsApp number." });
+    return;
+  }
+  const [order] = await db.select().from(ordersTable).where(eq(ordersTable.id, orderId)).limit(1);
+  if (!order) {
+    res.status(404).json({ error: "Order not found" });
+    return;
+  }
+  const orderPhone = normalizePakistanPhone(order.buyerWhatsapp);
+  if (!orderPhone || orderPhone !== phone) {
+    res.status(403).json({ error: "WhatsApp number does not match this order." });
+    return;
+  }
+  if (order.paymentStatus === "paid") {
+    res.status(400).json({ error: "This order is already marked paid." });
+    return;
+  }
+
+  const raw = parsed.data.imageBase64.replace(/^data:image\/\w+;base64,/, "");
+  let dataUrl: string;
+  try {
+    dataUrl = toReceiptDataUrl(Buffer.from(raw, "base64"), parsed.data.contentType ?? "image/jpeg");
+  } catch (err) {
+    res.status(400).json({ error: err instanceof Error ? err.message : "Invalid receipt image." });
+    return;
+  }
+
+  const [updated] = await db
+    .update(ordersTable)
+    .set({ paymentScreenshotUrl: dataUrl })
+    .where(eq(ordersTable.id, orderId))
+    .returning();
+
+  await db.insert(notificationsTable).values({
+    bakerId: order.bakerId,
+    type: "payment.receipt_uploaded",
+    title: `Receipt for order #${order.id}`,
+    message: `${order.buyerName} uploaded a payment screenshot. Review it in Payments.`,
+    relatedId: order.id,
+    relatedType: "order",
+  });
+
+  res.json({
+    ok: true,
+    orderId: updated.id,
+    message: "Receipt uploaded. The bakery will confirm payment shortly.",
+  });
+});
+
 // PATCH /orders/:orderId/payment
 router.patch("/orders/:orderId/payment", requireBakerAuth, async (req, res): Promise<void> => {
   const params = MarkOrderPaidParams.safeParse(req.params);
@@ -347,15 +521,16 @@ router.patch("/orders/:orderId/payment-screenshot", requireBakerAuth, async (req
     return;
   }
   const parsed = z.object({
-    paymentScreenshotUrl: z.string().url().refine(
+    paymentScreenshotUrl: z.string().min(12).refine(
       (value) => {
+        if (/^data:image\/(jpeg|jpg|png|webp);base64,/i.test(value)) return true;
         try {
           return new URL(value).protocol === "https:";
         } catch {
           return false;
         }
       },
-      { message: "paymentScreenshotUrl must be an https URL" },
+      { message: "paymentScreenshotUrl must be https or a data:image URL" },
     ),
   }).safeParse(req.body);
   if (!parsed.success) {

@@ -1,7 +1,7 @@
 import { Router } from "express";
 import crypto from "node:crypto";
-import { eq, inArray, or, sql } from "drizzle-orm";
-import { db, bakersTable, productsTable, reviewsTable, ordersTable } from "@workspace/db";
+import { eq, inArray, or, sql, and } from "drizzle-orm";
+import { db, bakersTable, bakerMembersTable, productsTable, reviewsTable, ordersTable } from "@workspace/db";
 import {
   GetBakerParams,
   GetBakerProductsParams,
@@ -28,6 +28,23 @@ import {
 import { rebuildBakerKnowledgeIndex } from "../lib/rag/pipeline.js";
 import { rateLimit } from "../middlewares/rate-limiter.js";
 import { normalizePakistanPhone, phoneLookupVariants } from "../lib/phone.js";
+import {
+  buildOccasionBanner,
+  buildPaymentPolicySummary,
+  buildWhatsAppMenuUrl,
+  extractShopConfig,
+  normalizePaymentMode,
+  paymentFieldsForMode,
+  type OccasionSettings,
+} from "../lib/shop-settings.js";
+import { resolveConversationFlow } from "../lib/conversation-flow.js";
+import { canEnableInstagramAgent, canEnableWhatsAppAgent, entitlementsForPlan } from "../lib/plan-limits.js";
+import {
+  freeTrialEndsAtFrom,
+  isPlanAccessActive,
+  trialStatus,
+  TRIAL_EXPIRED_BUYER_REPLY,
+} from "../lib/subscription.js";
 
 const router = Router();
 
@@ -54,20 +71,78 @@ function toPublicBaker(baker: Record<string, unknown>) {
   } = baker;
   const digits = String(whatsappNumber ?? "").replace(/\D/g, "");
   const internationalNumber = digits.startsWith("0") ? `92${digits.slice(1)}` : digits;
+  const agentConf = (baker.agentConfig as Record<string, unknown> | null) ?? {};
+  const shop = extractShopConfig(agentConf);
+  const paymentMode = normalizePaymentMode(
+    shop.paymentMode,
+    Boolean(baker.requireAdvance),
+    Number(baker.advancePercentage ?? 0),
+  );
+  const occasionConfig: OccasionSettings = {
+    occasionPreset: shop.occasionPreset,
+    occasionCustomLabel: shop.occasionCustomLabel,
+    occasionOrderDeadline: shop.occasionOrderDeadline,
+    occasionFreshDays: shop.occasionFreshDays,
+    occasionNote: shop.occasionNote,
+  };
+  const socialLinks = (agentConf.socialLinks as { instagram?: string; facebook?: string } | undefined) ?? {};
+  const conversationFlow = resolveConversationFlow({
+    preferredChannel: agentConf.preferredCustomerChannel as string | undefined,
+    agentActive: baker.agentActive as boolean | undefined,
+    whatsappAgentEnabled: baker.whatsappAgentEnabled as boolean | undefined,
+    instagramAgentEnabled: baker.instagramAgentEnabled as boolean | undefined,
+    hasWhatsAppNumber: Boolean(internationalNumber),
+    hasInstagramUrl: Boolean(socialLinks.instagram),
+    subscriptionPlan: baker.subscriptionPlan as string | undefined,
+  });
+  const whatsappChatUrl = internationalNumber
+    ? buildWhatsAppMenuUrl(String(baker.businessName ?? "your bakery"), internationalNumber)
+    : null;
+
   return {
     ...publicBaker,
-    // Share a safe customer handoff URL rather than exposing the raw phone
-    // number in every marketplace response. The agent must be explicitly on.
-    whatsappChatUrl: baker.whatsappAgentEnabled && internationalNumber
-      ? `https://wa.me/${internationalNumber}?text=${encodeURIComponent(`Assalam-o-Alaikum! I found ${String(baker.businessName ?? "your bakery")} on Sweet Tooth and need help with an order.`)}`
-      : null,
+    whatsappChatUrl: conversationFlow.showWhatsAppCta ? whatsappChatUrl : null,
+    whatsappAgentConnected: conversationFlow.whatsappReady,
+    instagramAgentConnected: conversationFlow.instagramReady,
+    conversationFlow,
     publicShopSettings: {
-      menuAccent: (baker.agentConfig as Record<string, unknown> | null)?.menuAccent ?? "#7c3aed",
-      availabilityHours: (baker.agentConfig as Record<string, unknown> | null)?.availabilityHours ?? "",
-      dietaryPolicy: (baker.agentConfig as Record<string, unknown> | null)?.dietaryPolicy ?? "",
-      preferredCustomerChannel: (baker.agentConfig as Record<string, unknown> | null)?.preferredCustomerChannel ?? "web",
+      menuAccent: agentConf.menuAccent ?? "#7c3aed",
+      availabilityHours: agentConf.availabilityHours ?? "",
+      dietaryPolicy: agentConf.dietaryPolicy ?? "",
+      preferredCustomerChannel: conversationFlow.preferred,
+      activeCustomerChannel: conversationFlow.active,
+      allowPickup: agentConf.allowPickup !== false,
+      allowDelivery: agentConf.allowDelivery !== false,
+      pickupAddress: agentConf.pickupAddress ?? "",
     },
-    socialLinks: (baker.agentConfig as Record<string, unknown> | null)?.socialLinks ?? {},
+    publicPaymentPolicy: {
+      mode: paymentMode,
+      summary: buildPaymentPolicySummary({
+        mode: paymentMode,
+        advancePercentage: Number(baker.advancePercentage ?? 50),
+        advanceThresholdPkr: Number(baker.advanceThresholdPkr ?? 2000),
+        codPolicy: baker.codPolicy as string | null | undefined,
+      }),
+      advancePercentage: Number(baker.advancePercentage ?? 50),
+      advanceThresholdPkr: Number(baker.advanceThresholdPkr ?? 2000),
+      paymentInstructions: paymentMode !== "cod" ? String(baker.paymentDetails ?? "") : "",
+    },
+    publicOccasion: shop.occasionPreset && shop.occasionPreset !== "normal"
+      ? {
+          preset: shop.occasionPreset,
+          label: buildOccasionBanner(occasionConfig)?.split(" · ")[0] ?? "Special occasion",
+          banner: buildOccasionBanner(occasionConfig),
+          orderDeadline: shop.occasionOrderDeadline || null,
+          freshDays: shop.occasionFreshDays ?? null,
+          note: shop.occasionNote || null,
+        }
+      : null,
+    socialLinks,
+    trial: trialStatus({
+      subscriptionPlan: baker.subscriptionPlan as string | undefined,
+      trialEndsAt: baker.trialEndsAt as Date | string | null | undefined,
+      createdAt: baker.createdAt as Date | string,
+    }),
   };
 }
 
@@ -79,7 +154,14 @@ function toAuthenticatedBaker(baker: Record<string, unknown>) {
     clerkOrganizationId,
     ...safeBaker
   } = baker;
-  return safeBaker;
+  return {
+    ...safeBaker,
+    trial: trialStatus({
+      subscriptionPlan: baker.subscriptionPlan as string | undefined,
+      trialEndsAt: baker.trialEndsAt as Date | string | null | undefined,
+      createdAt: baker.createdAt as Date | string,
+    }),
+  };
 }
 
 // GET /bakers
@@ -238,6 +320,8 @@ router.post(
         clerkUserId: request.clerkUserId!,
         clerkOrganizationId: request.clerkOrganizationId ?? null,
         passwordHash: null,
+        subscriptionPlan: "free",
+        trialEndsAt: freeTrialEndsAtFrom(new Date()),
       })
       .returning();
 
@@ -295,6 +379,8 @@ router.post("/bakers", rateLimit(10, 15 * 60 * 1000), async (req, res): Promise<
       ...rest,
       whatsappNumber: normalizedPhone,
       passwordHash,
+      subscriptionPlan: "free",
+      trialEndsAt: freeTrialEndsAtFrom(new Date()),
     }).returning();
     
     const token = signToken({ bakerId: baker.id, email: baker.email });
@@ -329,31 +415,66 @@ router.post("/bakers/login", rateLimit(10, 15 * 60 * 1000), async (req, res): Pr
   const { identifier, password } = parsed.data;
   const normalizedPhone = normalizePakistanPhone(identifier);
   const phoneVariants = phoneLookupVariants(identifier, normalizedPhone);
+  const emailLookup = identifier.trim().toLowerCase();
+
   const [baker] = await db.select().from(bakersTable).where(or(
-    eq(bakersTable.email, identifier.trim().toLowerCase()),
+    eq(bakersTable.email, emailLookup),
     inArray(bakersTable.whatsappNumber, phoneVariants),
   ));
   
-  if (!baker || !baker.passwordHash) {
+  if (baker?.passwordHash && verifyPassword(password, baker.passwordHash)) {
+    if (needsPasswordRehash(baker.passwordHash)) {
+      await db
+        .update(bakersTable)
+        .set({ passwordHash: hashPassword(password) })
+        .where(eq(bakersTable.id, baker.id));
+    }
+    const token = signToken({ bakerId: baker.id, email: baker.email, role: "owner" });
+    res.json({ token, baker: { ...toAuthenticatedBaker(baker), deliveryAreas: baker.deliveryAreas ?? [] }, role: "owner" });
+    return;
+  }
+
+  // Staff member login (email + password on baker_members)
+  const [member] = await db
+    .select()
+    .from(bakerMembersTable)
+    .where(
+      and(
+        eq(bakerMembersTable.active, true),
+        sql`lower(${bakerMembersTable.email}) = ${emailLookup}`,
+      ),
+    )
+    .limit(1);
+
+  if (!member?.passwordHash || !verifyPassword(password, member.passwordHash)) {
     res.status(401).json({ error: "Invalid email/number or password" });
     return;
   }
 
-  const isMatch = verifyPassword(password, baker.passwordHash);
-  if (!isMatch) {
-    res.status(401).json({ error: "Invalid email/number or password" });
-    return;
-  }
-
-  if (needsPasswordRehash(baker.passwordHash)) {
+  if (needsPasswordRehash(member.passwordHash)) {
     await db
-      .update(bakersTable)
+      .update(bakerMembersTable)
       .set({ passwordHash: hashPassword(password) })
-      .where(eq(bakersTable.id, baker.id));
+      .where(eq(bakerMembersTable.id, member.id));
   }
 
-  const token = signToken({ bakerId: baker.id, email: baker.email });
-  res.json({ token, baker: { ...toAuthenticatedBaker(baker), deliveryAreas: baker.deliveryAreas ?? [] } });
+  const [staffBaker] = await db.select().from(bakersTable).where(eq(bakersTable.id, member.bakerId));
+  if (!staffBaker) {
+    res.status(401).json({ error: "Invalid email/number or password" });
+    return;
+  }
+
+  const token = signToken({
+    bakerId: staffBaker.id,
+    email: member.email,
+    role: member.role,
+    memberId: member.id,
+  });
+  res.json({
+    token,
+    baker: { ...toAuthenticatedBaker(staffBaker), deliveryAreas: staffBaker.deliveryAreas ?? [] },
+    role: member.role,
+  });
 });
 
 // GET /bakers/:bakerId
@@ -391,7 +512,7 @@ router.patch("/bakers/:bakerId", requireBakerAuth, async (req, res): Promise<voi
     return;
   }
   
-  const { socialLinks, blockedDates, drops, pickupAddress, allowPickup, allowDelivery, cancellationAllowed, cancellationHoursBefore, cancellationPolicy, ...profileUpdates } = parsed.data as typeof parsed.data & {
+  const { socialLinks, blockedDates, drops, pickupAddress, allowPickup, allowDelivery, cancellationAllowed, cancellationHoursBefore, cancellationPolicy, paymentMode, occasionPreset, occasionCustomLabel, occasionOrderDeadline, occasionFreshDays, occasionNote, ...profileUpdates } = parsed.data as typeof parsed.data & {
     socialLinks?: { instagram?: string; facebook?: string };
     blockedDates?: string[];
     drops?: Array<Record<string, unknown>>;
@@ -401,6 +522,12 @@ router.patch("/bakers/:bakerId", requireBakerAuth, async (req, res): Promise<voi
     cancellationAllowed?: boolean;
     cancellationHoursBefore?: number;
     cancellationPolicy?: string;
+    paymentMode?: "cod" | "partial_advance" | "full_advance";
+    occasionPreset?: "normal" | "eid_fitr" | "eid_ul_adha" | "custom";
+    occasionCustomLabel?: string;
+    occasionOrderDeadline?: string;
+    occasionFreshDays?: number;
+    occasionNote?: string;
   };
   const [existing] = await db.select().from(bakersTable).where(eq(bakersTable.id, params.data.bakerId));
   if (!existing) {
@@ -408,8 +535,10 @@ router.patch("/bakers/:bakerId", requireBakerAuth, async (req, res): Promise<voi
     return;
   }
   const currentConfig = (existing.agentConfig ?? {}) as Record<string, unknown>;
+  const paymentPatch = paymentMode ? paymentFieldsForMode(paymentMode) : {};
   const [baker] = await db.update(bakersTable).set({
     ...profileUpdates,
+    ...(paymentMode ? paymentPatch : {}),
     agentConfig: {
       ...currentConfig,
       ...(socialLinks !== undefined ? { socialLinks } : {}),
@@ -421,7 +550,13 @@ router.patch("/bakers/:bakerId", requireBakerAuth, async (req, res): Promise<voi
       ...(cancellationAllowed !== undefined ? { cancellationAllowed } : {}),
       ...(cancellationHoursBefore !== undefined ? { cancellationHoursBefore } : {}),
       ...(cancellationPolicy !== undefined ? { cancellationPolicy } : {}),
-    }
+      ...(paymentMode !== undefined ? { paymentMode } : {}),
+      ...(occasionPreset !== undefined ? { occasionPreset } : {}),
+      ...(occasionCustomLabel !== undefined ? { occasionCustomLabel } : {}),
+      ...(occasionOrderDeadline !== undefined ? { occasionOrderDeadline } : {}),
+      ...(occasionFreshDays !== undefined ? { occasionFreshDays } : {}),
+      ...(occasionNote !== undefined ? { occasionNote } : {}),
+    },
   }).where(eq(bakersTable.id, params.data.bakerId)).returning();
   if (!baker) {
     res.status(404).json({ error: "Baker not found" });
@@ -451,6 +586,13 @@ router.get("/bakers/:bakerId/products", async (req, res): Promise<void> => {
     variants: p.variants ?? [],
     occasionTags: p.occasionTags ?? [],
     dietaryTags: p.dietaryTags ?? [],
+    ingredients: p.ingredients ?? [],
+    allergens: p.allergens ?? [],
+    suggestionTags: p.suggestionTags ?? [],
+    pickupAvailable: p.pickupAvailable ?? true,
+    deliveryAvailable: p.deliveryAvailable ?? true,
+    leadTimeDays: p.leadTimeDays,
+    leadTimeHours: p.leadTimeHours,
   })));
 });
 
@@ -534,11 +676,24 @@ router.get("/bakers/:bakerId/agent-config", requireBakerAuth, requireBakerOwners
   if (!baker) { res.status(404).json({ error: "Baker not found" }); return; }
   const conf = (baker.agentConfig ?? {}) as Record<string, unknown>;
   const tokenMask = maskWebhookToken(baker.metaWebhookToken);
+  const socialLinks = (conf.socialLinks as { instagram?: string; facebook?: string } | undefined) ?? {};
+  const flow = resolveConversationFlow({
+    preferredChannel: conf.preferredCustomerChannel as string | undefined,
+    agentActive: baker.agentActive,
+    whatsappAgentEnabled: baker.whatsappAgentEnabled,
+    instagramAgentEnabled: baker.instagramAgentEnabled,
+    hasWhatsAppNumber: Boolean(baker.whatsappNumber),
+    hasInstagramUrl: Boolean(socialLinks.instagram || baker.instagramPageId),
+    subscriptionPlan: baker.subscriptionPlan,
+  });
   res.json({
     bakerId: baker.id,
     agentActive: baker.agentActive,
     whatsappAgentEnabled: baker.whatsappAgentEnabled,
     instagramAgentEnabled: baker.instagramAgentEnabled,
+    subscriptionPlan: baker.subscriptionPlan,
+    channelEntitlements: entitlementsForPlan(baker.subscriptionPlan),
+    conversationFlow: flow,
     ...tokenMask,
     instagramPageId: baker.instagramPageId,
     customGreeting: (conf.customGreeting as string | null) ?? null,
@@ -552,6 +707,7 @@ router.get("/bakers/:bakerId/agent-config", requireBakerAuth, requireBakerOwners
     activeOffers: (conf.activeOffers as string | null) ?? "",
     preferredCustomerChannel: (conf.preferredCustomerChannel as "web" | "whatsapp" | "instagram" | null) ?? "web",
     blockedDates: (conf.blockedDates as string[]) ?? [],
+    agentLanguage: (conf.agentLanguage as string | null) ?? "bilingual",
     whatsappWebhookUrl: "/api/webhooks/whatsapp",
   });
 });
@@ -577,6 +733,7 @@ router.put("/bakers/:bakerId/agent-config", requireBakerAuth, requireBakerOwners
     activeOffers?: string;
     preferredCustomerChannel?: "web" | "whatsapp" | "instagram";
     blockedDates?: string[];
+    agentLanguage?: "english" | "urdu" | "roman_urdu" | "bilingual";
   };
   const agentConfigUpdate: Record<string, unknown> = {};
   if (body.customGreeting !== undefined) agentConfigUpdate.customGreeting = body.customGreeting;
@@ -590,9 +747,44 @@ router.put("/bakers/:bakerId/agent-config", requireBakerAuth, requireBakerOwners
   if (body.activeOffers !== undefined) agentConfigUpdate.activeOffers = body.activeOffers.slice(0, 600);
   if (body.preferredCustomerChannel !== undefined) agentConfigUpdate.preferredCustomerChannel = body.preferredCustomerChannel;
   if (body.blockedDates !== undefined) agentConfigUpdate.blockedDates = body.blockedDates;
+  if (body.agentLanguage !== undefined && ["english", "urdu", "roman_urdu", "bilingual"].includes(body.agentLanguage)) {
+    agentConfigUpdate.agentLanguage = body.agentLanguage;
+  }
 
   const [existing] = await db.select().from(bakersTable).where(eq(bakersTable.id, bakerId));
   if (!existing) { res.status(404).json({ error: "Baker not found" }); return; }
+
+  if (!isPlanAccessActive(existing) && (body.agentActive === true || body.whatsappAgentEnabled === true || body.instagramAgentEnabled === true || body.autoReplyEnabled === true)) {
+    res.status(403).json({
+      error: "Your 3-day Launch Free trial has ended. Upgrade to a paid plan to turn the agent back on.",
+    });
+    return;
+  }
+
+  if (body.whatsappAgentEnabled === true && !canEnableWhatsAppAgent(existing.subscriptionPlan)) {
+    res.status(403).json({
+      error: "WhatsApp agent needs Kitchen Standard or higher. Upgrade your package to connect WhatsApp.",
+    });
+    return;
+  }
+  if (body.instagramAgentEnabled === true && !canEnableInstagramAgent(existing.subscriptionPlan)) {
+    res.status(403).json({
+      error: "Instagram agent needs Kitchen Pro or higher. Upgrade your package to connect Instagram DMs.",
+    });
+    return;
+  }
+  if (body.preferredCustomerChannel === "whatsapp" && !canEnableWhatsAppAgent(existing.subscriptionPlan)) {
+    res.status(403).json({
+      error: "WhatsApp cannot be the primary channel on Launch Free. Upgrade to Kitchen Standard or higher.",
+    });
+    return;
+  }
+  if (body.preferredCustomerChannel === "instagram" && !canEnableInstagramAgent(existing.subscriptionPlan)) {
+    res.status(403).json({
+      error: "Instagram cannot be the primary channel on this package. Upgrade to Kitchen Pro or higher.",
+    });
+    return;
+  }
 
   const mergedAgentConfig = {
     ...((existing.agentConfig ?? {}) as Record<string, unknown>),
@@ -610,11 +802,24 @@ router.put("/bakers/:bakerId/agent-config", requireBakerAuth, requireBakerOwners
   if (!baker) { res.status(404).json({ error: "Baker not found" }); return; }
   const conf = (baker.agentConfig ?? {}) as Record<string, unknown>;
   const tokenMask = maskWebhookToken(baker.metaWebhookToken);
+  const socialLinks = (conf.socialLinks as { instagram?: string; facebook?: string } | undefined) ?? {};
+  const flow = resolveConversationFlow({
+    preferredChannel: conf.preferredCustomerChannel as string | undefined,
+    agentActive: baker.agentActive,
+    whatsappAgentEnabled: baker.whatsappAgentEnabled,
+    instagramAgentEnabled: baker.instagramAgentEnabled,
+    hasWhatsAppNumber: Boolean(baker.whatsappNumber),
+    hasInstagramUrl: Boolean(socialLinks.instagram || baker.instagramPageId),
+    subscriptionPlan: baker.subscriptionPlan,
+  });
   res.json({
     bakerId: baker.id,
     agentActive: baker.agentActive,
     whatsappAgentEnabled: baker.whatsappAgentEnabled,
     instagramAgentEnabled: baker.instagramAgentEnabled,
+    subscriptionPlan: baker.subscriptionPlan,
+    channelEntitlements: entitlementsForPlan(baker.subscriptionPlan),
+    conversationFlow: flow,
     ...tokenMask,
     instagramPageId: baker.instagramPageId,
     customGreeting: (conf.customGreeting as string | null) ?? null,
@@ -628,6 +833,7 @@ router.put("/bakers/:bakerId/agent-config", requireBakerAuth, requireBakerOwners
     activeOffers: (conf.activeOffers as string | null) ?? "",
     preferredCustomerChannel: (conf.preferredCustomerChannel as "web" | "whatsapp" | "instagram" | null) ?? "web",
     blockedDates: (conf.blockedDates as string[]) ?? [],
+    agentLanguage: (conf.agentLanguage as string | null) ?? "bilingual",
     whatsappWebhookUrl: "/api/webhooks/whatsapp",
   });
 });

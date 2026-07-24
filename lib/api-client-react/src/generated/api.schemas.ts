@@ -197,6 +197,8 @@ export interface Product {
   isBestSeller?: boolean;
   isTopRated?: boolean;
   displayOrder?: number;
+  /** @nullable */
+  recipeCostPkr?: number | null;
   createdAt: string;
 }
 
@@ -218,8 +220,11 @@ export interface ProductInput {
   suggestionTags?: string[];
   pickupAvailable?: boolean;
   deliveryAvailable?: boolean;
-  leadTimeHours?: number;
+  /** @nullable */
+  leadTimeHours?: number | null;
   photoUrl?: string;
+  /** @nullable */
+  recipeCostPkr?: number | null;
 }
 
 export interface ProductUpdate {
@@ -242,6 +247,8 @@ export interface ProductUpdate {
   /** @nullable */
   leadTimeHours?: number | null;
   photoUrl?: string;
+  /** @nullable */
+  recipeCostPkr?: number | null;
   displayOrder?: number;
 }
 
@@ -333,7 +340,11 @@ export interface OrderInput {
   buyerAddress: string;
   buyerArea?: string;
   items: OrderItem[];
-  totalPkr: number;
+  /**
+     * Ignored — server prices from catalog
+     * @deprecated
+     */
+  totalPkr?: number;
   deliveryDate?: string;
   source?: string;
   occasion?: string;
@@ -666,6 +677,96 @@ export interface KnowledgeQueryResult {
   chunks: KnowledgeChunkHit[];
 }
 
+export interface PlatformBillingConfig {
+  enabled: boolean;
+  ownerName: string;
+  /** @nullable */
+  whatsappNumber: string | null;
+  /** @nullable */
+  whatsappChatUrl: string | null;
+  paymentDetails: string;
+  instructions: string;
+}
+
+export type BakerBillingPendingPlanId = typeof BakerBillingPendingPlanId[keyof typeof BakerBillingPendingPlanId];
+
+
+export const BakerBillingPendingPlanId = {
+  starter: 'starter',
+  pro: 'pro',
+  bakery_plus: 'bakery_plus',
+} as const;
+
+export interface BakerBillingPending {
+  planId: BakerBillingPendingPlanId;
+  name: string;
+  amountLabel: string;
+  /** @nullable */
+  requestedAt: string | null;
+}
+
+export interface BakerBillingState {
+  subscriptionPlan: string;
+  pending: BakerBillingPending | null;
+  platform: PlatformBillingConfig;
+}
+
+export type BillingUpgradeRequestPlanId = typeof BillingUpgradeRequestPlanId[keyof typeof BillingUpgradeRequestPlanId];
+
+
+export const BillingUpgradeRequestPlanId = {
+  starter: 'starter',
+  pro: 'pro',
+  bakery_plus: 'bakery_plus',
+} as const;
+
+export interface BillingUpgradeRequest {
+  planId: BillingUpgradeRequestPlanId;
+  /** @maxLength 240 */
+  note?: string;
+}
+
+export type BillingUpgradeResponsePlan = {
+  id: string;
+  name: string;
+  amountLabel: string;
+};
+
+export interface BillingUpgradeResponse {
+  ok: boolean;
+  pendingPlanId?: string;
+  billingRequestedAt?: string;
+  platform: PlatformBillingConfig;
+  plan: BillingUpgradeResponsePlan;
+  /** @nullable */
+  whatsappUrl: string | null;
+  message: string;
+}
+
+export type AdminActivatePlanRequestPlanId = typeof AdminActivatePlanRequestPlanId[keyof typeof AdminActivatePlanRequestPlanId];
+
+
+export const AdminActivatePlanRequestPlanId = {
+  starter: 'starter',
+  pro: 'pro',
+  bakery_plus: 'bakery_plus',
+} as const;
+
+export interface AdminActivatePlanRequest {
+  bakerId: number;
+  planId: AdminActivatePlanRequestPlanId;
+  clearTrial?: boolean;
+}
+
+export interface AdminActivatePlanResponse {
+  ok: boolean;
+  bakerId: number;
+  subscriptionPlan: string;
+  /** @nullable */
+  trialEndsAt?: string | null;
+  message: string;
+}
+
 export type GetFeaturedBakersParams = {
 city?: string;
 area?: string;
@@ -706,6 +807,32 @@ buyerId?: number;
 status?: string;
 };
 
+export type VerifyOrderPaymentBodyContentType = typeof VerifyOrderPaymentBodyContentType[keyof typeof VerifyOrderPaymentBodyContentType];
+
+
+export const VerifyOrderPaymentBodyContentType = {
+  'image/jpeg': 'image/jpeg',
+  'image/png': 'image/png',
+  'image/webp': 'image/webp',
+} as const;
+
+export type VerifyOrderPaymentBody = {
+  /** Raw base64 or data URL of JPEG/PNG/WebP receipt */
+  imageBase64?: string;
+  contentType?: VerifyOrderPaymentBodyContentType;
+};
+
+export type VerifyOrderPayment200 = {
+  verified: boolean;
+  message: string;
+  decision?: string;
+  confidence?: number;
+};
+
+export type SetOrderPaymentScreenshotBody = {
+  paymentScreenshotUrl: string;
+};
+
 export type GetCartParams = {
 buyerId: number;
 };
@@ -716,5 +843,90 @@ buyerId: number;
 
 export type ListCustomersParams = {
 bakerId: number;
+};
+
+export type AdminSetPlatformBillingBody = {
+  whatsapp?: string;
+  paymentDetails?: string;
+  ownerName?: string;
+};
+
+export type LookupOrdersByPhoneParams = {
+phone: string;
+};
+
+export type LookupOrdersByPhone200Item = { [key: string]: unknown };
+
+export type SubmitOrderFeedbackBodyFeedback = typeof SubmitOrderFeedbackBodyFeedback[keyof typeof SubmitOrderFeedbackBodyFeedback];
+
+
+export const SubmitOrderFeedbackBodyFeedback = {
+  loved_it: 'loved_it',
+  okay: 'okay',
+  had_issue: 'had_issue',
+} as const;
+
+export type SubmitOrderFeedbackBody = {
+  feedback: SubmitOrderFeedbackBodyFeedback;
+  note?: string;
+  buyerWhatsapp: string;
+};
+
+export type UploadGuestOrderReceiptBodyContentType = typeof UploadGuestOrderReceiptBodyContentType[keyof typeof UploadGuestOrderReceiptBodyContentType];
+
+
+export const UploadGuestOrderReceiptBodyContentType = {
+  'image/jpeg': 'image/jpeg',
+  'image/png': 'image/png',
+  'image/webp': 'image/webp',
+} as const;
+
+export type UploadGuestOrderReceiptBody = {
+  buyerWhatsapp: string;
+  imageBase64: string;
+  contentType?: UploadGuestOrderReceiptBodyContentType;
+};
+
+export type BroadcastToCustomersBodySegment = typeof BroadcastToCustomersBodySegment[keyof typeof BroadcastToCustomersBodySegment];
+
+
+export const BroadcastToCustomersBodySegment = {
+  all: 'all',
+  frequent_buyers: 'frequent_buyers',
+  inactive_loyalists: 'inactive_loyalists',
+  festival_buyers: 'festival_buyers',
+} as const;
+
+export type BroadcastToCustomersBody = {
+  message: string;
+  testPhone?: string;
+  limit?: number;
+  segment?: BroadcastToCustomersBodySegment;
+};
+
+export type GetBakerWorkspace200 = { [key: string]: unknown };
+
+export type CreateBakerGoalBody = { [key: string]: unknown };
+
+export type CreateBakerNoteBody = { [key: string]: unknown };
+
+export type CreateBakerReminderBody = { [key: string]: unknown };
+
+export type UpdateBakerReminderBody = { [key: string]: unknown };
+
+export type ListInventoryItems200Item = { [key: string]: unknown };
+
+export type CreateInventoryItemBody = { [key: string]: unknown };
+
+export type UpdateInventoryItemBody = { [key: string]: unknown };
+
+export type ListLedgerEntries200Item = { [key: string]: unknown };
+
+export type CreateLedgerEntryBody = { [key: string]: unknown };
+
+export type GetKhataAnalyticsParams = {
+month?: string;
+from?: string;
+to?: string;
 };
 

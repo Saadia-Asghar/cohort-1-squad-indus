@@ -99,6 +99,7 @@ export default function AgentHub() {
     dietaryPolicy?: string;
     activeOffers?: string;
     preferredCustomerChannel?: "web" | "whatsapp" | "instagram";
+    agentLanguage?: "english" | "urdu" | "roman_urdu" | "bilingual";
   }>({});
 
   const merged = { ...config, ...localConfig };
@@ -314,20 +315,64 @@ export default function AgentHub() {
             </div>
 
             <div className="p-5 rounded-xl border border-border bg-card shadow-sm space-y-3">
-              <div>
-                <p className="font-semibold">Primary customer conversation channel</p>
-                <p className="text-sm text-muted-foreground">Your shared menu remains a catalogue. Send customers to the channel where your agent should handle questions and orders.</p>
+              <div className="flex items-center gap-2 mb-1">
+                <MessageSquare className="w-4 h-4 text-muted-foreground" />
+                <h3 className="font-semibold">Buyer language mode</h3>
               </div>
+              <p className="text-sm text-muted-foreground">
+                App dashboard stays in English. This controls how the agent replies to buyers on WhatsApp and web chat.
+              </p>
               <select
-                value={merged.preferredCustomerChannel ?? "web"}
-                onChange={(e) => setLocalConfig(prev => ({ ...prev, preferredCustomerChannel: e.target.value as "web" | "whatsapp" | "instagram" }))}
+                value={merged.agentLanguage ?? "bilingual"}
+                onChange={(e) => setLocalConfig(prev => ({ ...prev, agentLanguage: e.target.value as typeof merged.agentLanguage }))}
                 className="w-full px-3 py-2 border border-border rounded-lg bg-background text-sm"
               >
-                <option value="whatsapp">WhatsApp agent (recommended when connected)</option>
-                <option value="instagram">Instagram DMs (only after Meta DM setup)</option>
-                <option value="web">Built-in web assistant</option>
+                <option value="bilingual">English + Roman Urdu (recommended for Pakistan)</option>
+                <option value="roman_urdu">Roman Urdu friendly</option>
+                <option value="urdu">Urdu script footer</option>
+                <option value="english">English only</option>
               </select>
-              <p className="text-xs text-muted-foreground">If the chosen channel has not been connected, the shared menu safely falls back to the built-in assistant.</p>
+            </div>
+
+            <div className="p-5 rounded-xl border border-border bg-card shadow-sm space-y-3">
+              <div>
+                <p className="font-semibold">How buyers talk to you (channel flow)</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Your shared menu stays a catalogue. Pick the main channel for questions and bookings. Turn WhatsApp and Instagram agents on separately (your package must allow them).
+                </p>
+              </div>
+              {(config as unknown as { conversationFlow?: { statusNote?: string } } | undefined)?.conversationFlow?.statusNote && (
+                <p className="text-xs rounded-lg bg-muted/50 border border-border px-3 py-2">
+                  {(config as unknown as { conversationFlow: { statusNote: string } }).conversationFlow.statusNote}
+                </p>
+              )}
+              <label className="block text-sm font-medium">
+                Primary conversation channel
+                <select
+                  value={merged.preferredCustomerChannel ?? "web"}
+                  onChange={(e) => setLocalConfig(prev => ({ ...prev, preferredCustomerChannel: e.target.value as "web" | "whatsapp" | "instagram" }))}
+                  className="mt-1 w-full px-3 py-2 border border-border rounded-lg bg-background text-sm"
+                >
+                  <option value="web">Built-in web assistant (all packages)</option>
+                  <option
+                    value="whatsapp"
+                    disabled={(config as unknown as { channelEntitlements?: { whatsapp?: boolean } } | undefined)?.channelEntitlements?.whatsapp === false}
+                  >
+                    WhatsApp agent {(config as unknown as { channelEntitlements?: { whatsapp?: boolean } } | undefined)?.channelEntitlements?.whatsapp === false ? "(needs Kitchen Standard+)" : "(recommended)"}
+                  </option>
+                  <option
+                    value="instagram"
+                    disabled={(config as unknown as { channelEntitlements?: { instagram?: boolean } } | undefined)?.channelEntitlements?.instagram === false}
+                  >
+                    Instagram DMs {(config as unknown as { channelEntitlements?: { instagram?: boolean } } | undefined)?.channelEntitlements?.instagram === false ? "(needs Kitchen Pro+)" : ""}
+                  </option>
+                </select>
+              </label>
+              <ul className="text-xs text-muted-foreground space-y-1 list-disc pl-4">
+                <li>Turn on WhatsApp / Instagram agents in their tabs — both can run at once.</li>
+                <li>If your primary channel is not ready, the menu falls back to the next ready channel.</li>
+                <li>Launch Free = web only · Kitchen Standard = web + WhatsApp · Kitchen Pro / Bakery Team = web + WhatsApp + Instagram.</li>
+              </ul>
             </div>
 
             <div className="p-5 rounded-xl border border-border bg-card shadow-sm space-y-3">
@@ -467,7 +512,7 @@ export default function AgentHub() {
                   <div>
                     <h3 className="font-semibold">Knowledge Base (RAG)</h3>
                     <p className="text-sm text-muted-foreground mt-1">
-                      Rebuild embeddings from your menu, policies, and delivery areas so the agent answers smarter questions.
+                      Rebuild the knowledge index from your menu, policies, and delivery areas. The agent uses this when rule-based replies miss.
                     </p>
                   </div>
                 </div>
@@ -526,6 +571,11 @@ export default function AgentHub() {
         {/* ── WHATSAPP AGENT ── */}
         {activeTab === "whatsapp" && (
           <div className="space-y-6">
+            {(config as unknown as { channelEntitlements?: { whatsapp?: boolean; whatsappConversationsPerMonth?: number } } | undefined)?.channelEntitlements?.whatsapp === false && (
+              <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+                WhatsApp agent is not on Launch Free. Upgrade to <strong>Kitchen Standard</strong> or higher to auto-reply on WhatsApp.
+              </div>
+            )}
             <div className="flex items-center justify-between p-5 rounded-xl border border-border bg-card shadow-sm">
               <div className="flex items-center gap-3">
                 <div className={`w-10 h-10 rounded-full flex items-center justify-center ${merged.whatsappAgentEnabled ? "bg-green-100" : "bg-muted"}`}>
@@ -533,11 +583,22 @@ export default function AgentHub() {
                 </div>
                 <div>
                   <p className="font-semibold">WhatsApp Business Agent</p>
-                  <p className="text-sm text-muted-foreground">Auto-reply to orders and questions sent to your WhatsApp</p>
+                  <p className="text-sm text-muted-foreground">
+                    Auto-reply on WhatsApp
+                    {(config as unknown as { channelEntitlements?: { whatsappConversationsPerMonth?: number } } | undefined)?.channelEntitlements?.whatsappConversationsPerMonth
+                      ? ` · ${(config as unknown as { channelEntitlements: { whatsappConversationsPerMonth: number } }).channelEntitlements.whatsappConversationsPerMonth} chats / month included`
+                      : ""}
+                  </p>
                 </div>
               </div>
               <button
-                onClick={() => setLocalConfig(prev => ({ ...prev, whatsappAgentEnabled: !merged.whatsappAgentEnabled }))}
+                onClick={() => {
+                  if ((config as unknown as { channelEntitlements?: { whatsapp?: boolean } } | undefined)?.channelEntitlements?.whatsapp === false && !merged.whatsappAgentEnabled) {
+                    alert("Upgrade to Kitchen Standard or higher to enable the WhatsApp agent.");
+                    return;
+                  }
+                  setLocalConfig(prev => ({ ...prev, whatsappAgentEnabled: !merged.whatsappAgentEnabled }));
+                }}
                 className={`relative w-12 h-6 rounded-full transition-colors ${merged.whatsappAgentEnabled ? "bg-green-500" : "bg-muted-foreground/30"}`}
               >
                 <span className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white shadow transition-transform ${merged.whatsappAgentEnabled ? "translate-x-6" : ""}`} />
@@ -620,6 +681,11 @@ export default function AgentHub() {
         {/* ── INSTAGRAM AGENT ── */}
         {activeTab === "instagram" && (
           <div className="space-y-6">
+            {(config as unknown as { channelEntitlements?: { instagram?: boolean } } | undefined)?.channelEntitlements?.instagram === false && (
+              <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+                Instagram DM agent needs <strong>Kitchen Pro</strong> or <strong>Bakery Team</strong>. Kitchen Standard includes WhatsApp only.
+              </div>
+            )}
             <div className="flex items-center justify-between p-5 rounded-xl border border-border bg-card shadow-sm">
               <div className="flex items-center gap-3">
                 <div className={`w-10 h-10 rounded-full flex items-center justify-center ${merged.instagramAgentEnabled ? "bg-pink-100" : "bg-muted"}`}>
@@ -627,11 +693,22 @@ export default function AgentHub() {
                 </div>
                 <div>
                   <p className="font-semibold">Instagram DM Agent</p>
-                  <p className="text-sm text-muted-foreground">Auto-reply to Instagram DMs about your products</p>
+                  <p className="text-sm text-muted-foreground">
+                    Auto-reply to Instagram DMs
+                    {(config as unknown as { channelEntitlements?: { instagramConversationsPerMonth?: number } } | undefined)?.channelEntitlements?.instagramConversationsPerMonth
+                      ? ` · ${(config as unknown as { channelEntitlements: { instagramConversationsPerMonth: number } }).channelEntitlements.instagramConversationsPerMonth} chats / month included`
+                      : ""}
+                  </p>
                 </div>
               </div>
               <button
-                onClick={() => setLocalConfig(prev => ({ ...prev, instagramAgentEnabled: !merged.instagramAgentEnabled }))}
+                onClick={() => {
+                  if ((config as unknown as { channelEntitlements?: { instagram?: boolean } } | undefined)?.channelEntitlements?.instagram === false && !merged.instagramAgentEnabled) {
+                    alert("Upgrade to Kitchen Pro or higher to enable the Instagram agent.");
+                    return;
+                  }
+                  setLocalConfig(prev => ({ ...prev, instagramAgentEnabled: !merged.instagramAgentEnabled }));
+                }}
                 className={`relative w-12 h-6 rounded-full transition-colors ${merged.instagramAgentEnabled ? "bg-pink-500" : "bg-muted-foreground/30"}`}
               >
                 <span className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white shadow transition-transform ${merged.instagramAgentEnabled ? "translate-x-6" : ""}`} />

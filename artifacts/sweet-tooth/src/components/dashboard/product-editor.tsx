@@ -13,6 +13,8 @@ const ALLERGEN_OPTIONS = [
 type ProductShape = {
   id: number;
   name: string;
+  basePricePkr?: number;
+  recipeCostPkr?: number | null;
   leadTimeDays?: number;
   leadTimeHours?: number | null;
   isAvailable?: boolean;
@@ -41,6 +43,7 @@ export function ProductEditorPanel({
   const [ingredientsText, setIngredientsText] = useState((product.ingredients ?? []).join(", "));
   const [allergens, setAllergens] = useState<string[]>(product.allergens ?? []);
   const [suggestionTags, setSuggestionTags] = useState<string[]>(product.suggestionTags ?? []);
+  const [recipeCostPkr, setRecipeCostPkr] = useState(String(product.recipeCostPkr ?? ""));
 
   useEffect(() => {
     setLeadTimeDays(String(product.leadTimeDays ?? 1));
@@ -50,6 +53,7 @@ export function ProductEditorPanel({
     setIngredientsText((product.ingredients ?? []).join(", "));
     setAllergens(product.allergens ?? []);
     setSuggestionTags(product.suggestionTags ?? []);
+    setRecipeCostPkr(String(product.recipeCostPkr ?? ""));
   }, [product]);
 
   const toggleTag = (list: string[], setList: (v: string[]) => void, tag: string) => {
@@ -72,6 +76,7 @@ export function ProductEditorPanel({
           ingredients,
           allergens,
           suggestionTags,
+          recipeCostPkr: recipeCostPkr ? parseInt(recipeCostPkr, 10) : null,
         } as Record<string, unknown>,
       },
       { onSuccess: () => { onSaved(); onClose(); } },
@@ -120,6 +125,26 @@ export function ProductEditorPanel({
                 />
               </label>
             </div>
+          </section>
+
+          <section>
+            <h3 className="font-semibold text-sm mb-2">Recipe cost (for Khata margin)</h3>
+            <p className="text-xs text-muted-foreground mb-2">
+              Your ingredient cost per unit — used to show margin per cake on Khata.
+              {product.basePricePkr != null && recipeCostPkr && (
+                <span className="block mt-1 text-primary font-medium">
+                  Est. margin: PKR {Math.max(0, product.basePricePkr - (parseInt(recipeCostPkr, 10) || 0)).toLocaleString()} per unit
+                </span>
+              )}
+            </p>
+            <input
+              type="number"
+              min={0}
+              value={recipeCostPkr}
+              onChange={(e) => setRecipeCostPkr(e.target.value)}
+              placeholder="e.g. 450"
+              className="w-full rounded-lg border border-border px-3 py-2 text-sm"
+            />
           </section>
 
           <section>

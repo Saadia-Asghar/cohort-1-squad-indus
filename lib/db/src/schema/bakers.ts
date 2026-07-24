@@ -42,6 +42,16 @@ export const bakersTable = sweetTooth.table("bakers", {
     cancellationAllowed?: boolean;
     cancellationHoursBefore?: number;
     cancellationPolicy?: string;
+    paymentMode?: "cod" | "partial_advance" | "full_advance";
+    occasionPreset?: "normal" | "eid_fitr" | "eid_ul_adha" | "custom";
+    occasionCustomLabel?: string;
+    occasionOrderDeadline?: string;
+    occasionFreshDays?: number;
+    occasionNote?: string;
+    /** Pending platform upgrade (WhatsApp / manual payment). */
+    pendingPlanId?: string;
+    billingRequestedAt?: string;
+    billingNote?: string | null;
   }>().default({}),
   whatsappAgentEnabled: boolean("whatsapp_agent_enabled").notNull().default(false),
   instagramAgentEnabled: boolean("instagram_agent_enabled").notNull().default(false),
@@ -49,6 +59,8 @@ export const bakersTable = sweetTooth.table("bakers", {
   instagramPageId: text("instagram_page_id"),
   marketplaceVisible: boolean("marketplace_visible").notNull().default(true),
   subscriptionPlan: text("subscription_plan").notNull().default("free"),
+  /** Free plan only — access ends after this timestamp (3-day trial). Null for paid plans. */
+  trialEndsAt: timestamp("trial_ends_at", { withTimezone: true }),
   ratingAvg: real("rating_avg").notNull().default(0),
   totalOrders: integer("total_orders").notNull().default(0),
   slug: text("slug").notNull().unique(),

@@ -35,7 +35,7 @@ router.post("/bakers/:bakerId/knowledge/reindex", requireBakerAuth, requireBaker
   }
 });
 
-// POST /bakers/:bakerId/knowledge/query — debug RAG retrieval (agent uses this internally)
+// POST /bakers/:bakerId/knowledge/query — debug RAG retrieval (agent also retrieves via retrieveKnowledge)
 router.post("/bakers/:bakerId/knowledge/query", requireBakerAuth, requireBakerOwnership, async (req, res): Promise<void> => {
   const bakerId = parseInt(String(req.params.bakerId), 10);
   const query = typeof req.body?.query === "string" ? req.body.query.trim() : "";

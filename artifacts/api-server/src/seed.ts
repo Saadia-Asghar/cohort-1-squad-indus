@@ -5,22 +5,47 @@ import {
   ordersTable,
   reviewsTable,
   customersTable,
-  chatMessagesTable,
-  cartItemsTable,
   bakerGoalsTable,
 } from "@workspace/db/schema";
 import { sql } from "drizzle-orm";
 import { reindexBakerKnowledge } from "./lib/rag/indexer.js";
 import { hashPassword } from "./lib/auth.js";
 import { seedBakerDemoData, syncBakerStats } from "./lib/seed-baker-demo.js";
+import { seedFullFeaturePack } from "./lib/seed-feature-packs.js";
 
 async function seed() {
+  const isProd = process.env.NODE_ENV === "production" || Boolean(process.env.VERCEL);
+  if (isProd && process.env.ALLOW_DESTRUCTIVE_SEED !== "1") {
+    console.error(
+      "Refusing destructive seed in production. Set ALLOW_DESTRUCTIVE_SEED=1 only if you intentionally wipe the database.",
+    );
+    process.exit(1);
+  }
+
   console.log("Seeding Sweet Tooth database...");
 
-  // Clear all tables in reverse dependency order
-  await db.execute(sql`TRUNCATE baker_reminders, baker_notes, baker_goals, knowledge_chunks, chat_messages, cart_items, reviews, customers, orders, products, bakers RESTART IDENTITY CASCADE`);
+  // Clear all tables (includes Khata, notifications, memory used by every dashboard tab)
+  await db.execute(sql`
+    TRUNCATE
+      sweet_tooth.baker_reminders,
+      sweet_tooth.baker_notes,
+      sweet_tooth.baker_goals,
+      sweet_tooth.knowledge_chunks,
+      sweet_tooth.conversation_memory,
+      sweet_tooth.notifications,
+      sweet_tooth.inventory_items,
+      sweet_tooth.ledger_entries,
+      sweet_tooth.chat_messages,
+      sweet_tooth.cart_items,
+      sweet_tooth.reviews,
+      sweet_tooth.customers,
+      sweet_tooth.orders,
+      sweet_tooth.products,
+      sweet_tooth.bakers
+    RESTART IDENTITY CASCADE
+  `);
 
-  // --- Bakers ---
+  // --- Bakers (differentiated plans/channels so every Agent Hub + Settings path is testable) ---
   const [sana] = await db.insert(bakersTable).values({
     businessName: "Sana's Sweet Studio",
     ownerName: "Sana Malik",
@@ -32,13 +57,37 @@ async function seed() {
     email: "sana@studio.com",
     passwordHash: hashPassword("SanaSweet2026!"),
     deliveryAreas: ["Gulberg", "Model Town", "DHA Phase 1", "DHA Phase 2", "Johar Town"],
-    codPolicy: "Cash on delivery only. 50% advance for custom orders above PKR 5,000. Full payment on delivery for standard orders.",
+    codPolicy: "50% advance above PKR 5,000. COD available for smaller orders.",
     returnPolicy: "Quality issue? Contact me within 2 hours of delivery. I'll make it right.",
+    requireAdvance: true,
+    advanceThresholdPkr: 5000,
+    advancePercentage: 50,
+    paymentDetails: "JazzCash 0300-1234567 (Sana Malik) · EasyPaisa same number",
     maxOrdersPerDay: 8,
     agentActive: true,
     whatsappAgentEnabled: true,
+    instagramAgentEnabled: true,
     marketplaceVisible: true,
-    subscriptionPlan: "pro",
+    subscriptionPlan: "bakery_plus",
+    agentConfig: {
+      customGreeting: "Assalam-o-Alaikum! Sana's Sweet Studio — cakes, cupcakes aur fusion mithai. Kya chahiye?",
+      autoReplyEnabled: true,
+      agentLanguage: "bilingual",
+      preferredCustomerChannel: "whatsapp",
+      paymentMode: "partial_advance",
+      occasionPreset: "eid_fitr",
+      occasionOrderDeadline: "2026-03-28",
+      occasionFreshDays: 2,
+      occasionNote: "Eid boxes need 48h notice. Flavours freeze after deadline.",
+      allowPickup: true,
+      allowDelivery: true,
+      pickupAddress: "Gulberg III, Lahore (share exact pin on WhatsApp)",
+      availabilityHours: "Tue–Sun 11am–8pm",
+      dietaryPolicy: "Eggless on request for cakes. Kitchen handles nuts — tell us allergies.",
+      activeOffers: "Eid special: 10% off boxes booked before deadline",
+      socialLinks: { instagram: "https://instagram.com/sanasweetstudio" },
+      escalateKeywords: ["baker", "custom design", "speak to sana"],
+    } as never,
     ratingAvg: 4.9,
     totalOrders: 247,
     slug: "sana-sweet-studio",
@@ -56,12 +105,32 @@ async function seed() {
     email: "fatima@cakery.com",
     passwordHash: hashPassword("FatimaCake2026!"),
     deliveryAreas: ["Clifton", "Defence", "Bahadurabad", "Gulshan-e-Iqbal"],
-    codPolicy: "COD available. Custom cakes require 30% advance payment.",
+    codPolicy: "Custom cakes require 30% advance. Balance on delivery.",
     returnPolicy: "Freshness guaranteed. Report issues within 1 hour of delivery.",
+    requireAdvance: true,
+    advanceThresholdPkr: 3000,
+    advancePercentage: 30,
+    paymentDetails: "Bank transfer: Meezan 0123-45678901 (Fatima Zahra)",
     maxOrdersPerDay: 6,
     agentActive: true,
+    whatsappAgentEnabled: true,
+    instagramAgentEnabled: false,
     marketplaceVisible: true,
-    subscriptionPlan: "pro",
+    subscriptionPlan: "starter",
+    agentConfig: {
+      customGreeting: "Welcome to Fatima's Cakery — wedding & celebration cakes in Clifton.",
+      autoReplyEnabled: true,
+      agentLanguage: "english",
+      preferredCustomerChannel: "whatsapp",
+      paymentMode: "partial_advance",
+      occasionPreset: "normal",
+      allowPickup: true,
+      allowDelivery: true,
+      pickupAddress: "Clifton Block 5, Karachi",
+      availabilityHours: "Mon–Sat 10am–7pm",
+      dietaryPolicy: "Eggless wedding tiers available with notice.",
+      socialLinks: { instagram: "https://instagram.com/fatimascakery" },
+    } as never,
     ratingAvg: 4.8,
     totalOrders: 189,
     slug: "fatima-cakery",
@@ -81,10 +150,30 @@ async function seed() {
     deliveryAreas: ["F-7", "F-8", "G-9", "G-11", "Blue Area"],
     codPolicy: "Cash on delivery for all orders.",
     returnPolicy: "Quality guarantee on all products.",
+    requireAdvance: false,
+    advanceThresholdPkr: 2000,
+    advancePercentage: 0,
+    paymentDetails: "COD only — no advance required",
     maxOrdersPerDay: 10,
     agentActive: false,
+    whatsappAgentEnabled: false,
+    instagramAgentEnabled: false,
     marketplaceVisible: true,
-    subscriptionPlan: "starter",
+    subscriptionPlan: "free",
+    trialEndsAt: new Date(Date.now() + 3 * 86400000),
+    agentConfig: {
+      customGreeting: "Hi! Browse Amna Bakes menu — cookies, banana bread, and more.",
+      autoReplyEnabled: false,
+      agentLanguage: "english",
+      preferredCustomerChannel: "web",
+      paymentMode: "cod",
+      occasionPreset: "normal",
+      allowPickup: true,
+      allowDelivery: true,
+      pickupAddress: "F-7 Markaz, Islamabad",
+      availabilityHours: "Fri–Sun 12pm–6pm",
+      dietaryPolicy: "Eggless banana bread always available.",
+    } as never,
     ratingAvg: 4.7,
     totalOrders: 94,
     slug: "amna-bakes",
@@ -100,6 +189,7 @@ async function seed() {
       name: "Classic Black Forest Cake",
       description: "Layers of moist chocolate sponge, fresh cream, and cherries. A timeless favourite.",
       basePricePkr: 2800,
+      recipeCostPkr: 950,
       sizes: [
         { label: "Half Kg", pricePkr: 2800 },
         { label: "1 Kg", pricePkr: 5200 },
@@ -112,6 +202,8 @@ async function seed() {
       category: "Cakes",
       occasionTags: ["Birthday", "Anniversary", "Eid"],
       dietaryTags: [],
+      ingredients: ["chocolate sponge", "fresh cream", "cherries", "cocoa"],
+      allergens: ["dairy", "gluten", "eggs"],
       photoUrl: "https://images.unsplash.com/photo-1571115764595-644a1f56a55c?w=600&auto=format&fit=crop",
       totalOrders: 89,
       isBestSeller: true,
@@ -123,6 +215,7 @@ async function seed() {
       name: "Red Velvet Cupcakes",
       description: "Velvety, soft cupcakes with cream cheese frosting. Box of 6 or 12.",
       basePricePkr: 1200,
+      recipeCostPkr: 380,
       sizes: [
         { label: "Box of 6", pricePkr: 1200 },
         { label: "Box of 12", pricePkr: 2200 },
@@ -145,6 +238,7 @@ async function seed() {
       name: "Gulab Jamun Cheesecake",
       description: "A fusion masterpiece — classic NY cheesecake topped with homemade gulab jamun in rose syrup.",
       basePricePkr: 3500,
+      recipeCostPkr: 1200,
       sizes: [
         { label: "Half Kg", pricePkr: 3500 },
         { label: "1 Kg", pricePkr: 6500 },
@@ -156,6 +250,8 @@ async function seed() {
       category: "Cheesecakes",
       occasionTags: ["Eid", "Dawat", "Special Occasion"],
       dietaryTags: ["Eggless available on request"],
+      ingredients: ["cream cheese", "gulab jamun", "rose syrup"],
+      allergens: ["dairy", "gluten"],
       photoUrl: "https://images.unsplash.com/photo-1533134242443-d4fd215305ad?w=600&auto=format&fit=crop",
       totalOrders: 56,
       isBestSeller: false,
@@ -167,6 +263,7 @@ async function seed() {
       name: "Fudgy Brownies",
       description: "Dense, rich, extra-fudgy chocolate brownies. Made with Belgian dark chocolate.",
       basePricePkr: 900,
+      recipeCostPkr: 280,
       sizes: [
         { label: "Box of 6", pricePkr: 900 },
         { label: "Box of 12", pricePkr: 1700 },
@@ -237,6 +334,7 @@ async function seed() {
       name: "Fondant Wedding Cake",
       description: "Elegant multi-tier custom wedding cakes with hand-crafted sugar flowers.",
       basePricePkr: 15000,
+      recipeCostPkr: 6200,
       sizes: [
         { label: "2 Tier (2 Kg)", pricePkr: 15000 },
         { label: "3 Tier (4 Kg)", pricePkr: 28000 },
@@ -249,6 +347,8 @@ async function seed() {
       category: "Wedding Cakes",
       occasionTags: ["Wedding", "Nikah", "Engagement"],
       dietaryTags: [],
+      ingredients: ["vanilla sponge", "fondant", "sugar flowers"],
+      allergens: ["dairy", "gluten", "eggs"],
       photoUrl: "https://images.unsplash.com/photo-1549298651-0e5b3a0e9ca3?w=600&auto=format&fit=crop",
       totalOrders: 34,
       isBestSeller: true,
@@ -260,6 +360,7 @@ async function seed() {
       name: "Strawberry Shortcake",
       description: "Light vanilla sponge with fresh strawberries and whipped cream. Simple and beautiful.",
       basePricePkr: 2500,
+      recipeCostPkr: 780,
       sizes: [
         { label: "Half Kg", pricePkr: 2500 },
         { label: "1 Kg", pricePkr: 4500 },
@@ -285,6 +386,7 @@ async function seed() {
       name: "Chocolate Chip Cookies",
       description: "Classic American-style chocolate chip cookies. Crispy edges, chewy centre.",
       basePricePkr: 700,
+      recipeCostPkr: 220,
       sizes: [
         { label: "Box of 12", pricePkr: 700 },
         { label: "Box of 24", pricePkr: 1300 },
@@ -296,6 +398,8 @@ async function seed() {
       category: "Cookies",
       occasionTags: ["Casual", "Gift", "School"],
       dietaryTags: [],
+      ingredients: ["flour", "butter", "chocolate chips"],
+      allergens: ["gluten", "dairy", "eggs"],
       photoUrl: "https://images.unsplash.com/photo-1499636136210-6f4ee915583e?w=600&auto=format&fit=crop",
       totalOrders: 156,
       isBestSeller: true,
@@ -307,6 +411,7 @@ async function seed() {
       name: "Eggless Banana Bread",
       description: "Moist, rich banana bread — fully eggless. A family favourite.",
       basePricePkr: 850,
+      recipeCostPkr: 260,
       sizes: [{ label: "Loaf (500g)", pricePkr: 850 }],
       variants: [],
       isEgglessAvailable: true,
@@ -671,45 +776,6 @@ async function seed() {
 
   console.log("Reviews seeded");
 
-  // --- Chat messages ---
-  await db.insert(chatMessagesTable).values([
-    {
-      bakerId: sana.id,
-      buyerId: ayesha.id,
-      sessionId: `session-${sana.id}-${ayesha.id}-demo`,
-      role: "user",
-      content: "Assalam-o-Alaikum! Do you have any eggless options?",
-    },
-    {
-      bakerId: sana.id,
-      buyerId: ayesha.id,
-      sessionId: `session-${sana.id}-${ayesha.id}-demo`,
-      role: "assistant",
-      content: "Wa Alaikum Assalam! Great news! These items are available in eggless:\n\n• Classic Black Forest Cake\n• Chocolate Truffles Box\n\nWould you like to order any of these?",
-    },
-    {
-      bakerId: sana.id,
-      buyerId: ayesha.id,
-      sessionId: `session-${sana.id}-${ayesha.id}-demo`,
-      role: "user",
-      content: "Yes! What sizes does the Black Forest come in?",
-    },
-    {
-      bakerId: sana.id,
-      buyerId: ayesha.id,
-      sessionId: `session-${sana.id}-${ayesha.id}-demo`,
-      role: "assistant",
-      content: "Classic Black Forest Cake is available in:\n\n• Half Kg: PKR 2,800\n• 1 Kg: PKR 5,200\n• 2 Kg: PKR 9,800\n\nLead time: 1 day. Would you like to place an order?",
-    },
-  ]);
-
-  console.log("Chat messages seeded");
-
-  for (const baker of [sana, fatima, amna]) {
-    const indexed = await reindexBakerKnowledge(baker.id);
-    console.log(`RAG indexed ${indexed.chunks} chunks for ${baker.businessName} (${indexed.provider})`);
-  }
-
   await db.insert(bakerGoalsTable).values([
     {
       bakerId: sana.id,
@@ -735,10 +801,55 @@ async function seed() {
   ]);
   console.log("Baker goals seeded for all demo kitchens");
 
+  // Khata, notifications, workspace, feedback, multi-channel chats, conversation memory
+  await seedFullFeaturePack({
+    id: sana.id,
+    businessName: sana.businessName,
+    ownerName: sana.ownerName,
+    phoneBase: "+92300123",
+    includeWhatsAppChats: true,
+    includeInstagramChats: true,
+  });
+  await seedFullFeaturePack({
+    id: fatima.id,
+    businessName: fatima.businessName,
+    ownerName: fatima.ownerName,
+    phoneBase: "+92321876",
+    includeWhatsAppChats: true,
+    includeInstagramChats: false,
+  });
+  await seedFullFeaturePack({
+    id: amna.id,
+    businessName: amna.businessName,
+    ownerName: amna.ownerName,
+    phoneBase: "+92311555",
+    includeWhatsAppChats: false,
+    includeInstagramChats: false,
+  });
+  console.log("Feature packs seeded (Khata, notifications, chats, feedback, workspace)");
+
+  for (const baker of [sana, fatima, amna]) {
+    const indexed = await reindexBakerKnowledge(baker.id);
+    console.log(`RAG indexed ${indexed.chunks} chunks for ${baker.businessName} (${indexed.provider})`);
+  }
+
   for (const baker of [sana, fatima, amna]) {
     await syncBakerStats(baker.id);
   }
   console.log("Baker stats synced from live order/review counts");
+
+  console.log(`
+═══════════════════════════════════════════════════════════
+  Demo logins (password per baker below)
+───────────────────────────────────────────────────────────
+  sana@studio.com   / SanaSweet2026!   → Bakery Plus (WA+IG, Khata, Agent Hub)
+  fatima@cakery.com / FatimaCake2026!  → Kitchen Standard (WA, web)
+  amna@bakes.com    / AmnaBakes2026!   → Launch Free (web menu only, agent off)
+───────────────────────────────────────────────────────────
+  Tabs covered: Home, Orders, Catalog, Analytics, Payments,
+  Customers, Calendar, Agent Hub, Khata, Settings, Notifications
+═══════════════════════════════════════════════════════════
+`);
 
   console.log("Seeding complete!");
 }

@@ -27,5 +27,7 @@ export interface ProductUpdate {
   /** @nullable */
   leadTimeHours?: number | null;
   photoUrl?: string;
+  /** @nullable */
+  recipeCostPkr?: number | null;
   displayOrder?: number;
 }

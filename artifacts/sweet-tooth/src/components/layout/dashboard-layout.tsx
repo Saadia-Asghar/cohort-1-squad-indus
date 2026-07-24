@@ -6,21 +6,49 @@ import { useBuyerSession } from "@/hooks/use-session";
 import { NotificationBell } from "@/components/notification-bell";
 import { InAppBrowserModal } from "@/components/ui/in-app-browser";
 import { useManagedBaker } from "@/lib/managed-auth";
+import { isClerkConfigured } from "@/lib/app-auth";
 import {
   LayoutDashboard, ShoppingBag, Grid, DollarSign,
   BarChart3, Users, Calendar, Settings, LogOut, Bot, Globe, BookOpen, NotebookText,
 } from "lucide-react";
 
+/** Only mounted when ClerkProvider exists — never call useClerk without it. */
+function ClerkSignOutBridge({
+  onSignedOut,
+}: {
+  onSignedOut: () => void;
+}) {
+  const { signOut } = useClerk();
+  return (
+    <button
+      type="button"
+      onClick={async () => {
+        try {
+          await signOut();
+        } catch (e) {
+          console.warn("Clerk signout ignored:", e);
+        }
+        onSignedOut();
+      }}
+      className="flex items-center gap-3 px-3 py-2 w-full text-left rounded-md text-xs font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
+    >
+      <LogOut className="w-4 h-4" />
+      Logout
+    </button>
+  );
+}
+
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [location, navigate] = useLocation();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [browserUrl, setBrowserUrl] = useState<string | null>(null);
-  const { signOut } = useClerk();
   const { logoutNatively } = useManagedBaker();
   const { bakerId } = useBuyerSession();
   const { data: baker } = useGetBaker(bakerId, {
     query: { enabled: !!bakerId, queryKey: ["baker", bakerId], staleTime: 60_000 },
   });
+
+  const trial = (baker as { trial?: { isFree?: boolean; expired?: boolean; daysLeft?: number | null; active?: boolean } } | undefined)?.trial;
 
   const navItems = [
     { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
@@ -36,16 +64,15 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     { href: "/dashboard/settings", label: "Settings", icon: Settings },
   ];
 
-  const handleLogout = async () => {
-    setIsLoggingOut(true);
-    try {
-      await signOut();
-    } catch (e) {
-      console.warn("Clerk signout ignored:", e);
-    }
+  const finishLogout = () => {
     logoutNatively();
     navigate("/dashboard/login");
     setIsLoggingOut(false);
+  };
+
+  const handleNativeLogout = () => {
+    setIsLoggingOut(true);
+    finishLogout();
   };
 
   return (
@@ -82,19 +109,52 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         </nav>
         <div className="p-4 border-t border-border space-y-2">
           <button
+            type="button"
             onClick={() => setBrowserUrl(window.location.origin)}
             className="flex items-center gap-3 px-3 py-2 w-full text-left rounded-md text-xs font-semibold text-primary bg-primary/10 hover:bg-primary/20 transition-colors cursor-pointer"
           >
             <Globe className="w-4 h-4" />
             In-App Storefront Browser
           </button>
-          <button onClick={handleLogout} disabled={isLoggingOut} className="flex items-center gap-3 px-3 py-2 w-full text-left rounded-md text-xs font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors disabled:opacity-50">
-            <LogOut className="w-4 h-4" />
-            {isLoggingOut ? "Logging out…" : "Logout"}
-          </button>
+          {isClerkConfigured() ? (
+            <ClerkSignOutBridge
+              onSignedOut={() => {
+                setIsLoggingOut(true);
+                finishLogout();
+              }}
+            />
+          ) : (
+            <button
+              type="button"
+              onClick={handleNativeLogout}
+              disabled={isLoggingOut}
+              className="flex items-center gap-3 px-3 py-2 w-full text-left rounded-md text-xs font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors disabled:opacity-50"
+            >
+              <LogOut className="w-4 h-4" />
+              {isLoggingOut ? "Logging out…" : "Logout"}
+            </button>
+          )}
         </div>
       </aside>
       <main className="flex-1 overflow-y-auto">
+        {trial?.isFree && trial.expired && (
+          <div className="border-b border-destructive/30 bg-destructive/10 px-6 py-3 text-sm text-destructive">
+            Your 3-day Launch Free trial has ended. Agent replies and broadcasts are paused —{" "}
+            <Link href="/dashboard/settings#platform-billing" className="font-semibold underline">
+              upgrade via WhatsApp in Settings
+            </Link>
+            .
+          </div>
+        )}
+        {trial?.isFree && trial.active && typeof trial.daysLeft === "number" && (
+          <div className="border-b border-border bg-muted/50 px-6 py-3 text-sm text-muted-foreground">
+            Launch Free trial — {trial.daysLeft} day{trial.daysLeft === 1 ? "" : "s"} left.{" "}
+            <Link href="/dashboard/settings#platform-billing" className="font-medium text-primary underline">
+              Upgrade anytime
+            </Link>
+            .
+          </div>
+        )}
         {children}
       </main>
 

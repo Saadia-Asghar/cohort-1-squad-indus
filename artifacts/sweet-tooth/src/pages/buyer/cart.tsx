@@ -2,6 +2,8 @@ import { BuyerLayout } from "@/components/layout/buyer-layout";
 import { Link } from "wouter";
 import { useEffect, useMemo, useState } from "react";
 import { customFetch } from "@workspace/api-client-react";
+import { useGetBaker, getGetBakerQueryKey } from "@workspace/api-client-react";
+import { Phone } from "lucide-react";
 
 type GuestCartItem = {
   bakerId: number;
@@ -50,6 +52,10 @@ export default function Cart() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [orderId, setOrderId] = useState<number | null>(null);
+  const [placedBakerId, setPlacedBakerId] = useState<number | null>(null);
+  const [receiptUploading, setReceiptUploading] = useState(false);
+  const [receiptUploaded, setReceiptUploaded] = useState(false);
+  const [receiptError, setReceiptError] = useState<string | null>(null);
 
   useEffect(() => {
     setItems(readCart());
@@ -59,7 +65,13 @@ export default function Cart() {
     () => items.reduce((sum, item) => sum + item.unitPricePkr * item.quantity, 0),
     [items],
   );
-  const bakerId = items[0]?.bakerId;
+  const bakerId = items[0]?.bakerId ?? placedBakerId ?? undefined;
+
+  const { data: baker } = useGetBaker(bakerId ?? 0, {
+    query: { enabled: !!bakerId, queryKey: getGetBakerQueryKey(bakerId ?? 0) },
+  });
+  const paymentSummary = (baker as { publicPaymentPolicy?: { summary: string; mode: string; paymentInstructions?: string } } | undefined)?.publicPaymentPolicy;
+  const whatsappChatUrl = (baker as { whatsappChatUrl?: string | null } | undefined)?.whatsappChatUrl;
 
   const updateQuantity = (productId: number, sizeLabel: string, quantity: number) => {
     const next = readCart()
@@ -78,6 +90,44 @@ export default function Cart() {
     );
     writeCart(next);
     setItems(next);
+  };
+
+  const uploadGuestReceipt = async (file: File | null) => {
+    if (!file || !orderId) return;
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      setReceiptError("Use a JPEG, PNG, or WebP photo.");
+      return;
+    }
+    if (file.size > 4 * 1024 * 1024) {
+      setReceiptError("Receipt must be under 4 MB.");
+      return;
+    }
+    setReceiptUploading(true);
+    setReceiptError(null);
+    try {
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result ?? ""));
+        reader.onerror = () => reject(new Error("Could not read file."));
+        reader.readAsDataURL(file);
+      });
+      const base64 = dataUrl.replace(/^data:image\/\w+;base64,/, "");
+      await customFetch(`/api/orders/${orderId}/guest-receipt`, {
+        method: "POST",
+        responseType: "json",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          buyerWhatsapp,
+          imageBase64: base64,
+          contentType: file.type,
+        }),
+      });
+      setReceiptUploaded(true);
+    } catch (cause) {
+      setReceiptError(cause instanceof Error ? cause.message : "Upload failed.");
+    } finally {
+      setReceiptUploading(false);
+    }
   };
 
   const placeOrder = async (event: React.FormEvent) => {
@@ -104,9 +154,12 @@ export default function Cart() {
           source: "web_guest",
         }),
       });
+      setPlacedBakerId(bakerId);
       writeCart([]);
       setItems([]);
       setOrderId(order.id);
+      setReceiptUploaded(false);
+      setReceiptError(null);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Could not place order.");
     } finally {
@@ -123,12 +176,46 @@ export default function Cart() {
         </p>
 
         {orderId ? (
-          <div className="mt-8 rounded-xl border border-emerald-200 bg-emerald-50 p-6 text-emerald-900">
-            <p className="font-serif text-2xl font-bold">Order #{orderId} placed</p>
-            <p className="mt-2 text-sm">
-              The bakery will confirm on WhatsApp. You can look up status anytime on the orders page.
-            </p>
-            <Link href="/orders" className="mt-4 inline-flex text-sm font-semibold underline">
+          <div className="mt-8 rounded-xl border border-emerald-200 bg-emerald-50 p-6 text-emerald-900 space-y-4">
+            <div>
+              <p className="font-serif text-2xl font-bold">Order #{orderId} placed</p>
+              <p className="mt-2 text-sm">
+                The bakery will confirm on WhatsApp. Upload your JazzCash / Easypaisa receipt below if they asked for
+                advance payment.
+              </p>
+            </div>
+            {paymentSummary && (
+              <p className="text-sm rounded-lg bg-white/70 border border-emerald-200 px-3 py-2">
+                <strong>Payment:</strong> {paymentSummary.summary}
+              </p>
+            )}
+            <div className="rounded-lg border border-emerald-200 bg-white/80 p-3 space-y-2">
+              <p className="text-xs font-bold uppercase tracking-wide text-emerald-800">Upload payment receipt</p>
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                disabled={receiptUploading || receiptUploaded}
+                onChange={(e) => void uploadGuestReceipt(e.target.files?.[0] ?? null)}
+                className="w-full text-sm file:mr-3 file:rounded-md file:border-0 file:bg-emerald-700 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-white"
+              />
+              {receiptUploading && <p className="text-xs">Uploading…</p>}
+              {receiptUploaded && (
+                <p className="text-xs font-medium text-emerald-800">Receipt sent — bakery will confirm payment.</p>
+              )}
+              {receiptError && <p className="text-xs text-destructive">{receiptError}</p>}
+            </div>
+            {whatsappChatUrl && (
+              <a
+                href={`${whatsappChatUrl.split("?")[0]}?text=${encodeURIComponent(`Assalam-o-Alaikum! I placed order #${orderId} on Sweet Tooth. Please confirm and share payment/delivery details.`)}`}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-green-700"
+              >
+                <Phone className="h-4 w-4" />
+                Continue on WhatsApp
+              </a>
+            )}
+            <Link href="/orders" className="inline-flex text-sm font-semibold underline">
               Check order status
             </Link>
           </div>
@@ -177,6 +264,16 @@ export default function Cart() {
             </ul>
 
             <p className="text-right font-mono text-lg font-bold">Total PKR {total.toLocaleString()}</p>
+
+            {paymentSummary && (
+              <div className="rounded-xl border border-border bg-muted/30 p-4 text-sm">
+                <p className="font-semibold">Payment policy</p>
+                <p className="mt-1 text-muted-foreground">{paymentSummary.summary}</p>
+                {paymentSummary.paymentInstructions && paymentSummary.mode !== "cod" && (
+                  <p className="mt-2 text-xs whitespace-pre-wrap rounded-md bg-background border border-border px-3 py-2">{paymentSummary.paymentInstructions}</p>
+                )}
+              </div>
+            )}
 
             <form onSubmit={placeOrder} className="space-y-3 rounded-xl border border-border bg-card p-4">
               <div className="flex gap-2">

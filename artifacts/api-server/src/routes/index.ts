@@ -17,11 +17,14 @@ import metaConnectRouter from "./meta-connect.js";
 import broadcastRouter from "./broadcast.js";
 import adminRouter from "./admin.js";
 import khataRouter from "./khata.js";
+import billingRouter from "./billing.js";
+import staffRouter from "./staff.js";
 
 const router = Router();
 
 router.use(healthRouter);
 router.use(bakersRouter);
+router.use(staffRouter);
 router.use(notificationsRouter);
 router.use(productsRouter);
 router.use(ordersRouter);
@@ -38,5 +41,6 @@ router.use(metaConnectRouter);
 router.use(broadcastRouter);
 router.use(adminRouter);
 router.use(khataRouter);
+router.use(billingRouter);
 
 export default router;

@@ -303,6 +303,24 @@ ALTER TABLE sweet_tooth.bakers ADD COLUMN IF NOT EXISTS meta_webhook_token TEXT;
 ALTER TABLE sweet_tooth.bakers ADD COLUMN IF NOT EXISTS instagram_page_id TEXT;
 ALTER TABLE sweet_tooth.bakers ADD COLUMN IF NOT EXISTS marketplace_visible BOOLEAN NOT NULL DEFAULT false;
 ALTER TABLE sweet_tooth.bakers ADD COLUMN IF NOT EXISTS subscription_plan TEXT NOT NULL DEFAULT 'free';
+ALTER TABLE sweet_tooth.bakers ADD COLUMN IF NOT EXISTS trial_ends_at TIMESTAMPTZ;
+
+CREATE TABLE IF NOT EXISTS sweet_tooth.baker_members (
+  id SERIAL PRIMARY KEY,
+  baker_id INTEGER NOT NULL,
+  email TEXT NOT NULL,
+  password_hash TEXT,
+  clerk_user_id TEXT UNIQUE,
+  role TEXT NOT NULL DEFAULT 'staff',
+  display_name TEXT NOT NULL DEFAULT '',
+  active BOOLEAN NOT NULL DEFAULT true,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS baker_members_baker_email_uniq
+  ON sweet_tooth.baker_members (baker_id, lower(email));
+CREATE INDEX IF NOT EXISTS baker_members_baker_id_idx ON sweet_tooth.baker_members (baker_id);
+
 ALTER TABLE sweet_tooth.bakers ADD COLUMN IF NOT EXISTS rating_avg REAL NOT NULL DEFAULT 0;
 ALTER TABLE sweet_tooth.bakers ADD COLUMN IF NOT EXISTS total_orders INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE sweet_tooth.bakers ADD COLUMN IF NOT EXISTS photo_url TEXT;
@@ -337,6 +355,7 @@ ALTER TABLE sweet_tooth.products ADD COLUMN IF NOT EXISTS is_best_seller BOOLEAN
 ALTER TABLE sweet_tooth.products ADD COLUMN IF NOT EXISTS is_top_rated BOOLEAN NOT NULL DEFAULT false;
 ALTER TABLE sweet_tooth.products ADD COLUMN IF NOT EXISTS display_order INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE sweet_tooth.products ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+ALTER TABLE sweet_tooth.products ADD COLUMN IF NOT EXISTS recipe_cost_pkr INTEGER;
 ALTER TABLE sweet_tooth.orders ADD COLUMN IF NOT EXISTS buyer_id INTEGER;
 ALTER TABLE sweet_tooth.orders ADD COLUMN IF NOT EXISTS buyer_area TEXT;
 ALTER TABLE sweet_tooth.orders ADD COLUMN IF NOT EXISTS payment_amount_received INTEGER;
@@ -344,6 +363,17 @@ ALTER TABLE sweet_tooth.orders ADD COLUMN IF NOT EXISTS source TEXT NOT NULL DEF
 ALTER TABLE sweet_tooth.orders ADD COLUMN IF NOT EXISTS occasion TEXT;
 ALTER TABLE sweet_tooth.orders ADD COLUMN IF NOT EXISTS special_instructions TEXT;
 ALTER TABLE sweet_tooth.orders ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+ALTER TABLE sweet_tooth.orders ADD COLUMN IF NOT EXISTS fulfillment_type TEXT NOT NULL DEFAULT 'delivery';
+ALTER TABLE sweet_tooth.orders ADD COLUMN IF NOT EXISTS delivered_at TIMESTAMPTZ;
+ALTER TABLE sweet_tooth.orders ADD COLUMN IF NOT EXISTS feedback_requested_at TIMESTAMPTZ;
+ALTER TABLE sweet_tooth.orders ADD COLUMN IF NOT EXISTS service_feedback TEXT;
+ALTER TABLE sweet_tooth.orders ADD COLUMN IF NOT EXISTS feedback_note TEXT;
+ALTER TABLE sweet_tooth.products ADD COLUMN IF NOT EXISTS ingredients TEXT[] NOT NULL DEFAULT '{}';
+ALTER TABLE sweet_tooth.products ADD COLUMN IF NOT EXISTS allergens TEXT[] NOT NULL DEFAULT '{}';
+ALTER TABLE sweet_tooth.products ADD COLUMN IF NOT EXISTS suggestion_tags TEXT[] NOT NULL DEFAULT '{}';
+ALTER TABLE sweet_tooth.products ADD COLUMN IF NOT EXISTS pickup_available BOOLEAN NOT NULL DEFAULT true;
+ALTER TABLE sweet_tooth.products ADD COLUMN IF NOT EXISTS delivery_available BOOLEAN NOT NULL DEFAULT true;
+ALTER TABLE sweet_tooth.products ADD COLUMN IF NOT EXISTS lead_time_hours INTEGER;
 ALTER TABLE sweet_tooth.customers ADD COLUMN IF NOT EXISTS city TEXT;
 ALTER TABLE sweet_tooth.customers ADD COLUMN IF NOT EXISTS preferred_area TEXT;
 ALTER TABLE sweet_tooth.customers ADD COLUMN IF NOT EXISTS total_orders INTEGER NOT NULL DEFAULT 0;

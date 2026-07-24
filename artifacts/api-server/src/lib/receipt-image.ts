@@ -10,10 +10,18 @@ export function configuredReceiptHosts(): Set<string> {
   );
 }
 
+/** Direct baker uploads use data: URLs — no paid image host required. */
+export function isDataImageUrl(imageUrl: string): boolean {
+  return /^data:image\/(jpeg|jpg|png|webp);base64,/i.test(imageUrl.trim());
+}
+
 export function assertAllowedReceiptUrl(
   imageUrl: string,
   allowedHosts = configuredReceiptHosts(),
 ): URL {
+  if (isDataImageUrl(imageUrl)) {
+    return new URL(imageUrl);
+  }
   let parsed: URL;
   try {
     parsed = new URL(imageUrl);
@@ -26,10 +34,33 @@ export function assertAllowedReceiptUrl(
   if (parsed.username || parsed.password) {
     throw new Error("Receipt image URL credentials are not allowed.");
   }
+  // Cloudinary free tier — auto-allow when configured.
+  const cloudName = process.env.CLOUDINARY_CLOUD_NAME?.trim();
+  if (cloudName) {
+    allowedHosts = new Set([...allowedHosts, "res.cloudinary.com"]);
+  }
   if (allowedHosts.size === 0 || !allowedHosts.has(parsed.hostname.toLowerCase())) {
-    throw new Error("Receipt images must come from approved storage.");
+    if (allowedHosts.size === 0) {
+      throw new Error(
+        "Receipt OCR needs an HTTPS image URL from an approved host, or upload the file directly in Payments (no host setup needed).",
+      );
+    }
+    throw new Error(
+      `Receipt images must come from an approved host (${[...allowedHosts].join(", ")}).`,
+    );
   }
   return parsed;
+}
+
+export function decodeDataImageUrl(imageUrl: string): { bytes: Buffer; contentType: string } {
+  const match = imageUrl.trim().match(/^data:(image\/(?:jpeg|jpg|png|webp));base64,(.+)$/i);
+  if (!match) {
+    throw new Error("Invalid data image URL.");
+  }
+  const contentType = match[1]!.toLowerCase() === "image/jpg" ? "image/jpeg" : match[1]!.toLowerCase();
+  const bytes = Buffer.from(match[2]!, "base64");
+  validateReceiptImageBytes(bytes, contentType);
+  return { bytes, contentType };
 }
 
 function hasJpegSignature(bytes: Buffer): boolean {
@@ -72,6 +103,9 @@ export function validateReceiptImageBytes(
 }
 
 export async function downloadReceiptImage(imageUrl: string): Promise<Buffer> {
+  if (isDataImageUrl(imageUrl)) {
+    return decodeDataImageUrl(imageUrl).bytes;
+  }
   const parsed = assertAllowedReceiptUrl(imageUrl);
   const response = await fetch(parsed, {
     redirect: "error",
@@ -93,4 +127,10 @@ export async function downloadReceiptImage(imageUrl: string): Promise<Buffer> {
     response.headers.get("content-type") ?? "application/octet-stream",
   );
   return bytes;
+}
+
+/** Build a compact data URL from an uploaded file (max 4MB). */
+export function toReceiptDataUrl(bytes: Buffer, contentType: string): string {
+  const mediaType = validateReceiptImageBytes(bytes, contentType);
+  return `data:${mediaType};base64,${bytes.toString("base64")}`;
 }

@@ -7,6 +7,8 @@ export type InstagramInboundMessage = {
   senderId: string;
   messageId: string;
   text: string;
+  imageUrl?: string;
+  isVoiceOrUnsupportedMedia?: boolean;
 };
 
 export function parseInstagramWebhook(body: unknown): InstagramInboundMessage[] {
@@ -21,7 +23,10 @@ export function parseInstagramWebhook(body: unknown): InstagramInboundMessage[] 
           mid?: string;
           text?: string;
           is_echo?: boolean;
-          attachments?: unknown[];
+          attachments?: Array<{
+            type?: string;
+            payload?: { url?: string };
+          }>;
         };
       }>;
     }>;
@@ -33,16 +38,38 @@ export function parseInstagramWebhook(body: unknown): InstagramInboundMessage[] 
     if (!entry.id) continue;
     for (const event of entry.messaging ?? []) {
       const message = event.message;
-      const text = message?.text?.trim();
-      if (
-        !event.sender?.id ||
-        !message?.mid ||
-        !text ||
-        message.is_echo ||
-        message.attachments?.length
-      ) {
+      if (!event.sender?.id || !message?.mid || message.is_echo) continue;
+
+      const text = message.text?.trim();
+      const attachments = message.attachments ?? [];
+      const image = attachments.find((a) => a.type === "image" && a.payload?.url);
+      const audio = attachments.find((a) => a.type === "audio" || a.type === "share");
+
+      if (image?.payload?.url) {
+        messages.push({
+          accountId: entry.id,
+          senderId: event.sender.id,
+          messageId: message.mid,
+          text: text
+            ? `[Buyer sent a photo] ${text}`
+            : "[Buyer sent a photo] Please confirm if this is a payment receipt or type your question.",
+          imageUrl: image.payload.url,
+        });
         continue;
       }
+
+      if (audio && !text) {
+        messages.push({
+          accountId: entry.id,
+          senderId: event.sender.id,
+          messageId: message.mid,
+          text: "[Buyer sent a voice/audio message] Please type your question in text so I can help.",
+          isVoiceOrUnsupportedMedia: true,
+        });
+        continue;
+      }
+
+      if (!text) continue;
       messages.push({
         accountId: entry.id,
         senderId: event.sender.id,
@@ -72,10 +99,7 @@ export async function sendInstagramTextMessage(
     }),
   });
   if (!response.ok) {
-    logger.error(
-      { status: response.status, pageId },
-      "Instagram send failed",
-    );
+    logger.error({ status: response.status, pageId }, "Instagram send failed");
     return false;
   }
   return true;

@@ -18,10 +18,10 @@ describe("receipt image input security", () => {
     ).toThrow(/HTTPS/);
     expect(() =>
       assertAllowedReceiptUrl("https://127.0.0.1/secret", new Set(["receipts.example.com"])),
-    ).toThrow(/approved storage/);
+    ).toThrow(/approved host/);
     expect(() =>
       assertAllowedReceiptUrl("https://evil.example/123.jpg", new Set(["receipts.example.com"])),
-    ).toThrow(/approved storage/);
+    ).toThrow(/approved host/);
   });
 
   it("checks MIME type, actual file signature, and size", () => {

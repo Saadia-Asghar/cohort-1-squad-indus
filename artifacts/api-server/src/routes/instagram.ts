@@ -14,6 +14,7 @@ import {
 } from "../lib/instagram.js";
 import { processChatMessage } from "../lib/chat-agent.js";
 import { decryptSecret } from "../lib/secret-box.js";
+import { isInstagramCapReached } from "../lib/plan-limits.js";
 
 const router = Router();
 
@@ -121,6 +122,27 @@ router.post("/webhooks/instagram", async (req, res): Promise<void> => {
           connection.instagramAccessTokenEncrypted,
           encryptionKey,
         );
+
+        const cap = await isInstagramCapReached(baker.id, baker.subscriptionPlan);
+        if (cap.capped) {
+          const capMessage =
+            cap.limit <= 0
+              ? `Thanks for messaging ${baker.businessName}! Instagram agent is available on higher plans. Visit our web menu to order, or message the baker directly.`
+              : `Thanks for messaging ${baker.businessName}! Our Instagram chat limit for this month (${cap.limit} conversations) has been reached. Please visit our menu link to place your order.`;
+          const sentCap = await sendInstagramTextMessage(
+            connection.instagramPageId,
+            message.senderId,
+            capMessage,
+            accessToken,
+          );
+          if (!sentCap) throw new Error("Instagram cap reply failed.");
+          await db
+            .update(channelEventsTable)
+            .set({ status: "completed", completedAt: new Date(), lastErrorCode: "INSTAGRAM_CAP" })
+            .where(eq(channelEventsTable.id, eventId));
+          continue;
+        }
+
         const result = await processChatMessage({
           bakerId: baker.id,
           message: message.text,
