@@ -17,6 +17,7 @@ import { traceAgentTurn } from "./langfuse.js";
 import { formatRetrievedContext, retrieveKnowledge } from "./rag/retriever.js";
 import { isPlanAccessActive, TRIAL_EXPIRED_BUYER_REPLY } from "./subscription.js";
 import { AI_REPLY_CAP_BUYER_REPLY, isAiReplyCapReached } from "./plan-limits.js";
+import { isMenuScopedMessage } from "./agent-safety.js";
 
 export type AgentReply = {
   reply: string;
@@ -25,33 +26,7 @@ export type AgentReply = {
   escalated: boolean;
 };
 
-const MENU_SCOPE_KEYWORDS = [
-  "menu", "product", "cake", "cupcake", "cookie", "dessert", "brownie", "pastry", "bake",
-  "price", "cost", "pkr", "size", "flavour", "flavor", "variant", "custom", "design",
-  "order", "cart", "buy", "book", "delivery", "deliver", "pickup", "area", "sector", "location",
-  "available", "stock", "lead time", "today", "tomorrow", "open", "close", "hours",
-  "payment", "pay", "cod", "cash", "advance", "receipt", "refund", "cancel", "status",
-  "egg", "vegan", "vegetarian", "gluten", "dairy", "nut", "allergy", "allergen", "halal",
-  "discount", "offer", "promo", "coupon", "sale", "deal", "ingredient", "recommend", "occasion",
-  "birthday", "wedding", "anniversary", "thank", "thanks", "hello", "hi", "salam", "assalam",
-  "kya", "kitna", "kitne", "batao", "bata dein", "chahiye", "mangna", "mangwana",
-  "meetha", "mithai",
-];
-
-const PROMPT_INJECTION_PATTERNS = [
-  /ignore (all |any |the )?(previous|prior|above) (instructions|rules|message)/i,
-  /system prompt|developer message|jailbreak|reveal .*prompt/i,
-  /act as (?!a bakery|the bakery|an assistant)/i,
-  /show (me )?(your|the) (instructions|rules|memory|api key)/i,
-];
-
-export function isMenuScopedMessage(message: string, productNames: string[]): boolean {
-  const normalized = message.toLowerCase().trim();
-  if (!normalized) return false;
-  if (PROMPT_INJECTION_PATTERNS.some((pattern) => pattern.test(normalized))) return false;
-  if (productNames.some((name) => normalized.includes(name.toLowerCase()))) return true;
-  return MENU_SCOPE_KEYWORDS.some((keyword) => normalized.includes(keyword));
-}
+export { isMenuScopedMessage } from "./agent-safety.js";
 
 function menuScopeRefusal(businessName: string): AgentReply {
   return {
