@@ -27,6 +27,19 @@ import { toReceiptDataUrl } from "../lib/receipt-image.js";
 
 const router = Router();
 
+const ManualOrderBody = z.object({
+  buyerName: z.string().trim().min(1).max(120),
+  buyerWhatsapp: z.string().trim().min(6).max(32),
+  buyerAddress: z.string().trim().min(3).max(500),
+  buyerArea: z.string().trim().max(120).optional(),
+  productName: z.string().trim().min(1).max(160),
+  quantity: z.number().int().min(1).max(100).default(1),
+  totalPkr: z.number().int().min(0).max(10_000_000),
+  deliveryDate: z.string().date().optional(),
+  occasion: z.string().trim().max(120).optional(),
+  specialInstructions: z.string().trim().max(600).optional(),
+});
+
 function formatOrder(o: typeof ordersTable.$inferSelect) {
   return { ...o, items: (o.items as unknown[]) ?? [] };
 }
@@ -243,6 +256,64 @@ router.post("/orders", rateLimit(15, 15 * 60 * 1000), async (req, res): Promise<
     console.error("Guest order create failed", cause);
     res.status(500).json({ error: "Could not place your order right now. Please try again." });
   }
+});
+
+// POST /orders/manual — records phone, walk-in, and social orders before a
+// channel webhook is connected. The dashboard uses this for day-to-day work.
+router.post("/orders/manual", requireBakerAuth, async (req, res): Promise<void> => {
+  const parsed = ManualOrderBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Invalid order details." });
+    return;
+  }
+  const bakerId = (req as AuthenticatedRequest).bakerId!;
+  const data = parsed.data;
+  const [baker] = await db.select().from(bakersTable).where(eq(bakersTable.id, bakerId));
+  if (!baker) {
+    res.status(404).json({ error: "Bakery not found." });
+    return;
+  }
+
+  const [existingCustomer] = await db.select().from(customersTable).where(and(
+    eq(customersTable.bakerId, bakerId),
+    eq(customersTable.whatsappNumber, data.buyerWhatsapp),
+  ));
+  const [customer] = existingCustomer
+    ? await db.update(customersTable).set({
+      name: data.buyerName,
+      preferredArea: data.buyerArea,
+      totalOrders: (existingCustomer.totalOrders ?? 0) + 1,
+      totalSpentPkr: (existingCustomer.totalSpentPkr ?? 0) + data.totalPkr,
+      isRegular: (existingCustomer.totalOrders ?? 0) + 1 >= 2,
+      lastOrderAt: new Date(),
+    }).where(eq(customersTable.id, existingCustomer.id)).returning()
+    : await db.insert(customersTable).values({
+      bakerId,
+      name: data.buyerName,
+      whatsappNumber: data.buyerWhatsapp,
+      preferredArea: data.buyerArea,
+      totalOrders: 1,
+      totalSpentPkr: data.totalPkr,
+      lastOrderAt: new Date(),
+    }).returning();
+
+  const [order] = await db.insert(ordersTable).values({
+    bakerId,
+    buyerId: customer.id,
+    buyerName: data.buyerName,
+    buyerWhatsapp: data.buyerWhatsapp,
+    buyerAddress: data.buyerAddress,
+    buyerArea: data.buyerArea,
+    items: [{ productName: data.productName, quantity: data.quantity, unitPricePkr: Math.round(data.totalPkr / data.quantity) }],
+    totalPkr: data.totalPkr,
+    deliveryDate: data.deliveryDate,
+    occasion: data.occasion,
+    specialInstructions: data.specialInstructions,
+    source: "manual",
+    requireAdvance: baker.requireAdvance,
+  }).returning();
+  await syncBakerStats(bakerId);
+  res.status(201).json(formatOrder(order));
 });
 
 // POST /orders/:orderId/verify-payment
