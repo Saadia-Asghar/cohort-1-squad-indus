@@ -896,6 +896,10 @@ router.put("/bakers/:bakerId/agent-config", requireBakerAuth, requireBakerOwners
 
   const [baker] = await db.update(bakersTable).set(update).where(eq(bakersTable.id, bakerId)).returning();
   if (!baker) { res.status(404).json({ error: "Baker not found" }); return; }
+  // Keep retrieval grounded in every saved agent policy, including delivery pricing.
+  rebuildBakerKnowledgeIndex(baker.id).catch((error) =>
+    console.error(`Auto-RAG reindex failed for baker #${baker.id}:`, error),
+  );
   const conf = (baker.agentConfig ?? {}) as Record<string, unknown>;
   const tokenMask = maskWebhookToken(baker.metaWebhookToken);
   const socialLinks = (conf.socialLinks as { instagram?: string; facebook?: string } | undefined) ?? {};
