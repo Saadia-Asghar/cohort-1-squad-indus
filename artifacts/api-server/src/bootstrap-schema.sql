@@ -393,6 +393,15 @@ CREATE INDEX IF NOT EXISTS orders_baker_idx ON sweet_tooth.orders (baker_id, cre
 CREATE INDEX IF NOT EXISTS customers_baker_idx ON sweet_tooth.customers (baker_id, whatsapp_number);
 CREATE INDEX IF NOT EXISTS chat_messages_baker_session_idx ON sweet_tooth.chat_messages (baker_id, session_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS conversation_memory_baker_idx ON sweet_tooth.conversation_memory (baker_id, last_active_at DESC);
+-- Read paths used by the dashboard, self-service order status lookup, and
+-- custom-cake quoting. All statements are idempotent for the serverless
+-- bootstrap process and do not expose customer data.
+CREATE INDEX IF NOT EXISTS products_baker_available_idx ON sweet_tooth.products (baker_id, is_available, display_order);
+CREATE INDEX IF NOT EXISTS orders_baker_status_delivery_idx ON sweet_tooth.orders (baker_id, status, delivery_date);
+CREATE INDEX IF NOT EXISTS orders_buyer_whatsapp_created_idx ON sweet_tooth.orders (buyer_whatsapp, created_at DESC);
+CREATE INDEX IF NOT EXISTS orders_pending_custom_quote_idx ON sweet_tooth.orders (baker_id, created_at DESC)
+  WHERE source = 'custom_quote' AND status = 'new';
+CREATE INDEX IF NOT EXISTS customers_baker_last_order_idx ON sweet_tooth.customers (baker_id, last_order_at DESC);
 
 -- A new linked Neon database starts empty. These idempotent demo records keep
 -- the marketplace usable immediately while real bakers add their own catalogues.
@@ -419,8 +428,13 @@ SELECT b.id, p.name, p.description, p.base_price_pkr, p.sizes::jsonb,
 FROM (VALUES
   ('sana-sweet-studio', 'Classic Black Forest Cake', 'Moist chocolate sponge, fresh cream, and cherries.', 2800, '[{"label":"Half Kg","pricePkr":2800},{"label":"1 Kg","pricePkr":5200}]', '{}', true, 1, 'Cakes', '{Birthday,Anniversary}', '{}', 'https://images.unsplash.com/photo-1571115764595-644a1f56a55c?w=600&auto=format&fit=crop', 89, true, true, 1),
   ('sana-sweet-studio', 'Red Velvet Cupcakes', 'Velvety cupcakes with cream-cheese frosting.', 1200, '[{"label":"Box of 6","pricePkr":1200},{"label":"Box of 12","pricePkr":2200}]', '{}', false, 1, 'Cupcakes', '{Birthday,Party}', '{}', 'https://images.unsplash.com/photo-1614707267537-b85aaf00c4b7?w=600&auto=format&fit=crop', 134, true, false, 2),
+  ('sana-sweet-studio', 'Lotus Biscoff Celebration Cake', 'Caramel sponge, Biscoff cream, and a biscuit crunch finish.', 3600, '[{"label":"Half Kg","pricePkr":3600},{"label":"1 Kg","pricePkr":6500}]', '{}', true, 2, 'Cakes', '{Birthday,Anniversary,Gift}', '{Egg-free option,Contains gluten,Contains dairy}', 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=600&auto=format&fit=crop', 42, false, true, 3),
   ('fatima-cakery', 'Fondant Wedding Cake', 'Elegant custom wedding cakes with sugar flowers.', 15000, '[{"label":"2 Tier","pricePkr":15000}]', '{}', true, 7, 'Wedding Cakes', '{Wedding,Nikah}', '{}', 'https://images.unsplash.com/photo-1549298651-0e5b3a0e9ca3?w=600&auto=format&fit=crop', 34, true, true, 1),
-  ('amna-bakes', 'Chocolate Chip Cookies', 'Crispy edges and chewy centres.', 700, '[{"label":"Box of 12","pricePkr":700}]', '{}', false, 1, 'Cookies', '{Casual,Gift}', '{}', 'https://images.unsplash.com/photo-1499636136210-6f4ee915583e?w=600&auto=format&fit=crop', 156, true, true, 1)
+  ('fatima-cakery', 'Mini Dessert Table Box', 'Twelve elegant dessert cups for dholki, bridal showers, and office gifting.', 4200, '[{"label":"Box of 12","pricePkr":4200},{"label":"Box of 24","pricePkr":7800}]', '{}', true, 3, 'Dessert Boxes', '{Bridal shower,Dholki,Gift}', '{Egg-free option,Contains dairy}', 'https://images.unsplash.com/photo-1488477181946-6428a0291777?w=600&auto=format&fit=crop', 27, true, false, 2),
+  ('fatima-cakery', 'Pastel Bento Cake', 'A small hand-piped celebration cake with a custom message.', 1850, '[{"label":"4 inch","pricePkr":1850}]', '{}', false, 2, 'Cakes', '{Birthday,Anniversary}', '{Contains eggs,Contains dairy,Contains gluten}', 'https://images.unsplash.com/photo-1535254973040-607b474cb50d?w=600&auto=format&fit=crop', 61, false, true, 3),
+  ('amna-bakes', 'Chocolate Chip Cookies', 'Crispy edges and chewy centres.', 700, '[{"label":"Box of 12","pricePkr":700}]', '{}', false, 1, 'Cookies', '{Casual,Gift}', '{}', 'https://images.unsplash.com/photo-1499636136210-6f4ee915583e?w=600&auto=format&fit=crop', 156, true, true, 1),
+  ('amna-bakes', 'Fudgy Brownie Tray', 'Dark chocolate brownies, cut into sixteen generous squares.', 1850, '[{"label":"16 pieces","pricePkr":1850},{"label":"32 pieces","pricePkr":3400}]', '{}', true, 1, 'Brownies', '{Dawat,Office,Gift}', '{Egg-free option,Contains dairy,Contains gluten}', 'https://images.unsplash.com/photo-1606313564200-e75d5e30476c?w=600&auto=format&fit=crop', 83, true, true, 2),
+  ('amna-bakes', 'Almond Butter Cookies', 'Buttery, gift-ready cookies with roasted almond flakes.', 950, '[{"label":"Box of 12","pricePkr":950}]', '{}', false, 2, 'Cookies', '{Gift,Eid}', '{Contains eggs,Contains dairy,Contains gluten,Contains nuts}', 'https://images.unsplash.com/photo-1558961363-fa8fdf82db35?w=600&auto=format&fit=crop', 35, false, false, 3)
 ) AS p(slug, name, description, base_price_pkr, sizes, variants, is_eggless_available, lead_time_days, category, occasion_tags, dietary_tags, photo_url, total_orders, is_best_seller, is_top_rated, display_order)
 JOIN sweet_tooth.bakers b ON b.slug = p.slug
 WHERE NOT EXISTS (
@@ -440,6 +454,26 @@ SET agent_config = COALESCE(agent_config, '{}'::jsonb) || jsonb_build_object(
   'menuAccent', '#7c3aed'
 )
 WHERE slug = 'sana-sweet-studio';
+
+UPDATE sweet_tooth.bakers
+SET agent_config = COALESCE(agent_config, '{}'::jsonb) || jsonb_build_object(
+  'customGreeting', 'Welcome to Fatima''s Cakery. I can help plan wedding cakes, dessert boxes, and a custom quote.',
+  'availabilityHours', 'Tue-Sun, 11am-7pm',
+  'dietaryPolicy', 'Egg-free options must be requested at least 72 hours ahead. Please disclose severe allergies.',
+  'activeOffers', 'Free message plaque on all wedding cake consultations booked this week.',
+  'menuAccent', '#be185d'
+)
+WHERE slug = 'fatima-cakery';
+
+UPDATE sweet_tooth.bakers
+SET agent_config = COALESCE(agent_config, '{}'::jsonb) || jsonb_build_object(
+  'customGreeting', 'Assalam-o-Alaikum! Amna Bakes can help with cookies, brownies, gift boxes, and delivery in Islamabad.',
+  'availabilityHours', 'Mon-Sat, 9am-6pm',
+  'dietaryPolicy', 'Our kitchen handles eggs, dairy, gluten, and nuts. Ask before ordering for a specific dietary need.',
+  'activeOffers', 'Order two brownie trays for PKR 3,400 this week.',
+  'menuAccent', '#0f766e'
+)
+WHERE slug = 'amna-bakes';
 
 UPDATE sweet_tooth.products
 SET dietary_tags = ARRAY['Egg-free','Vegetarian','Contains dairy','Contains gluten']
@@ -465,6 +499,36 @@ FROM sweet_tooth.bakers b
 JOIN sweet_tooth.customers c ON c.baker_id = b.id AND c.whatsapp_number = '+923000000001'
 WHERE b.slug = 'sana-sweet-studio'
   AND NOT EXISTS (SELECT 1 FROM sweet_tooth.orders o WHERE o.baker_id = b.id AND o.source = 'demo' AND o.buyer_whatsapp = '+923000000001');
+
+INSERT INTO sweet_tooth.customers (baker_id, name, whatsapp_number, city, preferred_area, total_orders, total_spent_pkr, is_regular)
+SELECT b.id, 'Ayesha Khan', '+923000000002', 'Karachi', 'Clifton', 2, 19200, true
+FROM sweet_tooth.bakers b
+WHERE b.slug = 'fatima-cakery'
+  AND NOT EXISTS (SELECT 1 FROM sweet_tooth.customers c WHERE c.baker_id = b.id AND c.whatsapp_number = '+923000000002');
+
+INSERT INTO sweet_tooth.orders (baker_id, buyer_id, buyer_name, buyer_whatsapp, buyer_address, buyer_area, items, total_pkr, delivery_date, status, payment_status, source, occasion, special_instructions)
+SELECT b.id, c.id, c.name, c.whatsapp_number, 'Demo address - Clifton', 'Clifton',
+  '[{"productName":"Pastel Bento Cake","quantity":1,"unitPricePkr":1850,"sizeLabel":"4 inch"}]'::jsonb,
+  1850, CURRENT_DATE + 3, 'confirmed', 'pending', 'demo_fatima', 'Anniversary', 'Demo order for wedding and custom-cake dashboard walkthrough'
+FROM sweet_tooth.bakers b
+JOIN sweet_tooth.customers c ON c.baker_id = b.id AND c.whatsapp_number = '+923000000002'
+WHERE b.slug = 'fatima-cakery'
+  AND NOT EXISTS (SELECT 1 FROM sweet_tooth.orders o WHERE o.baker_id = b.id AND o.source = 'demo_fatima');
+
+INSERT INTO sweet_tooth.customers (baker_id, name, whatsapp_number, city, preferred_area, total_orders, total_spent_pkr, is_regular)
+SELECT b.id, 'Hamza Ali', '+923000000003', 'Islamabad', 'F-8', 3, 5250, true
+FROM sweet_tooth.bakers b
+WHERE b.slug = 'amna-bakes'
+  AND NOT EXISTS (SELECT 1 FROM sweet_tooth.customers c WHERE c.baker_id = b.id AND c.whatsapp_number = '+923000000003');
+
+INSERT INTO sweet_tooth.orders (baker_id, buyer_id, buyer_name, buyer_whatsapp, buyer_address, buyer_area, items, total_pkr, delivery_date, status, payment_status, source, occasion, special_instructions)
+SELECT b.id, c.id, c.name, c.whatsapp_number, 'Demo address - F-8', 'F-8',
+  '[{"productName":"Fudgy Brownie Tray","quantity":1,"unitPricePkr":1850,"sizeLabel":"16 pieces"}]'::jsonb,
+  1850, CURRENT_DATE + 1, 'in_production', 'paid', 'demo_amna', 'Office tea', 'Demo order for production and delivery dashboard walkthrough'
+FROM sweet_tooth.bakers b
+JOIN sweet_tooth.customers c ON c.baker_id = b.id AND c.whatsapp_number = '+923000000003'
+WHERE b.slug = 'amna-bakes'
+  AND NOT EXISTS (SELECT 1 FROM sweet_tooth.orders o WHERE o.baker_id = b.id AND o.source = 'demo_amna');
 
 INSERT INTO sweet_tooth.conversation_memory (baker_id, buyer_id, buyer_name, preferences, message_count, summary)
 SELECT b.id, c.id, c.name, '{"area":"Gulberg","dietary":"egg-free","occasion":"birthday"}'::jsonb, 3,
