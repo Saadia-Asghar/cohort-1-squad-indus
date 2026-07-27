@@ -5,11 +5,21 @@ import { liveDashboardQuery, ORDERS_POLL_MS } from "@/lib/dashboard-query";
 import { useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { useState, type FormEvent } from "react";
+import { MessageCircle } from "lucide-react";
 
 const emptyManualOrder = {
   buyerName: "", buyerWhatsapp: "", buyerAddress: "", buyerArea: "",
   productName: "", quantity: "1", totalPkr: "", deliveryDate: "", occasion: "", specialInstructions: "",
 };
+
+function whatsappHref(phone: string): string | null {
+  const digits = phone.replace(/\D/g, "");
+  if (digits.length < 8) return null;
+
+  // Pakistani local mobile numbers are commonly stored as 03XXXXXXXXX.
+  const international = digits.startsWith("0") ? `92${digits.slice(1)}` : digits;
+  return `https://wa.me/${international}`;
+}
 
 export default function DashboardOrders() {
   const { bakerId } = useBuyerSession();
@@ -136,7 +146,21 @@ export default function DashboardOrders() {
                     <td className="px-4 py-4 font-mono font-medium">#{order.id}</td>
                     <td className="px-4 py-4">
                       <div className="font-medium">{order.buyerName}</div>
-                      <div className="text-muted-foreground text-xs">{order.buyerWhatsapp}</div>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <span>{order.buyerWhatsapp}</span>
+                        {whatsappHref(order.buyerWhatsapp) && (
+                          <a
+                            href={whatsappHref(order.buyerWhatsapp)!}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            aria-label={`Open WhatsApp chat with ${order.buyerName}`}
+                            title={`Message ${order.buyerName} on WhatsApp`}
+                            className="inline-flex min-h-6 min-w-6 items-center justify-center rounded text-green-700 hover:bg-green-50 hover:text-green-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                          >
+                            <MessageCircle className="h-4 w-4" aria-hidden="true" />
+                          </a>
+                        )}
+                      </div>
                       {order.source === "custom_quote" && <div className="mt-1 text-xs font-semibold text-primary">Custom-cake request</div>}
                     </td>
                     <td className="px-4 py-4">
