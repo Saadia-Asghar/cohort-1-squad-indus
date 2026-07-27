@@ -45,8 +45,17 @@ import {
   trialStatus,
   TRIAL_EXPIRED_BUYER_REPLY,
 } from "../lib/subscription.js";
+import { verifyFirebaseIdToken } from "../lib/firebase-auth.js";
 
 const router = Router();
+
+const firebaseTokenSchema = z.object({ idToken: z.string().min(100).max(20_000) });
+
+async function firebaseIdentityFromBody(body: unknown) {
+  const parsed = firebaseTokenSchema.safeParse(body);
+  if (!parsed.success) throw new Error("Invalid Firebase sign-in request.");
+  return verifyFirebaseIdToken(parsed.data.idToken);
+}
 
 function databaseErrorCode(error: unknown): string | undefined {
   if (!error || typeof error !== "object") return undefined;
@@ -217,7 +226,91 @@ async function findClerkBaker(request: AuthenticatedRequest) {
   return null;
 }
 
-// GET /bakers/clerk/session — resolve a managed Clerk identity to its bakery.
+// Exchange a verified Firebase Google identity for this API's baker-scoped JWT.
+router.post("/bakers/firebase/session", rateLimit(10, 15 * 60 * 1000), async (req, res): Promise<void> => {
+  try {
+    const identity = await firebaseIdentityFromBody(req.body);
+    const [baker] = await db.select().from(bakersTable).where(eq(bakersTable.email, identity.email)).limit(1);
+    if (!baker) {
+      res.json({ needsOnboarding: true, email: identity.email });
+      return;
+    }
+    res.json({
+      needsOnboarding: false,
+      token: signToken({ bakerId: baker.id, email: baker.email, role: "owner" }),
+      baker: { ...toAuthenticatedBaker(baker), deliveryAreas: baker.deliveryAreas ?? [] },
+    });
+  } catch (error) {
+    res.status(401).json({ error: error instanceof Error ? error.message : "Google sign-in could not be verified." });
+  }
+});
+
+// Create a bakery after server-side verification of a Firebase Google ID token.
+router.post("/bakers/firebase/onboard", rateLimit(5, 15 * 60 * 1000), async (req, res): Promise<void> => {
+  try {
+    const identity = await firebaseIdentityFromBody(req.body);
+    const schema = z.object({
+      businessName: z.string().trim().min(2).max(120),
+      ownerName: z.string().trim().min(2).max(120),
+      city: z.string().trim().min(2).max(80),
+      whatsappNumber: z.string().trim().min(10).max(30),
+    });
+    const parsed = schema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: parsed.error.message });
+      return;
+    }
+    const normalizedPhone = normalizePakistanPhone(parsed.data.whatsappNumber);
+    if (!normalizedPhone) {
+      res.status(400).json({ error: "Enter a valid Pakistani WhatsApp number." });
+      return;
+    }
+    const phoneVariants = phoneLookupVariants(parsed.data.whatsappNumber, normalizedPhone);
+    const [existing] = await db
+      .select({ id: bakersTable.id, email: bakersTable.email })
+      .from(bakersTable)
+      .where(or(eq(bakersTable.email, identity.email), inArray(bakersTable.whatsappNumber, phoneVariants)))
+      .limit(1);
+    if (existing) {
+      if (existing.email === identity.email) {
+        const [baker] = await db.select().from(bakersTable).where(eq(bakersTable.id, existing.id)).limit(1);
+        if (baker) {
+          res.json({
+            needsOnboarding: false,
+            token: signToken({ bakerId: baker.id, email: baker.email, role: "owner" }),
+            baker: { ...toAuthenticatedBaker(baker), deliveryAreas: baker.deliveryAreas ?? [] },
+          });
+          return;
+        }
+      }
+      res.status(409).json({ error: "A bakery already uses this email or WhatsApp number. Sign in instead." });
+      return;
+    }
+    const slugBase = parsed.data.businessName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || "bakery";
+    const [baker] = await db
+      .insert(bakersTable)
+      .values({
+        ...parsed.data,
+        whatsappNumber: normalizedPhone,
+        email: identity.email,
+        slug: `${slugBase}-${crypto.randomBytes(4).toString("hex")}`,
+        passwordHash: null,
+        subscriptionPlan: "free",
+        trialEndsAt: freeTrialEndsAtFrom(new Date()),
+      })
+      .returning();
+    res.status(201).json({
+      needsOnboarding: false,
+      token: signToken({ bakerId: baker.id, email: baker.email, role: "owner" }),
+      baker: { ...toAuthenticatedBaker(baker), deliveryAreas: baker.deliveryAreas ?? [] },
+    });
+  } catch (error) {
+    const status = databaseErrorCode(error) === "23505" ? 409 : 401;
+    res.status(status).json({ error: error instanceof Error ? error.message : "Google sign-up could not be verified." });
+  }
+});
+
+// GET /bakers/clerk/session — legacy managed Clerk identity endpoint.
 router.get("/bakers/clerk/session", requireClerkUser, async (req, res): Promise<void> => {
   const request = req as AuthenticatedRequest;
   const linked = await findClerkBaker(request);

@@ -6,7 +6,6 @@ import { DashboardPageFallback } from "@/components/dashboard/dashboard-page-fal
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { setBaseUrl } from "@workspace/api-client-react";
-import { useAppAuth } from "@/lib/app-auth";
 import {
   ManagedAuthProvider,
   useManagedBaker,
@@ -54,7 +53,6 @@ const queryClient = new QueryClient({
 });
 
 function ProtectedDashboard({ component: Component }: { component: ComponentType }) {
-  const { isLoaded: clerkLoaded, isSignedIn } = useAppAuth();
   const managed = useManagedBaker();
 
   if (managed.hasNativeSession) {
@@ -67,21 +65,8 @@ function ProtectedDashboard({ component: Component }: { component: ComponentType
     );
   }
 
-  // Avoid flashing the login form while Clerk initializes — show a light shell instead.
-  if (!clerkLoaded) return <DashboardPageFallback />;
-  if (!managed.isLoaded) return <DashboardPageFallback />;
-  if (!isSignedIn) return <BakerLogin />;
-  if (managed.error) {
-    return <div role="alert" className="min-h-screen bg-background px-6 py-20 text-center text-destructive">{managed.error}</div>;
-  }
-  if (managed.needsOnboarding) return <BakerOnboarding />;
-  return managed.bakerId ? (
-    <Suspense fallback={<DashboardPageFallback />}>
-      <Component />
-    </Suspense>
-  ) : (
-    <BakerOnboarding />
-  );
+  // The bakery dashboard always requires an API session issued after native or Firebase sign-in.
+  return <BakerLogin />;
 }
 
 function dashboardRoute(Component: ComponentType) {

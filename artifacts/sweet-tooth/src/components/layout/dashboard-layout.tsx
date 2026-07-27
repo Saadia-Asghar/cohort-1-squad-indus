@@ -1,48 +1,22 @@
 import { Link, useLocation } from "wouter";
 import { useState } from "react";
-import { useClerk } from "@clerk/react";
 import { useGetBaker } from "@workspace/api-client-react";
 import { useBuyerSession } from "@/hooks/use-session";
 import { NotificationBell } from "@/components/notification-bell";
 import { InAppBrowserModal } from "@/components/ui/in-app-browser";
 import { useManagedBaker } from "@/lib/managed-auth";
-import { isClerkConfigured } from "@/lib/app-auth";
+import { useAppAuth } from "@/lib/app-auth";
 import {
   LayoutDashboard, ShoppingBag, Grid, DollarSign,
   BarChart3, Users, Calendar, Settings, LogOut, Bot, Globe, BookOpen, NotebookText,
 } from "lucide-react";
-
-/** Only mounted when ClerkProvider exists — never call useClerk without it. */
-function ClerkSignOutBridge({
-  onSignedOut,
-}: {
-  onSignedOut: () => void;
-}) {
-  const { signOut } = useClerk();
-  return (
-    <button
-      type="button"
-      onClick={async () => {
-        try {
-          await signOut();
-        } catch (e) {
-          console.warn("Clerk signout ignored:", e);
-        }
-        onSignedOut();
-      }}
-      className="flex items-center gap-3 px-3 py-2 w-full text-left rounded-md text-xs font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
-    >
-      <LogOut className="w-4 h-4" />
-      Logout
-    </button>
-  );
-}
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [location, navigate] = useLocation();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [browserUrl, setBrowserUrl] = useState<string | null>(null);
   const { logoutNatively } = useManagedBaker();
+  const { signOut } = useAppAuth();
   const { bakerId } = useBuyerSession();
   const { data: baker } = useGetBaker(bakerId, {
     query: { enabled: !!bakerId, queryKey: ["baker", bakerId], staleTime: 60_000 },
@@ -70,8 +44,13 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     setIsLoggingOut(false);
   };
 
-  const handleNativeLogout = () => {
+  const handleNativeLogout = async () => {
     setIsLoggingOut(true);
+    try {
+      await signOut();
+    } catch {
+      // The local API session must still be cleared if Firebase is unavailable.
+    }
     finishLogout();
   };
 
@@ -116,24 +95,15 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             <Globe className="w-4 h-4" />
             In-App Storefront Browser
           </button>
-          {isClerkConfigured() ? (
-            <ClerkSignOutBridge
-              onSignedOut={() => {
-                setIsLoggingOut(true);
-                finishLogout();
-              }}
-            />
-          ) : (
-            <button
+          <button
               type="button"
-              onClick={handleNativeLogout}
+              onClick={() => void handleNativeLogout()}
               disabled={isLoggingOut}
               className="flex items-center gap-3 px-3 py-2 w-full text-left rounded-md text-xs font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors disabled:opacity-50"
             >
               <LogOut className="w-4 h-4" />
               {isLoggingOut ? "Logging out…" : "Logout"}
             </button>
-          )}
         </div>
       </aside>
       <main className="flex-1 overflow-y-auto">
