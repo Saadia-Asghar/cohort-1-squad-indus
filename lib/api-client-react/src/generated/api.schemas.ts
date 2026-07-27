@@ -585,6 +585,7 @@ export interface ConversationSummary {
   preferences?: BuyerPreferences;
   /** @nullable */
   summary?: string | null;
+  needsBakerReply?: boolean;
 }
 
 export interface BakerNotification {
@@ -623,6 +624,7 @@ export interface AgentConfig {
   availabilityHours?: string;
   dietaryPolicy?: string;
   activeOffers?: string;
+  deliveryPricing?: string;
 }
 
 export interface AgentConfigInput {
@@ -639,6 +641,7 @@ export interface AgentConfigInput {
   availabilityHours?: string;
   dietaryPolicy?: string;
   activeOffers?: string;
+  deliveryPricing?: string;
 }
 
 export type KnowledgeReindexResultEmbeddingProvider = typeof KnowledgeReindexResultEmbeddingProvider[keyof typeof KnowledgeReindexResultEmbeddingProvider];

@@ -358,6 +358,8 @@ export async function generateAgentReply(
 
   if (lowerMsg.includes("deliver") || lowerMsg.includes("area") || lowerMsg.includes("location")) {
     const areas = (baker.deliveryAreas ?? []).join(", ");
+    const agentConf = (baker.agentConfig ?? {}) as { deliveryPricing?: unknown };
+    const deliveryPricing = typeof agentConf.deliveryPricing === "string" ? agentConf.deliveryPricing.trim() : "";
     const personalNote =
       buyerPrefs.preferredArea &&
       areas.toLowerCase().includes((buyerPrefs.preferredArea as string).toLowerCase())
@@ -365,7 +367,7 @@ export async function generateAgentReply(
         : "";
     return {
       reply: areas
-        ? `${baker.businessName} delivers to: ${areas}.${personalNote} Pickup is also available. Which area are you in?`
+        ? `${baker.businessName} delivers to: ${areas}.${deliveryPricing ? ` Delivery charges: ${deliveryPricing}.` : ""}${personalNote} Pickup is also available. Which area are you in?`
         : `Please contact ${baker.businessName} directly on WhatsApp to confirm delivery to your area.`,
       action: null,
       cartItemId: null,

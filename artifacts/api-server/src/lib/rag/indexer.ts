@@ -91,6 +91,9 @@ export async function buildBakerKnowledgeDrafts(bakerId: number): Promise<ChunkD
       config.pickupAddress ? `Pickup address: ${config.pickupAddress}` : "",
       config.allowPickup === false ? "Pickup not available." : "Pickup available.",
       config.allowDelivery === false ? "Home delivery not available." : "Home delivery available where listed.",
+      typeof config.deliveryPricing === "string" && config.deliveryPricing.trim()
+        ? `Delivery pricing: ${config.deliveryPricing.trim()}`
+        : "",
       config.availabilityHours ? `Kitchen hours: ${config.availabilityHours}` : "",
       config.dietaryPolicy ? `Dietary policy: ${config.dietaryPolicy}` : "",
       config.activeOffers ? `Current offers: ${config.activeOffers}` : "",

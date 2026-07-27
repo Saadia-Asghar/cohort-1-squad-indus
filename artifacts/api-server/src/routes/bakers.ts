@@ -798,6 +798,7 @@ router.get("/bakers/:bakerId/agent-config", requireBakerAuth, requireBakerOwners
     availabilityHours: (conf.availabilityHours as string | null) ?? "",
     dietaryPolicy: (conf.dietaryPolicy as string | null) ?? "",
     activeOffers: (conf.activeOffers as string | null) ?? "",
+    deliveryPricing: (conf.deliveryPricing as string | null) ?? "",
     preferredCustomerChannel: (conf.preferredCustomerChannel as "web" | "whatsapp" | "instagram" | null) ?? "web",
     blockedDates: (conf.blockedDates as string[]) ?? [],
     agentLanguage: (conf.agentLanguage as string | null) ?? "bilingual",
@@ -824,6 +825,7 @@ router.put("/bakers/:bakerId/agent-config", requireBakerAuth, requireBakerOwners
     availabilityHours?: string;
     dietaryPolicy?: string;
     activeOffers?: string;
+    deliveryPricing?: string;
     preferredCustomerChannel?: "web" | "whatsapp" | "instagram";
     blockedDates?: string[];
     agentLanguage?: "english" | "urdu" | "roman_urdu" | "bilingual";
@@ -838,6 +840,7 @@ router.put("/bakers/:bakerId/agent-config", requireBakerAuth, requireBakerOwners
   if (body.availabilityHours !== undefined) agentConfigUpdate.availabilityHours = body.availabilityHours.slice(0, 240);
   if (body.dietaryPolicy !== undefined) agentConfigUpdate.dietaryPolicy = body.dietaryPolicy.slice(0, 600);
   if (body.activeOffers !== undefined) agentConfigUpdate.activeOffers = body.activeOffers.slice(0, 600);
+  if (body.deliveryPricing !== undefined) agentConfigUpdate.deliveryPricing = body.deliveryPricing.slice(0, 600);
   if (body.preferredCustomerChannel !== undefined) agentConfigUpdate.preferredCustomerChannel = body.preferredCustomerChannel;
   if (body.blockedDates !== undefined) agentConfigUpdate.blockedDates = body.blockedDates;
   if (body.agentLanguage !== undefined && ["english", "urdu", "roman_urdu", "bilingual"].includes(body.agentLanguage)) {
@@ -924,6 +927,7 @@ router.put("/bakers/:bakerId/agent-config", requireBakerAuth, requireBakerOwners
     availabilityHours: (conf.availabilityHours as string | null) ?? "",
     dietaryPolicy: (conf.dietaryPolicy as string | null) ?? "",
     activeOffers: (conf.activeOffers as string | null) ?? "",
+    deliveryPricing: (conf.deliveryPricing as string | null) ?? "",
     preferredCustomerChannel: (conf.preferredCustomerChannel as "web" | "whatsapp" | "instagram" | null) ?? "web",
     blockedDates: (conf.blockedDates as string[]) ?? [],
     agentLanguage: (conf.agentLanguage as string | null) ?? "bilingual",

@@ -98,6 +98,7 @@ export default function AgentHub() {
     availabilityHours?: string;
     dietaryPolicy?: string;
     activeOffers?: string;
+    deliveryPricing?: string;
     preferredCustomerChannel?: "web" | "whatsapp" | "instagram";
     agentLanguage?: "english" | "urdu" | "roman_urdu" | "bilingual";
   }>({});
@@ -383,8 +384,9 @@ export default function AgentHub() {
                 <label className="text-sm font-medium">Order availability<input value={merged.availabilityHours ?? ""} onChange={e => setLocalConfig(prev => ({ ...prev, availabilityHours: e.target.value }))} placeholder="e.g. Mon–Sat, 10am–8pm" className="block mt-1 w-full px-3 py-2 border border-border rounded-lg bg-background text-sm" /></label>
               </div>
               <label className="block text-sm font-medium">Dietary & allergen policy<textarea rows={3} value={merged.dietaryPolicy ?? ""} onChange={e => setLocalConfig(prev => ({ ...prev, dietaryPolicy: e.target.value }))} placeholder="e.g. Eggless on selected items. We cannot guarantee an allergen-free kitchen; confirm severe allergies before ordering." className="block mt-1 w-full px-3 py-2 border border-border rounded-lg bg-background text-sm resize-none" /></label>
+              <label className="block text-sm font-medium">Delivery prices<textarea rows={2} value={merged.deliveryPricing ?? ""} onChange={e => setLocalConfig(prev => ({ ...prev, deliveryPricing: e.target.value }))} placeholder="e.g. Gulberg: PKR 200 · DHA: PKR 350 · Free above PKR 5,000" className="block mt-1 w-full px-3 py-2 border border-border rounded-lg bg-background text-sm resize-none" /></label>
               <label className="block text-sm font-medium">Current discount offers<textarea rows={2} value={merged.activeOffers ?? ""} onChange={e => setLocalConfig(prev => ({ ...prev, activeOffers: e.target.value }))} placeholder="e.g. 10% off cupcakes with code SWEET10 until 31 July. One offer per line." className="block mt-1 w-full px-3 py-2 border border-border rounded-lg bg-background text-sm resize-none" /></label>
-              <p className="text-xs text-muted-foreground">The web and WhatsApp agents read these same live offers when a customer asks about discounts.</p>
+              <p className="text-xs text-muted-foreground">The web and WhatsApp agents use these same delivery prices and offers. Leave a charge blank rather than letting the agent guess.</p>
             </div>
 
             {/* Blocked topics */}
@@ -655,7 +657,10 @@ export default function AgentHub() {
                         {conv.buyerName.charAt(0).toUpperCase()}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-medium truncate">{conv.buyerName}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium truncate">{conv.buyerName}</p>
+                          {conv.needsBakerReply && <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase text-amber-900">Needs you</span>}
+                        </div>
                         <p className="text-sm text-muted-foreground truncate">{conv.lastMessage}</p>
                       </div>
                       <p className="text-xs text-muted-foreground shrink-0">
@@ -827,6 +832,7 @@ export default function AgentHub() {
                             <div className="flex items-center gap-2 mb-0.5">
                               <p className="font-semibold truncate">{conv.buyerName}</p>
                               {conv.unread && <span className="w-2 h-2 rounded-full bg-primary shrink-0" />}
+                              {conv.needsBakerReply && <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase text-amber-900">Needs you</span>}
                             </div>
                             <p className="text-sm text-muted-foreground truncate">{conv.lastMessage}</p>
                             {prefTags.length > 0 && (
