@@ -22,6 +22,7 @@ export default function DashboardOrders() {
   const [manualOrder, setManualOrder] = useState(emptyManualOrder);
   const [manualError, setManualError] = useState<string | null>(null);
   const [savingManualOrder, setSavingManualOrder] = useState(false);
+  const [approvingQuoteId, setApprovingQuoteId] = useState<number | null>(null);
 
   const handleStatusUpdate = (orderId: number, status: string) => {
     const cancellationReason = status === "cancelled"
@@ -80,6 +81,28 @@ export default function DashboardOrders() {
     }
   };
 
+  const approveCustomQuote = async (orderId: number) => {
+    const enteredAmount = window.prompt("Enter the agreed total in PKR. The customer will be marked as a confirmed order.");
+    if (enteredAmount === null) return;
+    const totalPkr = Number(enteredAmount);
+    if (!Number.isInteger(totalPkr) || totalPkr < 100) {
+      window.alert("Enter a whole-number quote of at least PKR 100.");
+      return;
+    }
+    setApprovingQuoteId(orderId);
+    try {
+      await customFetch(`/api/orders/${orderId}/quote`, {
+        method: "PATCH", responseType: "json", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ totalPkr }),
+      });
+      await queryClient.invalidateQueries({ queryKey: getListOrdersQueryKey({ bakerId }) });
+    } catch (cause) {
+      window.alert(cause instanceof Error ? cause.message : "Could not approve this quote.");
+    } finally {
+      setApprovingQuoteId(null);
+    }
+  };
+
   return (
     <DashboardLayout>
       <div className="p-8">
@@ -114,6 +137,7 @@ export default function DashboardOrders() {
                     <td className="px-4 py-4">
                       <div className="font-medium">{order.buyerName}</div>
                       <div className="text-muted-foreground text-xs">{order.buyerWhatsapp}</div>
+                      {order.source === "custom_quote" && <div className="mt-1 text-xs font-semibold text-primary">Custom-cake request</div>}
                     </td>
                     <td className="px-4 py-4">
                       {order.deliveryDate ? format(new Date(order.deliveryDate), "PPP") : "N/A"}
@@ -132,7 +156,13 @@ export default function DashboardOrders() {
                     </td>
                     <td className="px-4 py-4 font-mono">PKR {order.totalPkr.toLocaleString()}</td>
                     <td className="px-4 py-4">
-                      <select 
+                      <div className="flex flex-wrap items-center gap-2">
+                      {order.source === "custom_quote" && order.totalPkr === 0 && (
+                        <button type="button" onClick={() => approveCustomQuote(order.id)} disabled={approvingQuoteId === order.id} className="rounded-md bg-primary px-2.5 py-1.5 text-xs font-bold text-primary-foreground disabled:opacity-50">
+                          {approvingQuoteId === order.id ? "Saving…" : "Set quote"}
+                        </button>
+                      )}
+                      <select
                         className="text-sm border border-border rounded-md px-2 py-1 bg-background text-foreground"
                         value={order.status}
                         onChange={(e) => handleStatusUpdate(order.id, e.target.value)}
@@ -145,6 +175,7 @@ export default function DashboardOrders() {
                         <option value="delivered">Delivered</option>
                         <option value="cancelled">Cancelled</option>
                       </select>
+                      </div>
                     </td>
                   </tr>
                 ))}
