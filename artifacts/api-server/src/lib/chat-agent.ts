@@ -291,8 +291,9 @@ export async function generateAgentReply(
   // Exact-first policy: the customer-facing answers below come from live
   // bakery records. Unknown questions fail closed to baker confirmation.
 
+  const asksDelivery = lowerMsg.includes("deliver") || lowerMsg.includes("area") || lowerMsg.includes("location");
   if (
-    lowerMsg.includes("price") ||
+    (lowerMsg.includes("price") && !asksDelivery) ||
     lowerMsg.includes("menu") ||
     lowerMsg.includes("what do you have") ||
     lowerMsg.includes("list")
@@ -356,7 +357,7 @@ export async function generateAgentReply(
     };
   }
 
-  if (lowerMsg.includes("deliver") || lowerMsg.includes("area") || lowerMsg.includes("location")) {
+  if (asksDelivery) {
     const areas = (baker.deliveryAreas ?? []).join(", ");
     const agentConf = (baker.agentConfig ?? {}) as { deliveryPricing?: unknown };
     const deliveryPricing = typeof agentConf.deliveryPricing === "string" ? agentConf.deliveryPricing.trim() : "";
