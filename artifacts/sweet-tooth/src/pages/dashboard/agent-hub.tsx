@@ -42,6 +42,7 @@ export default function AgentHub() {
   const [saved, setSaved] = useState(false);
   const [reindexResult, setReindexResult] = useState<KnowledgeReindexResult | null>(null);
   const [reindexError, setReindexError] = useState<string | null>(null);
+  const [whatsappConnected, setWhatsappConnected] = useState(false);
 
   const reindexKnowledge = useReindexBakerKnowledge({
     mutation: {
@@ -599,6 +600,10 @@ export default function AgentHub() {
                     alert("Upgrade to Kitchen Standard or higher to enable the WhatsApp agent.");
                     return;
                   }
+                  if (!merged.whatsappAgentEnabled && !whatsappConnected) {
+                    alert("Connect a WhatsApp Business number below before enabling the agent.");
+                    return;
+                  }
                   setLocalConfig(prev => ({ ...prev, whatsappAgentEnabled: !merged.whatsappAgentEnabled }));
                 }}
                 className={`relative w-12 h-6 rounded-full transition-colors ${merged.whatsappAgentEnabled ? "bg-green-500" : "bg-muted-foreground/30"}`}
@@ -618,7 +623,7 @@ export default function AgentHub() {
                   <li>Enable the agent toggle only after the connection shows as successful.</li>
                 </ol>
               </div>
-              <WhatsAppEmbeddedSignup />
+              <WhatsAppEmbeddedSignup onStatusChange={setWhatsappConnected} />
               <p className="text-xs text-muted-foreground">The shared app webhook is configured once by the platform owner; bakers never paste access tokens into this page.</p>
             </div>
 

@@ -1,7 +1,7 @@
 import { Router } from "express";
 import crypto from "node:crypto";
 import { eq, inArray, or, sql, and } from "drizzle-orm";
-import { db, bakersTable, bakerMembersTable, productsTable, reviewsTable, ordersTable } from "@workspace/db";
+import { db, bakersTable, bakerMembersTable, metaConnectionsTable, productsTable, reviewsTable, ordersTable } from "@workspace/db";
 import {
   GetBakerParams,
   GetBakerProductsParams,
@@ -862,6 +862,20 @@ router.put("/bakers/:bakerId/agent-config", requireBakerAuth, requireBakerOwners
       error: "WhatsApp agent needs Kitchen Standard or higher. Upgrade your package to connect WhatsApp.",
     });
     return;
+  }
+  if (body.whatsappAgentEnabled === true) {
+    const [connection] = await db
+      .select({ phoneNumberId: metaConnectionsTable.whatsappPhoneNumberId })
+      .from(metaConnectionsTable)
+      .where(eq(metaConnectionsTable.bakerId, bakerId))
+      .limit(1);
+    const legacyPhoneNumberId = (existing.agentConfig as { whatsappPhoneNumberId?: string } | null)?.whatsappPhoneNumberId;
+    if (!connection?.phoneNumberId && !legacyPhoneNumberId) {
+      res.status(409).json({
+        error: "Connect a WhatsApp Business number in Agent Hub before enabling the WhatsApp agent.",
+      });
+      return;
+    }
   }
   if (body.instagramAgentEnabled === true && !canEnableInstagramAgent(existing.subscriptionPlan)) {
     res.status(403).json({

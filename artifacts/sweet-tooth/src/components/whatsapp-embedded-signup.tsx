@@ -37,7 +37,7 @@ type ConnectionStatus = {
   };
 };
 
-export function WhatsAppEmbeddedSignup() {
+export function WhatsAppEmbeddedSignup({ onStatusChange }: { onStatusChange?: (connected: boolean) => void }) {
   const appId = import.meta.env.VITE_META_APP_ID;
   const configId = import.meta.env.VITE_META_CONFIG_ID;
   const [sdkReady, setSdkReady] = useState(false);
@@ -52,7 +52,8 @@ export function WhatsAppEmbeddedSignup() {
       responseType: "json",
     });
     setConnected(status.whatsapp.connected);
-  }, []);
+    onStatusChange?.(status.whatsapp.connected);
+  }, [onStatusChange]);
 
   useEffect(() => {
     void refreshStatus().catch(() => undefined);
@@ -77,13 +78,14 @@ export function WhatsAppEmbeddedSignup() {
         }),
       });
       setConnected(true);
+      onStatusChange?.(true);
       setError(null);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "WhatsApp connection failed.");
     } finally {
       setConnecting(false);
     }
-  }, []);
+  }, [onStatusChange]);
 
   useEffect(() => {
     if (!appId) return;
