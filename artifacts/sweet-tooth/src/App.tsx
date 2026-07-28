@@ -10,6 +10,7 @@ import {
   ManagedAuthProvider,
   useManagedBaker,
 } from "@/lib/managed-auth";
+import { initializeProductAnalytics } from "@/lib/product-analytics";
 
 // Read API URL from environment variable, falling back to the live production API alias.
 const apiUrl =
@@ -123,6 +124,8 @@ function Router() {
 }
 
 function App() {
+  initializeProductAnalytics();
+
   return (
     <QueryClientProvider client={queryClient}>
       <ManagedAuthProvider>

@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { isFirebaseConfigured, useAppAuth } from "@/lib/app-auth";
 import { getPlanById } from "@/lib/pricing-plans";
 import { useManagedBaker } from "@/lib/managed-auth";
+import { captureProductEvent, identifyBakerForAnalytics } from "@/lib/product-analytics";
 import { customFetch } from "@workspace/api-client-react";
 
 export default function BakerLogin({ initialTab = "login" }: { initialTab?: "login" | "register" }) {
@@ -30,8 +31,10 @@ export default function BakerLogin({ initialTab = "login" }: { initialTab?: "log
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const finishAuth = (token: string, bakerId: number) => {
+  const finishAuth = (token: string, bakerId: number, method: "password" | "google") => {
     loginNatively(token, bakerId);
+    identifyBakerForAnalytics(bakerId);
+    captureProductEvent("baker_login_completed", { method });
     setLocation("/dashboard");
   };
 
@@ -50,7 +53,7 @@ export default function BakerLogin({ initialTab = "login" }: { initialTab?: "log
         return;
       }
       if (!response.token || !response.baker?.id) throw new Error("Could not open your bakery dashboard.");
-      finishAuth(response.token, response.baker.id);
+      finishAuth(response.token, response.baker.id, "google");
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message.replace(/^HTTP \\d+\\s*[^:]*:\\s*/, "") : "Google sign-in could not be completed.");
       if (onboarding) setActiveTab("register");
@@ -69,7 +72,7 @@ export default function BakerLogin({ initialTab = "login" }: { initialTab?: "log
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ identifier: email.trim(), password }),
       });
-      finishAuth(response.token, response.baker.id);
+      finishAuth(response.token, response.baker.id, "password");
     } catch (err: unknown) {
       const message =
         err instanceof Error ? err.message.replace(/^HTTP \d+\s*[^:]*:\s*/, "") : "Invalid email/number or password";
@@ -83,6 +86,7 @@ export default function BakerLogin({ initialTab = "login" }: { initialTab?: "log
     e.preventDefault();
     setLoading(true);
     setError("");
+    captureProductEvent("baker_registration_submitted");
     try {
       const slug = businessName
         .trim()
@@ -103,7 +107,9 @@ export default function BakerLogin({ initialTab = "login" }: { initialTab?: "log
           password,
         }),
       });
-      finishAuth(response.token, response.baker.id);
+      identifyBakerForAnalytics(response.baker.id);
+      captureProductEvent("baker_registration_completed");
+      finishAuth(response.token, response.baker.id, "password");
     } catch (err: unknown) {
       const message =
         err instanceof Error ? err.message.replace(/^HTTP \d+\s*[^:]*:\s*/, "") : "Could not create your bakery account";

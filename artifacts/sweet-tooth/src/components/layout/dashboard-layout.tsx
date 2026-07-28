@@ -6,6 +6,7 @@ import { NotificationBell } from "@/components/notification-bell";
 import { InAppBrowserModal } from "@/components/ui/in-app-browser";
 import { useManagedBaker } from "@/lib/managed-auth";
 import { useAppAuth } from "@/lib/app-auth";
+import { captureProductEvent, resetProductAnalytics } from "@/lib/product-analytics";
 import {
   LayoutDashboard, ShoppingBag, Grid, DollarSign,
   BarChart3, Users, Calendar, Settings, LogOut, Bot, Globe, BookOpen, NotebookText,
@@ -18,6 +19,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { logoutNatively } = useManagedBaker();
   const { signOut } = useAppAuth();
   const { bakerId } = useBuyerSession();
+  const feedbackUrl = import.meta.env.VITE_TALLY_FEEDBACK_URL?.trim();
   const { data: baker } = useGetBaker(bakerId, {
     query: { enabled: !!bakerId, queryKey: ["baker", bakerId], staleTime: 60_000 },
   });
@@ -39,6 +41,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   ];
 
   const finishLogout = () => {
+    resetProductAnalytics();
     logoutNatively();
     navigate("/dashboard/login");
     setIsLoggingOut(false);
@@ -87,6 +90,26 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           })}
         </nav>
         <div className="p-4 border-t border-border space-y-2">
+          {feedbackUrl ? (
+            <a
+              href={feedbackUrl}
+              target="_blank"
+              rel="noreferrer"
+              onClick={() => captureProductEvent("feedback_opened", { surface: "dashboard" })}
+              className="flex min-h-11 items-center gap-3 rounded-md px-3 py-2 text-left text-xs font-semibold text-primary transition-colors hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+            >
+              Share feedback <span aria-hidden="true">↗</span>
+              <span className="sr-only">(opens feedback form in a new tab)</span>
+            </a>
+          ) : (
+            <Link
+              href="/contact"
+              onClick={() => captureProductEvent("feedback_opened", { surface: "dashboard_contact" })}
+              className="flex min-h-11 items-center gap-3 rounded-md px-3 py-2 text-left text-xs font-semibold text-primary transition-colors hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+            >
+              Share feedback
+            </Link>
+          )}
           <button
             type="button"
             onClick={() => setBrowserUrl(window.location.origin)}
