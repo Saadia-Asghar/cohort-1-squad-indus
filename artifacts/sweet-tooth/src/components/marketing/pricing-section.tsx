@@ -24,6 +24,11 @@ import {
 } from "@/lib/pricing-plans";
 import { PlanPicker } from "@/components/marketing/plan-picker";
 
+// Instagram DM automation is not live yet, so launch pricing must not sell it.
+const LAUNCH_CHANNEL_OPTIONS = CHANNEL_BUNDLE_OPTIONS.filter(
+  (option) => option.value === "web_only" || option.value === "whatsapp_only",
+);
+
 function OfferCard({
   offer,
   period,
@@ -164,8 +169,14 @@ export function PricingSection({ compact = false }: { compact?: boolean }) {
             Small, medium or large — pick agents and how you pay.
           </h2>
           <p className="mt-4 text-muted-foreground">
-            Offers change by bakery size, WhatsApp / Instagram activation, and monthly · 6-month · yearly billing.
+            Start with the menu assistant today. WhatsApp automation starts after your Meta connection is approved; Instagram is a separate planned channel.
           </p>
+        </div>
+
+        <div className="mx-auto mt-8 grid max-w-4xl gap-4 rounded-2xl border border-border bg-card p-5 text-sm md:grid-cols-3">
+          <div><p className="font-bold text-foreground">Menu assistant</p><p className="mt-1 text-muted-foreground">Answers product, price, availability, delivery and dietary questions on your shared menu.</p></div>
+          <div><p className="font-bold text-foreground">WhatsApp assistant</p><p className="mt-1 text-muted-foreground">Handles inbound WhatsApp messages once you connect and verify Meta.</p></div>
+          <div><p className="font-bold text-foreground">Instagram assistant</p><p className="mt-1 text-muted-foreground">A planned channel. It is not included as live automation today.</p></div>
         </div>
 
         {FOUNDER_OFFER_ACTIVE && (
@@ -182,9 +193,9 @@ export function PricingSection({ compact = false }: { compact?: boolean }) {
 
         {/* Offer filters */}
         <div className="mx-auto mt-10 max-w-4xl rounded-2xl border border-border bg-card p-5 shadow-sm">
-          <p className="text-sm font-semibold text-foreground">Build your offer</p>
+          <p className="text-sm font-semibold text-foreground">Choose your starting plan</p>
           <p className="mt-1 text-xs text-muted-foreground">
-            Choose bakery size, which agents you want, and billing — cards below update instantly.
+            Start with your bakery size and billing period. Add a connected channel only when it is ready for your business.
           </p>
           <div className="mt-4 grid gap-4 sm:grid-cols-3">
             <label className="text-sm font-medium">
@@ -212,14 +223,14 @@ export function PricingSection({ compact = false }: { compact?: boolean }) {
                 onChange={(e) => setChannel(e.target.value as ChannelBundle)}
                 className="mt-1.5 block w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
               >
-                {CHANNEL_BUNDLE_OPTIONS.map((opt) => (
+                {LAUNCH_CHANNEL_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>
                     {opt.label}
                   </option>
                 ))}
               </select>
               <span className="mt-1 block text-xs text-muted-foreground font-normal">
-                {CHANNEL_BUNDLE_OPTIONS.find((o) => o.value === channel)?.hint}
+                {LAUNCH_CHANNEL_OPTIONS.find((o) => o.value === channel)?.hint}
               </span>
             </label>
 
@@ -299,7 +310,7 @@ export function PricingSection({ compact = false }: { compact?: boolean }) {
 
         <p className="mt-6 text-center text-sm text-muted-foreground">
           No customer payment gateway required. Take Easypaisa, JazzCash or bank transfer — review receipts in your
-          dashboard.
+          dashboard before confirming payment.
         </p>
       </div>
     </section>

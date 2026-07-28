@@ -3,12 +3,14 @@ import { Link } from "wouter";
 import { format } from "date-fns";
 import {
   useGetBaker,
+  useGetBakerProducts,
   useGetBakerStats,
   useListOrders,
   useListCustomers,
   useGetAgentConfig,
   getListOrdersQueryKey,
   getListCustomersQueryKey,
+  getGetBakerProductsQueryKey,
 } from "@workspace/api-client-react";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { liveDashboardQuery, ORDERS_POLL_MS } from "@/lib/dashboard-query";
@@ -22,6 +24,9 @@ import {
   ArrowRight,
   TrendingUp,
   ExternalLink,
+  CheckCircle2,
+  Circle,
+  Rocket,
 } from "lucide-react";
 
 const DashboardWorkspace = lazy(() =>
@@ -79,6 +84,18 @@ export default function DashboardHome() {
   const { data: agentConfig } = useGetAgentConfig(bakerId, {
     query: { enabled: !!bakerId, queryKey: ["agent-config", bakerId] },
   });
+
+  const { data: products } = useGetBakerProducts(bakerId, {
+    query: { enabled: !!bakerId, queryKey: getGetBakerProductsQueryKey(bakerId) },
+  });
+
+  const setupSteps = [
+    { label: "Add your WhatsApp number and delivery areas", complete: Boolean(baker?.whatsappNumber && baker?.deliveryAreas?.length), href: "/dashboard/settings" },
+    { label: "Publish your first menu item", complete: Boolean(products?.length), href: "/dashboard/catalog" },
+    { label: "Set your assistant greeting and rules", complete: Boolean(agentConfig?.agentActive), href: "/dashboard/agent-hub" },
+    { label: "Share your menu link or QR code", complete: Boolean(products?.length && agentConfig?.agentActive), href: "/dashboard/agent-hub" },
+  ];
+  const completedSetupSteps = setupSteps.filter((step) => step.complete).length;
 
   const atRiskCount = customers?.filter((c) => c.isAtRisk).length ?? 0;
   const regularCount = customers?.filter((c) => c.isRegular).length ?? 0;
@@ -141,6 +158,28 @@ export default function DashboardHome() {
             View public shop
           </Link>
         </div>
+
+        <section aria-labelledby="setup-heading" className="mb-8 rounded-xl border border-border bg-card p-5 shadow-sm">
+          <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+            <div>
+              <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-primary"><Rocket className="h-4 w-4" /> Launch checklist</p>
+              <h2 id="setup-heading" className="mt-1 font-serif text-xl font-bold">Get your bakery ready for customers</h2>
+              <p className="mt-1 text-sm text-muted-foreground">Your assistant can only answer from menu and policy information you publish.</p>
+            </div>
+            <p aria-live="polite" className="shrink-0 rounded-full bg-primary/10 px-3 py-1 text-sm font-bold text-primary">{completedSetupSteps} of {setupSteps.length} complete</p>
+          </div>
+          <ol className="mt-5 grid gap-3 md:grid-cols-2">
+            {setupSteps.map((step) => (
+              <li key={step.label}>
+                <Link href={step.href} className="flex min-h-12 items-center gap-3 rounded-lg border border-border px-4 py-3 text-sm font-semibold transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+                  <span aria-hidden="true">{step.complete ? <CheckCircle2 className="h-5 w-5 text-green-600" /> : <Circle className="h-5 w-5 text-muted-foreground" />}</span>
+                  <span>{step.label}</span>
+                  <span className="sr-only">{step.complete ? " complete" : " not complete"}</span>
+                </Link>
+              </li>
+            ))}
+          </ol>
+        </section>
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard label="Today's orders" value={String(stats?.todayOrders ?? 0)} icon={ShoppingBag} />
