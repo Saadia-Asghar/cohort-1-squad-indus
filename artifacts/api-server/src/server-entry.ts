@@ -1,4 +1,4 @@
-import app from "./app.js";
+import app from "./application.js";
 import { logger } from "./lib/logger.js";
 
 if (!process.env.VERCEL) {
