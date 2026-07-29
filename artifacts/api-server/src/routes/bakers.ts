@@ -46,6 +46,7 @@ import {
   TRIAL_EXPIRED_BUYER_REPLY,
 } from "../lib/subscription.js";
 import { verifyFirebaseIdToken } from "../lib/firebase-auth.js";
+import { findDeliveryZone, normalizeDeliveryZones } from "../lib/delivery-zones.js";
 
 const router = Router();
 
@@ -799,6 +800,7 @@ router.get("/bakers/:bakerId/agent-config", requireBakerAuth, requireBakerOwners
     dietaryPolicy: (conf.dietaryPolicy as string | null) ?? "",
     activeOffers: (conf.activeOffers as string | null) ?? "",
     deliveryPricing: (conf.deliveryPricing as string | null) ?? "",
+    deliveryZones: normalizeDeliveryZones(conf.deliveryZones),
     preferredCustomerChannel: (conf.preferredCustomerChannel as "web" | "whatsapp" | "instagram" | null) ?? "web",
     blockedDates: (conf.blockedDates as string[]) ?? [],
     agentLanguage: (conf.agentLanguage as string | null) ?? "bilingual",
@@ -826,6 +828,7 @@ router.put("/bakers/:bakerId/agent-config", requireBakerAuth, requireBakerOwners
     dietaryPolicy?: string;
     activeOffers?: string;
     deliveryPricing?: string;
+    deliveryZones?: unknown;
     preferredCustomerChannel?: "web" | "whatsapp" | "instagram";
     blockedDates?: string[];
     agentLanguage?: "english" | "urdu" | "roman_urdu" | "bilingual";
@@ -841,6 +844,7 @@ router.put("/bakers/:bakerId/agent-config", requireBakerAuth, requireBakerOwners
   if (body.dietaryPolicy !== undefined) agentConfigUpdate.dietaryPolicy = body.dietaryPolicy.slice(0, 600);
   if (body.activeOffers !== undefined) agentConfigUpdate.activeOffers = body.activeOffers.slice(0, 600);
   if (body.deliveryPricing !== undefined) agentConfigUpdate.deliveryPricing = body.deliveryPricing.slice(0, 600);
+  if (body.deliveryZones !== undefined) agentConfigUpdate.deliveryZones = normalizeDeliveryZones(body.deliveryZones);
   if (body.preferredCustomerChannel !== undefined) agentConfigUpdate.preferredCustomerChannel = body.preferredCustomerChannel;
   if (body.blockedDates !== undefined) agentConfigUpdate.blockedDates = body.blockedDates;
   if (body.agentLanguage !== undefined && ["english", "urdu", "roman_urdu", "bilingual"].includes(body.agentLanguage)) {
@@ -946,10 +950,39 @@ router.put("/bakers/:bakerId/agent-config", requireBakerAuth, requireBakerOwners
     dietaryPolicy: (conf.dietaryPolicy as string | null) ?? "",
     activeOffers: (conf.activeOffers as string | null) ?? "",
     deliveryPricing: (conf.deliveryPricing as string | null) ?? "",
+    deliveryZones: normalizeDeliveryZones(conf.deliveryZones),
     preferredCustomerChannel: (conf.preferredCustomerChannel as "web" | "whatsapp" | "instagram" | null) ?? "web",
     blockedDates: (conf.blockedDates as string[]) ?? [],
     agentLanguage: (conf.agentLanguage as string | null) ?? "bilingual",
     whatsappWebhookUrl: "/api/webhooks/whatsapp",
+  });
+});
+
+// Public, exact delivery quote. This is deliberately based only on baker-authored zones;
+// it never guesses a charge for an unknown area.
+router.get("/bakers/:bakerId/delivery-quote", async (req, res): Promise<void> => {
+  const bakerId = Number(req.params.bakerId);
+  const area = typeof req.query.area === "string" ? req.query.area : "";
+  if (!Number.isInteger(bakerId) || bakerId <= 0 || !area.trim()) {
+    res.status(400).json({ error: "bakerId and area are required" });
+    return;
+  }
+  const [baker] = await db.select().from(bakersTable).where(eq(bakersTable.id, bakerId)).limit(1);
+  if (!baker || baker.marketplaceVisible === false) {
+    res.status(404).json({ error: "Bakery not found" });
+    return;
+  }
+  const config = (baker.agentConfig ?? {}) as Record<string, unknown>;
+  const zones = normalizeDeliveryZones(config.deliveryZones);
+  const zone = findDeliveryZone(zones, area);
+  res.json({
+    available: Boolean(zone),
+    area: area.trim(),
+    zone,
+    pickupAvailable: config.allowPickup !== false,
+    message: zone
+      ? `Delivery to ${zone.name} is PKR ${zone.feePkr.toLocaleString()}.`
+      : "Delivery is not available for this area. Please choose pickup or ask the bakery.",
   });
 });
 

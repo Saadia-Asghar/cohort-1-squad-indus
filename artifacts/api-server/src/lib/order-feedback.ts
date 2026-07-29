@@ -52,6 +52,33 @@ export function buildDeliveryFeedbackMessage(
   ].join("\n");
 }
 
+const ORDER_STATUS_LABELS: Record<string, string> = {
+  new: "received",
+  confirmed: "confirmed",
+  in_production: "being prepared",
+  out_for_delivery: "out for delivery",
+  delivered: "delivered",
+  cancelled: "cancelled",
+};
+
+export async function sendOrderStatusUpdate(
+  order: typeof ordersTable.$inferSelect,
+  baker: typeof bakersTable.$inferSelect,
+): Promise<boolean> {
+  const status = ORDER_STATUS_LABELS[order.status] ?? order.status.replace(/_/g, " ");
+  const sender = await resolveWhatsAppSender(order.bakerId);
+  if (!sender) return false;
+  const message = [
+    `Assalam-o-Alaikum ${order.buyerName}!`,
+    `Update from ${baker.businessName}: your order #${order.id} is ${status}.`,
+    order.deliveryDate ? `Delivery date: ${new Date(order.deliveryDate).toISOString().slice(0, 10)}.` : "",
+    "Reply here if you need help with this order.",
+  ].filter(Boolean).join("\n");
+  const sent = await sendWhatsAppTextMessage(sender.phoneNumberId, order.buyerWhatsapp, message, sender.accessToken);
+  if (!sent) logger.warn({ orderId: order.id, status: order.status }, "WhatsApp order-status update was not accepted");
+  return sent;
+}
+
 async function resolveWhatsAppSender(bakerId: number): Promise<{
   phoneNumberId: string;
   accessToken?: string;

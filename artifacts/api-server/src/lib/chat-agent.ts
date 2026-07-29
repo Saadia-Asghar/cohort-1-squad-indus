@@ -10,6 +10,7 @@ import {
   ordersTable,
 } from "@workspace/db";
 import { logger } from "./logger.js";
+import { deliveryZoneSummary, findDeliveryZone, normalizeDeliveryZones } from "./delivery-zones.js";
 import { sendN8nEvent } from "./n8n.js";
 import { deriveCustomerInsights } from "./customer-insights.js";
 import { applyAgentLanguage, normalizeAgentLanguage } from "./agent-language.js";
@@ -359,8 +360,13 @@ export async function generateAgentReply(
 
   if (asksDelivery) {
     const areas = (baker.deliveryAreas ?? []).join(", ");
-    const agentConf = (baker.agentConfig ?? {}) as { deliveryPricing?: unknown };
+    const agentConf = (baker.agentConfig ?? {}) as { deliveryPricing?: unknown; deliveryZones?: unknown };
     const deliveryPricing = typeof agentConf.deliveryPricing === "string" ? agentConf.deliveryPricing.trim() : "";
+    const deliveryZones = normalizeDeliveryZones(agentConf.deliveryZones);
+    const matchedZone = findDeliveryZone(deliveryZones, String(buyerPrefs.preferredArea ?? ""));
+    const zonePricing = matchedZone
+      ? ` Delivery to ${matchedZone.name} is PKR ${matchedZone.feePkr.toLocaleString()}${matchedZone.minimumOrderPkr ? ` (minimum order PKR ${matchedZone.minimumOrderPkr.toLocaleString()})` : ""}.`
+      : deliveryZones.length ? ` Delivery zones and charges: ${deliveryZoneSummary(deliveryZones)}.` : "";
     const personalNote =
       buyerPrefs.preferredArea &&
       areas.toLowerCase().includes((buyerPrefs.preferredArea as string).toLowerCase())
@@ -368,7 +374,7 @@ export async function generateAgentReply(
         : "";
     return {
       reply: areas
-        ? `${baker.businessName} delivers to: ${areas}.${deliveryPricing ? ` Delivery charges: ${deliveryPricing}.` : ""}${personalNote} Pickup is also available. Which area are you in?`
+        ? `${baker.businessName} delivers to: ${areas}.${zonePricing || (deliveryPricing ? ` Delivery charges: ${deliveryPricing}.` : "")}${personalNote} Pickup is also available. Which area are you in?`
         : `Please contact ${baker.businessName} directly on WhatsApp to confirm delivery to your area.`,
       action: null,
       cartItemId: null,

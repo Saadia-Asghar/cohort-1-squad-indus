@@ -14,6 +14,11 @@ type GuestCartItem = {
   unitPricePkr: number;
   sizeLabel: string;
 };
+type DeliveryQuote = {
+  available: boolean;
+  zone: { name: string; feePkr: number; minimumOrderPkr?: number } | null;
+  message: string;
+};
 
 const CART_KEY = "sweet_tooth_guest_cart";
 
@@ -56,6 +61,8 @@ export default function Cart() {
   const [receiptUploading, setReceiptUploading] = useState(false);
   const [receiptUploaded, setReceiptUploaded] = useState(false);
   const [receiptError, setReceiptError] = useState<string | null>(null);
+  const [deliveryQuote, setDeliveryQuote] = useState<DeliveryQuote | null>(null);
+  const [deliveryQuoteLoading, setDeliveryQuoteLoading] = useState(false);
 
   useEffect(() => {
     setItems(readCart());
@@ -72,6 +79,26 @@ export default function Cart() {
   });
   const paymentSummary = (baker as { publicPaymentPolicy?: { summary: string; mode: string; paymentInstructions?: string } } | undefined)?.publicPaymentPolicy;
   const whatsappChatUrl = (baker as { whatsappChatUrl?: string | null } | undefined)?.whatsappChatUrl;
+
+  useEffect(() => {
+    if (!bakerId || fulfillmentType !== "delivery" || buyerArea.trim().length < 2) {
+      setDeliveryQuote(null);
+      setDeliveryQuoteLoading(false);
+      return;
+    }
+    let active = true;
+    const timer = window.setTimeout(() => {
+      setDeliveryQuoteLoading(true);
+      void customFetch<DeliveryQuote>(`/api/bakers/${bakerId}/delivery-quote?area=${encodeURIComponent(buyerArea.trim())}`, { responseType: "json" })
+        .then((quote) => { if (active) setDeliveryQuote(quote); })
+        .catch(() => { if (active) setDeliveryQuote(null); })
+        .finally(() => { if (active) setDeliveryQuoteLoading(false); });
+    }, 300);
+    return () => { active = false; window.clearTimeout(timer); };
+  }, [bakerId, buyerArea, fulfillmentType]);
+
+  const deliveryFeePkr = fulfillmentType === "delivery" && deliveryQuote?.available ? deliveryQuote.zone?.feePkr ?? 0 : 0;
+  const payableTotalPkr = total + deliveryFeePkr;
 
   const updateQuantity = (productId: number, sizeLabel: string, quantity: number) => {
     const next = readCart()
@@ -263,7 +290,7 @@ export default function Cart() {
               ))}
             </ul>
 
-            <p className="text-right font-mono text-lg font-bold">Total PKR {total.toLocaleString()}</p>
+            <div className="space-y-1 text-right font-mono text-sm"><p>Products PKR {total.toLocaleString()}</p>{fulfillmentType === "delivery" && deliveryQuote?.available && <p>Delivery PKR {deliveryFeePkr.toLocaleString()}</p>}<p className="text-lg font-bold">Total PKR {payableTotalPkr.toLocaleString()}</p></div>
 
             {paymentSummary && (
               <div className="rounded-xl border border-border bg-muted/30 p-4 text-sm">
@@ -285,13 +312,15 @@ export default function Cart() {
               {fulfillmentType === "delivery" ? (
                 <>
                   <input required value={buyerAddress} onChange={(e) => setBuyerAddress(e.target.value)} placeholder="Delivery address" className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
-                  <input value={buyerArea} onChange={(e) => setBuyerArea(e.target.value)} placeholder="Area (optional)" className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
+                  <input required value={buyerArea} onChange={(e) => setBuyerArea(e.target.value)} placeholder="Area / sector" className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
+                  {deliveryQuoteLoading && <p className="text-xs text-muted-foreground">Checking delivery availability…</p>}
+                  {deliveryQuote && <p className={`rounded-md px-3 py-2 text-xs ${deliveryQuote.available ? "bg-emerald-50 text-emerald-800" : "bg-amber-50 text-amber-900"}`}>{deliveryQuote.message}</p>}
                 </>
               ) : (
                 <p className="text-xs text-muted-foreground rounded-lg bg-muted/40 px-3 py-2">You will collect from the baker&apos;s kitchen. They will confirm pickup time on WhatsApp.</p>
               )}
               {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
-              <button type="submit" disabled={loading} className="w-full rounded-md bg-primary py-2.5 text-sm font-bold text-primary-foreground disabled:opacity-50">
+              <button type="submit" disabled={loading || fulfillmentType === "delivery" && Boolean(buyerArea.trim()) && deliveryQuote?.available === false} className="w-full rounded-md bg-primary py-2.5 text-sm font-bold text-primary-foreground disabled:opacity-50">
                 {loading ? "Placing order…" : "Place guest order"}
               </button>
             </form>

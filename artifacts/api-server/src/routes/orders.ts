@@ -17,6 +17,7 @@ import { normalizePakistanPhone } from "../lib/phone.js";
 import {
   recordOrderFeedback,
   sendDeliveryFeedbackRequest,
+  sendOrderStatusUpdate,
   type ServiceFeedback,
 } from "../lib/order-feedback.js";
 import { maybeSendAdvanceReminder } from "../lib/advance-reminder.js";
@@ -24,6 +25,7 @@ import { syncBakerStats } from "../lib/seed-baker-demo.js";
 import { sendN8nEvent } from "../lib/n8n.js";
 import { isOrderCapReached } from "../lib/plan-limits.js";
 import { toReceiptDataUrl } from "../lib/receipt-image.js";
+import { findDeliveryZone, normalizeDeliveryZones } from "../lib/delivery-zones.js";
 
 const router = Router();
 
@@ -193,7 +195,34 @@ router.post("/orders", rateLimit(15, 15 * 60 * 1000), async (req, res): Promise<
     });
   }
 
-  const totalPkr = lineItems.reduce((sum, item) => sum + item.unitPricePkr * item.quantity, 0);
+  const itemSubtotalPkr = lineItems.reduce((sum, item) => sum + item.unitPricePkr * item.quantity, 0);
+  let deliveryFeePkr = 0;
+  if ((parsed.data.fulfillmentType ?? "delivery") === "delivery") {
+    const zones = normalizeDeliveryZones((baker.agentConfig as Record<string, unknown> | null)?.deliveryZones);
+    if (zones.length) {
+      const zone = findDeliveryZone(zones, parsed.data.buyerArea);
+      if (!zone) {
+        res.status(400).json({ error: "Delivery is not available for this area. Choose one of this bakery's listed delivery zones or pickup." });
+        return;
+      }
+      if (zone.minimumOrderPkr && itemSubtotalPkr < zone.minimumOrderPkr) {
+        res.status(400).json({ error: `Delivery to ${zone.name} needs a minimum product total of PKR ${zone.minimumOrderPkr.toLocaleString()}.` });
+        return;
+      }
+      deliveryFeePkr = zone.feePkr;
+      if (deliveryFeePkr > 0) {
+        lineItems.push({
+          productId: 0,
+          productName: `Delivery fee (${zone.name})`,
+          quantity: 1,
+          unitPricePkr: deliveryFeePkr,
+          sizeLabel: "Delivery",
+          variant: null,
+        });
+      }
+    }
+  }
+  const totalPkr = itemSubtotalPkr + deliveryFeePkr;
 
   try {
     const [existingCustomer] = await db
@@ -253,7 +282,7 @@ router.post("/orders", rateLimit(15, 15 * 60 * 1000), async (req, res): Promise<
       requireAdvance: Boolean(baker.requireAdvance),
     }).returning();
 
-    for (const item of lineItems) {
+    for (const item of lineItems.filter((item) => item.productId > 0)) {
       await db
         .update(productsTable)
         .set({ totalOrders: sql`${productsTable.totalOrders} + ${item.quantity}` })
@@ -555,6 +584,13 @@ router.patch("/orders/:orderId/status", requireBakerAuth, async (req, res): Prom
     if (baker) {
       sendDeliveryFeedbackRequest(order, baker).catch((err) =>
         console.error("Feedback WhatsApp failed", err),
+      );
+    }
+  } else {
+    const [baker] = await db.select().from(bakersTable).where(eq(bakersTable.id, order.bakerId)).limit(1);
+    if (baker) {
+      sendOrderStatusUpdate(order, baker).catch((err) =>
+        console.error("Order-status WhatsApp failed", err),
       );
     }
   }
