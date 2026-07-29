@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { eq, and, inArray, sql } from "drizzle-orm";
+import { eq, and, gt, inArray, ne, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db, ordersTable, productsTable, bakersTable, customersTable, notificationsTable } from "@workspace/db";
 import {
@@ -64,6 +64,41 @@ function formatOrder(o: typeof ordersTable.$inferSelect) {
   return { ...o, items: (o.items as unknown[]) ?? [] };
 }
 
+/**
+ * Calendar rules must be enforced at the API boundary, not only displayed in
+ * the dashboard. Unquoted custom requests do not consume capacity; a baker
+ * decides whether to reserve a slot when accepting the quote.
+ */
+async function getScheduleBlockReason(
+  baker: typeof bakersTable.$inferSelect,
+  deliveryDate?: string | null,
+): Promise<string | null> {
+  if (!deliveryDate) return null;
+
+  const config = (baker.agentConfig ?? {}) as { blockedDates?: unknown };
+  const blockedDates = Array.isArray(config.blockedDates)
+    ? config.blockedDates.filter((date): date is string => typeof date === "string")
+    : [];
+  if (blockedDates.includes(deliveryDate)) {
+    return "This bakery is not accepting orders for that date. Please choose another date or ask the baker about availability.";
+  }
+
+  const maxOrders = Number(baker.maxOrdersPerDay ?? 0);
+  if (!Number.isInteger(maxOrders) || maxOrders <= 0) return null;
+  const booked = await db
+    .select({ id: ordersTable.id })
+    .from(ordersTable)
+    .where(and(
+      eq(ordersTable.bakerId, baker.id),
+      eq(ordersTable.deliveryDate, deliveryDate),
+      ne(ordersTable.status, "cancelled"),
+      gt(ordersTable.totalPkr, 0),
+    ));
+  return booked.length >= maxOrders
+    ? `This bakery is fully booked for ${deliveryDate}. Please choose another date or ask about pickup availability.`
+    : null;
+}
+
 const guestOrderSchema = z.object({
   bakerId: z.number().int().positive(),
   buyerName: z.string().trim().min(2).max(120),
@@ -76,7 +111,7 @@ const guestOrderSchema = z.object({
     sizeLabel: z.string().trim().min(1).max(80).optional(),
     variant: z.string().trim().max(80).nullable().optional(),
   })).min(1).max(30),
-  deliveryDate: z.string().optional(),
+  deliveryDate: z.string().date().optional(),
   fulfillmentType: z.enum(["delivery", "pickup"]).optional(),
   specialInstructions: z.string().trim().max(600).optional(),
   source: z.string().trim().max(40).optional(),
@@ -152,6 +187,12 @@ router.post("/orders", rateLimit(15, 15 * 60 * 1000), async (req, res): Promise<
     res.status(403).json({
       error: "This bakery has reached its monthly order limit. Please WhatsApp them directly or try again next month.",
     });
+    return;
+  }
+
+  const scheduleBlock = await getScheduleBlockReason(baker, parsed.data.deliveryDate);
+  if (scheduleBlock) {
+    res.status(409).json({ error: scheduleBlock });
     return;
   }
 
@@ -451,6 +492,18 @@ router.patch("/orders/:orderId/quote", requireBakerAuth, async (req, res): Promi
   }
   if (existing.totalPkr > 0 || existing.status !== "new") {
     res.status(409).json({ error: "This custom request has already been quoted." });
+    return;
+  }
+
+  const [baker] = await db.select().from(bakersTable).where(eq(bakersTable.id, bakerId)).limit(1);
+  if (!baker) {
+    res.status(404).json({ error: "Bakery not found." });
+    return;
+  }
+  const acceptedDeliveryDate = parsed.data.deliveryDate ?? existing.deliveryDate;
+  const scheduleBlock = await getScheduleBlockReason(baker, acceptedDeliveryDate);
+  if (scheduleBlock) {
+    res.status(409).json({ error: scheduleBlock });
     return;
   }
 
