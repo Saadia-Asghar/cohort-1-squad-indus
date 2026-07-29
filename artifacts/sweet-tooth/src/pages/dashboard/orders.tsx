@@ -9,7 +9,7 @@ import { CheckCircle2, CircleAlert, MessageCircle } from "lucide-react";
 
 const emptyManualOrder = {
   buyerName: "", buyerWhatsapp: "", buyerAddress: "", buyerArea: "",
-  productName: "", quantity: "1", totalPkr: "", deliveryDate: "", occasion: "", specialInstructions: "",
+  productName: "", quantity: "1", totalPkr: "", deliveryDate: "", deliveryTimeSlot: "", occasion: "", specialInstructions: "",
 };
 
 function whatsappHref(phone: string): string | null {
@@ -114,6 +114,45 @@ export default function DashboardOrders() {
     }
   };
 
+  const saveDispatch = async (order: { id: number; deliveryTimeSlot?: string | null; riderName?: string | null; riderPhone?: string | null }) => {
+    const deliveryTimeSlot = window.prompt("Delivery / pickup time window (e.g. 3–5 pm)", order.deliveryTimeSlot ?? "");
+    if (deliveryTimeSlot === null) return;
+    const riderName = window.prompt("Rider name (leave blank if not assigned)", order.riderName ?? "");
+    if (riderName === null) return;
+    const riderPhone = window.prompt("Rider phone (leave blank if not assigned)", order.riderPhone ?? "");
+    if (riderPhone === null) return;
+    try {
+      await customFetch(`/api/orders/${order.id}/dispatch`, {
+        method: "PATCH", responseType: "json", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ deliveryTimeSlot, riderName, riderPhone }),
+      });
+      await queryClient.invalidateQueries({ queryKey: getListOrdersQueryKey({ bakerId }) });
+    } catch (cause) {
+      window.alert(cause instanceof Error ? cause.message : "Could not save dispatch details.");
+    }
+  };
+
+  const recordRefund = async (orderId: number) => {
+    const amount = window.prompt("Refund amount in PKR (enter 0 if no money was returned)");
+    if (amount === null) return;
+    const amountPkr = Number(amount);
+    if (!Number.isInteger(amountPkr) || amountPkr < 0) {
+      window.alert("Enter a whole refund amount in PKR.");
+      return;
+    }
+    const reason = window.prompt("Refund reason for the financial record");
+    if (!reason?.trim()) return;
+    try {
+      await customFetch(`/api/orders/${orderId}/refund`, {
+        method: "PATCH", responseType: "json", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amountPkr, reason: reason.trim() }),
+      });
+      await queryClient.invalidateQueries({ queryKey: getListOrdersQueryKey({ bakerId }) });
+    } catch (cause) {
+      window.alert(cause instanceof Error ? cause.message : "Could not record the refund.");
+    }
+  };
+
   return (
     <DashboardLayout>
       <div className="p-8">
@@ -142,7 +181,9 @@ export default function DashboardOrders() {
                 </tr>
               </thead>
               <tbody>
-                {orders?.map((order) => (
+                {orders?.map((order) => {
+                  const operations = order as typeof order & { deliveryTimeSlot?: string | null; riderName?: string | null; riderPhone?: string | null; refundStatus?: string | null; refundAmountPkr?: number | null; refundReason?: string | null };
+                  return (
                   <tr key={order.id} className="border-b border-border hover:bg-muted/20">
                     <td className="px-4 py-4 font-mono font-medium">#{order.id}</td>
                     <td className="px-4 py-4">
@@ -166,6 +207,7 @@ export default function DashboardOrders() {
                     </td>
                     <td className="px-4 py-4">
                       {order.deliveryDate ? format(new Date(order.deliveryDate), "PPP") : "N/A"}
+                      {(operations.deliveryTimeSlot || operations.riderName) && <p className="mt-1 text-xs text-muted-foreground">{operations.deliveryTimeSlot || "Time TBC"}{operations.riderName ? ` · Rider: ${operations.riderName}` : ""}</p>}
                     </td>
                     <td className="px-4 py-4">
                       <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
@@ -190,6 +232,15 @@ export default function DashboardOrders() {
                       <button type="button" onClick={() => setChecklistOrder(order)} className="rounded-md border border-border px-2.5 py-1.5 text-xs font-semibold hover:bg-muted">
                         Prep checklist
                       </button>
+                      <button type="button" onClick={() => void saveDispatch(operations)} className="rounded-md border border-border px-2.5 py-1.5 text-xs font-semibold hover:bg-muted">
+                        Dispatch
+                      </button>
+                      {order.status === "cancelled" && operations.refundStatus !== "refunded" && (
+                        <button type="button" onClick={() => void recordRefund(order.id)} className="rounded-md border border-amber-300 px-2.5 py-1.5 text-xs font-semibold text-amber-900 hover:bg-amber-50">
+                          Record refund
+                        </button>
+                      )}
+                      {operations.refundStatus === "refunded" && <span className="text-xs font-semibold text-green-700">Refund PKR {operations.refundAmountPkr?.toLocaleString() ?? 0}</span>}
                       <select
                         className="text-sm border border-border rounded-md px-2 py-1 bg-background text-foreground"
                         value={order.status}
@@ -206,7 +257,8 @@ export default function DashboardOrders() {
                       </div>
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
                 {(!orders || orders.length === 0) && (
                   <tr>
                     <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
@@ -227,6 +279,7 @@ export default function DashboardOrders() {
               <label className="grid gap-1 text-sm font-medium sm:col-span-2">Delivery address<input required value={manualOrder.buyerAddress} onChange={(event) => updateManualField("buyerAddress", event.target.value)} className="rounded-md border border-border bg-background px-3 py-2" /></label>
               <label className="grid gap-1 text-sm font-medium">Area / sector<input value={manualOrder.buyerArea} onChange={(event) => updateManualField("buyerArea", event.target.value)} className="rounded-md border border-border bg-background px-3 py-2" /></label>
               <label className="grid gap-1 text-sm font-medium">Delivery date<input type="date" value={manualOrder.deliveryDate} onChange={(event) => updateManualField("deliveryDate", event.target.value)} className="rounded-md border border-border bg-background px-3 py-2" /></label>
+              <label className="grid gap-1 text-sm font-medium">Time window<input placeholder="e.g. 3–5 pm" value={manualOrder.deliveryTimeSlot} onChange={(event) => updateManualField("deliveryTimeSlot", event.target.value)} className="rounded-md border border-border bg-background px-3 py-2" /></label>
               <label className="grid gap-1 text-sm font-medium sm:col-span-2">Product / order summary<input required value={manualOrder.productName} onChange={(event) => updateManualField("productName", event.target.value)} className="rounded-md border border-border bg-background px-3 py-2" /></label>
               <label className="grid gap-1 text-sm font-medium">Quantity<input required min="1" step="1" inputMode="numeric" value={manualOrder.quantity} onChange={(event) => updateManualField("quantity", event.target.value)} className="rounded-md border border-border bg-background px-3 py-2" /></label>
               <label className="grid gap-1 text-sm font-medium">Total (PKR)<input required min="0" step="1" inputMode="numeric" value={manualOrder.totalPkr} onChange={(event) => updateManualField("totalPkr", event.target.value)} className="rounded-md border border-border bg-background px-3 py-2" /></label>

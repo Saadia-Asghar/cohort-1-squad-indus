@@ -11,7 +11,7 @@ import {
   ListOrdersQueryParams,
 } from "@workspace/api-zod";
 import { triggerPaymentOCRVerification } from "../lib/ocr.js";
-import { AuthenticatedRequest, requireBakerAuth } from "../middlewares/auth.js";
+import { AuthenticatedRequest, requireBakerAuth, requireBakerOwner } from "../middlewares/auth.js";
 import { rateLimit } from "../middlewares/rate-limiter.js";
 import { normalizePakistanPhone } from "../lib/phone.js";
 import {
@@ -38,8 +38,20 @@ const ManualOrderBody = z.object({
   quantity: z.number().int().min(1).max(100).default(1),
   totalPkr: z.number().int().min(0).max(10_000_000),
   deliveryDate: z.string().date().optional(),
+  deliveryTimeSlot: z.string().trim().max(80).optional(),
   occasion: z.string().trim().max(120).optional(),
   specialInstructions: z.string().trim().max(600).optional(),
+});
+
+const DispatchOrderBody = z.object({
+  deliveryTimeSlot: z.string().trim().max(80).nullable().optional(),
+  riderName: z.string().trim().max(100).nullable().optional(),
+  riderPhone: z.string().trim().max(32).nullable().optional(),
+});
+
+const RefundOrderBody = z.object({
+  amountPkr: z.number().int().min(0).max(10_000_000),
+  reason: z.string().trim().min(3).max(500),
 });
 
 const CustomQuoteRequestBody = z.object({
@@ -62,6 +74,21 @@ const QuoteApprovalBody = z.object({
 
 function formatOrder(o: typeof ordersTable.$inferSelect) {
   return { ...o, items: (o.items as unknown[]) ?? [] };
+}
+
+function formatOrderForRole(o: typeof ordersTable.$inferSelect, role?: string) {
+  const formatted = formatOrder(o);
+  if (role === "owner") return formatted;
+  // Staff need fulfilment context, but not receipt images, deposit state, or
+  // payment amounts. Financial records remain owner-only.
+  return {
+    ...formatted,
+    paymentStatus: "restricted",
+    paymentAmountReceived: null,
+    paymentScreenshotUrl: null,
+    advancePaid: false,
+    requireAdvance: false,
+  };
 }
 
 /**
@@ -128,7 +155,7 @@ router.get("/orders", requireBakerAuth, async (req, res): Promise<void> => {
   let dbQuery = db.select().from(ordersTable).where(eq(ordersTable.bakerId, bakerId)).$dynamic();
   if (query.data.status) dbQuery = dbQuery.where(and(eq(ordersTable.bakerId, bakerId), eq(ordersTable.status, query.data.status)));
   const orders = await dbQuery;
-  res.json(orders.map(formatOrder));
+  res.json(orders.map((order) => formatOrderForRole(order, (req as AuthenticatedRequest).memberRole)));
 });
 
 // GET /orders/lookup?phone= — buyer self-serve status (no payment details)
@@ -395,6 +422,7 @@ router.post("/orders/manual", requireBakerAuth, async (req, res): Promise<void> 
     items: [{ productName: data.productName, quantity: data.quantity, unitPricePkr: Math.round(data.totalPkr / data.quantity) }],
     totalPkr: data.totalPkr,
     deliveryDate: data.deliveryDate,
+    deliveryTimeSlot: data.deliveryTimeSlot,
     occasion: data.occasion,
     specialInstructions: data.specialInstructions,
     source: "manual",
@@ -524,11 +552,11 @@ router.patch("/orders/:orderId/quote", requireBakerAuth, async (req, res): Promi
   await syncBakerStats(bakerId);
   void maybeSendAdvanceReminder(order.id);
   void sendN8nEvent("custom_quote.approved", { bakerId, orderId: order.id, totalPkr: order.totalPkr });
-  res.json(formatOrder(order));
+  res.json(formatOrderForRole(order, (req as AuthenticatedRequest).memberRole));
 });
 
 // POST /orders/:orderId/verify-payment
-router.post("/orders/:orderId/verify-payment", requireBakerAuth, async (req, res): Promise<void> => {
+router.post("/orders/:orderId/verify-payment", requireBakerAuth, requireBakerOwner, async (req, res): Promise<void> => {
   const orderId = parseInt(String(req.params.orderId), 10);
   if (isNaN(orderId)) {
     res.status(400).json({ error: "Invalid order ID" });
@@ -599,7 +627,7 @@ router.get("/orders/:orderId", requireBakerAuth, async (req, res): Promise<void>
     res.status(403).json({ error: "You can only access your own orders." });
     return;
   }
-  res.json(formatOrder(order));
+  res.json(formatOrderForRole(order, (req as AuthenticatedRequest).memberRole));
 });
 
 // PATCH /orders/:orderId/status
@@ -648,6 +676,61 @@ router.patch("/orders/:orderId/status", requireBakerAuth, async (req, res): Prom
     }
   }
 
+  res.json(formatOrder(order));
+});
+
+// PATCH /orders/:orderId/dispatch â€” stores the delivery window and rider so
+// every staff member sees the same operational plan in the live order record.
+router.patch("/orders/:orderId/dispatch", requireBakerAuth, async (req, res): Promise<void> => {
+  const orderId = Number.parseInt(String(req.params.orderId), 10);
+  const parsed = DispatchOrderBody.safeParse(req.body);
+  if (!Number.isInteger(orderId) || !parsed.success) {
+    res.status(400).json({ error: parsed.success ? "Invalid order ID." : parsed.error.issues[0]?.message ?? "Invalid dispatch details." });
+    return;
+  }
+  const [order] = await db.update(ordersTable).set({
+    deliveryTimeSlot: parsed.data.deliveryTimeSlot?.trim() || null,
+    riderName: parsed.data.riderName?.trim() || null,
+    riderPhone: parsed.data.riderPhone?.trim() || null,
+  }).where(and(
+    eq(ordersTable.id, orderId),
+    eq(ordersTable.bakerId, (req as AuthenticatedRequest).bakerId!),
+  )).returning();
+  if (!order) {
+    res.status(404).json({ error: "Order not found." });
+    return;
+  }
+  res.json(formatOrder(order));
+});
+
+// PATCH /orders/:orderId/refund â€” owner-only financial audit trail. This
+// records a refund; it does not claim to move money through a payment gateway.
+router.patch("/orders/:orderId/refund", requireBakerAuth, requireBakerOwner, async (req, res): Promise<void> => {
+  const orderId = Number.parseInt(String(req.params.orderId), 10);
+  const parsed = RefundOrderBody.safeParse(req.body);
+  if (!Number.isInteger(orderId) || !parsed.success) {
+    res.status(400).json({ error: parsed.success ? "Invalid order ID." : parsed.error.issues[0]?.message ?? "Invalid refund details." });
+    return;
+  }
+  const [order] = await db.update(ordersTable).set({
+    refundStatus: parsed.data.amountPkr > 0 ? "refunded" : "no_refund",
+    refundAmountPkr: parsed.data.amountPkr,
+    refundReason: parsed.data.reason,
+    refundedAt: new Date(),
+  }).where(and(
+    eq(ordersTable.id, orderId),
+    eq(ordersTable.bakerId, (req as AuthenticatedRequest).bakerId!),
+  )).returning();
+  if (!order) {
+    res.status(404).json({ error: "Order not found." });
+    return;
+  }
+  void sendN8nEvent("order.refund_recorded", {
+    bakerId: order.bakerId,
+    orderId: order.id,
+    amountPkr: order.refundAmountPkr,
+    reason: order.refundReason,
+  });
   res.json(formatOrder(order));
 });
 
@@ -780,7 +863,7 @@ router.post("/orders/:orderId/guest-receipt", rateLimit(20, 15 * 60 * 1000), asy
 });
 
 // PATCH /orders/:orderId/payment
-router.patch("/orders/:orderId/payment", requireBakerAuth, async (req, res): Promise<void> => {
+router.patch("/orders/:orderId/payment", requireBakerAuth, requireBakerOwner, async (req, res): Promise<void> => {
   const params = MarkOrderPaidParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
@@ -803,7 +886,7 @@ router.patch("/orders/:orderId/payment", requireBakerAuth, async (req, res): Pro
 });
 
 // PATCH /orders/:orderId/payment-screenshot — set receipt image URL for advisory OCR (does not mark paid)
-router.patch("/orders/:orderId/payment-screenshot", requireBakerAuth, async (req, res): Promise<void> => {
+router.patch("/orders/:orderId/payment-screenshot", requireBakerAuth, requireBakerOwner, async (req, res): Promise<void> => {
   const orderId = parseInt(String(req.params.orderId), 10);
   if (isNaN(orderId)) {
     res.status(400).json({ error: "Invalid order ID" });

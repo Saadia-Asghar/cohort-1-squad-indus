@@ -19,6 +19,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { logoutNatively } = useManagedBaker();
   const { signOut } = useAppAuth();
   const { bakerId } = useBuyerSession();
+  const { role } = useManagedBaker();
   const feedbackUrl = import.meta.env.VITE_TALLY_FEEDBACK_URL?.trim();
   const { data: baker } = useGetBaker(bakerId, {
     query: { enabled: !!bakerId, queryKey: ["baker", bakerId], staleTime: 60_000 },
@@ -30,14 +31,14 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
     { href: "/dashboard/orders", label: "Orders", icon: ShoppingBag },
     { href: "/dashboard/catalog", label: "Catalog", icon: Grid },
-    { href: "/dashboard/payments", label: "Payments", icon: DollarSign },
+    ...(role === "owner" ? [{ href: "/dashboard/payments", label: "Payments", icon: DollarSign }] : []),
     { href: "/dashboard/analytics", label: "Analytics", icon: BarChart3 },
     { href: "/dashboard/customers", label: "Customers", icon: Users },
     { href: "/dashboard/khata", label: "Khata", icon: NotebookText },
-    { href: "/dashboard/agent-hub", label: "Agent Hub", icon: Bot },
+    ...(role === "owner" ? [{ href: "/dashboard/agent-hub", label: "Agent Hub", icon: Bot }] : []),
     { href: "/dashboard/guide", label: "Baker Guide", icon: BookOpen },
     { href: "/dashboard/calendar", label: "Calendar", icon: Calendar },
-    { href: "/dashboard/settings", label: "Settings", icon: Settings },
+    ...(role === "owner" ? [{ href: "/dashboard/settings", label: "Settings", icon: Settings }] : []),
   ];
 
   const finishLogout = () => {

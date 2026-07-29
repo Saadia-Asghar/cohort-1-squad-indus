@@ -31,8 +31,8 @@ export default function BakerLogin({ initialTab = "login" }: { initialTab?: "log
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const finishAuth = (token: string, bakerId: number, method: "password" | "google") => {
-    loginNatively(token, bakerId);
+  const finishAuth = (token: string, bakerId: number, method: "password" | "google", role: "owner" | "staff" = "owner") => {
+    loginNatively(token, bakerId, role);
     identifyBakerForAnalytics(bakerId);
     captureProductEvent("baker_login_completed", { method });
     setLocation("/dashboard");
@@ -67,12 +67,12 @@ export default function BakerLogin({ initialTab = "login" }: { initialTab?: "log
     setLoading(true);
     setError("");
     try {
-      const response = await customFetch<{ token: string; baker: { id: number } }>("/api/bakers/login", {
+      const response = await customFetch<{ token: string; baker: { id: number }; role?: "owner" | "staff" }>("/api/bakers/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ identifier: email.trim(), password }),
       });
-      finishAuth(response.token, response.baker.id, "password");
+      finishAuth(response.token, response.baker.id, "password", response.role ?? "owner");
     } catch (err: unknown) {
       const message =
         err instanceof Error ? err.message.replace(/^HTTP \d+\s*[^:]*:\s*/, "") : "Invalid email/number or password";

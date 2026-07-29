@@ -118,9 +118,26 @@ CREATE TABLE IF NOT EXISTS sweet_tooth.orders (
   payment_screenshot_url TEXT,
   advance_paid BOOLEAN NOT NULL DEFAULT false,
   require_advance BOOLEAN NOT NULL DEFAULT false,
+  delivery_time_slot TEXT,
+  rider_name TEXT,
+  rider_phone TEXT,
+  refund_status TEXT NOT NULL DEFAULT 'none',
+  refund_amount_pkr INTEGER,
+  refund_reason TEXT,
+  refunded_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- Schema upgrades for databases created before delivery dispatch and refund
+-- tracking were introduced. These remain idempotent on every serverless boot.
+ALTER TABLE sweet_tooth.orders ADD COLUMN IF NOT EXISTS delivery_time_slot TEXT;
+ALTER TABLE sweet_tooth.orders ADD COLUMN IF NOT EXISTS rider_name TEXT;
+ALTER TABLE sweet_tooth.orders ADD COLUMN IF NOT EXISTS rider_phone TEXT;
+ALTER TABLE sweet_tooth.orders ADD COLUMN IF NOT EXISTS refund_status TEXT NOT NULL DEFAULT 'none';
+ALTER TABLE sweet_tooth.orders ADD COLUMN IF NOT EXISTS refund_amount_pkr INTEGER;
+ALTER TABLE sweet_tooth.orders ADD COLUMN IF NOT EXISTS refund_reason TEXT;
+ALTER TABLE sweet_tooth.orders ADD COLUMN IF NOT EXISTS refunded_at TIMESTAMPTZ;
 
 CREATE TABLE IF NOT EXISTS sweet_tooth.cart_items (
   id SERIAL PRIMARY KEY,

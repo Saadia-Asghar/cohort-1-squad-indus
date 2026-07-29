@@ -22,6 +22,7 @@ import {
 import {
   type AuthenticatedRequest,
   requireBakerAuth,
+  requireBakerOwner,
   requireBakerOwnership,
   requireClerkUser,
 } from "../middlewares/auth.js";
@@ -587,7 +588,7 @@ router.get("/bakers/:bakerId", async (req, res): Promise<void> => {
 });
 
 // PATCH /bakers/:bakerId (Secured)
-router.patch("/bakers/:bakerId", requireBakerAuth, async (req, res): Promise<void> => {
+router.patch("/bakers/:bakerId", requireBakerAuth, requireBakerOwner, async (req, res): Promise<void> => {
   const params = UpdateBakerParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
@@ -763,7 +764,7 @@ function maskWebhookToken(token: string | null): { metaWebhookTokenSet: boolean;
 }
 
 // GET /bakers/:bakerId/agent-config
-router.get("/bakers/:bakerId/agent-config", requireBakerAuth, requireBakerOwnership, async (req, res): Promise<void> => {
+router.get("/bakers/:bakerId/agent-config", requireBakerAuth, requireBakerOwner, requireBakerOwnership, async (req, res): Promise<void> => {
   const bakerId = parseInt(String(req.params.bakerId), 10);
   if (isNaN(bakerId)) { res.status(400).json({ error: "Invalid bakerId" }); return; }
   const [baker] = await db.select().from(bakersTable).where(eq(bakersTable.id, bakerId));
@@ -809,7 +810,7 @@ router.get("/bakers/:bakerId/agent-config", requireBakerAuth, requireBakerOwners
 });
 
 // PUT /bakers/:bakerId/agent-config
-router.put("/bakers/:bakerId/agent-config", requireBakerAuth, requireBakerOwnership, async (req, res): Promise<void> => {
+router.put("/bakers/:bakerId/agent-config", requireBakerAuth, requireBakerOwner, requireBakerOwnership, async (req, res): Promise<void> => {
   const bakerId = parseInt(String(req.params.bakerId), 10);
   if (isNaN(bakerId)) { res.status(400).json({ error: "Invalid bakerId" }); return; }
   const body = req.body as {

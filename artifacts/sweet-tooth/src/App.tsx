@@ -28,6 +28,7 @@ import Bakers from "@/pages/buyer/bakers";
 import Cart from "@/pages/buyer/cart";
 import BuyerOrders from "@/pages/buyer/orders";
 import OrderFeedback from "@/pages/buyer/feedback";
+import { PrivacyPolicy, TermsOfService } from "@/pages/legal";
 
 // Dashboard pages — lazy-loaded so each tab opens fast without loading the whole app.
 const DashboardHome = lazy(() => import("@/pages/dashboard/home"));
@@ -76,15 +77,25 @@ function dashboardRoute(Component: ComponentType) {
   };
 }
 
+function ownerDashboardRoute(Component: ComponentType) {
+  return function OwnerDashboardRoute() {
+    const managed = useManagedBaker();
+    if (managed.hasNativeSession && managed.bakerId && managed.role !== "owner") {
+      return <DashboardHomeRoute />;
+    }
+    return <ProtectedDashboard component={Component} />;
+  };
+}
+
 const DashboardHomeRoute = dashboardRoute(DashboardHome);
 const DashboardOrdersRoute = dashboardRoute(DashboardOrders);
 const DashboardCatalogRoute = dashboardRoute(DashboardCatalog);
 const DashboardAnalyticsRoute = dashboardRoute(DashboardAnalytics);
-const DashboardSettingsRoute = dashboardRoute(DashboardSettings);
-const DashboardPaymentsRoute = dashboardRoute(DashboardPayments);
+const DashboardSettingsRoute = ownerDashboardRoute(DashboardSettings);
+const DashboardPaymentsRoute = ownerDashboardRoute(DashboardPayments);
 const DashboardCustomersRoute = dashboardRoute(DashboardCustomers);
 const DashboardCalendarRoute = dashboardRoute(DashboardCalendar);
-const DashboardAgentHubRoute = dashboardRoute(DashboardAgentHub);
+const DashboardAgentHubRoute = ownerDashboardRoute(DashboardAgentHub);
 const DashboardKhataRoute = dashboardRoute(DashboardKhata);
 const DashboardGuideRoute = dashboardRoute(DashboardGuide);
 
@@ -99,6 +110,8 @@ function Router() {
       <Route path="/cart" component={Cart} />
       <Route path="/orders" component={BuyerOrders} />
       <Route path="/feedback/:orderId" component={OrderFeedback} />
+      <Route path="/privacy" component={PrivacyPolicy} />
+      <Route path="/terms" component={TermsOfService} />
 
       <Route path="/dashboard" component={DashboardHomeRoute} />
       <Route path="/dashboard/orders" component={DashboardOrdersRoute} />
