@@ -9,15 +9,12 @@ export function BuyerLayout({ children }: { children: React.ReactNode }) {
             <span className="font-serif text-2xl font-bold text-primary">Sweet Tooth</span>
           </Link>
           <div className="flex items-center gap-5">
+            <a href="/#features" className="hidden text-sm font-medium text-muted-foreground transition-colors hover:text-primary md:inline">Features</a>
             <a href="/#how-it-works" className="hidden text-sm font-medium text-muted-foreground transition-colors hover:text-primary md:inline">How it works</a>
             <a href="/#pricing" className="hidden text-sm font-medium text-muted-foreground transition-colors hover:text-primary md:inline">Pricing</a>
             <Link href="/contact" className="hidden text-sm font-medium text-muted-foreground transition-colors hover:text-primary md:inline">Contact</Link>
-            <Link
-              href="/dashboard/login"
-              className="text-sm font-medium bg-primary/10 text-primary px-3 py-1.5 rounded-md hover:bg-primary/20 transition-colors"
-            >
-              Sign in
-            </Link>
+            <Link href="/dashboard/login" className="hidden text-sm font-medium text-foreground transition-colors hover:text-primary sm:inline">Sign in</Link>
+            <Link href="/dashboard/register" className="rounded-md bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90">Get started</Link>
           </div>
         </div>
       </nav>
