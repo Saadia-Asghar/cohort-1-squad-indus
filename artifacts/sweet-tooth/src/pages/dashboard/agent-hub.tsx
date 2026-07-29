@@ -29,6 +29,12 @@ import {
 
 type Tab = "built-in" | "whatsapp" | "instagram" | "conversations";
 type DeliveryZone = { id: string; name: string; feePkr: number; minimumOrderPkr?: number };
+const REPLY_TEMPLATES = [
+  { trigger: "custom cake", response: "We would love to help with a custom cake. Please share your date, servings, flavour, theme and delivery area so the baker can confirm a quote." },
+  { trigger: "same day", response: "Same-day availability depends on the baking schedule. Please share the item, quantity and required time; the baker will confirm what is possible." },
+  { trigger: "payment", response: "Payment details and any advance requirement are shared after the order is confirmed. Please send a receipt or transaction reference after transfer." },
+  { trigger: "delivery", response: "Please share your area and required delivery date. I will confirm whether delivery is available and the exact baker-set fee." },
+] as const;
 
 export default function AgentHub() {
   const { bakerId } = useBuyerSession();
@@ -179,6 +185,10 @@ export default function AgentHub() {
       ...prev,
       customResponses: customResponses.filter(cr => cr.trigger !== trigger),
     }));
+  };
+  const addReplyTemplate = (template: { trigger: string; response: string }) => {
+    if (customResponses.some((item) => item.trigger.toLowerCase() === template.trigger.toLowerCase())) return;
+    setLocalConfig((previous) => ({ ...previous, customResponses: [...customResponses, template] }));
   };
 
   const deliveryZones = merged.deliveryZones ?? [];
@@ -460,6 +470,7 @@ export default function AgentHub() {
                 <h3 className="font-semibold">Custom Responses</h3>
               </div>
               <p className="text-sm text-muted-foreground">Teach the agent exact replies when buyers mention specific words.</p>
+              <div className="flex flex-wrap gap-2">{REPLY_TEMPLATES.map((template) => <button key={template.trigger} type="button" onClick={() => addReplyTemplate(template)} disabled={customResponses.some((item) => item.trigger.toLowerCase() === template.trigger.toLowerCase())} className="rounded-full border border-primary/30 px-3 py-1 text-xs font-semibold text-primary hover:bg-primary/10 disabled:cursor-not-allowed disabled:opacity-45">+ {template.trigger}</button>)}</div>
               <div className="space-y-2">
                 {customResponses.map((cr) => (
                   <div key={cr.trigger} className="p-3 bg-muted/40 rounded-lg text-sm">
