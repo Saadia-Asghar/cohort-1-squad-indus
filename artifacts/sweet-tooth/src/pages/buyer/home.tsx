@@ -1,7 +1,8 @@
 import { Link } from "wouter";
-import { ArrowRight, Bot, CalendarDays, ClipboardCheck, MessageCircleMore, PackageCheck, ShieldCheck, Share2, UsersRound, WalletCards } from "lucide-react";
+import { ArrowRight, Bot, CalendarDays, ClipboardCheck, MessageCircle, MessageCircleMore, PackageCheck, ShieldCheck, Share2, UsersRound, WalletCards } from "lucide-react";
 import { BuyerLayout } from "@/components/layout/buyer-layout";
 import { PricingSection } from "@/components/marketing/pricing-section";
+import { whatsappSupportLink } from "@/lib/support";
 
 const steps = [
   { icon: Share2, title: "Share your menu", text: "One link for customers." },
@@ -24,11 +25,11 @@ export default function Home() {
       <section className="overflow-hidden bg-background px-4 pb-16 pt-14 md:pb-24 md:pt-20">
         <div className="mx-auto grid max-w-6xl gap-12 md:grid-cols-[.92fr_1.08fr] md:items-center">
           <div className="max-w-xl">
-            <h1 className="font-serif text-5xl font-bold leading-[1.04] tracking-tight text-foreground md:text-7xl">Your orders, under control.</h1>
+            <h1 className="font-serif text-5xl font-bold leading-[1.02] tracking-tight text-foreground md:text-7xl">Bake beautifully.<br />We&apos;ll organise the orders.</h1>
             <p className="mt-6 max-w-lg text-lg leading-relaxed text-muted-foreground">One menu, one assistant, one clear place for every order.</p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link href="/dashboard/register" className="inline-flex items-center gap-2 rounded-md bg-primary px-5 py-3 text-sm font-bold text-primary-foreground transition-colors hover:bg-primary/90">Get started <ArrowRight className="h-4 w-4" /></Link>
-              <a href="#how-it-works" className="inline-flex items-center gap-2 rounded-md border border-primary/45 bg-background px-5 py-3 text-sm font-bold text-primary hover:bg-primary/5">See how it works</a>
+              <a href={whatsappSupportLink("Assalam-o-Alaikum! I would like to book a Sweet Tooth demo for my bakery.")} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-md border border-green-600/30 bg-green-50 px-5 py-3 text-sm font-bold text-green-800 transition-colors hover:bg-green-100"><MessageCircle className="h-4 w-4" /> Book a demo</a>
             </div>
           </div>
           <div className="relative mx-auto w-full max-w-[630px]">
@@ -44,14 +45,14 @@ export default function Home() {
       <section id="features" className="mx-auto max-w-6xl px-4 py-20 md:py-24">
         <h2 className="font-serif text-4xl font-bold">Everything a baker needs</h2>
         <p className="mt-3 max-w-2xl text-muted-foreground">The essentials, in one place.</p>
-        <div className="mt-12 grid gap-x-12 gap-y-10 md:grid-cols-3">{capabilities.map(({ icon: Icon, title, text }) => <article key={title} className="flex gap-4"><span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-border bg-card text-amber-600"><Icon className="h-5 w-5" /></span><div><h3 className="font-serif text-xl font-bold">{title}</h3><p className="mt-2 text-sm leading-relaxed text-muted-foreground">{text}</p></div></article>)}</div>
+        <div className="mt-12 grid gap-x-12 gap-y-10 md:grid-cols-3">{capabilities.map(({ icon: Icon, title, text }) => <article key={title} className="group flex gap-4"><span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-amber-200 bg-amber-50 text-amber-700 transition-transform duration-200 group-hover:-translate-y-1"><Icon className="h-5 w-5" strokeWidth={1.8} /></span><div><h3 className="font-serif text-xl font-bold">{title}</h3><p className="mt-2 text-sm leading-relaxed text-muted-foreground">{text}</p></div></article>)}</div>
       </section>
 
       <section className="border-y border-border bg-muted/60 px-4 py-16"><div className="mx-auto max-w-6xl text-center"><ShieldCheck className="mx-auto h-8 w-8 text-primary" /><h2 className="mt-4 font-serif text-4xl font-bold">Your bakery. Your rules.</h2><p className="mx-auto mt-4 max-w-xl text-muted-foreground">The assistant uses your menu and policies. You stay in control.</p></div></section>
 
       <PricingSection />
 
-      <section className="bg-[hsl(266_55%_13%)] px-4 py-16 text-white"><div className="mx-auto flex max-w-6xl flex-col items-start justify-between gap-8 md:flex-row md:items-center"><h2 className="max-w-xl font-serif text-4xl font-bold leading-tight">Bake more. Chat less.</h2><Link href="/dashboard/register" className="inline-flex shrink-0 items-center gap-2 rounded-md bg-white px-6 py-3 text-sm font-bold text-primary transition-transform hover:scale-[1.02]">Get started <ArrowRight className="h-4 w-4" /></Link></div></section>
+      <section className="bg-[hsl(266_55%_13%)] px-4 py-16 text-white"><div className="mx-auto flex max-w-6xl flex-col items-start justify-between gap-8 md:flex-row md:items-center"><div><h2 className="max-w-xl font-serif text-4xl font-bold leading-tight">Bake more. Chat less.</h2><p className="mt-3 text-white/70">See Sweet Tooth with your own bakery workflow.</p></div><a href={whatsappSupportLink("Assalam-o-Alaikum! I would like to book a Sweet Tooth demo for my bakery.")} target="_blank" rel="noopener noreferrer" className="inline-flex shrink-0 items-center gap-2 rounded-md bg-white px-6 py-3 text-sm font-bold text-primary transition-transform hover:scale-[1.02]"><MessageCircle className="h-4 w-4" /> Book a demo</a></div></section>
     </BuyerLayout>
   );
 }
