@@ -5,7 +5,7 @@ import { liveDashboardQuery, ORDERS_POLL_MS } from "@/lib/dashboard-query";
 import { useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { useState, type FormEvent } from "react";
-import { MessageCircle } from "lucide-react";
+import { CheckCircle2, CircleAlert, MessageCircle } from "lucide-react";
 
 const emptyManualOrder = {
   buyerName: "", buyerWhatsapp: "", buyerAddress: "", buyerArea: "",
@@ -33,6 +33,7 @@ export default function DashboardOrders() {
   const [manualError, setManualError] = useState<string | null>(null);
   const [savingManualOrder, setSavingManualOrder] = useState(false);
   const [approvingQuoteId, setApprovingQuoteId] = useState<number | null>(null);
+  const [checklistOrder, setChecklistOrder] = useState<any>(null);
 
   const handleStatusUpdate = (orderId: number, status: string) => {
     const cancellationReason = status === "cancelled"
@@ -186,6 +187,9 @@ export default function DashboardOrders() {
                           {approvingQuoteId === order.id ? "Saving…" : "Set quote"}
                         </button>
                       )}
+                      <button type="button" onClick={() => setChecklistOrder(order)} className="rounded-md border border-border px-2.5 py-1.5 text-xs font-semibold hover:bg-muted">
+                        Prep checklist
+                      </button>
                       <select
                         className="text-sm border border-border rounded-md px-2 py-1 bg-background text-foreground"
                         value={order.status}
@@ -233,7 +237,31 @@ export default function DashboardOrders() {
             <div className="mt-6 flex justify-end gap-3"><button type="button" onClick={closeManualOrder} className="rounded-lg border border-border px-4 py-2 text-sm font-semibold">Cancel</button><button disabled={savingManualOrder} className="rounded-lg bg-primary px-4 py-2 text-sm font-bold text-primary-foreground disabled:opacity-50">{savingManualOrder ? "Saving…" : "Save pending order"}</button></div>
           </form>
         </dialog>
+        {checklistOrder && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4" role="dialog" aria-modal="true" aria-labelledby="production-checklist-title">
+            <div className="max-h-[88vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-border bg-card p-6 shadow-2xl">
+              <div className="flex items-start justify-between gap-5 border-b border-border pb-4">
+                <div><h2 id="production-checklist-title" className="font-serif text-2xl font-bold text-primary">Production checklist</h2><p className="mt-1 text-sm text-muted-foreground">Order #{checklistOrder.id} · {checklistOrder.buyerName}</p></div>
+                <button type="button" onClick={() => setChecklistOrder(null)} className="rounded-md px-3 py-1 text-sm font-semibold hover:bg-muted">Close</button>
+              </div>
+              <div className="mt-5 space-y-3">
+                <ChecklistItem ready={Boolean(checklistOrder.items?.length)} label="Design / order details" value={checklistOrder.items?.map((item: any) => `${item.productName} × ${item.quantity}`).join(", ") || "Add the order details before baking."} />
+                <ChecklistItem ready={Boolean(checklistOrder.flavour || checklistOrder.specialInstructions)} label="Flavour, design text & dietary notes" value={[checklistOrder.flavour, checklistOrder.textOnCake, checklistOrder.specialInstructions].filter(Boolean).join(" · ") || "No extra instructions recorded — confirm with the customer if needed."} />
+                <ChecklistItem ready={!checklistOrder.requireAdvance || checklistOrder.advancePaid} label="Deposit / payment" value={checklistOrder.requireAdvance ? (checklistOrder.advancePaid ? "Deposit verified" : "Waiting for baker verification") : "No advance required"} />
+                <ChecklistItem ready={Boolean(checklistOrder.deliveryDate)} label="Bake date" value={checklistOrder.deliveryDate ? format(new Date(checklistOrder.deliveryDate), "PPP") : "Set the required date before confirming."} />
+                <ChecklistItem ready={["in_production", "out_for_delivery", "delivered"].includes(checklistOrder.status)} label="Packing" value={checklistOrder.status === "confirmed" ? "Move the order to In Production when baking starts." : checklistOrder.status === "new" ? "Confirm the order and payment first." : "Production stage has started."} />
+                <ChecklistItem ready={checklistOrder.fulfillmentType === "pickup" || ["out_for_delivery", "delivered"].includes(checklistOrder.status)} label={checklistOrder.fulfillmentType === "pickup" ? "Pickup handover" : "Rider / delivery"} value={checklistOrder.fulfillmentType === "pickup" ? "Confirm pickup time with the customer." : checklistOrder.status === "out_for_delivery" ? "Rider is on the way — keep the customer updated." : checklistOrder.status === "delivered" ? "Delivered — feedback request can be sent." : `${checklistOrder.buyerArea || "Delivery area"}: arrange rider before dispatch.`} />
+              </div>
+              <p className="mt-5 rounded-lg bg-muted/60 px-3 py-2 text-xs text-muted-foreground">This view uses the live order, payment, production and delivery records—no separate checklist data can get out of sync.</p>
+            </div>
+          </div>
+        )}
       </div>
     </DashboardLayout>
   );
+}
+
+function ChecklistItem({ ready, label, value }: { ready: boolean; label: string; value: string }) {
+  const Icon = ready ? CheckCircle2 : CircleAlert;
+  return <div className="flex gap-3 rounded-xl border border-border p-3"><Icon className={`mt-0.5 h-5 w-5 shrink-0 ${ready ? "text-green-600" : "text-amber-600"}`} /><div><p className="text-sm font-bold text-foreground">{label}</p><p className="mt-1 text-sm leading-relaxed text-muted-foreground">{value}</p></div></div>;
 }
