@@ -4,6 +4,7 @@ export type N8nEvent =
   | "chat.received"
   | "chat.escalated"
   | "order.created"
+  | "order.refund_recorded"
   | "custom_quote.requested"
   | "custom_quote.approved"
   | "payment.advance_reminder"
