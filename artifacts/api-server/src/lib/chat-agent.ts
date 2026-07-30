@@ -17,6 +17,7 @@ import { traceAgentTurn } from "./langfuse.js";
 import { formatRetrievedContext, retrieveKnowledge } from "./rag/retriever.js";
 import { isPlanAccessActive, TRIAL_EXPIRED_BUYER_REPLY } from "./subscription.js";
 import { AI_REPLY_CAP_BUYER_REPLY, isAiReplyCapReached } from "./plan-limits.js";
+import { callLlm } from "./llm.js";
 
 export type AgentReply = {
   reply: string;
@@ -509,6 +510,45 @@ export async function generateAgentReply(
   const ragChunks = await retrieveKnowledge(bakerId, message, 3, 0.1);
   const ragContext = formatRetrievedContext(ragChunks);
   if (ragContext) {
+    // Attempt generative LLM response using free Gemini API or OpenAI if keys are configured
+    const systemPrompt = `You are a friendly, helpful AI assistant for the home-based bakery "${baker.businessName}" in ${baker.city || "Pakistan"}.
+Your goal is to answer customer questions about the bakery's menu, pricing, ingredients, dietary policies, delivery, and availability.
+
+Strict Guidelines:
+1. ONLY answer based on the provided menu, products, and policies in the "Retrieved Context" below. Do not assume or hallucinate any details.
+2. If the user's question cannot be answered by the context, explain politely that you don't have that information and ask them to confirm with the baker directly.
+3. Keep replies helpful and bilingual (in a natural blend of English and Urdu, e.g. using "Assalam-o-Alaikum", "PKR", etc. where appropriate).
+4. Do NOT make up products, prices, or delivery areas.
+
+Bakery Branding:
+- Name: ${baker.businessName}
+- Tagline: ${baker.tagline || ""}
+- Areas: ${(baker.deliveryAreas ?? []).join(", ")}
+- Payment Policy: ${baker.codPolicy || "Manual transfer / Cash on Delivery"}
+
+Retrieved Context (Menu & Policies):
+${ragContext}
+
+Customer Preferences (if known):
+- Preferred Area: ${buyerPrefs.preferredArea || "None specified"}
+- Eggless Preference: ${buyerPrefs.eggless ? "Eggless Only" : "Standard"}
+- Allergies: ${Array.isArray(buyerPrefs.allergies) ? buyerPrefs.allergies.join(", ") : "None specified"}`;
+
+    const llmReply = await callLlm([
+      { role: "system", content: systemPrompt },
+      { role: "user", content: message },
+    ]);
+
+    if (llmReply) {
+      return {
+        reply: llmReply,
+        action: "llm_generative",
+        cartItemId: null,
+        escalated: false,
+      };
+    }
+
+    // Fallback to raw text hint if LLM key is not configured or fails
     const topChunk = ragChunks[0];
     const hint =
       topChunk?.sourceType === "product"
