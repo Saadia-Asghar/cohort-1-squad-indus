@@ -1,7 +1,7 @@
 import { Router } from "express";
 import crypto from "node:crypto";
 import { eq, inArray, or, sql, and } from "drizzle-orm";
-import { db, bakersTable, bakerMembersTable, productsTable, reviewsTable, ordersTable } from "@workspace/db";
+import { db, bakersTable, bakerMembersTable, metaConnectionsTable, productsTable, reviewsTable, ordersTable } from "@workspace/db";
 import {
   GetBakerParams,
   GetBakerProductsParams,
@@ -22,6 +22,7 @@ import {
 import {
   type AuthenticatedRequest,
   requireBakerAuth,
+  requireBakerOwner,
   requireBakerOwnership,
   requireClerkUser,
 } from "../middlewares/auth.js";
@@ -45,8 +46,18 @@ import {
   trialStatus,
   TRIAL_EXPIRED_BUYER_REPLY,
 } from "../lib/subscription.js";
+import { verifyFirebaseIdToken } from "../lib/firebase-auth.js";
+import { findDeliveryZone, normalizeDeliveryZones } from "../lib/delivery-zones.js";
 
 const router = Router();
+
+const firebaseTokenSchema = z.object({ idToken: z.string().min(100).max(20_000) });
+
+async function firebaseIdentityFromBody(body: unknown) {
+  const parsed = firebaseTokenSchema.safeParse(body);
+  if (!parsed.success) throw new Error("Invalid Firebase sign-in request.");
+  return verifyFirebaseIdToken(parsed.data.idToken);
+}
 
 function databaseErrorCode(error: unknown): string | undefined {
   if (!error || typeof error !== "object") return undefined;
@@ -217,7 +228,91 @@ async function findClerkBaker(request: AuthenticatedRequest) {
   return null;
 }
 
-// GET /bakers/clerk/session — resolve a managed Clerk identity to its bakery.
+// Exchange a verified Firebase Google identity for this API's baker-scoped JWT.
+router.post("/bakers/firebase/session", rateLimit(10, 15 * 60 * 1000), async (req, res): Promise<void> => {
+  try {
+    const identity = await firebaseIdentityFromBody(req.body);
+    const [baker] = await db.select().from(bakersTable).where(eq(bakersTable.email, identity.email)).limit(1);
+    if (!baker) {
+      res.json({ needsOnboarding: true, email: identity.email });
+      return;
+    }
+    res.json({
+      needsOnboarding: false,
+      token: signToken({ bakerId: baker.id, email: baker.email, role: "owner" }),
+      baker: { ...toAuthenticatedBaker(baker), deliveryAreas: baker.deliveryAreas ?? [] },
+    });
+  } catch (error) {
+    res.status(401).json({ error: error instanceof Error ? error.message : "Google sign-in could not be verified." });
+  }
+});
+
+// Create a bakery after server-side verification of a Firebase Google ID token.
+router.post("/bakers/firebase/onboard", rateLimit(5, 15 * 60 * 1000), async (req, res): Promise<void> => {
+  try {
+    const identity = await firebaseIdentityFromBody(req.body);
+    const schema = z.object({
+      businessName: z.string().trim().min(2).max(120),
+      ownerName: z.string().trim().min(2).max(120),
+      city: z.string().trim().min(2).max(80),
+      whatsappNumber: z.string().trim().min(10).max(30),
+    });
+    const parsed = schema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: parsed.error.message });
+      return;
+    }
+    const normalizedPhone = normalizePakistanPhone(parsed.data.whatsappNumber);
+    if (!normalizedPhone) {
+      res.status(400).json({ error: "Enter a valid Pakistani WhatsApp number." });
+      return;
+    }
+    const phoneVariants = phoneLookupVariants(parsed.data.whatsappNumber, normalizedPhone);
+    const [existing] = await db
+      .select({ id: bakersTable.id, email: bakersTable.email })
+      .from(bakersTable)
+      .where(or(eq(bakersTable.email, identity.email), inArray(bakersTable.whatsappNumber, phoneVariants)))
+      .limit(1);
+    if (existing) {
+      if (existing.email === identity.email) {
+        const [baker] = await db.select().from(bakersTable).where(eq(bakersTable.id, existing.id)).limit(1);
+        if (baker) {
+          res.json({
+            needsOnboarding: false,
+            token: signToken({ bakerId: baker.id, email: baker.email, role: "owner" }),
+            baker: { ...toAuthenticatedBaker(baker), deliveryAreas: baker.deliveryAreas ?? [] },
+          });
+          return;
+        }
+      }
+      res.status(409).json({ error: "A bakery already uses this email or WhatsApp number. Sign in instead." });
+      return;
+    }
+    const slugBase = parsed.data.businessName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || "bakery";
+    const [baker] = await db
+      .insert(bakersTable)
+      .values({
+        ...parsed.data,
+        whatsappNumber: normalizedPhone,
+        email: identity.email,
+        slug: `${slugBase}-${crypto.randomBytes(4).toString("hex")}`,
+        passwordHash: null,
+        subscriptionPlan: "free",
+        trialEndsAt: freeTrialEndsAtFrom(new Date()),
+      })
+      .returning();
+    res.status(201).json({
+      needsOnboarding: false,
+      token: signToken({ bakerId: baker.id, email: baker.email, role: "owner" }),
+      baker: { ...toAuthenticatedBaker(baker), deliveryAreas: baker.deliveryAreas ?? [] },
+    });
+  } catch (error) {
+    const status = databaseErrorCode(error) === "23505" ? 409 : 401;
+    res.status(status).json({ error: error instanceof Error ? error.message : "Google sign-up could not be verified." });
+  }
+});
+
+// GET /bakers/clerk/session — legacy managed Clerk identity endpoint.
 router.get("/bakers/clerk/session", requireClerkUser, async (req, res): Promise<void> => {
   const request = req as AuthenticatedRequest;
   const linked = await findClerkBaker(request);
@@ -493,7 +588,7 @@ router.get("/bakers/:bakerId", async (req, res): Promise<void> => {
 });
 
 // PATCH /bakers/:bakerId (Secured)
-router.patch("/bakers/:bakerId", requireBakerAuth, async (req, res): Promise<void> => {
+router.patch("/bakers/:bakerId", requireBakerAuth, requireBakerOwner, async (req, res): Promise<void> => {
   const params = UpdateBakerParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
@@ -669,7 +764,7 @@ function maskWebhookToken(token: string | null): { metaWebhookTokenSet: boolean;
 }
 
 // GET /bakers/:bakerId/agent-config
-router.get("/bakers/:bakerId/agent-config", requireBakerAuth, requireBakerOwnership, async (req, res): Promise<void> => {
+router.get("/bakers/:bakerId/agent-config", requireBakerAuth, requireBakerOwner, requireBakerOwnership, async (req, res): Promise<void> => {
   const bakerId = parseInt(String(req.params.bakerId), 10);
   if (isNaN(bakerId)) { res.status(400).json({ error: "Invalid bakerId" }); return; }
   const [baker] = await db.select().from(bakersTable).where(eq(bakersTable.id, bakerId));
@@ -705,6 +800,8 @@ router.get("/bakers/:bakerId/agent-config", requireBakerAuth, requireBakerOwners
     availabilityHours: (conf.availabilityHours as string | null) ?? "",
     dietaryPolicy: (conf.dietaryPolicy as string | null) ?? "",
     activeOffers: (conf.activeOffers as string | null) ?? "",
+    deliveryPricing: (conf.deliveryPricing as string | null) ?? "",
+    deliveryZones: normalizeDeliveryZones(conf.deliveryZones),
     preferredCustomerChannel: (conf.preferredCustomerChannel as "web" | "whatsapp" | "instagram" | null) ?? "web",
     blockedDates: (conf.blockedDates as string[]) ?? [],
     agentLanguage: (conf.agentLanguage as string | null) ?? "bilingual",
@@ -713,7 +810,7 @@ router.get("/bakers/:bakerId/agent-config", requireBakerAuth, requireBakerOwners
 });
 
 // PUT /bakers/:bakerId/agent-config
-router.put("/bakers/:bakerId/agent-config", requireBakerAuth, requireBakerOwnership, async (req, res): Promise<void> => {
+router.put("/bakers/:bakerId/agent-config", requireBakerAuth, requireBakerOwner, requireBakerOwnership, async (req, res): Promise<void> => {
   const bakerId = parseInt(String(req.params.bakerId), 10);
   if (isNaN(bakerId)) { res.status(400).json({ error: "Invalid bakerId" }); return; }
   const body = req.body as {
@@ -731,6 +828,8 @@ router.put("/bakers/:bakerId/agent-config", requireBakerAuth, requireBakerOwners
     availabilityHours?: string;
     dietaryPolicy?: string;
     activeOffers?: string;
+    deliveryPricing?: string;
+    deliveryZones?: unknown;
     preferredCustomerChannel?: "web" | "whatsapp" | "instagram";
     blockedDates?: string[];
     agentLanguage?: "english" | "urdu" | "roman_urdu" | "bilingual";
@@ -745,6 +844,8 @@ router.put("/bakers/:bakerId/agent-config", requireBakerAuth, requireBakerOwners
   if (body.availabilityHours !== undefined) agentConfigUpdate.availabilityHours = body.availabilityHours.slice(0, 240);
   if (body.dietaryPolicy !== undefined) agentConfigUpdate.dietaryPolicy = body.dietaryPolicy.slice(0, 600);
   if (body.activeOffers !== undefined) agentConfigUpdate.activeOffers = body.activeOffers.slice(0, 600);
+  if (body.deliveryPricing !== undefined) agentConfigUpdate.deliveryPricing = body.deliveryPricing.slice(0, 600);
+  if (body.deliveryZones !== undefined) agentConfigUpdate.deliveryZones = normalizeDeliveryZones(body.deliveryZones);
   if (body.preferredCustomerChannel !== undefined) agentConfigUpdate.preferredCustomerChannel = body.preferredCustomerChannel;
   if (body.blockedDates !== undefined) agentConfigUpdate.blockedDates = body.blockedDates;
   if (body.agentLanguage !== undefined && ["english", "urdu", "roman_urdu", "bilingual"].includes(body.agentLanguage)) {
@@ -766,6 +867,20 @@ router.put("/bakers/:bakerId/agent-config", requireBakerAuth, requireBakerOwners
       error: "WhatsApp agent needs Kitchen Standard or higher. Upgrade your package to connect WhatsApp.",
     });
     return;
+  }
+  if (body.whatsappAgentEnabled === true) {
+    const [connection] = await db
+      .select({ phoneNumberId: metaConnectionsTable.whatsappPhoneNumberId })
+      .from(metaConnectionsTable)
+      .where(eq(metaConnectionsTable.bakerId, bakerId))
+      .limit(1);
+    const legacyPhoneNumberId = (existing.agentConfig as { whatsappPhoneNumberId?: string } | null)?.whatsappPhoneNumberId;
+    if (!connection?.phoneNumberId && !legacyPhoneNumberId) {
+      res.status(409).json({
+        error: "Connect a WhatsApp Business number in Agent Hub before enabling the WhatsApp agent.",
+      });
+      return;
+    }
   }
   if (body.instagramAgentEnabled === true && !canEnableInstagramAgent(existing.subscriptionPlan)) {
     res.status(403).json({
@@ -800,6 +915,10 @@ router.put("/bakers/:bakerId/agent-config", requireBakerAuth, requireBakerOwners
 
   const [baker] = await db.update(bakersTable).set(update).where(eq(bakersTable.id, bakerId)).returning();
   if (!baker) { res.status(404).json({ error: "Baker not found" }); return; }
+  // Keep retrieval grounded in every saved agent policy, including delivery pricing.
+  rebuildBakerKnowledgeIndex(baker.id).catch((error) =>
+    console.error(`Auto-RAG reindex failed for baker #${baker.id}:`, error),
+  );
   const conf = (baker.agentConfig ?? {}) as Record<string, unknown>;
   const tokenMask = maskWebhookToken(baker.metaWebhookToken);
   const socialLinks = (conf.socialLinks as { instagram?: string; facebook?: string } | undefined) ?? {};
@@ -831,10 +950,40 @@ router.put("/bakers/:bakerId/agent-config", requireBakerAuth, requireBakerOwners
     availabilityHours: (conf.availabilityHours as string | null) ?? "",
     dietaryPolicy: (conf.dietaryPolicy as string | null) ?? "",
     activeOffers: (conf.activeOffers as string | null) ?? "",
+    deliveryPricing: (conf.deliveryPricing as string | null) ?? "",
+    deliveryZones: normalizeDeliveryZones(conf.deliveryZones),
     preferredCustomerChannel: (conf.preferredCustomerChannel as "web" | "whatsapp" | "instagram" | null) ?? "web",
     blockedDates: (conf.blockedDates as string[]) ?? [],
     agentLanguage: (conf.agentLanguage as string | null) ?? "bilingual",
     whatsappWebhookUrl: "/api/webhooks/whatsapp",
+  });
+});
+
+// Public, exact delivery quote. This is deliberately based only on baker-authored zones;
+// it never guesses a charge for an unknown area.
+router.get("/bakers/:bakerId/delivery-quote", async (req, res): Promise<void> => {
+  const bakerId = Number(req.params.bakerId);
+  const area = typeof req.query.area === "string" ? req.query.area : "";
+  if (!Number.isInteger(bakerId) || bakerId <= 0 || !area.trim()) {
+    res.status(400).json({ error: "bakerId and area are required" });
+    return;
+  }
+  const [baker] = await db.select().from(bakersTable).where(eq(bakersTable.id, bakerId)).limit(1);
+  if (!baker || baker.marketplaceVisible === false) {
+    res.status(404).json({ error: "Bakery not found" });
+    return;
+  }
+  const config = (baker.agentConfig ?? {}) as Record<string, unknown>;
+  const zones = normalizeDeliveryZones(config.deliveryZones);
+  const zone = findDeliveryZone(zones, area);
+  res.json({
+    available: Boolean(zone),
+    area: area.trim(),
+    zone,
+    pickupAvailable: config.allowPickup !== false,
+    message: zone
+      ? `Delivery to ${zone.name} is PKR ${zone.feePkr.toLocaleString()}.`
+      : "Delivery is not available for this area. Please choose pickup or ask the bakery.",
   });
 });
 

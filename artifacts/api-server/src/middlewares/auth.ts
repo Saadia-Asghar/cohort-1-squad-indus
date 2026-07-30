@@ -141,3 +141,16 @@ export function requireBakerOwnership(req: Request, res: Response, next: NextFun
   }
   next();
 }
+
+/**
+ * Financial and configuration actions belong to the bakery owner. Staff can
+ * still work through the order pipeline, but cannot view or change payments,
+ * subscriptions, team access, or channel credentials.
+ */
+export function requireBakerOwner(req: Request, res: Response, next: NextFunction): void {
+  if ((req as AuthenticatedRequest).memberRole !== "owner") {
+    res.status(403).json({ error: "Only the bakery owner can manage financial or account settings." });
+    return;
+  }
+  next();
+}

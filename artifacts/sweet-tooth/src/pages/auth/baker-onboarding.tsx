@@ -5,7 +5,7 @@ import { useManagedBaker } from "@/lib/managed-auth";
 import { useAppAuth } from "@/lib/app-auth";
 
 export default function BakerOnboarding() {
-  const { isSignedIn } = useAppAuth();
+  const { isSignedIn, getToken } = useAppAuth();
   const managed = useManagedBaker();
   const [, navigate] = useLocation();
   const [form, setForm] = useState({
@@ -33,12 +33,15 @@ export default function BakerOnboarding() {
     setLoading(true);
     setError(null);
     try {
-      await customFetch("/api/bakers/clerk/onboard", {
+      const idToken = await getToken();
+      if (!idToken) throw new Error("Your Google sign-in expired. Please sign in again.");
+      const response = await customFetch<{ token: string; baker: { id: number } }>("/api/bakers/firebase/onboard", {
         method: "POST",
         responseType: "json",
-        body: JSON.stringify(form),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...form, idToken }),
       });
-      await managed.refresh();
+      managed.loginNatively(response.token, response.baker.id);
       navigate("/dashboard");
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Could not create your bakery.");

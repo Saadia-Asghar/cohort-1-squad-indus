@@ -34,8 +34,15 @@ function resolveVerifyToken(bakerToken?: string | null): string | undefined {
   return bakerToken ?? process.env.META_WEBHOOK_VERIFY_TOKEN ?? process.env.WHATSAPP_VERIFY_TOKEN;
 }
 
+function resolveAppSecret(): string | undefined {
+  // WHATSAPP_APP_SECRET is the explicit platform setting for this webhook.
+  // Keep META_APP_SECRET as a backwards-compatible fallback for existing
+  // Embedded Signup installations that already use that variable.
+  return process.env.WHATSAPP_APP_SECRET ?? process.env.META_APP_SECRET;
+}
+
 function hasValidMetaSignature(rawBody: Buffer, signature: string | undefined): boolean {
-  const appSecret = process.env.META_APP_SECRET;
+  const appSecret = resolveAppSecret();
   if (!appSecret || !signature?.startsWith("sha256=")) return false;
   const expected = `sha256=${crypto.createHmac("sha256", appSecret).update(rawBody).digest("hex")}`;
   const expectedBytes = Buffer.from(expected);
@@ -54,13 +61,22 @@ router.get("/webhooks/whatsapp", async (req, res): Promise<void> => {
     return;
   }
 
-  const bakers = await db.select().from(bakersTable);
-  const matched = bakers.some((b) => resolveVerifyToken(b.metaWebhookToken) === token);
   const envMatch =
     process.env.WHATSAPP_VERIFY_TOKEN === token ||
     process.env.META_WEBHOOK_VERIFY_TOKEN === token;
 
-  if (matched || envMatch) {
+  // The shared platform token is enough for Meta verification. Check it
+  // before touching the database so initial setup does not fail because of a
+  // temporary database connection issue.
+  if (envMatch) {
+    logger.info("WhatsApp webhook verified");
+    res.status(200).send(challenge);
+    return;
+  }
+
+  const bakers = await db.select().from(bakersTable);
+  const matched = bakers.some((b) => resolveVerifyToken(b.metaWebhookToken) === token);
+  if (matched) {
     logger.info("WhatsApp webhook verified");
     res.status(200).send(challenge);
     return;

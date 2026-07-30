@@ -1,68 +1,58 @@
-import {
-  createContext,
-  useContext,
-  type ReactNode,
-} from "react";
-import { ClerkProvider, useAuth as useClerkAuth } from "@clerk/react";
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signOut, type User } from "firebase/auth";
+import { firebaseAuth, isFirebaseConfigured } from "./firebase";
 
 type AppAuthValue = {
   isLoaded: boolean;
-  isSignedIn: boolean | undefined;
-  getToken: (options?: { template?: string }) => Promise<string | null>;
+  isSignedIn: boolean;
+  getToken: () => Promise<string | null>;
+  signInWithGoogle: () => Promise<string>;
+  signOut: () => Promise<void>;
 };
 
 const AppAuthContext = createContext<AppAuthValue | null>(null);
-
-const STUB_AUTH: AppAuthValue = {
+const DISABLED_AUTH: AppAuthValue = {
   isLoaded: true,
   isSignedIn: false,
   getToken: async () => null,
+  signInWithGoogle: async () => { throw new Error("Google sign-in is not configured yet."); },
+  signOut: async () => undefined,
 };
 
-export function isClerkConfigured(): boolean {
-  const key = (import.meta.env.VITE_CLERK_PUBLISHABLE_KEY as string | undefined)?.trim();
-  return Boolean(key && /^pk_(test|live)_/.test(key));
+function FirebaseAuthBridge({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoaded, setIsLoaded] = useState(false);
+  useEffect(() => onAuthStateChanged(firebaseAuth(), (nextUser) => {
+    setUser(nextUser);
+    setIsLoaded(true);
+  }), []);
+
+  const value = useMemo<AppAuthValue>(() => ({
+    isLoaded,
+    isSignedIn: Boolean(user),
+    getToken: async () => user ? user.getIdToken() : null,
+    signInWithGoogle: async () => {
+      const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: "select_account" });
+      const result = await signInWithPopup(firebaseAuth(), provider);
+      return result.user.getIdToken();
+    },
+    signOut: async () => signOut(firebaseAuth()),
+  }), [isLoaded, user]);
+
+  return <AppAuthContext.Provider value={value}>{children}</AppAuthContext.Provider>;
 }
 
-function ClerkAuthBridge({ children }: { children: ReactNode }) {
-  const { isLoaded, isSignedIn, getToken } = useClerkAuth();
-  const value: AppAuthValue = {
-    isLoaded,
-    isSignedIn,
-    getToken: async (options) => (await getToken(options)) ?? null,
-  };
-  return (
-    <AppAuthContext.Provider value={value}>{children}</AppAuthContext.Provider>
-  );
-}
+export { isFirebaseConfigured };
 
 export function AppAuthProvider({ children }: { children: ReactNode }) {
-  if (!isClerkConfigured()) {
-    return (
-      <AppAuthContext.Provider value={STUB_AUTH}>{children}</AppAuthContext.Provider>
-    );
-  }
-
-  const publishableKey = (import.meta.env.VITE_CLERK_PUBLISHABLE_KEY as string).trim();
-
-  return (
-    <ClerkProvider
-      publishableKey={publishableKey}
-      signInUrl="/dashboard/login"
-      signUpUrl="/dashboard/register"
-      signInFallbackRedirectUrl="/dashboard"
-      signUpFallbackRedirectUrl="/dashboard/onboarding"
-      afterSignOutUrl="/dashboard/login"
-    >
-      <ClerkAuthBridge>{children}</ClerkAuthBridge>
-    </ClerkProvider>
-  );
+  return isFirebaseConfigured()
+    ? <FirebaseAuthBridge>{children}</FirebaseAuthBridge>
+    : <AppAuthContext.Provider value={DISABLED_AUTH}>{children}</AppAuthContext.Provider>;
 }
 
 export function useAppAuth(): AppAuthValue {
   const value = useContext(AppAuthContext);
-  if (!value) {
-    throw new Error("useAppAuth must be used within AppAuthProvider");
-  }
+  if (!value) throw new Error("useAppAuth must be used within AppAuthProvider");
   return value;
 }

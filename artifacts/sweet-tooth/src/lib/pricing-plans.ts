@@ -48,7 +48,7 @@ export const APP_SERVICES = [
   { id: "broadcast", label: "Flash drops & customer broadcast" },
   { id: "advance_wa", label: "Advance payment WhatsApp reminders" },
   { id: "feedback", label: "Delivery feedback on WhatsApp" },
-  { id: "staff", label: "Priority onboarding (staff logins coming soon)" },
+  { id: "staff", label: "Team and staff access" },
   { id: "support", label: "Priority onboarding support" },
 ] as const;
 

@@ -5,6 +5,7 @@ import {
   useGetBakerProducts, 
   useGetBakerReviews,
   useSendChatMessage,
+  customFetch,
   getGetBakerQueryKey, 
   getGetBakerProductsQueryKey,
   getGetBakerReviewsQueryKey
@@ -34,6 +35,9 @@ export default function BakerProfile() {
   const { data: reviews } = useGetBakerReviews(bakerId, { query: { enabled: !!bakerId, queryKey: getGetBakerReviewsQueryKey(bakerId) } });
 
   const [selectedSizes, setSelectedSizes] = useState<Record<number, string>>({});
+  const [customQuote, setCustomQuote] = useState({ name: "", whatsapp: "", area: "", deliveryDate: "", servings: "12", cakeType: "", flavour: "", occasion: "", notes: "" });
+  const [customQuoteError, setCustomQuoteError] = useState<string | null>(null);
+  const [savingCustomQuote, setSavingCustomQuote] = useState(false);
 
   // Chat Widget State
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -170,6 +174,40 @@ export default function BakerProfile() {
     toast({ title: "Added to bag", description: `${product.name} is ready in your cart.` });
   };
 
+  const openCustomQuote = () => {
+    setCustomQuote({ name: "", whatsapp: "", area: "", deliveryDate: "", servings: "12", cakeType: "", flavour: "", occasion: "", notes: "" });
+    setCustomQuoteError(null);
+    (document.getElementById("custom-quote-dialog") as HTMLDialogElement | null)?.showModal();
+  };
+
+  const submitCustomQuote = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const servings = Number(customQuote.servings);
+    if (!Number.isInteger(servings) || servings < 1) {
+      setCustomQuoteError("Enter the number of servings.");
+      return;
+    }
+    setSavingCustomQuote(true);
+    setCustomQuoteError(null);
+    try {
+      await customFetch("/api/orders/custom-quote", {
+        method: "POST", responseType: "json", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          bakerId, buyerName: customQuote.name, buyerWhatsapp: customQuote.whatsapp,
+          buyerArea: customQuote.area || undefined, deliveryDate: customQuote.deliveryDate || undefined,
+          servings, cakeType: customQuote.cakeType, flavour: customQuote.flavour || undefined,
+          occasion: customQuote.occasion || undefined, specialInstructions: customQuote.notes,
+        }),
+      });
+      (document.getElementById("custom-quote-dialog") as HTMLDialogElement | null)?.close();
+      toast({ title: "Request sent", description: "The baker will review your custom cake request and confirm the price." });
+    } catch (cause) {
+      setCustomQuoteError(cause instanceof Error ? cause.message : "Could not send your request. Please try again.");
+    } finally {
+      setSavingCustomQuote(false);
+    }
+  };
+
   return (
     <BuyerLayout>
       <div className="container mx-auto px-4 py-8 max-w-5xl relative">
@@ -272,10 +310,32 @@ export default function BakerProfile() {
                         {flow.active === "web" ? "Chat with assistant" : "Web chat"}
                       </button>
                     )}
+                    <button type="button" onClick={openCustomQuote} className="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-bold border border-primary/30 text-primary bg-primary/5 hover:bg-primary/10">
+                      <Sparkles className="w-4 h-4" /> Request a custom cake
+                    </button>
                   </div>
                 </div>
               </div>
             </div>
+
+            <dialog id="custom-quote-dialog" className="w-[min(92vw,42rem)] rounded-2xl border border-border bg-card p-0 shadow-2xl backdrop:bg-black/45">
+              <form onSubmit={submitCustomQuote} className="p-6">
+                <div className="flex items-start justify-between gap-4"><div><h2 className="font-serif text-2xl font-bold text-primary">Request a custom cake</h2><p className="mt-1 text-sm text-muted-foreground">Tell the bakery what you need. They will review availability and send your quote using the contact details you share.</p></div><button type="button" onClick={() => (document.getElementById("custom-quote-dialog") as HTMLDialogElement | null)?.close()} className="rounded-md px-3 py-1 text-sm hover:bg-muted">Close</button></div>
+                <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                  <label className="grid gap-1 text-sm font-medium">Your name<input required value={customQuote.name} onChange={(event) => setCustomQuote((value) => ({ ...value, name: event.target.value }))} className="rounded-md border border-border bg-background px-3 py-2" /></label>
+                  <label className="grid gap-1 text-sm font-medium">WhatsApp number<input required type="tel" value={customQuote.whatsapp} onChange={(event) => setCustomQuote((value) => ({ ...value, whatsapp: event.target.value }))} placeholder="0300 1234567" className="rounded-md border border-border bg-background px-3 py-2" /></label>
+                  <label className="grid gap-1 text-sm font-medium">Cake type / theme<input required value={customQuote.cakeType} onChange={(event) => setCustomQuote((value) => ({ ...value, cakeType: event.target.value }))} placeholder="Two-tier floral cake" className="rounded-md border border-border bg-background px-3 py-2" /></label>
+                  <label className="grid gap-1 text-sm font-medium">Servings<input required type="number" min="1" value={customQuote.servings} onChange={(event) => setCustomQuote((value) => ({ ...value, servings: event.target.value }))} className="rounded-md border border-border bg-background px-3 py-2" /></label>
+                  <label className="grid gap-1 text-sm font-medium">Needed by<input type="date" value={customQuote.deliveryDate} onChange={(event) => setCustomQuote((value) => ({ ...value, deliveryDate: event.target.value }))} className="rounded-md border border-border bg-background px-3 py-2" /></label>
+                  <label className="grid gap-1 text-sm font-medium">Area / sector<input value={customQuote.area} onChange={(event) => setCustomQuote((value) => ({ ...value, area: event.target.value }))} className="rounded-md border border-border bg-background px-3 py-2" /></label>
+                  <label className="grid gap-1 text-sm font-medium">Flavour<input value={customQuote.flavour} onChange={(event) => setCustomQuote((value) => ({ ...value, flavour: event.target.value }))} placeholder="Chocolate, vanilla…" className="rounded-md border border-border bg-background px-3 py-2" /></label>
+                  <label className="grid gap-1 text-sm font-medium">Occasion<input value={customQuote.occasion} onChange={(event) => setCustomQuote((value) => ({ ...value, occasion: event.target.value }))} placeholder="Birthday" className="rounded-md border border-border bg-background px-3 py-2" /></label>
+                  <label className="grid gap-1 text-sm font-medium sm:col-span-2">Design, colours, text on cake, and other details<textarea required minLength={5} rows={4} value={customQuote.notes} onChange={(event) => setCustomQuote((value) => ({ ...value, notes: event.target.value }))} className="rounded-md border border-border bg-background px-3 py-2" /></label>
+                </div>
+                {customQuoteError && <p role="alert" className="mt-4 text-sm text-destructive">{customQuoteError}</p>}
+                <div className="mt-6 flex justify-end gap-3"><button type="button" onClick={() => (document.getElementById("custom-quote-dialog") as HTMLDialogElement | null)?.close()} className="rounded-lg border border-border px-4 py-2 text-sm font-semibold">Cancel</button><button disabled={savingCustomQuote} className="rounded-lg bg-primary px-4 py-2 text-sm font-bold text-primary-foreground disabled:opacity-50">{savingCustomQuote ? "Sending…" : "Send request"}</button></div>
+              </form>
+            </dialog>
 
             <div className="mb-8">
               <h2 className="text-3xl font-bold font-serif">Menu</h2>

@@ -6,11 +6,11 @@ import { DashboardPageFallback } from "@/components/dashboard/dashboard-page-fal
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { setBaseUrl } from "@workspace/api-client-react";
-import { useAppAuth } from "@/lib/app-auth";
 import {
   ManagedAuthProvider,
   useManagedBaker,
 } from "@/lib/managed-auth";
+import { initializeProductAnalytics } from "@/lib/product-analytics";
 
 // Read API URL from environment variable, falling back to the live production API alias.
 const apiUrl =
@@ -28,6 +28,7 @@ import Bakers from "@/pages/buyer/bakers";
 import Cart from "@/pages/buyer/cart";
 import BuyerOrders from "@/pages/buyer/orders";
 import OrderFeedback from "@/pages/buyer/feedback";
+import { PrivacyPolicy, TermsOfService } from "@/pages/legal";
 
 // Dashboard pages — lazy-loaded so each tab opens fast without loading the whole app.
 const DashboardHome = lazy(() => import("@/pages/dashboard/home"));
@@ -54,7 +55,6 @@ const queryClient = new QueryClient({
 });
 
 function ProtectedDashboard({ component: Component }: { component: ComponentType }) {
-  const { isLoaded: clerkLoaded, isSignedIn } = useAppAuth();
   const managed = useManagedBaker();
 
   if (managed.hasNativeSession) {
@@ -67,21 +67,8 @@ function ProtectedDashboard({ component: Component }: { component: ComponentType
     );
   }
 
-  // Avoid flashing the login form while Clerk initializes — show a light shell instead.
-  if (!clerkLoaded) return <DashboardPageFallback />;
-  if (!managed.isLoaded) return <DashboardPageFallback />;
-  if (!isSignedIn) return <BakerLogin />;
-  if (managed.error) {
-    return <div role="alert" className="min-h-screen bg-background px-6 py-20 text-center text-destructive">{managed.error}</div>;
-  }
-  if (managed.needsOnboarding) return <BakerOnboarding />;
-  return managed.bakerId ? (
-    <Suspense fallback={<DashboardPageFallback />}>
-      <Component />
-    </Suspense>
-  ) : (
-    <BakerOnboarding />
-  );
+  // The bakery dashboard always requires an API session issued after native or Firebase sign-in.
+  return <BakerLogin />;
 }
 
 function dashboardRoute(Component: ComponentType) {
@@ -90,15 +77,25 @@ function dashboardRoute(Component: ComponentType) {
   };
 }
 
+function ownerDashboardRoute(Component: ComponentType) {
+  return function OwnerDashboardRoute() {
+    const managed = useManagedBaker();
+    if (managed.hasNativeSession && managed.bakerId && managed.role !== "owner") {
+      return <DashboardHomeRoute />;
+    }
+    return <ProtectedDashboard component={Component} />;
+  };
+}
+
 const DashboardHomeRoute = dashboardRoute(DashboardHome);
 const DashboardOrdersRoute = dashboardRoute(DashboardOrders);
 const DashboardCatalogRoute = dashboardRoute(DashboardCatalog);
 const DashboardAnalyticsRoute = dashboardRoute(DashboardAnalytics);
-const DashboardSettingsRoute = dashboardRoute(DashboardSettings);
-const DashboardPaymentsRoute = dashboardRoute(DashboardPayments);
+const DashboardSettingsRoute = ownerDashboardRoute(DashboardSettings);
+const DashboardPaymentsRoute = ownerDashboardRoute(DashboardPayments);
 const DashboardCustomersRoute = dashboardRoute(DashboardCustomers);
 const DashboardCalendarRoute = dashboardRoute(DashboardCalendar);
-const DashboardAgentHubRoute = dashboardRoute(DashboardAgentHub);
+const DashboardAgentHubRoute = ownerDashboardRoute(DashboardAgentHub);
 const DashboardKhataRoute = dashboardRoute(DashboardKhata);
 const DashboardGuideRoute = dashboardRoute(DashboardGuide);
 
@@ -113,6 +110,8 @@ function Router() {
       <Route path="/cart" component={Cart} />
       <Route path="/orders" component={BuyerOrders} />
       <Route path="/feedback/:orderId" component={OrderFeedback} />
+      <Route path="/privacy" component={PrivacyPolicy} />
+      <Route path="/terms" component={TermsOfService} />
 
       <Route path="/dashboard" component={DashboardHomeRoute} />
       <Route path="/dashboard/orders" component={DashboardOrdersRoute} />
@@ -138,6 +137,8 @@ function Router() {
 }
 
 function App() {
+  initializeProductAnalytics();
+
   return (
     <QueryClientProvider client={queryClient}>
       <ManagedAuthProvider>

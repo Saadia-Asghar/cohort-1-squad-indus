@@ -14,7 +14,13 @@ import {
   startOfWeek,
   endOfWeek,
 } from "date-fns";
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, MapPin, Phone, DollarSign, Tag, Gift, AlertCircle, Ban } from "lucide-react";
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, MapPin, Phone, DollarSign, Tag, Gift, AlertCircle, Ban, MessageCircle, X } from "lucide-react";
+
+function whatsappHref(phone: string | undefined | null): string | null {
+  const digits = (phone ?? "").replace(/\D/g, "");
+  if (digits.length < 8) return null;
+  return `https://wa.me/${digits.startsWith("0") ? `92${digits.slice(1)}` : digits}`;
+}
 
 export default function DashboardCalendar() {
   const { bakerId } = useBuyerSession();
@@ -183,6 +189,18 @@ export default function DashboardCalendar() {
               <div className="flex items-center gap-2">
                 <Phone className="w-4 h-4 text-muted-foreground" />
                 <span><strong>Contact:</strong> {selectedOrder.buyerName} ({selectedOrder.buyerWhatsapp})</span>
+                {whatsappHref(selectedOrder.buyerWhatsapp) && (
+                  <a
+                    href={whatsappHref(selectedOrder.buyerWhatsapp)!}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="ml-auto inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-green-200 bg-green-50 px-2.5 py-1.5 text-xs font-semibold text-green-800 hover:bg-green-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                    aria-label={`Open WhatsApp chat with ${selectedOrder.buyerName}`}
+                  >
+                    <MessageCircle className="h-3.5 w-3.5" aria-hidden="true" />
+                    Message
+                  </a>
+                )}
               </div>
               <div className="flex items-center gap-2">
                 <MapPin className="w-4 h-4 text-muted-foreground" />

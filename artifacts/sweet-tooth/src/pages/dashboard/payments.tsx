@@ -143,9 +143,8 @@ export default function DashboardPayments() {
           Track outstanding and paid orders. Upload a JazzCash / Easypaisa screenshot for advisory OCR — it never marks
           paid automatically.
         </p>
-        <div className="mb-6 rounded-lg border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
-          Prefer <strong className="text-foreground">Upload receipt</strong> — no Cloudinary or image host setup needed.
-          HTTPS URL paste still works if you already host the image.
+        <div role="note" className="mb-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+          OCR is a review aid, not proof of payment. Verify the amount and reference in your Easypaisa, JazzCash or bank account before you confirm payment.
         </div>
 
         {/* Summary cards */}
@@ -227,7 +226,7 @@ export default function DashboardPayments() {
                               className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-green-600 text-white text-sm font-medium hover:bg-green-700 transition-colors disabled:opacity-50"
                             >
                               <CheckCircle className="w-4 h-4" />
-                              Handled
+                              Confirm received
                             </button>
                           </div>
                         </div>

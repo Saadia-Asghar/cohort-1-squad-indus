@@ -1,14 +1,14 @@
-import { SignIn, SignUp } from "@clerk/react";
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { ArrowLeft, Store, Mail, Lock, Phone, ChevronDown, ChevronUp, UserCheck, AlertCircle } from "lucide-react";
+import { ArrowLeft, Store, Mail, Lock, Phone, UserCheck, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { isClerkConfigured } from "@/lib/app-auth";
+import { isFirebaseConfigured, useAppAuth } from "@/lib/app-auth";
 import { getPlanById } from "@/lib/pricing-plans";
 import { useManagedBaker } from "@/lib/managed-auth";
+import { captureProductEvent, identifyBakerForAnalytics } from "@/lib/product-analytics";
 import { customFetch } from "@workspace/api-client-react";
 
 export default function BakerLogin({ initialTab = "login" }: { initialTab?: "login" | "register" }) {
@@ -19,8 +19,8 @@ export default function BakerLogin({ initialTab = "login" }: { initialTab?: "log
       ? new URLSearchParams(window.location.search).get("plan")
       : null;
   const selectedPlan = getPlanById(selectedPlanId);
-  const [showClerkSSO, setShowClerkSSO] = useState(isClerkConfigured());
   const { loginNatively } = useManagedBaker();
+  const { signInWithGoogle } = useAppAuth();
   
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -31,9 +31,35 @@ export default function BakerLogin({ initialTab = "login" }: { initialTab?: "log
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const finishAuth = (token: string, bakerId: number) => {
-    loginNatively(token, bakerId);
+  const finishAuth = (token: string, bakerId: number, method: "password" | "google", role: "owner" | "staff" = "owner") => {
+    loginNatively(token, bakerId, role);
+    identifyBakerForAnalytics(bakerId);
+    captureProductEvent("baker_login_completed", { method });
     setLocation("/dashboard");
+  };
+
+  const continueWithGoogle = async (onboarding: boolean) => {
+    setLoading(true);
+    setError("");
+    try {
+      const idToken = await signInWithGoogle();
+      const response = await customFetch<{ needsOnboarding: boolean; token?: string; baker?: { id: number } }>("/api/bakers/firebase/session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ idToken }),
+      });
+      if (response.needsOnboarding) {
+        setLocation("/dashboard/onboarding");
+        return;
+      }
+      if (!response.token || !response.baker?.id) throw new Error("Could not open your bakery dashboard.");
+      finishAuth(response.token, response.baker.id, "google");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message.replace(/^HTTP \\d+\\s*[^:]*:\\s*/, "") : "Google sign-in could not be completed.");
+      if (onboarding) setActiveTab("register");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -41,12 +67,12 @@ export default function BakerLogin({ initialTab = "login" }: { initialTab?: "log
     setLoading(true);
     setError("");
     try {
-      const response = await customFetch<{ token: string; baker: { id: number } }>("/api/bakers/login", {
+      const response = await customFetch<{ token: string; baker: { id: number }; role?: "owner" | "staff" }>("/api/bakers/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ identifier: email.trim(), password }),
       });
-      finishAuth(response.token, response.baker.id);
+      finishAuth(response.token, response.baker.id, "password", response.role ?? "owner");
     } catch (err: unknown) {
       const message =
         err instanceof Error ? err.message.replace(/^HTTP \d+\s*[^:]*:\s*/, "") : "Invalid email/number or password";
@@ -60,6 +86,7 @@ export default function BakerLogin({ initialTab = "login" }: { initialTab?: "log
     e.preventDefault();
     setLoading(true);
     setError("");
+    captureProductEvent("baker_registration_submitted");
     try {
       const slug = businessName
         .trim()
@@ -80,7 +107,9 @@ export default function BakerLogin({ initialTab = "login" }: { initialTab?: "log
           password,
         }),
       });
-      finishAuth(response.token, response.baker.id);
+      identifyBakerForAnalytics(response.baker.id);
+      captureProductEvent("baker_registration_completed");
+      finishAuth(response.token, response.baker.id, "password");
     } catch (err: unknown) {
       const message =
         err instanceof Error ? err.message.replace(/^HTTP \d+\s*[^:]*:\s*/, "") : "Could not create your bakery account";
@@ -169,27 +198,16 @@ export default function BakerLogin({ initialTab = "login" }: { initialTab?: "log
                 </Button>
               </form>
 
-              {isClerkConfigured() && (
+              {isFirebaseConfigured() && (
                 <div className="pt-3 border-t border-border/60 text-center">
                   <button
                     type="button"
-                    onClick={() => setShowClerkSSO(!showClerkSSO)}
-                    className="text-xs font-medium text-purple-600 dark:text-purple-400 hover:underline inline-flex items-center gap-1"
+                    onClick={() => void continueWithGoogle(false)}
+                    disabled={loading}
+                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-xs font-semibold text-foreground hover:bg-muted disabled:opacity-50"
                   >
-                    {showClerkSSO ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-                    {showClerkSSO ? "Hide Google sign-in" : "Or sign in with Google"}
+                    Continue with Google
                   </button>
-
-                  {showClerkSSO && (
-                    <div className="mt-3 flex justify-center">
-                      <SignIn
-                        routing="hash"
-                        forceRedirectUrl="/dashboard"
-                        fallbackRedirectUrl="/dashboard"
-                        signUpUrl="/dashboard/register"
-                      />
-                    </div>
-                  )}
                 </div>
               )}
             </TabsContent>
@@ -299,27 +317,16 @@ export default function BakerLogin({ initialTab = "login" }: { initialTab?: "log
                 </Button>
               </form>
 
-              {isClerkConfigured() && (
+              {isFirebaseConfigured() && (
                 <div className="pt-3 border-t border-border/60 text-center">
                   <button
                     type="button"
-                    onClick={() => setShowClerkSSO(!showClerkSSO)}
-                    className="text-xs font-medium text-purple-600 dark:text-purple-400 hover:underline inline-flex items-center gap-1"
+                    onClick={() => void continueWithGoogle(true)}
+                    disabled={loading}
+                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-xs font-semibold text-foreground hover:bg-muted disabled:opacity-50"
                   >
-                    {showClerkSSO ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-                    {showClerkSSO ? "Hide Google sign-up" : "Or register with Google"}
+                    Sign up with Google
                   </button>
-
-                  {showClerkSSO && (
-                    <div className="mt-3 flex justify-center">
-                      <SignUp
-                        routing="hash"
-                        forceRedirectUrl="/dashboard/onboarding"
-                        fallbackRedirectUrl="/dashboard/onboarding"
-                        signInUrl="/dashboard/login"
-                      />
-                    </div>
-                  )}
                 </div>
               )}
             </TabsContent>

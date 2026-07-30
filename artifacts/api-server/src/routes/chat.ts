@@ -101,6 +101,7 @@ router.get("/chat/:bakerId/conversations", requireBakerAuth, requireBakerOwnersh
     unread: false,
     preferences: m.preferences ?? {},
     summary: m.summary,
+    needsBakerReply: m.summary === "Customer needs a baker follow-up.",
   }));
 
   const knownBuyerIds = new Set(memories.map((m) => m.buyerId));
@@ -116,6 +117,7 @@ router.get("/chat/:bakerId/conversations", requireBakerAuth, requireBakerOwnersh
       unread: false,
       preferences: {},
       summary: null,
+      needsBakerReply: false,
     });
   }
 

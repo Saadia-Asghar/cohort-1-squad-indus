@@ -10,6 +10,7 @@ import {
   ordersTable,
 } from "@workspace/db";
 import { logger } from "./logger.js";
+import { deliveryZoneSummary, findDeliveryZone, normalizeDeliveryZones } from "./delivery-zones.js";
 import { sendN8nEvent } from "./n8n.js";
 import { deriveCustomerInsights } from "./customer-insights.js";
 import { applyAgentLanguage, normalizeAgentLanguage } from "./agent-language.js";
@@ -18,6 +19,7 @@ import { formatRetrievedContext, retrieveKnowledge } from "./rag/retriever.js";
 import { isPlanAccessActive, TRIAL_EXPIRED_BUYER_REPLY } from "./subscription.js";
 import { AI_REPLY_CAP_BUYER_REPLY, isAiReplyCapReached } from "./plan-limits.js";
 import { callLlm } from "./llm.js";
+import { isMenuScopedMessage } from "./agent-safety.js";
 
 export type AgentReply = {
   reply: string;
@@ -26,33 +28,7 @@ export type AgentReply = {
   escalated: boolean;
 };
 
-const MENU_SCOPE_KEYWORDS = [
-  "menu", "product", "cake", "cupcake", "cookie", "dessert", "brownie", "pastry", "bake",
-  "price", "cost", "pkr", "size", "flavour", "flavor", "variant", "custom", "design",
-  "order", "cart", "buy", "book", "delivery", "deliver", "pickup", "area", "sector", "location",
-  "available", "stock", "lead time", "today", "tomorrow", "open", "close", "hours",
-  "payment", "pay", "cod", "cash", "advance", "receipt", "refund", "cancel", "status",
-  "egg", "vegan", "vegetarian", "gluten", "dairy", "nut", "allergy", "allergen", "halal",
-  "discount", "offer", "promo", "coupon", "sale", "deal", "ingredient", "recommend", "occasion",
-  "birthday", "wedding", "anniversary", "thank", "thanks", "hello", "hi", "salam", "assalam",
-  "kya", "kitna", "kitne", "batao", "bata dein", "chahiye", "mangna", "mangwana",
-  "meetha", "mithai",
-];
-
-const PROMPT_INJECTION_PATTERNS = [
-  /ignore (all |any |the )?(previous|prior|above) (instructions|rules|message)/i,
-  /system prompt|developer message|jailbreak|reveal .*prompt/i,
-  /act as (?!a bakery|the bakery|an assistant)/i,
-  /show (me )?(your|the) (instructions|rules|memory|api key)/i,
-];
-
-export function isMenuScopedMessage(message: string, productNames: string[]): boolean {
-  const normalized = message.toLowerCase().trim();
-  if (!normalized) return false;
-  if (PROMPT_INJECTION_PATTERNS.some((pattern) => pattern.test(normalized))) return false;
-  if (productNames.some((name) => normalized.includes(name.toLowerCase()))) return true;
-  return MENU_SCOPE_KEYWORDS.some((keyword) => normalized.includes(keyword));
-}
+export { isMenuScopedMessage } from "./agent-safety.js";
 
 function menuScopeRefusal(businessName: string): AgentReply {
   return {
@@ -317,8 +293,61 @@ export async function generateAgentReply(
   // Exact-first policy: the customer-facing answers below come from live
   // bakery records. Unknown questions fail closed to baker confirmation.
 
+  // A custom design cannot be priced safely from a generic message. Collect
+  // the key order details and explicitly notify the baker rather than inventing
+  // a quote, availability, or delivery promise.
+  if (/(custom (cake|order|design)|theme cake|birthday cake|wedding cake|photo cake|fondant)/.test(lowerMsg)) {
+    return {
+      reply: `I can help ${baker.businessName} prepare a custom-order request. Please share the occasion/design, required date and time, number of servings, flavour, eggless/dietary needs, and delivery or pickup area. The baker will confirm the final price and availability.`,
+      action: "escalate",
+      cartItemId: null,
+      escalated: true,
+    };
+  }
+
+  // Handle a named product before a generic "price" or "menu" request. This
+  // prevents a customer asking "what is the price of Chocolate Cake?" from
+  // receiving an unhelpful full catalogue instead of the exact product facts.
+  const mentionedProduct = products.find((product) =>
+    lowerMsg.includes(product.name.toLowerCase()),
+  );
+  if (mentionedProduct) {
+    if (!mentionedProduct.isAvailable) {
+      const alternatives = products.filter(
+        (product) => product.isAvailable && product.category === mentionedProduct.category,
+      );
+      const alternativeText = alternatives.length
+        ? ` Available alternatives: ${alternatives.map((product) => product.name).join(", ")}.`
+        : " Please ask the baker when it will be available again.";
+      return {
+        reply: `${mentionedProduct.name} is currently unavailable.${alternativeText}`,
+        action: null,
+        cartItemId: null,
+        escalated: false,
+      };
+    }
+
+    const sizes = (mentionedProduct.sizes as Array<{ label: string; pricePkr: number }>) ?? [];
+    const price = sizes.length
+      ? `Sizes and prices: ${sizes.map((size) => `${size.label} — PKR ${size.pricePkr.toLocaleString()}`).join(", ")}`
+      : `Price: PKR ${mentionedProduct.basePricePkr.toLocaleString()}`;
+    const leadTime = mentionedProduct.leadTimeDays > 0
+      ? ` Preparation time: ${mentionedProduct.leadTimeDays} day${mentionedProduct.leadTimeDays === 1 ? "" : "s"}.`
+      : "";
+    const dietaryTags = (mentionedProduct.dietaryTags as string[] | null) ?? [];
+    const dietary = dietaryTags.length ? ` Dietary labels: ${dietaryTags.join(", ")}.` : "";
+    const eggless = mentionedProduct.isEgglessAvailable ? " An eggless version is available." : "";
+    return {
+      reply: `${mentionedProduct.name} is available. ${price}.${leadTime}${eggless}${dietary} Would you like to order it, or check delivery for your area?`,
+      action: null,
+      cartItemId: null,
+      escalated: false,
+    };
+  }
+
+  const asksDelivery = lowerMsg.includes("deliver") || lowerMsg.includes("area") || lowerMsg.includes("location");
   if (
-    lowerMsg.includes("price") ||
+    (lowerMsg.includes("price") && !asksDelivery) ||
     lowerMsg.includes("menu") ||
     lowerMsg.includes("what do you have") ||
     lowerMsg.includes("list")
@@ -382,8 +411,26 @@ export async function generateAgentReply(
     };
   }
 
-  if (lowerMsg.includes("deliver") || lowerMsg.includes("area") || lowerMsg.includes("location")) {
+  if (asksDelivery) {
     const areas = (baker.deliveryAreas ?? []).join(", ");
+    const agentConf = (baker.agentConfig ?? {}) as { deliveryPricing?: unknown; deliveryZones?: unknown; allowDelivery?: unknown };
+    if (agentConf.allowDelivery === false) {
+      return {
+        reply: `${baker.businessName} is currently offering pickup only. Please ask the baker to confirm whether delivery can be arranged for your order.`,
+        action: null,
+        cartItemId: null,
+        escalated: false,
+      };
+    }
+    const deliveryPricing = typeof agentConf.deliveryPricing === "string" ? agentConf.deliveryPricing.trim() : "";
+    const deliveryZones = normalizeDeliveryZones(agentConf.deliveryZones);
+    // Prefer the area in this message. Memory is only a fallback, so a buyer
+    // changing from DHA to Gulberg never receives an outdated delivery quote.
+    const matchedZone = findDeliveryZone(deliveryZones, message)
+      ?? findDeliveryZone(deliveryZones, String(buyerPrefs.preferredArea ?? ""));
+    const zonePricing = matchedZone
+      ? ` Delivery to ${matchedZone.name} is PKR ${matchedZone.feePkr.toLocaleString()}${matchedZone.minimumOrderPkr ? ` (minimum order PKR ${matchedZone.minimumOrderPkr.toLocaleString()})` : ""}.`
+      : deliveryZones.length ? ` Delivery zones and charges: ${deliveryZoneSummary(deliveryZones)}.` : "";
     const personalNote =
       buyerPrefs.preferredArea &&
       areas.toLowerCase().includes((buyerPrefs.preferredArea as string).toLowerCase())
@@ -391,7 +438,7 @@ export async function generateAgentReply(
         : "";
     return {
       reply: areas
-        ? `${baker.businessName} delivers to: ${areas}.${personalNote} Pickup is also available. Which area are you in?`
+        ? `${baker.businessName} delivers to: ${areas}.${zonePricing || (deliveryPricing ? ` Delivery charges: ${deliveryPricing}.` : "")}${personalNote} Pickup is also available. Which area are you in?`
         : `Please contact ${baker.businessName} directly on WhatsApp to confirm delivery to your area.`,
       action: null,
       cartItemId: null,
@@ -461,49 +508,11 @@ export async function generateAgentReply(
     }
     const available = products.filter((p) => p.isAvailable);
     return {
-      reply: `${greeting}${personalNote} I'm here to help you order or answer any questions.\n\nWe have ${available.length} items available today. Would you like to see our menu?`,
+      reply: `${greeting}${personalNote} I'm here to help you order or answer questions from the bakery's published menu.\n\nWe currently have ${available.length} items listed as available. Would you like to see the menu?`,
       action: null,
       cartItemId: null,
       escalated: false,
     };
-  }
-
-  for (const product of products) {
-    if (lowerMsg.includes(product.name.toLowerCase())) {
-      if (!product.isAvailable) {
-        const alternatives = products.filter(
-          (p) => p.isAvailable && p.category === product.category,
-        );
-        const altText =
-          alternatives.length > 0
-            ? ` You might also like: ${alternatives.map((p) => p.name).join(", ")}.`
-            : "";
-        return {
-          reply: `${product.name} is currently sold out.${altText}`,
-          action: null,
-          cartItemId: null,
-          escalated: false,
-        };
-      }
-      const sizes = (product.sizes as Array<{ label: string; pricePkr: number }>) ?? [];
-      const priceStr =
-        sizes.length > 0
-          ? `Sizes: ${sizes.map((s) => `${s.label} PKR ${s.pricePkr.toLocaleString()}`).join(", ")}`
-          : `PKR ${product.basePricePkr.toLocaleString()}`;
-      const leadText =
-        product.leadTimeDays > 0
-          ? ` Ready in ${product.leadTimeDays} day${product.leadTimeDays > 1 ? "s" : ""}.`
-          : "";
-      const descriptionText = product.description ? ` ${product.description}` : "";
-      const dietaryTags = (product.dietaryTags as string[] | null) ?? [];
-      const dietaryText = dietaryTags.length ? ` Dietary labels: ${dietaryTags.join(", ")}.` : "";
-      return {
-        reply: `${product.name} is available!${descriptionText} ${priceStr}.${leadText}${product.isEgglessAvailable ? " Eggless version available." : ""}${dietaryText}\n\nWould you like to add it to your order?`,
-        action: null,
-        cartItemId: null,
-        escalated: false,
-      };
-    }
   }
 
   // RAG fallback — indexed menu/policy chunks when rules miss

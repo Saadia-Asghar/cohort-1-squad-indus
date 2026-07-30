@@ -28,6 +28,13 @@ import {
 } from "lucide-react";
 
 type Tab = "built-in" | "whatsapp" | "instagram" | "conversations";
+type DeliveryZone = { id: string; name: string; feePkr: number; minimumOrderPkr?: number };
+const REPLY_TEMPLATES = [
+  { trigger: "custom cake", response: "We would love to help with a custom cake. Please share your date, servings, flavour, theme and delivery area so the baker can confirm a quote." },
+  { trigger: "same day", response: "Same-day availability depends on the baking schedule. Please share the item, quantity and required time; the baker will confirm what is possible." },
+  { trigger: "payment", response: "Payment details and any advance requirement are shared after the order is confirmed. Please send a receipt or transaction reference after transfer." },
+  { trigger: "delivery", response: "Please share your area and required delivery date. I will confirm whether delivery is available and the exact baker-set fee." },
+] as const;
 
 export default function AgentHub() {
   const { bakerId } = useBuyerSession();
@@ -38,10 +45,14 @@ export default function AgentHub() {
   const [newKeyword, setNewKeyword] = useState("");
   const [newCustomTrigger, setNewCustomTrigger] = useState("");
   const [newCustomResponse, setNewCustomResponse] = useState("");
+  const [newZoneName, setNewZoneName] = useState("");
+  const [newZoneFee, setNewZoneFee] = useState("");
+  const [newZoneMinimum, setNewZoneMinimum] = useState("");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [reindexResult, setReindexResult] = useState<KnowledgeReindexResult | null>(null);
   const [reindexError, setReindexError] = useState<string | null>(null);
+  const [whatsappConnected, setWhatsappConnected] = useState(false);
 
   const reindexKnowledge = useReindexBakerKnowledge({
     mutation: {
@@ -98,6 +109,8 @@ export default function AgentHub() {
     availabilityHours?: string;
     dietaryPolicy?: string;
     activeOffers?: string;
+    deliveryPricing?: string;
+    deliveryZones?: DeliveryZone[];
     preferredCustomerChannel?: "web" | "whatsapp" | "instagram";
     agentLanguage?: "english" | "urdu" | "roman_urdu" | "bilingual";
   }>({});
@@ -173,6 +186,30 @@ export default function AgentHub() {
       customResponses: customResponses.filter(cr => cr.trigger !== trigger),
     }));
   };
+  const addReplyTemplate = (template: { trigger: string; response: string }) => {
+    if (customResponses.some((item) => item.trigger.toLowerCase() === template.trigger.toLowerCase())) return;
+    setLocalConfig((previous) => ({ ...previous, customResponses: [...customResponses, template] }));
+  };
+
+  const deliveryZones = merged.deliveryZones ?? [];
+  const addDeliveryZone = () => {
+    const name = newZoneName.trim();
+    const feePkr = Number(newZoneFee);
+    const minimumOrderPkr = newZoneMinimum.trim() ? Number(newZoneMinimum) : undefined;
+    if (!name || !Number.isInteger(feePkr) || feePkr < 0 || (minimumOrderPkr !== undefined && (!Number.isInteger(minimumOrderPkr) || minimumOrderPkr < 0))) return;
+    if (deliveryZones.some((zone) => zone.name.toLowerCase() === name.toLowerCase())) return;
+    setLocalConfig((previous) => ({
+      ...previous,
+      deliveryZones: [...deliveryZones, { id: `zone-${Date.now()}`, name, feePkr, ...(minimumOrderPkr ? { minimumOrderPkr } : {}) }],
+    }));
+    setNewZoneName("");
+    setNewZoneFee("");
+    setNewZoneMinimum("");
+  };
+  const removeDeliveryZone = (id: string) => setLocalConfig((previous) => ({
+    ...previous,
+    deliveryZones: deliveryZones.filter((zone) => zone.id !== id),
+  }));
 
   const tabs: { id: Tab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
     { id: "built-in", label: "Built-in Agent", icon: Bot },
@@ -383,8 +420,14 @@ export default function AgentHub() {
                 <label className="text-sm font-medium">Order availability<input value={merged.availabilityHours ?? ""} onChange={e => setLocalConfig(prev => ({ ...prev, availabilityHours: e.target.value }))} placeholder="e.g. Mon–Sat, 10am–8pm" className="block mt-1 w-full px-3 py-2 border border-border rounded-lg bg-background text-sm" /></label>
               </div>
               <label className="block text-sm font-medium">Dietary & allergen policy<textarea rows={3} value={merged.dietaryPolicy ?? ""} onChange={e => setLocalConfig(prev => ({ ...prev, dietaryPolicy: e.target.value }))} placeholder="e.g. Eggless on selected items. We cannot guarantee an allergen-free kitchen; confirm severe allergies before ordering." className="block mt-1 w-full px-3 py-2 border border-border rounded-lg bg-background text-sm resize-none" /></label>
+              <div className="rounded-lg border border-border bg-muted/20 p-3">
+                <div className="flex items-start justify-between gap-4"><div><p className="text-sm font-medium">Delivery zones & fees</p><p className="mt-0.5 text-xs text-muted-foreground">Only baker-set areas are quoted. Unknown areas are never guessed.</p></div><span className="text-xs text-muted-foreground">{deliveryZones.length}/30</span></div>
+                {deliveryZones.length > 0 && <div className="mt-3 space-y-2">{deliveryZones.map((zone) => <div key={zone.id} className="flex items-center justify-between gap-3 rounded-md bg-background px-3 py-2 text-sm"><span><strong>{zone.name}</strong> · PKR {zone.feePkr.toLocaleString()}{zone.minimumOrderPkr ? ` · min PKR ${zone.minimumOrderPkr.toLocaleString()}` : ""}</span><button type="button" onClick={() => removeDeliveryZone(zone.id)} className="rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive" aria-label={`Remove ${zone.name}`}><X className="h-4 w-4" /></button></div>)}</div>}
+                <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_8rem_9rem_auto]"><input value={newZoneName} onChange={(event) => setNewZoneName(event.target.value)} placeholder="Area, e.g. DHA Phase 5" className="rounded-md border border-border bg-background px-3 py-2 text-sm" /><input value={newZoneFee} onChange={(event) => setNewZoneFee(event.target.value)} inputMode="numeric" placeholder="Fee PKR" className="rounded-md border border-border bg-background px-3 py-2 text-sm" /><input value={newZoneMinimum} onChange={(event) => setNewZoneMinimum(event.target.value)} inputMode="numeric" placeholder="Min order (optional)" className="rounded-md border border-border bg-background px-3 py-2 text-sm" /><button type="button" onClick={addDeliveryZone} className="rounded-md bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90">Add</button></div>
+              </div>
+              <label className="block text-sm font-medium">Delivery prices<textarea rows={2} value={merged.deliveryPricing ?? ""} onChange={e => setLocalConfig(prev => ({ ...prev, deliveryPricing: e.target.value }))} placeholder="e.g. Gulberg: PKR 200 · DHA: PKR 350 · Free above PKR 5,000" className="block mt-1 w-full px-3 py-2 border border-border rounded-lg bg-background text-sm resize-none" /></label>
               <label className="block text-sm font-medium">Current discount offers<textarea rows={2} value={merged.activeOffers ?? ""} onChange={e => setLocalConfig(prev => ({ ...prev, activeOffers: e.target.value }))} placeholder="e.g. 10% off cupcakes with code SWEET10 until 31 July. One offer per line." className="block mt-1 w-full px-3 py-2 border border-border rounded-lg bg-background text-sm resize-none" /></label>
-              <p className="text-xs text-muted-foreground">The web and WhatsApp agents read these same live offers when a customer asks about discounts.</p>
+              <p className="text-xs text-muted-foreground">The web and WhatsApp agents use these same delivery prices and offers. Leave a charge blank rather than letting the agent guess.</p>
             </div>
 
             {/* Blocked topics */}
@@ -427,6 +470,7 @@ export default function AgentHub() {
                 <h3 className="font-semibold">Custom Responses</h3>
               </div>
               <p className="text-sm text-muted-foreground">Teach the agent exact replies when buyers mention specific words.</p>
+              <div className="flex flex-wrap gap-2">{REPLY_TEMPLATES.map((template) => <button key={template.trigger} type="button" onClick={() => addReplyTemplate(template)} disabled={customResponses.some((item) => item.trigger.toLowerCase() === template.trigger.toLowerCase())} className="rounded-full border border-primary/30 px-3 py-1 text-xs font-semibold text-primary hover:bg-primary/10 disabled:cursor-not-allowed disabled:opacity-45">+ {template.trigger}</button>)}</div>
               <div className="space-y-2">
                 {customResponses.map((cr) => (
                   <div key={cr.trigger} className="p-3 bg-muted/40 rounded-lg text-sm">
@@ -597,6 +641,10 @@ export default function AgentHub() {
                     alert("Upgrade to Kitchen Standard or higher to enable the WhatsApp agent.");
                     return;
                   }
+                  if (!merged.whatsappAgentEnabled && !whatsappConnected) {
+                    alert("Connect a WhatsApp Business number below before enabling the agent.");
+                    return;
+                  }
                   setLocalConfig(prev => ({ ...prev, whatsappAgentEnabled: !merged.whatsappAgentEnabled }));
                 }}
                 className={`relative w-12 h-6 rounded-full transition-colors ${merged.whatsappAgentEnabled ? "bg-green-500" : "bg-muted-foreground/30"}`}
@@ -616,7 +664,7 @@ export default function AgentHub() {
                   <li>Enable the agent toggle only after the connection shows as successful.</li>
                 </ol>
               </div>
-              <WhatsAppEmbeddedSignup />
+              <WhatsAppEmbeddedSignup onStatusChange={setWhatsappConnected} />
               <p className="text-xs text-muted-foreground">The shared app webhook is configured once by the platform owner; bakers never paste access tokens into this page.</p>
             </div>
 
@@ -655,7 +703,10 @@ export default function AgentHub() {
                         {conv.buyerName.charAt(0).toUpperCase()}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-medium truncate">{conv.buyerName}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium truncate">{conv.buyerName}</p>
+                          {conv.needsBakerReply && <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase text-amber-900">Needs you</span>}
+                        </div>
                         <p className="text-sm text-muted-foreground truncate">{conv.lastMessage}</p>
                       </div>
                       <p className="text-xs text-muted-foreground shrink-0">
@@ -827,6 +878,7 @@ export default function AgentHub() {
                             <div className="flex items-center gap-2 mb-0.5">
                               <p className="font-semibold truncate">{conv.buyerName}</p>
                               {conv.unread && <span className="w-2 h-2 rounded-full bg-primary shrink-0" />}
+                              {conv.needsBakerReply && <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase text-amber-900">Needs you</span>}
                             </div>
                             <p className="text-sm text-muted-foreground truncate">{conv.lastMessage}</p>
                             {prefTags.length > 0 && (
