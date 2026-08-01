@@ -87,7 +87,8 @@ import type {
   UpdateInventoryItemBody,
   UploadGuestOrderReceiptBody,
   VerifyOrderPayment200,
-  VerifyOrderPaymentBody
+  VerifyOrderPaymentBody,
+  WeeklySuccessReport
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -2702,6 +2703,83 @@ export function useGetOrderSources<TData = Awaited<ReturnType<typeof getOrderSou
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetOrderSourcesQueryOptions(bakerId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetWeeklySuccessReportUrl = (bakerId: number,) => {
+
+
+
+
+  return `/api/analytics/baker/${bakerId}/weekly-report`
+}
+
+/**
+ * @summary Get weekly success report
+ */
+export const getWeeklySuccessReport = async (bakerId: number, options?: RequestInit): Promise<WeeklySuccessReport> => {
+
+  return customFetch<WeeklySuccessReport>(getGetWeeklySuccessReportUrl(bakerId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetWeeklySuccessReportQueryKey = (bakerId: number,) => {
+    return [
+    `/api/analytics/baker/${bakerId}/weekly-report`
+    ] as const;
+    }
+
+
+export const getGetWeeklySuccessReportQueryOptions = <TData = Awaited<ReturnType<typeof getWeeklySuccessReport>>, TError = ErrorType<unknown>>(bakerId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getWeeklySuccessReport>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetWeeklySuccessReportQueryKey(bakerId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getWeeklySuccessReport>>> = ({ signal }) => getWeeklySuccessReport(bakerId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: bakerId !== null && bakerId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getWeeklySuccessReport>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetWeeklySuccessReportQueryResult = NonNullable<Awaited<ReturnType<typeof getWeeklySuccessReport>>>
+export type GetWeeklySuccessReportQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get weekly success report
+ */
+
+export function useGetWeeklySuccessReport<TData = Awaited<ReturnType<typeof getWeeklySuccessReport>>, TError = ErrorType<unknown>>(
+ bakerId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getWeeklySuccessReport>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetWeeklySuccessReportQueryOptions(bakerId,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

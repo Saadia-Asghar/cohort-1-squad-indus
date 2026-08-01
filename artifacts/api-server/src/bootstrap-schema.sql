@@ -179,6 +179,20 @@ CREATE TABLE IF NOT EXISTS sweet_tooth.chat_messages (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS sweet_tooth.order_audit_logs (
+  id SERIAL PRIMARY KEY,
+  order_id INTEGER NOT NULL,
+  baker_id INTEGER NOT NULL,
+  actor_id INTEGER,
+  actor_type TEXT NOT NULL,
+  action TEXT NOT NULL,
+  from_status TEXT,
+  to_status TEXT,
+  metadata JSONB DEFAULT '{}',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+
 CREATE TABLE IF NOT EXISTS sweet_tooth.conversation_memory (
   id SERIAL PRIMARY KEY,
   baker_id INTEGER NOT NULL,

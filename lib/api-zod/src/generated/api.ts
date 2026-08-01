@@ -1274,6 +1274,22 @@ export const GetOrderSourcesResponse = zod.array(GetOrderSourcesResponseItem)
 
 
 /**
+ * @summary Get weekly success report
+ */
+export const GetWeeklySuccessReportParams = zod.object({
+  "bakerId": zod.coerce.number()
+})
+
+export const GetWeeklySuccessReportResponse = zod.object({
+  "ordersCount": zod.number(),
+  "ordersTrendPercent": zod.number(),
+  "repeatBuyersCount": zod.number(),
+  "avgResponseTimeSec": zod.number(),
+  "failedPaymentReviewsCount": zod.number()
+})
+
+
+/**
  * @summary Send message to marketplace AI agent
  */
 export const SendChatMessageBody = zod.object({
@@ -1386,8 +1402,7 @@ export const GetAgentConfigResponse = zod.object({
   "menuAccent": zod.string().optional(),
   "availabilityHours": zod.string().optional(),
   "dietaryPolicy": zod.string().optional(),
-  "activeOffers": zod.string().optional(),
-  "deliveryPricing": zod.string().optional()
+  "activeOffers": zod.string().optional()
 })
 
 
@@ -1411,8 +1426,7 @@ export const UpdateAgentConfigBody = zod.object({
   "menuAccent": zod.string().optional(),
   "availabilityHours": zod.string().optional(),
   "dietaryPolicy": zod.string().optional(),
-  "activeOffers": zod.string().optional(),
-  "deliveryPricing": zod.string().optional()
+  "activeOffers": zod.string().optional()
 })
 
 export const UpdateAgentConfigResponse = zod.object({
@@ -1429,8 +1443,7 @@ export const UpdateAgentConfigResponse = zod.object({
   "menuAccent": zod.string().optional(),
   "availabilityHours": zod.string().optional(),
   "dietaryPolicy": zod.string().optional(),
-  "activeOffers": zod.string().optional(),
-  "deliveryPricing": zod.string().optional()
+  "activeOffers": zod.string().optional()
 })
 
 
@@ -1833,6 +1846,7 @@ export const ListConversationsResponseItem = zod.object({
   "lastActiveAt": zod.string(),
   "messageCount": zod.number(),
   "unread": zod.boolean(),
+  "needsBakerReply": zod.boolean(),
   "preferences": zod.object({
   "eggless": zod.boolean().optional(),
   "preferredArea": zod.string().nullish(),
@@ -1840,8 +1854,7 @@ export const ListConversationsResponseItem = zod.object({
   "allergies": zod.array(zod.string()).optional(),
   "usualOrderSize": zod.string().nullish()
 }).optional(),
-  "summary": zod.string().nullish(),
-  "needsBakerReply": zod.boolean().optional()
+  "summary": zod.string().nullish()
 })
 export const ListConversationsResponse = zod.array(ListConversationsResponseItem)
 
