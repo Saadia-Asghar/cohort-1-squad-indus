@@ -197,10 +197,10 @@ function HeroSection() {
             </motion.div>
 
             <div className="mt-7 sm:mt-10">
-              <HeroLine text="Smart" delay={0.05} />
-              <HeroLine text="baking," delay={0.14} accent />
-              <HeroLine text="without the" delay={0.23} />
-              <HeroLine text="busywork." delay={0.32} />
+              <HeroLine text="Let us" delay={0.05} />
+              <HeroLine text="handle the chats" delay={0.14} accent />
+              <HeroLine text="while you" delay={0.23} />
+              <HeroLine text="bake." delay={0.32} />
             </div>
 
             <motion.p
