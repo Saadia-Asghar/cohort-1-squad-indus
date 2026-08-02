@@ -1,27 +1,63 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { ArrowLeft, Store, Mail, Lock, Phone, UserCheck, AlertCircle } from "lucide-react";
+import { AlertCircle, Lock, Mail, Phone, Store, UserCheck, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AuthShell } from "@/components/auth/auth-shell";
 import { isFirebaseConfigured, useAppAuth } from "@/lib/app-auth";
 import { getPlanById } from "@/lib/pricing-plans";
 import { useManagedBaker } from "@/lib/managed-auth";
 import { captureProductEvent, identifyBakerForAnalytics } from "@/lib/product-analytics";
 import { customFetch } from "@workspace/api-client-react";
 
+function AuthField({
+  id,
+  label,
+  icon: Icon,
+  ...props
+}: React.ComponentProps<typeof Input> & { id: string; label: string; icon?: LucideIcon }) {
+  return (
+    <div>
+      <label htmlFor={id} className="mb-2 block text-sm font-bold text-[#382b43]">{label}</label>
+      <div className="relative">
+        {Icon && <Icon className="absolute left-3.5 top-4 h-4 w-4 text-muted-foreground" />}
+        <Input
+          id={id}
+          {...props}
+          className={`h-12 rounded-xl border-[#ded6ca] bg-white text-sm shadow-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/15 ${Icon ? "pl-10" : ""}`}
+        />
+      </div>
+    </div>
+  );
+}
+
+function AuthError({ message }: { message: string }) {
+  if (!message) return null;
+  return (
+    <div role="alert" className="flex items-start gap-2 rounded-xl border border-destructive/20 bg-destructive/5 p-3 text-sm font-semibold text-destructive">
+      <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+      <span>{message}</span>
+    </div>
+  );
+}
+
+function GoogleDivider() {
+  return (
+    <div className="relative pt-3 text-center">
+      <span className="absolute inset-x-0 top-6 border-t border-[#ded6ca]" />
+      <span className="relative bg-[#f8f5ef] px-3 text-xs font-semibold text-muted-foreground">or</span>
+    </div>
+  );
+}
+
 export default function BakerLogin({ initialTab = "login" }: { initialTab?: "login" | "register" }) {
   const [activeTab, setActiveTab] = useState<"login" | "register">(initialTab);
   const [, setLocation] = useLocation();
-  const selectedPlanId =
-    typeof window !== "undefined"
-      ? new URLSearchParams(window.location.search).get("plan")
-      : null;
+  const selectedPlanId = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("plan") : null;
   const selectedPlan = getPlanById(selectedPlanId);
   const { loginNatively } = useManagedBaker();
   const { signInWithGoogle } = useAppAuth();
-  
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [ownerName, setOwnerName] = useState("");
@@ -54,16 +90,16 @@ export default function BakerLogin({ initialTab = "login" }: { initialTab?: "log
       }
       if (!response.token || !response.baker?.id) throw new Error("Could not open your bakery dashboard.");
       finishAuth(response.token, response.baker.id, "google");
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message.replace(/^HTTP \\d+\\s*[^:]*:\\s*/, "") : "Google sign-in could not be completed.");
+    } catch (cause: unknown) {
+      setError(cause instanceof Error ? cause.message.replace(/^HTTP \d+\s*[^:]*:\s*/, "") : "Google sign-in could not be completed.");
       if (onboarding) setActiveTab("register");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleLogin = async (event: React.FormEvent) => {
+    event.preventDefault();
     setLoading(true);
     setError("");
     try {
@@ -73,27 +109,21 @@ export default function BakerLogin({ initialTab = "login" }: { initialTab?: "log
         body: JSON.stringify({ identifier: email.trim(), password }),
       });
       finishAuth(response.token, response.baker.id, "password", response.role ?? "owner");
-    } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message.replace(/^HTTP \d+\s*[^:]*:\s*/, "") : "Invalid email/number or password";
+    } catch (cause: unknown) {
+      const message = cause instanceof Error ? cause.message.replace(/^HTTP \d+\s*[^:]*:\s*/, "") : "Invalid email/number or password";
       setError(message || "Invalid email/number or password");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleRegister = async (event: React.FormEvent) => {
+    event.preventDefault();
     setLoading(true);
     setError("");
     captureProductEvent("baker_registration_submitted");
     try {
-      const slug = businessName
-        .trim()
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-|-$/g, "")
-        .slice(0, 48) || "bakery";
+      const slug = businessName.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 48) || "bakery";
       const response = await customFetch<{ token: string; baker: { id: number } }>("/api/bakers", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -110,230 +140,70 @@ export default function BakerLogin({ initialTab = "login" }: { initialTab?: "log
       identifyBakerForAnalytics(response.baker.id);
       captureProductEvent("baker_registration_completed");
       finishAuth(response.token, response.baker.id, "password");
-    } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message.replace(/^HTTP \d+\s*[^:]*:\s*/, "") : "Could not create your bakery account";
+    } catch (cause: unknown) {
+      const message = cause instanceof Error ? cause.message.replace(/^HTTP \d+\s*[^:]*:\s*/, "") : "Could not create your bakery account";
       setError(message || "Could not create your bakery account");
     } finally {
       setLoading(false);
     }
   };
 
+  const isRegistering = activeTab === "register";
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50/60 via-purple-50/40 to-pink-50/60 dark:from-slate-950 dark:via-purple-950/20 dark:to-slate-900 px-4 py-8 sm:py-12 flex flex-col justify-center items-center">
-      <div className="w-full max-w-md mb-6 flex items-center justify-between">
-        <Link
-          href="/"
-          className="inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-sm font-semibold text-muted-foreground transition-all hover:bg-card hover:text-primary shadow-xs"
-        >
-          <ArrowLeft className="h-4 w-4" /> Back to Sweet Tooth
-        </Link>
-        <span className="font-serif text-2xl font-bold text-primary">
-          Sweet Tooth
-        </span>
-      </div>
+    <AuthShell
+      title={isRegistering ? "Create your bakery workspace" : "Welcome back"}
+      description={isRegistering ? "Set up the private workspace behind your menu, orders and customer conversations." : "Sign in to continue managing your bakery conversations, orders and production."}
+    >
+      <Tabs value={activeTab} onValueChange={(value) => { setActiveTab(value as "login" | "register"); setError(""); }} className="w-full">
+        <TabsList className="grid h-12 w-full grid-cols-2 rounded-xl bg-[#ece6dc] p-1">
+          <TabsTrigger value="login" className="h-10 rounded-lg text-sm font-bold data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">Sign in</TabsTrigger>
+          <TabsTrigger value="register" className="h-10 rounded-lg text-sm font-bold data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">Create account</TabsTrigger>
+        </TabsList>
 
-      <Card className="w-full max-w-md border-purple-100 dark:border-purple-900/40 shadow-xl bg-card/95 backdrop-blur-sm">
-        <CardHeader className="text-center pb-4">
-          <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-2xl bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 shadow-inner">
-            <Store className="h-6 w-6" />
-          </div>
-          <CardTitle className="font-serif text-2xl font-bold text-foreground">
-            Baker Portal
-          </CardTitle>
-          <CardDescription className="text-sm">
-            Manage kitchen orders, product catalog & AI assistant
-          </CardDescription>
-        </CardHeader>
+        <TabsContent value="login" className="mt-7 space-y-5 focus-visible:outline-none">
+          <AuthError message={error} />
+          <form onSubmit={handleLogin} className="space-y-5">
+            <AuthField id="login-identifier" label="Email or WhatsApp number" icon={Mail} type="text" placeholder="baker@example.com or +92 300 1234567" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="username" required />
+            <AuthField id="login-password" label="Password" icon={Lock} type="password" placeholder="Enter your password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" required />
+            <Button type="submit" className="h-12 w-full rounded-xl bg-primary text-sm font-bold text-white shadow-lg shadow-primary/15 hover:bg-primary/90" disabled={loading}>
+              {loading ? "Signing in…" : "Sign in to dashboard"}
+            </Button>
+          </form>
+          {isFirebaseConfigured() && (
+            <div>
+              <GoogleDivider />
+              <button type="button" onClick={() => void continueWithGoogle(false)} disabled={loading} className="mt-4 h-12 w-full rounded-xl border border-[#ded6ca] bg-white px-4 text-sm font-bold text-[#382b43] transition-colors hover:border-primary/40 hover:bg-primary/5 disabled:opacity-50">Continue with Google</button>
+            </div>
+          )}
+        </TabsContent>
 
-        <CardContent>
-          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "login" | "register")} className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-6 bg-purple-50 dark:bg-slate-900 p-1 rounded-xl">
-              <TabsTrigger value="login" className="rounded-lg font-medium text-xs sm:text-sm data-[state=active]:bg-card data-[state=active]:shadow-xs">
-                Sign In
-              </TabsTrigger>
-              <TabsTrigger value="register" className="rounded-lg font-medium text-xs sm:text-sm data-[state=active]:bg-card data-[state=active]:shadow-xs">
-                Sign Up (New Baker)
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="login" className="space-y-4 focus-visible:outline-none">
-              {error && (
-                <div className="flex items-center gap-2 p-3 text-xs font-semibold text-destructive rounded-lg bg-destructive/10 border border-destructive/20">
-                  <AlertCircle className="w-4 h-4 shrink-0" />
-                  <span>{error}</span>
-                </div>
-              )}
-              <form onSubmit={handleLogin} className="space-y-3">
-                <div>
-                  <label className="text-xs font-semibold text-muted-foreground block mb-1">Email or Phone Number</label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      type="text"
-                      placeholder="baker@example.com or +92 300 1234567"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="pl-9 text-sm"
-                      required
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="text-xs font-semibold text-muted-foreground block mb-1">Password</label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      type="password"
-                      placeholder="••••••••••••"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="pl-9 text-sm"
-                      required
-                    />
-                  </div>
-                </div>
-                <Button type="submit" className="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium h-10 shadow-sm cursor-pointer" disabled={loading}>
-                  {loading ? "Signing in..." : "Sign In to Dashboard"}
-                </Button>
-              </form>
-
-              {isFirebaseConfigured() && (
-                <div className="pt-3 border-t border-border/60 text-center">
-                  <button
-                    type="button"
-                    onClick={() => void continueWithGoogle(false)}
-                    disabled={loading}
-                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-xs font-semibold text-foreground hover:bg-muted disabled:opacity-50"
-                  >
-                    Continue with Google
-                  </button>
-                </div>
-              )}
-            </TabsContent>
-
-            <TabsContent value="register" className="space-y-4 focus-visible:outline-none">
-              {selectedPlan && selectedPlan.id !== "free" && (
-                <div className="rounded-lg border border-primary/30 bg-primary/5 px-3 py-2.5 text-xs text-muted-foreground">
-                  You selected <strong className="text-primary">{selectedPlan.name}</strong>. Start free — upgrade after
-                  your first orders. Founder quarterly pricing is on the{" "}
-                  <Link href="/#pricing" className="font-semibold text-primary hover:underline">
-                    packages page
-                  </Link>
-                  .
-                </div>
-              )}
-              {error && (
-                <div className="flex items-center gap-2 p-3 text-xs font-semibold text-destructive rounded-lg bg-destructive/10 border border-destructive/20">
-                  <AlertCircle className="w-4 h-4 shrink-0" />
-                  <span>{error}</span>
-                </div>
-              )}
-              <form onSubmit={handleRegister} className="space-y-3">
-                <div>
-                  <label className="text-xs font-semibold text-muted-foreground block mb-1">Bakery / Kitchen Name</label>
-                  <div className="relative">
-                    <Store className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      type="text"
-                      placeholder="e.g. Meethi Khushiyan Bakery"
-                      value={businessName}
-                      onChange={(e) => setBusinessName(e.target.value)}
-                      className="pl-9 text-sm"
-                      required
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="text-xs font-semibold text-muted-foreground block mb-1">Owner Name</label>
-                  <div className="relative">
-                    <UserCheck className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      type="text"
-                      placeholder="e.g. Fatima Ali"
-                      value={ownerName}
-                      onChange={(e) => setOwnerName(e.target.value)}
-                      className="pl-9 text-sm"
-                      required
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="text-xs font-semibold text-muted-foreground block mb-1">City</label>
-                  <Input
-                    type="text"
-                    placeholder="Karachi"
-                    value={city}
-                    onChange={(e) => setCity(e.target.value)}
-                    className="text-sm"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-semibold text-muted-foreground block mb-1">Email Address</label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      type="email"
-                      placeholder="fatima@example.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="pl-9 text-sm"
-                      required
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="text-xs font-semibold text-muted-foreground block mb-1">WhatsApp Business Number</label>
-                  <div className="relative">
-                    <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      type="tel"
-                      placeholder="+92 300 1234567"
-                      value={whatsappNumber}
-                      onChange={(e) => setWhatsappNumber(e.target.value)}
-                      className="pl-9 text-sm"
-                      required
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="text-xs font-semibold text-muted-foreground block mb-1">Password</label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      type="password"
-                      placeholder="At least 12 characters"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="pl-9 text-sm"
-                      minLength={12}
-                      required
-                    />
-                  </div>
-                </div>
-                <Button type="submit" className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-medium h-10 shadow-sm" disabled={loading}>
-                  {loading ? "Creating Bakery..." : "Create Bakery Account"}
-                </Button>
-              </form>
-
-              {isFirebaseConfigured() && (
-                <div className="pt-3 border-t border-border/60 text-center">
-                  <button
-                    type="button"
-                    onClick={() => void continueWithGoogle(true)}
-                    disabled={loading}
-                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-xs font-semibold text-foreground hover:bg-muted disabled:opacity-50"
-                  >
-                    Sign up with Google
-                  </button>
-                </div>
-              )}
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
-    </div>
+        <TabsContent value="register" className="mt-7 space-y-5 focus-visible:outline-none">
+          {selectedPlan && selectedPlan.id !== "free" && (
+            <div className="rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-muted-foreground">
+              You selected <strong className="text-primary">{selectedPlan.name}</strong>. Start free and upgrade after your first orders. See the <Link href="/#pricing" className="font-semibold text-primary hover:underline">pricing details</Link>.
+            </div>
+          )}
+          <AuthError message={error} />
+          <form onSubmit={handleRegister} className="grid gap-5 sm:grid-cols-2">
+            <div className="sm:col-span-2"><AuthField id="bakery-name" label="Bakery name" icon={Store} type="text" placeholder="Meethi Khushiyan Bakery" value={businessName} onChange={(event) => setBusinessName(event.target.value)} autoComplete="organization" required /></div>
+            <AuthField id="owner-name" label="Owner name" icon={UserCheck} type="text" placeholder="Fatima Ali" value={ownerName} onChange={(event) => setOwnerName(event.target.value)} autoComplete="name" required />
+            <AuthField id="bakery-city" label="City" type="text" placeholder="Karachi" value={city} onChange={(event) => setCity(event.target.value)} autoComplete="address-level2" required />
+            <AuthField id="register-email" label="Email address" icon={Mail} type="email" placeholder="fatima@example.com" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" required />
+            <AuthField id="whatsapp-number" label="WhatsApp number" icon={Phone} type="tel" placeholder="+92 300 1234567" value={whatsappNumber} onChange={(event) => setWhatsappNumber(event.target.value)} autoComplete="tel" required />
+            <div className="sm:col-span-2"><AuthField id="register-password" label="Password" icon={Lock} type="password" placeholder="At least 12 characters" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="new-password" minLength={12} required /></div>
+            <Button type="submit" className="h-12 w-full rounded-xl bg-primary text-sm font-bold text-white shadow-lg shadow-primary/15 hover:bg-primary/90 sm:col-span-2" disabled={loading}>
+              {loading ? "Creating workspace…" : "Create bakery workspace"}
+            </Button>
+          </form>
+          {isFirebaseConfigured() && (
+            <div>
+              <GoogleDivider />
+              <button type="button" onClick={() => void continueWithGoogle(true)} disabled={loading} className="mt-4 h-12 w-full rounded-xl border border-[#ded6ca] bg-white px-4 text-sm font-bold text-[#382b43] transition-colors hover:border-primary/40 hover:bg-primary/5 disabled:opacity-50">Create account with Google</button>
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
+    </AuthShell>
   );
 }
-

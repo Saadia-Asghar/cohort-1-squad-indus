@@ -1,19 +1,17 @@
 import { useState } from "react";
 import { customFetch } from "@workspace/api-client-react";
 import { useLocation } from "wouter";
+import { AuthShell } from "@/components/auth/auth-shell";
 import { useManagedBaker } from "@/lib/managed-auth";
 import { useAppAuth } from "@/lib/app-auth";
+
+const inputClass = "mt-2 h-12 w-full rounded-xl border border-[#ded6ca] bg-white px-4 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/15";
 
 export default function BakerOnboarding() {
   const { isSignedIn, getToken } = useAppAuth();
   const managed = useManagedBaker();
   const [, navigate] = useLocation();
-  const [form, setForm] = useState({
-    businessName: "",
-    ownerName: "",
-    city: "Lahore",
-    whatsappNumber: "",
-  });
+  const [form, setForm] = useState({ businessName: "", ownerName: "", city: "Lahore", whatsappNumber: "" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -22,11 +20,9 @@ export default function BakerOnboarding() {
     return null;
   }
 
-  const update =
-    (field: keyof typeof form) =>
-    (event: React.ChangeEvent<HTMLInputElement>) => {
-      setForm((current) => ({ ...current, [field]: event.target.value }));
-    };
+  const update = (field: keyof typeof form) => (event: React.ChangeEvent<HTMLInputElement>) => {
+    setForm((current) => ({ ...current, [field]: event.target.value }));
+  };
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -51,40 +47,17 @@ export default function BakerOnboarding() {
   };
 
   return (
-    <main className="min-h-screen bg-background px-4 py-12">
-      <form
-        onSubmit={submit}
-        className="mx-auto w-full max-w-lg space-y-5 rounded-2xl border border-border bg-card p-8"
-      >
-        <div>
-          <h1 className="font-serif text-3xl font-bold text-primary">Set up your bakery</h1>
-          <p className="mt-2 text-muted-foreground">
-            Your identity is verified. Add the business details used by your menu and agents.
-          </p>
+    <AuthShell step="Final step" title="Tell us about your bakery" description="Your Google identity is verified. Add the business details used by your menu and customer assistant.">
+      <form onSubmit={submit} className="space-y-5">
+        <div className="grid gap-5 sm:grid-cols-2">
+          <label className="text-sm font-bold text-[#382b43] sm:col-span-2">Bakery name<input required minLength={2} maxLength={120} value={form.businessName} onChange={update("businessName")} autoComplete="organization" className={inputClass} /></label>
+          <label className="text-sm font-bold text-[#382b43]">Owner name<input required minLength={2} maxLength={120} value={form.ownerName} onChange={update("ownerName")} autoComplete="name" className={inputClass} /></label>
+          <label className="text-sm font-bold text-[#382b43]">City<input required minLength={2} maxLength={80} value={form.city} onChange={update("city")} autoComplete="address-level2" className={inputClass} /></label>
+          <label className="text-sm font-bold text-[#382b43] sm:col-span-2">WhatsApp number<input required type="tel" inputMode="tel" placeholder="+92 300 1234567" value={form.whatsappNumber} onChange={update("whatsappNumber")} autoComplete="tel" className={inputClass} /></label>
         </div>
-        <div className="grid gap-4">
-          <label className="text-sm font-medium">
-            Bakery name
-            <input required minLength={2} maxLength={120} value={form.businessName} onChange={update("businessName")} className="mt-1 w-full rounded-md border border-border bg-background px-4 py-3" />
-          </label>
-          <label className="text-sm font-medium">
-            Owner name
-            <input required minLength={2} maxLength={120} value={form.ownerName} onChange={update("ownerName")} className="mt-1 w-full rounded-md border border-border bg-background px-4 py-3" />
-          </label>
-          <label className="text-sm font-medium">
-            City
-            <input required minLength={2} maxLength={80} value={form.city} onChange={update("city")} className="mt-1 w-full rounded-md border border-border bg-background px-4 py-3" />
-          </label>
-          <label className="text-sm font-medium">
-            WhatsApp business number
-            <input required type="tel" inputMode="tel" placeholder="+92 300 1234567" value={form.whatsappNumber} onChange={update("whatsappNumber")} className="mt-1 w-full rounded-md border border-border bg-background px-4 py-3" />
-          </label>
-        </div>
-        {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
-        <button disabled={loading} className="w-full rounded-md bg-primary px-5 py-3 font-bold text-primary-foreground disabled:opacity-50">
-          {loading ? "Creating bakery…" : "Continue to dashboard"}
-        </button>
+        {error && <p role="alert" className="rounded-xl border border-destructive/20 bg-destructive/5 p-3 text-sm font-semibold text-destructive">{error}</p>}
+        <button disabled={loading} className="h-12 w-full rounded-xl bg-primary px-5 text-sm font-bold text-primary-foreground shadow-lg shadow-primary/15 transition hover:bg-primary/90 disabled:opacity-50">{loading ? "Creating bakery…" : "Continue to dashboard"}</button>
       </form>
-    </main>
+    </AuthShell>
   );
 }
