@@ -138,40 +138,43 @@ export default function DashboardHome() {
 
   return (
     <DashboardLayout>
-      <div className="p-8 max-w-6xl">
-        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <div className="sweet-surface min-h-screen px-4 py-6 sm:px-8 sm:py-8 xl:px-12">
+        <div className="mx-auto max-w-[90rem]">
+        <div className="mb-7 flex flex-col gap-5 border-b border-border/70 pb-7 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-sm font-medium text-muted-foreground">{format(new Date(), "EEEE, d MMMM")}</p>
-            <h1 className="font-serif text-4xl font-bold text-foreground mt-1">
+            <h1 className="mt-1 font-serif text-3xl font-bold leading-tight text-foreground sm:text-5xl">
               {greeting()}
               {baker?.ownerName ? `, ${baker.ownerName.split(" ")[0]}` : ""}.
             </h1>
-            <p className="text-muted-foreground mt-2 max-w-xl">
-              Your command center — orders, payments, and the AI assistant that answers buyers while you bake.
+            <p className="mt-2 max-w-2xl text-sm text-muted-foreground sm:text-base">
+              See what needs action, manage today&apos;s orders, and keep your customer assistant accurate.
             </p>
           </div>
           <Link
             href={shopUrl}
-            className="inline-flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-4 py-2.5 text-sm font-semibold text-primary hover:bg-primary/10 transition-colors"
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition-transform hover:-translate-y-0.5 hover:bg-[#512060]"
           >
             <ExternalLink className="h-4 w-4" />
             View public shop
           </Link>
         </div>
 
-        <section aria-labelledby="setup-heading" className="mb-8 rounded-xl border border-border bg-card p-5 shadow-sm">
+        <section aria-labelledby="setup-heading" className="mb-7 overflow-hidden rounded-[1.5rem] border border-border bg-card shadow-sm">
+          <div className="h-1.5 bg-gradient-to-r from-primary via-secondary to-[#c99855]" />
+          <div className="p-5 sm:p-6">
           <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
             <div>
-              <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-primary"><Rocket className="h-4 w-4" /> Launch checklist</p>
-              <h2 id="setup-heading" className="mt-1 font-serif text-xl font-bold">Get your bakery ready for customers</h2>
+              <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.14em] text-primary"><Rocket className="h-4 w-4" /> Launch checklist</p>
+              <h2 id="setup-heading" className="mt-1 font-serif text-xl font-bold sm:text-2xl">Get ready to receive orders</h2>
               <p className="mt-1 text-sm text-muted-foreground">Your assistant can only answer from menu and policy information you publish.</p>
             </div>
-            <p aria-live="polite" className="shrink-0 rounded-full bg-primary/10 px-3 py-1 text-sm font-bold text-primary">{completedSetupSteps} of {setupSteps.length} complete</p>
+            <p aria-live="polite" className="shrink-0 rounded-full bg-accent px-3 py-1.5 text-sm font-bold text-primary">{completedSetupSteps} of {setupSteps.length} complete</p>
           </div>
           <ol className="mt-5 grid gap-3 md:grid-cols-2">
             {setupSteps.map((step) => (
               <li key={step.label}>
-                <Link href={step.href} className="flex min-h-12 items-center gap-3 rounded-lg border border-border px-4 py-3 text-sm font-semibold transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+                <Link href={step.href} className="flex min-h-14 items-center gap-3 rounded-xl border border-border bg-background/55 px-4 py-3 text-sm font-semibold transition-colors hover:border-primary/30 hover:bg-accent/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
                   <span aria-hidden="true">{step.complete ? <CheckCircle2 className="h-5 w-5 text-green-600" /> : <Circle className="h-5 w-5 text-muted-foreground" />}</span>
                   <span>{step.label}</span>
                   <span className="sr-only">{step.complete ? " complete" : " not complete"}</span>
@@ -179,9 +182,10 @@ export default function DashboardHome() {
               </li>
             ))}
           </ol>
+          </div>
         </section>
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <StatCard label="Today's orders" value={String(stats?.todayOrders ?? 0)} icon={ShoppingBag} />
           <StatCard
             label="Today's revenue"
@@ -292,6 +296,7 @@ export default function DashboardHome() {
         <Suspense fallback={<div className="mt-8 h-48 bg-muted/60 rounded-xl animate-pulse" />}>
           <DashboardWorkspace />
         </Suspense>
+        </div>
       </div>
     </DashboardLayout>
   );
@@ -313,12 +318,13 @@ function StatCard({
   valueClass?: string;
 }) {
   return (
-    <div className={`p-5 rounded-xl border shadow-sm ${highlight ? "border-primary/30 bg-primary/5" : "border-border bg-card"}`}>
+    <div className={`relative overflow-hidden rounded-[1.25rem] border p-5 shadow-sm ${highlight ? "border-secondary/25 bg-accent/55" : "border-border bg-card"}`}>
+      <div className={`absolute inset-x-0 top-0 h-1 ${highlight ? "bg-secondary" : "bg-primary/20"}`} />
       <div className="flex items-center gap-2 text-muted-foreground mb-2">
         <Icon className="h-4 w-4" />
         <span className="text-xs font-semibold uppercase tracking-wide">{label}</span>
       </div>
-      <p className={`text-2xl font-bold tabular-nums ${valueClass ?? (highlight ? "text-primary" : "")}`}>{value}</p>
+      <p className={`text-2xl font-bold tabular-nums sm:text-3xl ${valueClass ?? (highlight ? "text-primary" : "")}`}>{value}</p>
       {sub && <p className="text-xs text-muted-foreground mt-1">{sub}</p>}
     </div>
   );
