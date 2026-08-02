@@ -153,12 +153,12 @@ function HeroSection() {
         }}
       />
 
-      <div className="relative mx-auto min-h-[calc(100svh-4rem)] max-w-[1600px] px-4 py-6 sm:px-7 sm:py-8 md:px-10 lg:px-20">
+      <div className="relative mx-auto min-h-[calc(100svh-4rem)] max-w-[1600px] px-4 pb-10 pt-6 sm:px-7 sm:pb-12 sm:pt-8 md:px-10 lg:px-14 lg:pb-8 xl:px-20">
         <motion.div
           initial={{ opacity: 0, y: -12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7 }}
-          className="relative z-30 flex items-start justify-between lg:max-w-[820px] xl:max-w-[900px]"
+          className="relative z-30 flex items-start justify-between lg:max-w-[880px] xl:max-w-[980px]"
         >
           <div className="text-primary-foreground">
             <p className="font-serif text-xl font-semibold leading-none sm:text-3xl">
@@ -179,8 +179,8 @@ function HeroSection() {
           </div>
         </motion.div>
 
-        <div className="relative mt-6 grid items-center sm:mt-8 lg:min-h-[calc(100svh-10rem)] lg:grid-cols-2">
-          <div className="relative z-30 max-w-[520px] pt-8 text-primary-foreground sm:pt-12 lg:pb-0 lg:pr-0 lg:pt-0 xl:max-w-[560px]">
+        <div className="relative mt-6 grid items-center gap-2 sm:mt-8 sm:gap-6 lg:min-h-[calc(100svh-10rem)] lg:grid-cols-[minmax(0,1.08fr)_minmax(360px,0.92fr)] lg:gap-8 xl:grid-cols-[minmax(0,1.12fr)_minmax(420px,0.88fr)] xl:gap-12">
+          <div className="relative z-30 w-full max-w-[560px] pt-8 text-primary-foreground sm:pt-12 lg:max-w-[640px] lg:pb-0 lg:pr-0 lg:pt-0 xl:max-w-[680px]">
             <motion.div
               initial={{ opacity: 0, x: -24 }}
               animate={{ opacity: 1, x: 0 }}
@@ -218,7 +218,7 @@ function HeroSection() {
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.7, delay: 0.76 }}
-              className="mt-6 flex flex-col gap-3 sm:mt-9 sm:flex-row"
+              className="mt-6 flex flex-col gap-3 sm:mt-9 sm:flex-row lg:flex-wrap"
             >
               <Link
                 href="/dashboard/register"
@@ -235,6 +235,18 @@ function HeroSection() {
                 See the workflow
               </a>
             </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 1.1 }}
+              className="mt-5 hidden items-center gap-4 xl:flex"
+            >
+              <span className="h-2 w-2 animate-pulse rounded-full bg-secondary" />
+              <p className="text-[8px] font-bold uppercase tracking-[0.24em] text-primary-foreground/40">
+                Scroll to explore the workflow
+              </p>
+            </motion.div>
           </div>
 
           <motion.div
@@ -245,7 +257,7 @@ function HeroSection() {
               delay: 0.35,
               ease: [0.22, 1, 0.36, 1],
             }}
-            className="relative z-20 mx-auto mb-8 mt-12 w-[76vw] max-w-[305px] sm:mb-12 sm:mt-16 sm:w-[410px] sm:max-w-none lg:absolute lg:left-[68%] lg:top-1/2 lg:mb-0 lg:mt-0 lg:w-[410px] lg:-translate-x-1/2 lg:-translate-y-1/2 xl:left-[66%] xl:w-[460px] 2xl:left-[60%] 2xl:w-[530px]"
+            className="relative z-20 mx-auto mb-8 mt-12 w-[76vw] max-w-[305px] sm:mb-12 sm:mt-16 sm:w-[410px] sm:max-w-none lg:mb-0 lg:mt-0 lg:w-full lg:max-w-[430px] lg:justify-self-end xl:max-w-[480px] 2xl:max-w-[530px]"
           >
             <div className="relative">
               <motion.div
@@ -319,7 +331,7 @@ function HeroSection() {
                   repeat: Infinity,
                   ease: "easeInOut",
                 }}
-                className="absolute -left-2 top-[12%] max-w-[145px] rounded-xl border border-primary-foreground/15 bg-foreground/92 px-3 py-2.5 text-background shadow-lg backdrop-blur-xl sm:-left-14 sm:max-w-none sm:px-4 sm:py-3"
+                className="absolute -left-2 top-[12%] max-w-[138px] rounded-xl border border-primary-foreground/15 bg-foreground/92 px-3 py-2.5 text-background shadow-lg backdrop-blur-xl sm:-left-10 sm:max-w-[170px] sm:px-4 sm:py-3 lg:-left-4 xl:-left-8"
               >
                 <p className="text-[8px] font-bold uppercase tracking-[0.18em] text-secondary">
                   New enquiry
@@ -342,7 +354,7 @@ function HeroSection() {
                   repeat: Infinity,
                   ease: "easeInOut",
                 }}
-                className="absolute -right-2 bottom-[14%] max-w-[145px] rounded-xl bg-background px-3 py-2.5 text-primary shadow-lg sm:-right-14 sm:bottom-[18%] sm:max-w-none sm:px-4 sm:py-3"
+                className="absolute -right-2 bottom-[14%] max-w-[138px] rounded-xl bg-background px-3 py-2.5 text-primary shadow-lg sm:-right-10 sm:bottom-[18%] sm:max-w-[170px] sm:px-4 sm:py-3 lg:-right-4 xl:-right-8"
               >
                 <p className="text-[8px] font-bold uppercase tracking-[0.18em] opacity-55">
                   Order ready
@@ -355,17 +367,6 @@ function HeroSection() {
           </motion.div>
         </div>
 
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1.1 }}
-          className="absolute bottom-8 left-20 z-30 hidden items-center gap-4 lg:flex"
-        >
-          <span className="h-2 w-2 animate-pulse rounded-full bg-secondary" />
-          <p className="text-[8px] font-bold uppercase tracking-[0.24em] text-primary-foreground/40">
-            Scroll to explore the workflow
-          </p>
-        </motion.div>
       </div>
     </section>
   );
@@ -381,16 +382,16 @@ function HeroLine({
   accent?: boolean;
 }) {
   return (
-    <div className="overflow-hidden">
+    <div className="overflow-visible pb-[0.14em]">
       <motion.h1
-        initial={{ y: "110%" }}
-        animate={{ y: 0 }}
+        initial={{ y: 28, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
         transition={{
           duration: 0.82,
           delay,
           ease: [0.22, 1, 0.36, 1],
         }}
-        className={`font-serif text-[2.7rem] font-semibold leading-[0.9] tracking-[-0.052em] min-[390px]:text-[3.15rem] sm:text-[4.7rem] md:text-[5.45rem] lg:text-[4.2rem] xl:text-[4.85rem] 2xl:text-[5.45rem] ${
+        className={`font-serif text-[2.55rem] font-semibold leading-[1.02] tracking-[-0.052em] min-[390px]:text-[3rem] sm:text-[4.35rem] md:text-[4.8rem] lg:text-[3.85rem] xl:text-[4.45rem] 2xl:text-[5rem] ${
           accent ? "italic text-secondary" : ""
         }`}
       >
