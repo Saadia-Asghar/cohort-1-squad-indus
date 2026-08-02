@@ -1,21 +1,24 @@
-import { useEffect, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { useEffect, useRef, useState } from "react";
+import {
+  AnimatePresence,
+  motion,
+  useInView,
+  useReducedMotion,
+} from "framer-motion";
 import { Link } from "wouter";
 import {
+  ArrowDown,
   ArrowRight,
   Bot,
   CalendarDays,
   Check,
   CheckCircle2,
-  ClipboardCheck,
   Clock3,
   Instagram,
   MessageCircle,
   PackageCheck,
   ShieldCheck,
-  Sparkles,
   Store,
-  UsersRound,
   WalletCards,
 } from "lucide-react";
 
@@ -23,147 +26,86 @@ import { BuyerLayout } from "@/components/layout/buyer-layout";
 import { PricingSection } from "@/components/marketing/pricing-section";
 import { whatsappSupportLink } from "@/lib/support";
 
-const demoMessages = [
-  {
-    id: 1,
-    sender: "customer",
-    text: "Assalam-o-Alaikum! Kal ke liye 2kg chocolate cake available hai?",
-  },
-  {
-    id: 2,
-    sender: "agent",
-    text: "Wa Alaikum Assalam! 🎂 Yes, it is available. Please share your delivery area and cake message.",
-  },
-  {
-    id: 3,
-    sender: "customer",
-    text: "DHA Phase 6. Cake par Happy Birthday Hira likhna hai.",
-  },
-  {
-    id: 4,
-    sender: "agent",
-    text: "Perfect! Your order summary is ready. Total: PKR 4,200. Shall I confirm it?",
-  },
-] as const;
-
-const problems = [
-  {
-    title: "Messages everywhere",
-    text: "Customer questions are spread across WhatsApp, Instagram and phone calls.",
-    icon: MessageCircle,
-  },
-  {
-    title: "Order details get lost",
-    text: "Flavour, size, date, address and cake notes are hidden inside long conversations.",
-    icon: ClipboardCheck,
-  },
-  {
-    title: "Payments need checking",
-    text: "JazzCash, Easypaisa and bank-transfer screenshots need careful manual review.",
-    icon: WalletCards,
-  },
-  {
-    title: "Deadlines become stressful",
-    text: "Baking, decoration and delivery dates are difficult to manage without one clear calendar.",
-    icon: Clock3,
-  },
-];
-
-const workflow = [
+const storySteps = [
   {
     number: "01",
-    title: "A customer sends an enquiry",
-    text: "The customer asks about price, flavour, size, availability or delivery.",
+    label: "The enquiry",
+    title: "A customer sends a message.",
+    text: "Sweet Tooth receives the customer’s question and begins collecting the information needed for the order.",
   },
   {
     number: "02",
-    title: "The assistant collects the details",
-    text: "Sweet Tooth gathers the information needed to create a clear order.",
+    label: "The conversation",
+    title: "The assistant asks the right questions.",
+    text: "Flavour, size, delivery date, cake message and location are collected using the bakery’s own menu and rules.",
   },
   {
     number: "03",
-    title: "The baker stays in control",
-    text: "The baker reviews the order, confirms payment and manages production.",
+    label: "The order",
+    title: "The conversation becomes an order.",
+    text: "Instead of remaining buried inside chat history, the information is converted into a structured order for the baker.",
+  },
+  {
+    number: "04",
+    label: "The payment",
+    title: "Payment evidence stays attached.",
+    text: "The baker can review payment information without searching through screenshots and separate customer conversations.",
+  },
+  {
+    number: "05",
+    label: "The schedule",
+    title: "Production becomes clear.",
+    text: "Once confirmed, the order moves into the bakery calendar so preparation and delivery deadlines remain visible.",
   },
 ];
 
-const productFeatures = [
+const capabilities = [
   {
+    number: "01",
     icon: Bot,
-    label: "AI ASSISTANT",
-    title: "Turn conversations into structured orders",
-    text: "The assistant answers common menu questions, collects requirements and prepares an order summary for the baker.",
-    items: [
-      "Uses your own menu and bakery rules",
-      "Collects size, flavour, date and address",
-      "Escalates unclear requests to the baker",
-    ],
+    title: "Bakery assistant",
+    text: "Answers common questions using your menu, prices, delivery areas and bakery policies.",
   },
   {
+    number: "02",
     icon: PackageCheck,
-    label: "ORDER MANAGEMENT",
-    title: "Keep every order clear from enquiry to delivery",
-    text: "Track the customer, product, payment, production stage and delivery date from one organized workspace.",
-    items: [
-      "Clear order statuses",
-      "Production checklist",
-      "Customer and delivery information",
-    ],
+    title: "Order management",
+    text: "Keeps every product, customer detail, cake message and delivery requirement together.",
   },
   {
+    number: "03",
     icon: WalletCards,
-    label: "PAYMENT REVIEW",
-    title: "Review payment evidence without losing screenshots",
-    text: "Keep JazzCash, Easypaisa, bank transfer and cash-on-delivery information attached to the correct order.",
-    items: [
-      "Manual baker confirmation",
-      "Payment evidence history",
-      "Advance and remaining balance tracking",
-    ],
+    title: "Payment review",
+    text: "Connects advance-payment evidence and remaining balances with the correct order.",
   },
   {
+    number: "04",
     icon: CalendarDays,
-    label: "PRODUCTION CALENDAR",
-    title: "Know what must be baked and delivered next",
-    text: "See upcoming orders, production dates and delivery commitments in one simple calendar.",
-    items: [
-      "Daily production view",
-      "Delivery planning",
-      "Capacity awareness",
-    ],
+    title: "Production calendar",
+    text: "Shows what needs to be prepared, completed and delivered next.",
   },
 ];
 
-const faqs = [
+const demoMessages = [
   {
-    question: "What is Sweet Tooth?",
-    answer:
-      "Sweet Tooth is an order-management and AI-assistant platform designed for home bakers. It helps organize customer enquiries, orders, payments, customers and delivery schedules.",
+    sender: "customer",
+    text: "Assalam-o-Alaikum. Kal ke liye 2kg chocolate cake available hai?",
   },
   {
-    question: "Does the assistant use my bakery menu?",
-    answer:
-      "Yes. The assistant is designed to answer using the menu, pricing, delivery areas and rules provided by the baker.",
+    sender: "assistant",
+    text: "Wa Alaikum Assalam. Yes. Please share the cake message and delivery area.",
   },
   {
-    question: "Will Sweet Tooth automatically confirm payments?",
-    answer:
-      "No. Payment evidence can be organized and reviewed, but the baker remains responsible for confirming that money has actually been received.",
+    sender: "customer",
+    text: "Happy Birthday Hira. Delivery DHA Phase 6 mein chahiye.",
   },
   {
-    question: "Can I take over a customer conversation?",
-    answer:
-      "Yes. The baker stays in control and can handle a conversation when a customer request needs human attention.",
+    sender: "customer",
+    text: "Advance payment sent through JazzCash.",
   },
   {
-    question: "Are WhatsApp and Instagram fully connected?",
-    answer:
-      "The website demonstrates the intended workflow. Full channel integrations should only be advertised after the connections and end-to-end testing are complete.",
-  },
-  {
-    question: "Can I change my plan later?",
-    answer:
-      "Yes. You can begin with a smaller plan and move to a higher plan as your bakery grows.",
+    sender: "assistant",
+    text: "Your order information is ready for the baker to review.",
   },
 ];
 
@@ -171,278 +113,795 @@ export default function Home() {
   return (
     <BuyerLayout>
       <HeroSection />
-      <TrustStrip />
-      <ProblemSection />
-      <WorkflowSection />
-      <ProductShowcase />
+      <MovingStatement />
+      <ScrollStory />
+      <CapabilitiesSection />
       <ControlSection />
       <PricingSection />
-      <FaqSection />
-      <FinalCta />
+      <FinalSection />
     </BuyerLayout>
   );
 }
 
 function HeroSection() {
+  const reduceMotion = useReducedMotion();
+
   return (
-    <section className="relative overflow-hidden px-4 pb-20 pt-12 sm:pt-16 md:pb-28 md:pt-24">
-      <div className="absolute left-[-120px] top-[-150px] h-80 w-80 rounded-full bg-primary/10 blur-3xl" />
-      <div className="absolute bottom-[-120px] right-[-100px] h-80 w-80 rounded-full bg-secondary/20 blur-3xl" />
+    <section
+      className="relative isolate min-h-[calc(100svh-4rem)] overflow-hidden bg-[#f5f0e9] text-[#1b1519] lg:min-h-[calc(100svh-4rem)]"
+    >
+      <div className="absolute inset-0 hidden lg:block">
+        <div
+          className="absolute inset-y-0 left-0 w-[64%] bg-[#54152f]"
+          style={{
+            clipPath: "ellipse(84% 108% at 0% 50%)",
+          }}
+        />
 
-      <div className="relative mx-auto grid max-w-6xl items-center gap-14 lg:grid-cols-[0.9fr_1.1fr]">
+        <div className="absolute inset-y-0 left-[46%] w-px bg-[#54152f]/15" />
+      </div>
+
+      <div className="absolute inset-x-0 top-0 h-[64%] bg-[#54152f] lg:hidden" />
+
+      <div
+        className="absolute inset-0 opacity-[0.035]"
+        style={{
+          backgroundImage:
+            "linear-gradient(rgba(0,0,0,0.8) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.8) 1px, transparent 1px)",
+          backgroundSize: "70px 70px",
+        }}
+      />
+
+      <div className="relative mx-auto min-h-[calc(100svh-4rem)] max-w-[1600px] px-4 py-6 sm:px-7 sm:py-8 md:px-10 lg:px-20">
         <motion.div
-          initial={{ opacity: 0, y: 24 }}
+          initial={{ opacity: 0, y: -12 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="text-center lg:text-left"
+          transition={{ duration: 0.7 }}
+          className="relative z-30 flex items-center justify-between"
         >
-          <span className="inline-flex items-center gap-2 rounded-full border border-primary/15 bg-white px-3 py-1.5 text-xs font-bold text-primary shadow-sm">
-            <Sparkles className="h-3.5 w-3.5" />
-            Built for Pakistan&apos;s home bakers
-          </span>
+          <div className="text-white">
+            <p className="font-serif text-xl font-semibold leading-none sm:text-3xl">
+              Sweet/
+            </p>
 
-          <h1 className="mt-6 text-4xl font-bold leading-[1.04] tracking-tight sm:text-5xl md:text-6xl lg:text-7xl">
-            Turn every bakery message into an{" "}
-            <span className="text-primary">organized order.</span>
-          </h1>
-
-          <p className="mx-auto mt-6 max-w-xl text-base leading-8 text-muted-foreground sm:text-lg lg:mx-0">
-            Sweet Tooth helps home bakers capture customer requirements,
-            organize orders, review payments and plan deliveries from one calm
-            workspace.
-          </p>
-
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center lg:justify-start">
-            <Link
-              href="/dashboard/register"
-              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-bold text-primary-foreground shadow-lg shadow-primary/20 transition hover:-translate-y-0.5 hover:bg-primary/90"
-            >
-              Start your bakery
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-
-            <a
-              href="#agent-demo"
-              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-border bg-white px-6 py-3 text-sm font-bold text-foreground shadow-sm transition hover:-translate-y-0.5 hover:border-primary/30"
-            >
-              <Bot className="h-4 w-4 text-primary" />
-              Watch the agent demo
-            </a>
+            <p className="mt-1 text-[8px] font-bold uppercase tracking-[0.28em] text-white/45">
+              AI for home bakers
+            </p>
           </div>
 
-          <div className="mt-7 flex flex-wrap justify-center gap-x-5 gap-y-2 text-xs text-muted-foreground lg:justify-start">
-            <span className="flex items-center gap-1.5">
-              <CheckCircle2 className="h-4 w-4 text-green-600" />
-              No credit card required
-            </span>
-            <span className="flex items-center gap-1.5">
-              <CheckCircle2 className="h-4 w-4 text-green-600" />
-              Baker stays in control
-            </span>
+          <div className="text-right text-white lg:text-[#54152f]">
+            <p className="font-serif text-xl font-semibold leading-none sm:text-3xl">
+              /Tooth
+            </p>
+
+            <p className="mt-1 text-[8px] font-bold uppercase tracking-[0.28em] opacity-45">
+              Order intelligence
+            </p>
           </div>
         </motion.div>
 
-        <div id="agent-demo" className="scroll-mt-24">
-          <AgentDemo />
+        <div className="relative mt-6 grid min-h-[calc(100svh-8rem)] items-center sm:mt-8 lg:min-h-[calc(100svh-10rem)] lg:grid-cols-2">
+          <motion.div
+            className="relative z-20 pb-[315px] pt-8 text-white sm:pb-[455px] sm:pt-12 lg:pb-0 lg:pr-32 lg:pt-0"
+          >
+            <motion.div
+              initial={{ opacity: 0, x: -24 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{
+                duration: 0.75,
+                ease: [0.22, 1, 0.36, 1],
+              }}
+              className="flex items-center gap-3 sm:gap-4"
+            >
+              <span className="h-px w-8 bg-[#e5b671] sm:w-12" />
+
+              <p className="text-[8px] font-bold uppercase tracking-[0.2em] text-[#e5b671] sm:text-[9px] sm:tracking-[0.27em]">
+                One connected bakery workspace
+              </p>
+            </motion.div>
+
+            <div className="mt-7 sm:mt-10">
+              <HeroLine text="Smart" delay={0.05} />
+              <HeroLine text="baking," delay={0.14} accent />
+              <HeroLine text="without the" delay={0.23} />
+              <HeroLine text="busywork." delay={0.32} />
+            </div>
+
+            <motion.p
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7, delay: 0.62 }}
+              className="mt-6 max-w-[470px] border-l border-[#e5b671]/55 pl-4 text-[13px] leading-6 text-white/68 sm:mt-9 sm:pl-6 sm:text-base sm:leading-8"
+            >
+              Sweet Tooth turns customer conversations into organized orders,
+              payment records and production plans while keeping the baker in
+              control.
+            </motion.p>
+
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7, delay: 0.76 }}
+              className="mt-6 flex flex-col gap-3 sm:mt-9 sm:flex-row"
+            >
+              <Link
+                href="/dashboard/register"
+                className="group inline-flex min-h-[50px] w-full items-center justify-center gap-4 bg-[#f5f0e9] px-5 py-3 text-sm font-bold text-[#54152f] transition duration-300 hover:bg-[#e5b671] hover:text-[#1b1519] sm:min-h-[54px] sm:w-auto sm:gap-6 sm:px-8 sm:py-4"
+              >
+                Start your bakery
+
+                <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
+              </Link>
+
+              <a
+                href="#product-story"
+                className="group inline-flex min-h-[50px] w-full items-center justify-center gap-4 border border-white/25 px-5 py-3 text-sm font-bold transition duration-300 hover:border-[#e5b671] hover:text-[#e5b671] sm:min-h-[54px] sm:w-auto sm:gap-5 sm:px-8 sm:py-4"
+              >
+                See the workflow
+
+                <ArrowDown className="h-4 w-4 transition-transform group-hover:translate-y-1" />
+              </a>
+            </motion.div>
+          </motion.div>
+
+          <div className="relative z-10 flex items-center justify-end">
+            <motion.div
+              initial={{ opacity: 0, x: 30 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.85, delay: 0.45 }}
+              className="hidden text-[#54152f] lg:relative lg:top-auto lg:block lg:w-full"
+            >
+              <div className="ml-auto max-w-[330px] border-t border-[#54152f]/20 pt-6 lg:max-w-[360px]">
+                <p className="font-serif text-6xl font-semibold leading-none tracking-[-0.06em] sm:text-7xl lg:text-8xl">
+                  01
+                </p>
+
+                <p className="mt-3 text-[9px] font-bold uppercase tracking-[0.23em] text-[#54152f]/55">
+                  Clear workspace for every order
+                </p>
+              </div>
+
+              <div className="ml-auto mt-20 max-w-[330px] border-t border-[#54152f]/20 pt-6 lg:mt-32 lg:max-w-[360px]">
+                <p className="font-serif text-6xl font-semibold leading-none tracking-[-0.06em] sm:text-7xl lg:text-8xl">
+                  05
+                </p>
+
+                <p className="mt-3 text-[9px] font-bold uppercase tracking-[0.23em] text-[#54152f]/55">
+                  Connected stages from message to delivery
+                </p>
+              </div>
+            </motion.div>
+          </div>
+
+          <motion.div
+            initial={{ opacity: 0, scale: 0.72, rotate: -10 }}
+            animate={{ opacity: 1, scale: 1, rotate: -3 }}
+            transition={{
+              duration: 1.1,
+              delay: 0.35,
+              ease: [0.22, 1, 0.36, 1],
+            }}
+            className="absolute bottom-[58px] left-1/2 z-20 w-[70vw] max-w-[275px] -translate-x-1/2 sm:bottom-[45px] sm:w-[410px] sm:max-w-none lg:bottom-auto lg:left-[51%] lg:top-1/2 lg:w-[480px] lg:-translate-y-1/2 xl:w-[550px]"
+          >
+            <div className="relative">
+              <motion.div
+                animate={
+                  reduceMotion
+                    ? undefined
+                    : {
+                        scale: [0.94, 1.04, 0.94],
+                        opacity: [0.2, 0.5, 0.2],
+                      }
+                }
+                transition={{
+                  duration: 5,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
+                className="absolute inset-[6%] rounded-full bg-[#e5b671]/35 blur-[55px]"
+              />
+
+              <motion.div
+                animate={
+                  reduceMotion
+                    ? undefined
+                    : {
+                        y: [-8, 8, -8],
+                      }
+                }
+                transition={{
+                  duration: 5.2,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
+                className="relative aspect-square overflow-hidden rounded-full border-[7px] border-[#f5f0e9] bg-[#f5f0e9] shadow-[0_28px_70px_rgba(30,9,19,0.3)] sm:border-[14px] sm:shadow-[0_40px_100px_rgba(30,9,19,0.32)]"
+              >
+                <img
+                  src="/sweet-tooth-cake-hero.png"
+                  alt="Elegant custom cake made by a home baker"
+                  className="h-full w-full scale-[1.08] object-cover"
+                />
+
+                <div className="absolute inset-0 bg-gradient-to-tr from-[#54152f]/20 via-transparent to-white/15" />
+              </motion.div>
+
+              <motion.div
+                animate={
+                  reduceMotion
+                    ? undefined
+                    : {
+                        rotate: 360,
+                      }
+                }
+                transition={{
+                  duration: 24,
+                  repeat: Infinity,
+                  ease: "linear",
+                }}
+                className="absolute inset-[-5%] rounded-full border border-dashed border-[#e5b671]/65"
+              >
+                <span className="absolute left-1/2 top-[-5px] h-3 w-3 -translate-x-1/2 rounded-full bg-[#e5b671] shadow-[0_0_22px_rgba(229,182,113,0.9)]" />
+              </motion.div>
+
+              <motion.div
+                animate={
+                  reduceMotion
+                    ? undefined
+                    : {
+                        y: [-5, 6, -5],
+                      }
+                }
+                transition={{
+                  duration: 4.2,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
+                className="absolute -left-2 top-[12%] max-w-[145px] border border-white/15 bg-[#24131c]/92 px-3 py-2.5 text-white shadow-2xl backdrop-blur-xl sm:-left-14 sm:max-w-none sm:px-4 sm:py-3"
+              >
+                <p className="text-[8px] font-bold uppercase tracking-[0.2em] text-[#e5b671]">
+                  New enquiry
+                </p>
+
+                <p className="mt-2 text-xs font-semibold">
+                  2kg chocolate cake?
+                </p>
+              </motion.div>
+
+              <motion.div
+                animate={
+                  reduceMotion
+                    ? undefined
+                    : {
+                        y: [6, -5, 6],
+                      }
+                }
+                transition={{
+                  duration: 4.8,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
+                className="absolute -right-2 bottom-[14%] max-w-[145px] bg-[#f5f0e9] px-3 py-2.5 text-[#54152f] shadow-2xl sm:-right-14 sm:bottom-[18%] sm:max-w-none sm:px-4 sm:py-3"
+              >
+                <p className="text-[8px] font-bold uppercase tracking-[0.2em] opacity-55">
+                  Order ready
+                </p>
+
+                <p className="mt-2 text-xs font-bold">
+                  Tomorrow · DHA 6
+                </p>
+              </motion.div>
+            </div>
+          </motion.div>
+        </div>
+
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.1 }}
+          className="absolute bottom-8 left-5 z-30 hidden items-center gap-4 lg:flex lg:left-20"
+        >
+          <span className="h-2 w-2 animate-pulse rounded-full bg-[#e5b671]" />
+
+          <p className="text-[8px] font-bold uppercase tracking-[0.24em] text-white/40">
+            Scroll to explore the workflow
+          </p>
+        </motion.div>
+      </div>
+    </section>
+  );
+}
+
+function HeroLine({
+  text,
+  delay,
+  accent = false,
+}: {
+  text: string;
+  delay: number;
+  accent?: boolean;
+}) {
+  return (
+    <div className="overflow-hidden">
+      <motion.h1
+        initial={{ y: "110%" }}
+        animate={{ y: 0 }}
+        transition={{
+          duration: 0.9,
+          delay,
+          ease: [0.22, 1, 0.36, 1],
+        }}
+        className={`font-serif text-[2.85rem] font-semibold leading-[0.88] tracking-[-0.055em] min-[390px]:text-[3.2rem] sm:text-[5rem] md:text-[5.8rem] lg:text-[5.6rem] xl:text-[6.6rem] ${
+          accent ? "italic text-[#e5b671]" : ""
+        }`}
+      >
+        {text}
+      </motion.h1>
+    </div>
+  );
+}
+
+function MovingStatement() {
+  const statements = [
+    "CUSTOMER MESSAGE",
+    "ORDER DETAILS",
+    "PAYMENT REVIEW",
+    "PRODUCTION PLAN",
+    "DELIVERY",
+  ];
+
+  return (
+    <div className="overflow-hidden border-y border-[#6f2d4a]/15 bg-[#eadfd3] py-3.5 text-[#6f2d4a] sm:py-5">
+      <motion.div
+        animate={{ x: ["0%", "-50%"] }}
+        transition={{
+          duration: 24,
+          repeat: Infinity,
+          ease: "linear",
+        }}
+        className="flex w-max items-center"
+      >
+        {[0, 1].map((copy) => (
+          <div key={copy} className="flex shrink-0 items-center">
+            {statements.map((statement) => (
+              <div
+                key={`${copy}-${statement}`}
+                className="flex items-center"
+              >
+                <p className="px-5 text-[8px] font-bold uppercase tracking-[0.2em] text-[#6f2d4a]/70 sm:px-12 sm:text-[10px] sm:tracking-[0.25em]">
+                  {statement}
+                </p>
+
+                <span className="h-1.5 w-1.5 rotate-45 bg-[#c68b4f]" />
+              </div>
+            ))}
+          </div>
+        ))}
+      </motion.div>
+    </div>
+  );
+}
+
+function ScrollStory() {
+  const [activeStep, setActiveStep] = useState(0);
+
+  return (
+    <section
+      id="product-story"
+      className="scroll-mt-16 bg-[#f7f2ea] text-[#2b2327]"
+    >
+      <div className="mx-auto max-w-[1500px] px-4 py-16 sm:px-7 sm:py-20 md:px-10 md:py-28 lg:px-20 lg:py-32">
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-100px" }}
+          transition={{ duration: 0.7 }}
+          className="grid gap-5 border-b border-[#6f2d4a]/15 pb-10 sm:gap-8 sm:pb-14 lg:grid-cols-[0.8fr_1.2fr] lg:pb-16"
+        >
+          <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-[#d9a766]">
+            From conversation to delivery
+          </p>
+
+          <h2 className="max-w-4xl font-serif text-[2.55rem] font-semibold leading-[0.98] tracking-[-0.035em] sm:text-5xl md:text-6xl lg:text-7xl">
+            Watch one customer message become a complete bakery workflow.
+          </h2>
+        </motion.div>
+
+        <div className="mt-12 hidden grid-cols-[0.72fr_1.28fr] gap-10 lg:grid xl:gap-14">
+          <div>
+            {storySteps.map((step, index) => (
+              <StoryStep
+                key={step.number}
+                step={step}
+                index={index}
+                activeStep={activeStep}
+                onActive={setActiveStep}
+              />
+            ))}
+          </div>
+
+          <div className="relative">
+            <div className="sticky top-20 flex h-[calc(100vh-6rem)] min-h-[520px] max-h-[680px] items-center">
+              <ProductStage activeStep={activeStep} />
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-10 lg:hidden">
+          <div className="sticky top-16 z-30 -mx-4 border-y border-[#6f2d4a]/10 bg-[#f7f2ea]/95 px-4 py-3 shadow-[0_14px_35px_rgba(83,45,61,0.08)] backdrop-blur-xl sm:-mx-7 sm:px-7">
+            <MobileStoryPreview activeStep={activeStep} />
+          </div>
+
+          <div className="mt-8">
+            {storySteps.map((step, index) => (
+              <MobileStoryStep
+                key={step.number}
+                step={step}
+                index={index}
+                activeStep={activeStep}
+                onActive={setActiveStep}
+              />
+            ))}
+          </div>
         </div>
       </div>
     </section>
   );
 }
 
-function AgentDemo() {
-  const [visibleMessages, setVisibleMessages] = useState(1);
+function MobileStoryStep({
+  step,
+  index,
+  activeStep,
+  onActive,
+}: {
+  step: (typeof storySteps)[number];
+  index: number;
+  activeStep: number;
+  onActive: (index: number) => void;
+}) {
+  const ref = useRef<HTMLElement>(null);
+
+  const inView = useInView(ref, {
+    margin: "-32% 0px -52% 0px",
+  });
 
   useEffect(() => {
-    const timer = window.setInterval(() => {
-      setVisibleMessages((current) =>
-        current >= demoMessages.length ? 1 : current + 1,
-      );
-    }, 1600);
+    if (inView) {
+      onActive(index);
+    }
+  }, [inView, index, onActive]);
 
-    return () => window.clearInterval(timer);
-  }, []);
+  const active = activeStep === index;
+
+  return (
+    <motion.article
+      ref={ref}
+      animate={{
+        opacity: active ? 1 : 0.35,
+        y: active ? 0 : 12,
+      }}
+      transition={{ duration: 0.35 }}
+      className="flex min-h-[62svh] items-center border-b border-[#6f2d4a]/15 py-12"
+    >
+      <div className="w-full">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <motion.span
+              animate={{
+                rotate: active ? 45 : 0,
+                scale: active ? 1 : 0.75,
+              }}
+              className={`h-2.5 w-2.5 ${
+                active ? "bg-[#9f3156]" : "bg-[#6f2d4a]/25"
+              }`}
+            />
+
+            <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#9f3156]">
+              {step.label}
+            </p>
+          </div>
+
+          <p className="font-serif text-xl text-[#6f2d4a]/45">
+            {step.number}
+          </p>
+        </div>
+
+        <h3 className="mt-6 max-w-[330px] font-serif text-[2.25rem] font-semibold leading-[0.98] tracking-[-0.025em]">
+          {step.title}
+        </h3>
+
+        <p className="mt-5 max-w-[340px] text-sm leading-7 text-[#6f6468]">
+          {step.text}
+        </p>
+
+        <div className="mt-7 flex gap-1.5">
+          {storySteps.map((item, itemIndex) => (
+            <span
+              key={item.number}
+              className={`h-1 flex-1 transition-all duration-500 ${
+                itemIndex === activeStep
+                  ? "bg-[#9f3156]"
+                  : itemIndex < activeStep
+                    ? "bg-[#d9a766]"
+                    : "bg-[#6f2d4a]/15"
+              }`}
+            />
+          ))}
+        </div>
+      </div>
+    </motion.article>
+  );
+}
+
+function StoryStep({
+  step,
+  index,
+  activeStep,
+  onActive,
+}: {
+  step: (typeof storySteps)[number];
+  index: number;
+  activeStep: number;
+  onActive: (index: number) => void;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  const inView = useInView(ref, {
+    margin: "-43% 0px -43% 0px",
+  });
+
+  useEffect(() => {
+    if (inView) {
+      onActive(index);
+    }
+  }, [inView, index, onActive]);
+
+  const active = activeStep === index;
+
+  return (
+    <div
+      ref={ref}
+      className="flex min-h-[72vh] items-center border-l border-[#6f2d4a]/15 pl-9"
+    >
+      <motion.div
+        animate={{
+          opacity: active ? 1 : 0.28,
+          x: active ? 0 : -8,
+        }}
+        transition={{ duration: 0.35 }}
+        className="max-w-md"
+      >
+        <div className="flex items-center gap-5">
+          <span
+            className={`h-2.5 w-2.5 rotate-45 transition-colors duration-300 ${
+              active ? "bg-[#d9a766]" : "bg-white/20"
+            }`}
+          />
+
+          <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-[#d9a766]">
+            {step.label}
+          </p>
+
+          <p className="ml-auto font-serif text-xl text-[#6f2d4a]/35">
+            {step.number}
+          </p>
+        </div>
+
+        <h3 className="mt-8 font-serif text-5xl font-semibold leading-[0.98] tracking-[-0.03em]">
+          {step.title}
+        </h3>
+
+        <p className="mt-6 text-base leading-8 text-[#6f6468]">
+          {step.text}
+        </p>
+      </motion.div>
+    </div>
+  );
+}
+
+function ProductStage({ activeStep }: { activeStep: number }) {
+  const visibleMessages = demoMessages.slice(
+    0,
+    Math.min(activeStep + 1, demoMessages.length),
+  );
+
+  return (
+    <div className="w-full max-h-[calc(100vh-6rem)] overflow-hidden rounded-[24px] border border-[#6f2d4a]/15 bg-[#fffaf4] shadow-[0_30px_80px_rgba(83,45,61,0.12)]">
+      <div className="flex items-center justify-between border-b border-[#6f2d4a]/10 px-5 py-4">
+        <div className="flex items-center gap-3 sm:gap-4">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#6f2d4a] text-[#fffaf4]">
+            <span className="font-serif text-sm font-bold">ST</span>
+          </div>
+
+          <div>
+            <p className="text-sm font-bold">Sweet Tooth workspace</p>
+
+            <p className="mt-1 text-[9px] font-bold uppercase tracking-[0.2em] text-[#776b70]">
+              Interactive product demonstration
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {storySteps.map((step, index) => (
+            <span
+              key={step.number}
+              className={`h-1.5 transition-all duration-500 ${
+                index === activeStep
+                  ? "w-8 bg-[#d9a766]"
+                  : index < activeStep
+                    ? "w-4 bg-[#9f3156]"
+                    : "w-4 bg-[#6f2d4a]/15"
+              }`}
+            />
+          ))}
+        </div>
+      </div>
+
+      <div className="grid min-h-[500px] max-h-[580px] grid-cols-[0.9fr_1.1fr]">
+        <div className="flex min-h-0 flex-col border-r border-[#6f2d4a]/10 bg-[#f0e5da] p-5">
+          <div className="flex items-center justify-between border-b border-[#6f2d4a]/10 pb-5">
+            <div>
+              <p className="text-sm font-bold">Hira Khan</p>
+
+              <p className="mt-1 text-xs text-[#776b70]">
+                Customer conversation
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3 text-[#6f6468]">
+              <MessageCircle className="h-4 w-4" />
+              <Instagram className="h-4 w-4" />
+            </div>
+          </div>
+
+          <div className="flex min-h-0 flex-1 flex-col justify-end gap-3 overflow-hidden py-4">
+            <AnimatePresence initial={false}>
+              {visibleMessages.map((message, index) => (
+                <motion.div
+                  key={`${message.sender}-${index}`}
+                  initial={{ opacity: 0, y: 12, scale: 0.98 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  transition={{ duration: 0.35 }}
+                  className={`flex ${
+                    message.sender === "assistant"
+                      ? "justify-start"
+                      : "justify-end"
+                  }`}
+                >
+                  <div
+                    className={`max-w-[88%] px-4 py-3 text-xs leading-6 ${
+                      message.sender === "assistant"
+                        ? "bg-[#6f2d4a] text-white"
+                        : "border border-[#6f2d4a]/15 bg-[#fffdf8] text-[#2b2327]"
+                    }`}
+                  >
+                    {message.sender === "assistant" && (
+                      <p className="mb-2 text-[8px] font-bold uppercase tracking-[0.2em] text-[#f3d7a8]">
+                        Sweet Tooth
+                      </p>
+                    )}
+
+                    {message.text}
+                  </div>
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </div>
+
+          <div className="flex items-center gap-3 border-t border-[#6f2d4a]/10 pt-5">
+            <span className="h-2 w-2 animate-pulse rounded-full bg-[#d9a766]" />
+
+            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#776b70]">
+              Assistant following bakery rules
+            </p>
+          </div>
+        </div>
+
+        <div className="min-h-0 overflow-y-auto bg-[#fffdf8] p-5 text-[#2b2327]">
+          <AnimatePresence mode="wait">
+            {activeStep === 4 ? (
+              <CalendarPanel key="calendar" />
+            ) : (
+              <OrderPanel key="order" activeStep={activeStep} />
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function OrderPanel({ activeStep }: { activeStep: number }) {
+  const product =
+    activeStep >= 1 ? "Chocolate birthday cake" : "Collecting details";
+
+  const size = activeStep >= 1 ? "2kg" : "Not provided";
+  const delivery = activeStep >= 2 ? "Tomorrow · DHA Phase 6" : "Not provided";
+  const message = activeStep >= 2 ? "Happy Birthday Hira" : "Not provided";
+
+  const status =
+    activeStep >= 3
+      ? "Waiting for baker confirmation"
+      : activeStep >= 2
+        ? "Order draft created"
+        : "Information being collected";
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 28, scale: 0.98 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ delay: 0.15, duration: 0.7 }}
-      className="relative mx-auto w-full max-w-[650px]"
+      initial={{ opacity: 0, x: 18 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -18 }}
+      transition={{ duration: 0.35 }}
     >
-      <div className="absolute -inset-5 -z-10 rounded-[2.5rem] bg-primary/5 blur-2xl" />
+      <div className="flex items-start justify-between border-b border-[#1d1519]/15 pb-5">
+        <div>
+          <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#9f3156]">
+            Order intelligence
+          </p>
 
-      <div className="mb-3 flex justify-center lg:justify-start">
-        <span className="rounded-full bg-primary/10 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-primary">
-          Interactive product demo
-        </span>
-      </div>
-
-      <div className="overflow-hidden rounded-[1.75rem] border border-border bg-white shadow-[0_30px_80px_rgba(55,27,70,0.17)]">
-        <div className="flex items-center justify-between border-b border-border px-4 py-3 sm:px-5">
-          <div className="flex min-w-0 items-center gap-3">
-            <div className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary text-white">
-              <Bot className="h-5 w-5" />
-              <span className="absolute -right-1 -top-1 h-3 w-3 rounded-full border-2 border-white bg-green-500" />
-            </div>
-
-            <div className="min-w-0">
-              <p className="truncate text-sm font-bold">
-                Sweet Tooth Assistant
-              </p>
-              <p className="flex items-center gap-1.5 text-xs text-green-700">
-                <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
-                Demo conversation
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-1.5">
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-green-50 text-green-700">
-              <MessageCircle className="h-4 w-4" />
-            </span>
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-pink-50 text-pink-700">
-              <Instagram className="h-4 w-4" />
-            </span>
-          </div>
+          <h3 className="mt-2 font-serif text-3xl font-semibold">
+            Order #ST-1048
+          </h3>
         </div>
 
-        <div className="grid md:grid-cols-[1.15fr_0.85fr]">
-          <div className="flex min-h-[430px] flex-col bg-[hsl(36_45%_98%)] p-4 sm:p-5">
-            <div className="mb-4 flex items-center justify-between">
-              <div>
-                <p className="text-sm font-bold">Hira Khan</p>
-                <p className="text-xs text-muted-foreground">
-                  Customer enquiry
-                </p>
-              </div>
+        <PackageCheck className="h-5 w-5 text-[#9f3156]" />
+      </div>
 
-              <span className="rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-primary">
-                AI assisting
-              </span>
-            </div>
+      <div className="mt-4 bg-[#6f2d4a] p-4 text-white">
+        <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#d9a766]">
+          Current status
+        </p>
 
-            <div className="flex-1 space-y-3">
-              <AnimatePresence initial={false}>
-                {demoMessages.slice(0, visibleMessages).map((message) => (
-                  <motion.div
-                    key={message.id}
-                    initial={{ opacity: 0, y: 10, scale: 0.97 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.3 }}
-                    className={`flex ${
-                      message.sender === "agent"
-                        ? "justify-start"
-                        : "justify-end"
-                    }`}
-                  >
-                    <div
-                      className={`max-w-[88%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed shadow-sm ${
-                        message.sender === "agent"
-                          ? "rounded-bl-md border border-primary/10 bg-primary/10"
-                          : "rounded-br-md bg-white"
-                      }`}
-                    >
-                      {message.sender === "agent" && (
-                        <span className="mb-1 flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-primary">
-                          <Sparkles className="h-3 w-3" />
-                          Sweet Tooth AI
-                        </span>
-                      )}
+        <p className="mt-3 font-serif text-2xl leading-tight">{status}</p>
+      </div>
 
-                      {message.text}
-                    </div>
-                  </motion.div>
-                ))}
-              </AnimatePresence>
+      <div className="mt-5 divide-y divide-[#1d1519]/12 border-y border-[#1d1519]/12">
+        <OrderDetail label="Product" value={product} />
+        <OrderDetail label="Size" value={size} />
+        <OrderDetail label="Delivery" value={delivery} />
+        <OrderDetail label="Cake message" value={message} />
+      </div>
 
-              {visibleMessages < demoMessages.length && (
-                <div className="flex items-center gap-1 pl-2 text-xs text-muted-foreground">
-                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-primary/50 [animation-delay:-0.3s]" />
-                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-primary/50 [animation-delay:-0.15s]" />
-                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-primary/50" />
-                  <span className="ml-1">Assistant is replying</span>
-                </div>
-              )}
-            </div>
+      <div className="mt-5 grid grid-cols-2 gap-3">
+        <div className="border border-[#1d1519]/15 p-4">
+          <p className="text-[8px] font-bold uppercase tracking-[0.2em] text-[#786b70]">
+            Total
+          </p>
 
-            <div className="mt-4 rounded-xl border border-border bg-white px-3 py-2 text-xs leading-relaxed text-muted-foreground">
-              Demo only. The assistant uses the baker&apos;s menu and rules.
-            </div>
-          </div>
+          <p className="mt-3 font-serif text-2xl font-semibold">
+            {activeStep >= 2 ? "PKR 4,200" : "—"}
+          </p>
+        </div>
 
-          <div className="border-t border-border bg-white p-4 sm:p-5 md:border-l md:border-t-0">
-            <div className="flex items-center gap-2">
-              <PackageCheck className="h-4 w-4 text-primary" />
-              <p className="text-sm font-bold">Live order summary</p>
-            </div>
+        <div className="border border-[#1d1519]/15 p-4">
+          <p className="text-[8px] font-bold uppercase tracking-[0.2em] text-[#786b70]">
+            Payment
+          </p>
 
-            <div className="mt-5 space-y-4">
-              <SummaryRow
-                label="Product"
-                value={
-                  visibleMessages >= 2
-                    ? "Chocolate birthday cake"
-                    : "Collecting..."
-                }
-              />
-
-              <SummaryRow
-                label="Size"
-                value={visibleMessages >= 2 ? "2kg" : "Collecting..."}
-              />
-
-              <SummaryRow
-                label="Delivery"
-                value={
-                  visibleMessages >= 3
-                    ? "Tomorrow · DHA Phase 6"
-                    : "Collecting..."
-                }
-              />
-
-              <SummaryRow
-                label="Cake message"
-                value={
-                  visibleMessages >= 3
-                    ? "Happy Birthday Hira"
-                    : "Collecting..."
-                }
-              />
-
-              <div className="border-t border-border pt-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">
-                    Order total
-                  </span>
-                  <span className="font-bold">
-                    {visibleMessages >= 4 ? "PKR 4,200" : "—"}
-                  </span>
-                </div>
-              </div>
-
-              <motion.div
-                animate={{
-                  opacity: visibleMessages >= 4 ? 1 : 0.5,
-                  scale: visibleMessages >= 4 ? 1 : 0.98,
-                }}
-                className="flex items-center gap-2 rounded-xl bg-green-50 p-3 text-xs font-semibold text-green-800"
-              >
-                <CheckCircle2 className="h-4 w-4 shrink-0" />
-                {visibleMessages >= 4
-                  ? "Ready for baker confirmation"
-                  : "Collecting order details"}
-              </motion.div>
-            </div>
-          </div>
+          <p className="mt-3 text-sm font-bold">
+            {activeStep >= 3 ? "Evidence received" : "Not received"}
+          </p>
         </div>
       </div>
+
+      <motion.div
+        animate={{
+          opacity: activeStep >= 3 ? 1 : 0.35,
+        }}
+        className="mt-4 flex items-center gap-3 border border-[#9f3156]/20 bg-[#9f3156]/[0.07] p-3"
+      >
+        <ShieldCheck className="h-4 w-4 shrink-0 text-[#9f3156]" />
+
+        <p className="text-xs font-semibold">
+          The baker confirms whether payment has been received.
+        </p>
+      </motion.div>
     </motion.div>
   );
 }
 
-function SummaryRow({
+function OrderDetail({
   label,
   value,
 }: {
@@ -450,164 +909,272 @@ function SummaryRow({
   value: string;
 }) {
   return (
-    <div>
-      <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+    <div className="grid grid-cols-[0.75fr_1.25fr] gap-4 py-3">
+      <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-[#786b70]">
         {label}
       </p>
-      <p className="mt-1 text-sm font-semibold">{value}</p>
+
+      <p className="text-sm font-semibold">{value}</p>
     </div>
   );
 }
 
-function TrustStrip() {
-  const items = [
-    "Built for home bakers",
-    "WhatsApp-first workflow",
-    "JazzCash & Easypaisa friendly",
-    "Baker stays in control",
-  ];
+function CalendarPanel() {
+  const days = ["M", "T", "W", "T", "F", "S", "S"];
+  const dates = [12, 13, 14, 15, 16, 17, 18];
 
   return (
-    <section className="border-y border-border bg-white px-4 py-5">
-      <div className="mx-auto grid max-w-6xl grid-cols-2 gap-4 text-center text-xs font-semibold text-muted-foreground md:grid-cols-4">
-        {items.map((item) => (
-          <div key={item} className="flex items-center justify-center gap-2">
-            <CheckCircle2 className="h-4 w-4 shrink-0 text-green-600" />
-            <span>{item}</span>
+    <motion.div
+      initial={{ opacity: 0, x: 18 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -18 }}
+      transition={{ duration: 0.35 }}
+    >
+      <div className="flex items-start justify-between border-b border-[#1d1519]/15 pb-5">
+        <div>
+          <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#9f3156]">
+            Production calendar
+          </p>
+
+          <h3 className="mt-2 font-serif text-3xl font-semibold">
+            This week
+          </h3>
+        </div>
+
+        <CalendarDays className="h-5 w-5 text-[#9f3156]" />
+      </div>
+
+      <div className="mt-5 grid grid-cols-7 border-l border-t border-[#1d1519]/15">
+        {days.map((day, index) => (
+          <div
+            key={`${day}-${index}`}
+            className="border-b border-r border-[#1d1519]/15 py-3 text-center text-[9px] font-bold uppercase text-[#786b70]"
+          >
+            {day}
+          </div>
+        ))}
+
+        {dates.map((date) => (
+          <div
+            key={date}
+            className={`min-h-20 border-b border-r border-[#1d1519]/15 p-2 ${
+              date === 18 ? "bg-[#9f3156] text-white" : ""
+            }`}
+          >
+            <p className="text-xs font-bold">{date}</p>
+
+            {date === 18 && (
+              <p className="mt-3 text-[8px] font-bold uppercase leading-4 tracking-[0.12em] text-[#2b2327]/75">
+                Hira
+                <br />
+                2kg cake
+              </p>
+            )}
           </div>
         ))}
       </div>
-    </section>
-  );
-}
 
-function ProblemSection() {
-  return (
-    <section className="px-4 py-20 md:py-28">
-      <div className="mx-auto max-w-6xl">
-        <SectionHeading
-          eyebrow="THE PROBLEM"
-          title="Baking is already hard. Managing orders should not be."
-          text="Sweet Tooth brings scattered conversations, order details, payment evidence and delivery planning into one organized workflow."
-        />
+      <div className="mt-5 space-y-3">
+        <div className="flex items-center gap-4 border border-[#1d1519]/15 p-4">
+          <Clock3 className="h-5 w-5 shrink-0 text-[#9f3156]" />
 
-        <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          {problems.map(({ icon: Icon, title, text }, index) => (
-            <motion.article
-              key={title}
-              initial={{ opacity: 0, y: 24 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-60px" }}
-              transition={{ delay: index * 0.08 }}
-              className="rounded-2xl border border-border bg-white p-6 shadow-sm"
-            >
-              <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                <Icon className="h-5 w-5" />
-              </span>
-              <h3 className="mt-5 text-xl font-bold">{title}</h3>
-              <p className="mt-3 text-sm leading-7 text-muted-foreground">
-                {text}
-              </p>
-            </motion.article>
-          ))}
+          <div>
+            <p className="text-sm font-bold">Preparation deadline</p>
+
+            <p className="mt-1 text-xs text-[#786b70]">
+              Complete decoration before delivery
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-4 bg-[#6f2d4a] p-4 text-white">
+          <CheckCircle2 className="h-5 w-5 shrink-0 text-[#d9a766]" />
+
+          <div>
+            <p className="text-sm font-bold">Workflow completed</p>
+
+            <p className="mt-1 text-xs text-[#6f6468]">
+              Conversation, order, payment and schedule connected
+            </p>
+          </div>
         </div>
       </div>
-    </section>
+    </motion.div>
   );
 }
 
-function WorkflowSection() {
+function MobileStoryPreview({
+  activeStep,
+}: {
+  activeStep: number;
+}) {
+  const labels = [
+    "Customer enquiry",
+    "Information collected",
+    "Order created",
+    "Payment review",
+    "Production scheduled",
+  ];
+
+  const titles = [
+    "New customer message",
+    "Details being collected",
+    "Structured order ready",
+    "Waiting for confirmation",
+    "Added to production",
+  ];
+
+  const descriptions = [
+    "“Kal ke liye 2kg chocolate cake available hai?”",
+    "Chocolate cake · 2kg · DHA Phase 6",
+    "Order #ST-1048 · PKR 4,200",
+    "JazzCash evidence received",
+    "Delivery added to tomorrow",
+  ];
+
+  const icons = [
+    MessageCircle,
+    Bot,
+    PackageCheck,
+    WalletCards,
+    CalendarDays,
+  ];
+
+  const Icon = icons[activeStep];
+
   return (
-    <section
-      id="how-it-works"
-      className="scroll-mt-24 border-y border-border bg-white px-4 py-20 md:py-28"
-    >
-      <div className="mx-auto max-w-6xl">
-        <SectionHeading
-          eyebrow="HOW IT WORKS"
-          title="From customer message to clear bakery order"
-          text="The assistant helps collect information. The baker still reviews important decisions and remains in control."
-        />
+    <div className="overflow-hidden rounded-[18px] border border-[#6f2d4a]/15 bg-[#fffaf4] text-[#2b2327] shadow-[0_18px_50px_rgba(83,45,61,0.1)]">
+      <div className="flex items-center justify-between border-b border-[#6f2d4a]/10 px-4 py-3">
+        <div className="flex min-w-0 items-center gap-3">
+          <motion.span
+            key={`icon-${activeStep}`}
+            initial={{ scale: 0.75, opacity: 0, rotate: -12 }}
+            animate={{ scale: 1, opacity: 1, rotate: 0 }}
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#6f2d4a] text-[#fffaf4]"
+          >
+            <Icon className="h-4 w-4" />
+          </motion.span>
 
-        <div className="mt-14 grid gap-8 md:grid-cols-3">
-          {workflow.map((step, index) => (
-            <motion.article
-              key={step.number}
-              initial={{ opacity: 0, y: 24 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: index * 0.1 }}
-              className="relative"
-            >
-              <span className="text-5xl font-bold text-primary/15">
-                {step.number}
-              </span>
-              <h3 className="mt-3 text-2xl font-bold">{step.title}</h3>
-              <p className="mt-3 max-w-sm text-sm leading-7 text-muted-foreground">
-                {step.text}
-              </p>
-            </motion.article>
-          ))}
+          <div className="min-w-0">
+            <p className="truncate text-[8px] font-bold uppercase tracking-[0.17em] text-[#9f3156]">
+              Sweet Tooth workflow
+            </p>
+
+            <AnimatePresence mode="wait">
+              <motion.p
+                key={labels[activeStep]}
+                initial={{ opacity: 0, x: 10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -10 }}
+                className="mt-1 truncate text-xs font-bold"
+              >
+                {labels[activeStep]}
+              </motion.p>
+            </AnimatePresence>
+          </div>
         </div>
+
+        <p className="font-serif text-lg text-[#d9a766]">
+          0{activeStep + 1}
+        </p>
       </div>
-    </section>
+
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={activeStep}
+          initial={{ opacity: 0, y: 12, scale: 0.98 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: -10, scale: 0.98 }}
+          transition={{ duration: 0.3 }}
+          className="m-3 rounded-[13px] bg-[#f0e5da] p-4"
+        >
+          <p className="font-serif text-[1.45rem] font-semibold leading-tight">
+            {titles[activeStep]}
+          </p>
+
+          <p className="mt-2 text-xs leading-5 text-[#6f6468]">
+            {descriptions[activeStep]}
+          </p>
+
+          <div className="mt-4 flex items-center justify-between border-t border-[#6f2d4a]/12 pt-3">
+            <div className="flex items-center gap-2">
+              <Check className="h-3.5 w-3.5 text-[#9f3156]" />
+
+              <p className="text-[10px] font-semibold">
+                Baker remains in control
+              </p>
+            </div>
+
+            <div className="flex gap-1">
+              {storySteps.map((step, index) => (
+                <span
+                  key={step.number}
+                  className={`h-1 w-4 rounded-full transition-all duration-500 ${
+                    index === activeStep
+                      ? "bg-[#9f3156]"
+                      : index < activeStep
+                        ? "bg-[#d9a766]"
+                        : "bg-[#6f2d4a]/15"
+                  }`}
+                />
+              ))}
+            </div>
+          </div>
+        </motion.div>
+      </AnimatePresence>
+    </div>
   );
 }
 
-function ProductShowcase() {
+function CapabilitiesSection() {
   return (
     <section
       id="features"
-      className="scroll-mt-24 px-4 py-20 md:py-28"
+      className="scroll-mt-20 bg-[#f7f2ea] px-4 py-16 text-[#1d1519] sm:px-7 sm:py-20 md:px-10 md:py-28 lg:px-20 lg:py-32"
     >
-      <div className="mx-auto max-w-6xl">
-        <SectionHeading
-          eyebrow="ONE CALM WORKSPACE"
-          title="Everything a growing home bakery needs"
-          text="Designed around the real work of answering customers, managing orders, checking payments and meeting delivery dates."
-        />
+      <div className="mx-auto max-w-[1360px]">
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-100px" }}
+          className="grid gap-5 sm:gap-8 lg:grid-cols-[0.7fr_1.3fr] lg:gap-10"
+        >
+          <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-[#9f3156]">
+            One connected workspace
+          </p>
 
-        <div className="mt-14 grid gap-6 lg:grid-cols-2">
-          {productFeatures.map(
-            ({ icon: Icon, label, title, text, items }, index) => (
+          <h2 className="max-w-5xl font-serif text-5xl font-semibold leading-[0.96] tracking-[-0.035em] sm:text-6xl md:text-7xl">
+            The business side of baking, beautifully under control.
+          </h2>
+        </motion.div>
+
+        <div className="mt-12 border-t border-[#1d1519]/20 sm:mt-16 lg:mt-20">
+          {capabilities.map(
+            ({ number, icon: Icon, title, text }, index) => (
               <motion.article
                 key={title}
-                initial={{ opacity: 0, y: 28 }}
+                initial={{ opacity: 0, y: 18 }}
                 whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-70px" }}
-                transition={{ delay: index * 0.08 }}
-                className="group rounded-3xl border border-border bg-white p-6 shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl sm:p-8"
+                viewport={{ once: true, margin: "-80px" }}
+                transition={{ delay: index * 0.05 }}
+                className="group grid grid-cols-[42px_1fr] gap-x-4 gap-y-3 border-b border-[#1d1519]/20 py-7 sm:grid-cols-[52px_1fr] sm:py-9 md:grid-cols-[80px_80px_0.85fr_1fr] md:items-center md:gap-6"
               >
-                <div className="flex items-center justify-between gap-4">
-                  <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary text-white shadow-lg shadow-primary/20">
-                    <Icon className="h-5 w-5" />
-                  </span>
-                  <span className="text-[10px] font-bold tracking-[0.18em] text-primary">
-                    {label}
-                  </span>
-                </div>
+                <p className="font-serif text-xl text-[#9f3156] sm:text-2xl">
+                  {number}
+                </p>
 
-                <h3 className="mt-7 text-2xl font-bold leading-tight sm:text-3xl">
+                <Icon
+                  className="h-5 w-5 text-[#9f3156] transition-transform duration-500 group-hover:rotate-6 group-hover:scale-110 sm:h-6 sm:w-6"
+                  strokeWidth={1.6}
+                />
+
+                <h3 className="col-start-2 font-serif text-2xl font-semibold sm:text-3xl md:col-start-auto md:text-4xl">
                   {title}
                 </h3>
 
-                <p className="mt-4 text-sm leading-7 text-muted-foreground">
+                <p className="col-span-2 max-w-xl text-[13px] leading-6 text-[#6b5e64] sm:text-sm sm:leading-7 md:col-span-1 md:text-base">
                   {text}
                 </p>
-
-                <ul className="mt-6 space-y-3">
-                  {items.map((item) => (
-                    <li
-                      key={item}
-                      className="flex items-start gap-3 text-sm font-medium"
-                    >
-                      <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-green-50 text-green-700">
-                        <Check className="h-3 w-3" />
-                      </span>
-                      {item}
-                    </li>
-                  ))}
-                </ul>
               </motion.article>
             ),
           )}
@@ -619,74 +1186,45 @@ function ProductShowcase() {
 
 function ControlSection() {
   return (
-    <section className="px-4 pb-20 md:pb-28">
-      <div className="mx-auto max-w-6xl overflow-hidden rounded-[2rem] bg-[hsl(266_55%_13%)] px-6 py-12 text-white shadow-2xl sm:px-10 md:px-14 md:py-16">
-        <div className="grid items-center gap-12 lg:grid-cols-[1fr_0.85fr]">
-          <div>
-            <span className="text-xs font-bold uppercase tracking-[0.2em] text-secondary">
-              TRUST & CONTROL
-            </span>
+    <section className="bg-[#eadce1] px-4 py-16 text-[#2b2327] sm:px-7 sm:py-20 md:px-10 md:py-28 lg:px-20 lg:py-32">
+      <div className="mx-auto grid max-w-[1360px] gap-10 sm:gap-14 lg:grid-cols-[1.15fr_0.85fr] lg:items-end lg:gap-16">
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-100px" }}
+        >
+          <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-[#6f2d4a]">
+            Built around trust
+          </p>
 
-            <h2 className="mt-4 text-4xl font-bold leading-tight sm:text-5xl">
-              Your bakery. Your menu. Your rules.
-            </h2>
+          <h2 className="mt-5 max-w-4xl font-serif text-[2.55rem] font-semibold leading-[0.96] tracking-[-0.035em] sm:mt-8 sm:text-5xl md:text-6xl lg:text-7xl">
+            The assistant supports your judgment. It does not replace it.
+          </h2>
+        </motion.div>
 
-            <p className="mt-5 max-w-xl leading-8 text-white/70">
-              Automation should support the baker, not replace their judgment.
-              You control the menu, availability, pricing, payment confirmation
-              and customer experience.
-            </p>
-          </div>
+        <div className="border-t border-[#6f2d4a]/15">
+          {[
+            {
+              icon: Store,
+              text: "Uses the bakery’s own menu, prices and policies.",
+            },
+            {
+              icon: ShieldCheck,
+              text: "The baker confirms important actions and payments.",
+            },
+            {
+              icon: Bot,
+              text: "Unclear customer requests can be handed to a human.",
+            },
+          ].map(({ icon: Icon, text }) => (
+            <div
+              key={text}
+              className="flex items-center gap-5 border-b border-[#6f2d4a]/15 py-6"
+            >
+              <Icon className="h-5 w-5 shrink-0 text-[#6f2d4a]" />
 
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
-            {[
-              {
-                icon: Store,
-                text: "The assistant follows your menu and policies.",
-              },
-              {
-                icon: ShieldCheck,
-                text: "The baker confirms important actions and payments.",
-              },
-              {
-                icon: UsersRound,
-                text: "Unclear requests can be escalated to a human.",
-              },
-              {
-                icon: Bot,
-                text: "The assistant can be paused when needed.",
-              },
-            ].map(({ icon: Icon, text }) => (
-              <div
-                key={text}
-                className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 p-4"
-              >
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/10 text-secondary">
-                  <Icon className="h-5 w-5" />
-                </span>
-                <p className="text-sm font-medium text-white/90">{text}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function FaqSection() {
-  return (
-    <section id="faq" className="scroll-mt-24 px-4 py-20 md:py-28">
-      <div className="mx-auto max-w-4xl">
-        <SectionHeading
-          eyebrow="FREQUENTLY ASKED QUESTIONS"
-          title="Clear answers before you begin"
-          text="Everything you should know about Sweet Tooth and the bakery workflow."
-        />
-
-        <div className="mt-12 space-y-4">
-          {faqs.map((faq, index) => (
-            <FaqItem key={faq.question} {...faq} index={index} />
+              <p className="text-sm leading-7 text-[#6f6468]">{text}</p>
+            </div>
           ))}
         </div>
       </div>
@@ -694,108 +1232,52 @@ function FaqSection() {
   );
 }
 
-function FaqItem({
-  question,
-  answer,
-  index,
-}: {
-  question: string;
-  answer: string;
-  index: number;
-}) {
-  const [open, setOpen] = useState(index === 0);
-
+function FinalSection() {
   return (
-    <div className="overflow-hidden rounded-2xl border border-border bg-white shadow-sm">
-      <button
-        type="button"
-        onClick={() => setOpen((current) => !current)}
-        className="flex min-h-16 w-full items-center justify-between gap-4 px-5 py-4 text-left sm:px-6"
-      >
-        <span className="font-bold">{question}</span>
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-lg font-bold text-primary">
-          {open ? "−" : "+"}
-        </span>
-      </button>
-
-      <AnimatePresence initial={false}>
-        {open && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-          >
-            <p className="px-5 pb-5 text-sm leading-7 text-muted-foreground sm:px-6 sm:pb-6">
-              {answer}
+    <section className="bg-[#f7f2ea] px-4 py-16 text-[#1d1519] sm:px-7 sm:py-20 md:px-10 md:py-28 lg:px-20 lg:py-32">
+      <div className="mx-auto max-w-[1360px]">
+        <motion.div
+          initial={{ opacity: 0, y: 25 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-100px" }}
+          className="grid gap-8 border-y border-[#1d1519]/20 py-10 sm:gap-12 sm:py-14 lg:grid-cols-[1fr_auto] lg:items-end lg:py-16"
+        >
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-[#9f3156]">
+              Your next order starts with a message
             </p>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-}
 
-function FinalCta() {
-  return (
-    <section className="px-4 pb-20">
-      <div className="mx-auto max-w-6xl rounded-[2rem] border border-primary/10 bg-primary/5 px-6 py-14 text-center sm:px-10 md:py-20">
-        <Sparkles className="mx-auto h-7 w-7 text-primary" />
+            <h2 className="mt-5 max-w-5xl font-serif text-[2.75rem] font-semibold leading-[0.94] tracking-[-0.04em] sm:mt-8 sm:text-5xl md:text-6xl lg:text-8xl">
+              Bake more.
+              <br />
+              Chase fewer chats.
+            </h2>
+          </div>
 
-        <h2 className="mx-auto mt-5 max-w-3xl text-4xl font-bold leading-tight sm:text-5xl">
-          Spend more time baking. Less time chasing messages.
-        </h2>
+          <div className="flex w-full flex-col gap-3 lg:w-auto">
+            <Link
+              href="/dashboard/register"
+              className="group inline-flex min-h-12 w-full items-center justify-center gap-4 bg-[#1d1519] px-5 py-3 text-sm font-bold text-white transition-colors duration-300 hover:bg-[#9f3156] sm:min-h-14 sm:px-8 sm:py-4 lg:w-auto lg:gap-6"
+            >
+              Create your bakery
 
-        <p className="mx-auto mt-5 max-w-xl leading-8 text-muted-foreground">
-          Create your bakery workspace or book a demo using your real order
-          process.
-        </p>
+              <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
+            </Link>
 
-        <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
-          <Link
-            href="/dashboard/register"
-            className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-bold text-primary-foreground shadow-lg shadow-primary/20 transition hover:-translate-y-0.5"
-          >
-            Create your bakery
-            <ArrowRight className="h-4 w-4" />
-          </Link>
-
-          <a
-            href={whatsappSupportLink(
-              "Assalam-o-Alaikum! I would like to book a Sweet Tooth demo for my bakery.",
-            )}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-green-600/20 bg-white px-6 py-3 text-sm font-bold text-green-800 transition hover:-translate-y-0.5 hover:bg-green-50"
-          >
-            <MessageCircle className="h-4 w-4" />
-            Book a demo
-          </a>
-        </div>
+            <a
+              href={whatsappSupportLink(
+                "Assalam-o-Alaikum! I would like to book a Sweet Tooth demo for my bakery.",
+              )}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex min-h-12 w-full items-center justify-center gap-4 border border-[#1d1519]/25 px-5 py-3 text-sm font-bold transition-colors duration-300 hover:border-[#9f3156] hover:text-[#9f3156] sm:min-h-14 sm:px-8 sm:py-4 lg:w-auto"
+            >
+              <MessageCircle className="h-4 w-4" />
+              Book a demonstration
+            </a>
+          </div>
+        </motion.div>
       </div>
     </section>
-  );
-}
-
-function SectionHeading({
-  eyebrow,
-  title,
-  text,
-}: {
-  eyebrow: string;
-  title: string;
-  text: string;
-}) {
-  return (
-    <div className="mx-auto max-w-3xl text-center">
-      <p className="text-xs font-bold uppercase tracking-[0.2em] text-primary">
-        {eyebrow}
-      </p>
-      <h2 className="mt-4 text-3xl font-bold leading-tight sm:text-4xl md:text-5xl">
-        {title}
-      </h2>
-      <p className="mx-auto mt-5 max-w-2xl text-sm leading-7 text-muted-foreground sm:text-base">
-        {text}
-      </p>
-    </div>
   );
 }
