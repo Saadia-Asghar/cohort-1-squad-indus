@@ -15,10 +15,7 @@ async function buildAll() {
   await rm(distDir, { recursive: true, force: true });
 
   await esbuild({
-    // Keep the bundled server entry away from Vercel's conventional
-    // `src/index.ts` auto-detection. The deployed function must be the
-    // `api/index.js` wrapper, which loads this generated bundle.
-    entryPoints: [path.resolve(artifactDir, "src/server-entry.ts")],
+    entryPoints: [path.resolve(artifactDir, "src/index.ts")],
     platform: "node",
     bundle: true,
     format: "esm",
