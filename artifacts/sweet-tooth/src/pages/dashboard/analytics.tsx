@@ -13,6 +13,8 @@ import {
   getGetBakerAnalyticsQueryKey,
   getGetOrderSourcesQueryKey,
   getListCustomersQueryKey,
+  useGetWeeklySuccessReport,
+  getGetWeeklySuccessReportQueryKey,
 } from "@workspace/api-client-react";
 import { useBuyerSession } from "@/hooks/use-session";
 import { Users, Megaphone, Sparkles, Percent, Calendar, Heart, Send, CheckCircle } from "lucide-react";
@@ -115,6 +117,14 @@ export default function DashboardAnalytics() {
     query: {
       enabled: !!bakerId,
       queryKey: getGetOrderSourcesQueryKey(bakerId),
+      ...liveDashboardQuery(ANALYTICS_POLL_MS),
+    },
+  });
+
+  const { data: weeklyReport } = useGetWeeklySuccessReport(bakerId, {
+    query: {
+      enabled: !!bakerId,
+      queryKey: getGetWeeklySuccessReportQueryKey(bakerId),
       ...liveDashboardQuery(ANALYTICS_POLL_MS),
     },
   });
@@ -346,6 +356,69 @@ export default function DashboardAnalytics() {
 
             {activeTab === "sales" ? (
               <>
+                {weeklyReport && (
+                  <div className="rounded-xl border border-border bg-card p-6 shadow-xs bg-gradient-to-br from-card to-muted/10 mb-8">
+                    <div className="flex items-center justify-between mb-4 border-b border-border pb-3">
+                      <div>
+                        <h3 className="font-serif text-lg font-bold text-foreground">Weekly Success Report</h3>
+                        <p className="text-sm text-muted-foreground">
+                          Bakery performance metrics for the last 7 days.
+                        </p>
+                      </div>
+                      <span className="bg-primary/10 text-primary px-3 py-1 rounded-full text-xs font-semibold">
+                        7-Day Summary
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                      {/* Metric 1 */}
+                      <div className="p-4 rounded-lg bg-card border border-border/50 shadow-2xs">
+                        <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Weekly Orders</p>
+                        <div className="flex items-baseline gap-2 mt-2">
+                          <span className="text-2xl font-bold font-mono">{weeklyReport.ordersCount}</span>
+                          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full flex items-center ${
+                            weeklyReport.ordersTrendPercent > 0
+                              ? "bg-green-500/10 text-green-600 dark:text-green-400"
+                              : weeklyReport.ordersTrendPercent < 0
+                                ? "bg-red-500/10 text-red-600 dark:text-red-400"
+                                : "bg-muted text-muted-foreground"
+                          }`}>
+                            {weeklyReport.ordersTrendPercent > 0 ? "↑" : weeklyReport.ordersTrendPercent < 0 ? "↓" : ""}
+                            {Math.abs(weeklyReport.ordersTrendPercent)}%
+                          </span>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">vs. previous week</p>
+                      </div>
+
+                      {/* Metric 2 */}
+                      <div className="p-4 rounded-lg bg-card border border-border/50 shadow-2xs">
+                        <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Customer Retention</p>
+                        <div className="flex items-baseline gap-2 mt-2">
+                          <span className="text-2xl font-bold font-mono">{weeklyReport.repeatBuyersCount}</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">Repeat buyers active this week</p>
+                      </div>
+
+                      {/* Metric 3 */}
+                      <div className="p-4 rounded-lg bg-card border border-border/50 shadow-2xs">
+                        <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">AI Assistant Response</p>
+                        <div className="flex items-baseline gap-2 mt-2">
+                          <span className="text-2xl font-bold font-mono">{weeklyReport.avgResponseTimeSec}s</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">Average response time this week</p>
+                      </div>
+
+                      {/* Metric 4 */}
+                      <div className="p-4 rounded-lg bg-card border border-border/50 shadow-2xs">
+                        <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Payment Review Issues</p>
+                        <div className="flex items-baseline gap-2 mt-2">
+                          <span className="text-2xl font-bold font-mono text-amber-600 dark:text-amber-400">{weeklyReport.failedPaymentReviewsCount}</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">Unverified payment reviews flagged</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {feedbackStats && (
                   <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
                     <h3 className="font-serif text-lg font-bold mb-1">Service quality (after delivery)</h3>

@@ -538,6 +538,14 @@ export interface OrderSourceStat {
   percentage: number;
 }
 
+export interface WeeklySuccessReport {
+  ordersCount: number;
+  ordersTrendPercent: number;
+  repeatBuyersCount: number;
+  avgResponseTimeSec: number;
+  failedPaymentReviewsCount: number;
+}
+
 export interface ChatMessage {
   id: number;
   bakerId: number;
@@ -582,10 +590,10 @@ export interface ConversationSummary {
   lastActiveAt: string;
   messageCount: number;
   unread: boolean;
+  needsBakerReply: boolean;
   preferences?: BuyerPreferences;
   /** @nullable */
   summary?: string | null;
-  needsBakerReply?: boolean;
 }
 
 export interface BakerNotification {
@@ -624,7 +632,6 @@ export interface AgentConfig {
   availabilityHours?: string;
   dietaryPolicy?: string;
   activeOffers?: string;
-  deliveryPricing?: string;
 }
 
 export interface AgentConfigInput {
@@ -641,7 +648,6 @@ export interface AgentConfigInput {
   availabilityHours?: string;
   dietaryPolicy?: string;
   activeOffers?: string;
-  deliveryPricing?: string;
 }
 
 export type KnowledgeReindexResultEmbeddingProvider = typeof KnowledgeReindexResultEmbeddingProvider[keyof typeof KnowledgeReindexResultEmbeddingProvider];

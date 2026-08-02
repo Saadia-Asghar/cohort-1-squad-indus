@@ -13,6 +13,8 @@ import {
 import { triggerPaymentOCRVerification } from "../lib/ocr.js";
 import { AuthenticatedRequest, requireBakerAuth, requireBakerOwner } from "../middlewares/auth.js";
 import { rateLimit } from "../middlewares/rate-limiter.js";
+import { logOrderActivity, getActorFromRequest } from "../lib/audit.js";
+
 import { normalizePakistanPhone } from "../lib/phone.js";
 import {
   recordOrderFeedback,
@@ -350,6 +352,16 @@ router.post("/orders", rateLimit(15, 15 * 60 * 1000), async (req, res): Promise<
       requireAdvance: Boolean(baker.requireAdvance),
     }).returning();
 
+    await logOrderActivity({
+      orderId: order.id,
+      bakerId: order.bakerId,
+      actor: { actorType: "buyer" },
+      action: "status_change",
+      fromStatus: null,
+      toStatus: "new",
+      metadata: { source: order.source }
+    });
+
     for (const item of lineItems.filter((item) => item.productId > 0)) {
       await db
         .update(productsTable)
@@ -428,6 +440,17 @@ router.post("/orders/manual", requireBakerAuth, async (req, res): Promise<void> 
     source: "manual",
     requireAdvance: baker.requireAdvance,
   }).returning();
+
+  await logOrderActivity({
+    orderId: order.id,
+    bakerId: order.bakerId,
+    actor: getActorFromRequest(req),
+    action: "status_change",
+    fromStatus: null,
+    toStatus: "new",
+    metadata: { source: "manual" }
+  });
+
   await syncBakerStats(bakerId);
   res.status(201).json(formatOrder(order));
 });
@@ -490,6 +513,16 @@ router.post("/orders/custom-quote", rateLimit(10, 15 * 60 * 1000), async (req, r
     requireAdvance: Boolean(baker.requireAdvance),
   }).returning();
 
+  await logOrderActivity({
+    orderId: order.id,
+    bakerId: order.bakerId,
+    actor: { actorType: "buyer" },
+    action: "status_change",
+    fromStatus: null,
+    toStatus: "new",
+    metadata: { source: "custom_quote" }
+  });
+
   void sendN8nEvent("custom_quote.requested", {
     bakerId: baker.id,
     orderId: order.id,
@@ -540,6 +573,16 @@ router.patch("/orders/:orderId/quote", requireBakerAuth, async (req, res): Promi
     deliveryDate: parsed.data.deliveryDate ?? existing.deliveryDate,
     status: "confirmed",
   }).where(eq(ordersTable.id, orderId)).returning();
+
+  await logOrderActivity({
+    orderId: order.id,
+    bakerId: order.bakerId,
+    actor: getActorFromRequest(req),
+    action: "status_change",
+    fromStatus: "new",
+    toStatus: "confirmed",
+    metadata: { totalPkr: order.totalPkr, prevTotalPkr: existing.totalPkr }
+  });
 
   if (existing.buyerId) {
     await db.update(customersTable).set({
@@ -595,6 +638,14 @@ router.post("/orders/:orderId/verify-payment", requireBakerAuth, requireBakerOwn
       .update(ordersTable)
       .set({ paymentScreenshotUrl: dataUrl })
       .where(and(eq(ordersTable.id, orderId), eq(ordersTable.bakerId, (req as AuthenticatedRequest).bakerId!)));
+
+    await logOrderActivity({
+      orderId,
+      bakerId: order.bakerId,
+      actor: getActorFromRequest(req),
+      action: "receipt_upload",
+      metadata: { method: "direct_upload" }
+    });
   }
 
   try {
@@ -605,6 +656,23 @@ router.post("/orders/:orderId/verify-payment", requireBakerAuth, requireBakerOwn
       });
       return;
     }
+
+    await logOrderActivity({
+      orderId,
+      bakerId: order.bakerId,
+      actor: getActorFromRequest(req),
+      action: "ocr_verification",
+      metadata: {
+        verified: result.verified,
+        amountMatches: result.amountMatches,
+        recipientMatches: result.recipientMatches,
+        extractedAmount: result.extractedAmount,
+        extractedTrxId: result.extractedTrxId,
+        confidence: result.confidence,
+        decision: result.decision
+      }
+    });
+
     res.json(result);
   } catch (err) {
     res.status(400).json({ error: err instanceof Error ? err.message : "Receipt check failed." });
@@ -644,6 +712,12 @@ router.patch("/orders/:orderId/status", requireBakerAuth, async (req, res): Prom
   }
   const isCancelled = parsed.data.status === "cancelled";
   const isDelivered = parsed.data.status === "delivered";
+  const [existingOrder] = await db
+    .select({ status: ordersTable.status })
+    .from(ordersTable)
+    .where(and(eq(ordersTable.id, params.data.orderId), eq(ordersTable.bakerId, (req as AuthenticatedRequest).bakerId!)))
+    .limit(1);
+
   const [order] = await db.update(ordersTable)
     .set({
       status: parsed.data.status,
@@ -659,6 +733,16 @@ router.patch("/orders/:orderId/status", requireBakerAuth, async (req, res): Prom
     res.status(404).json({ error: "Order not found" });
     return;
   }
+
+  await logOrderActivity({
+    orderId: order.id,
+    bakerId: order.bakerId,
+    actor: getActorFromRequest(req),
+    action: "status_change",
+    fromStatus: existingOrder?.status ?? null,
+    toStatus: order.status,
+    metadata: isCancelled ? { reason: order.cancellationReason, cancelledBy: order.cancelledBy } : {}
+  });
 
   if (isDelivered) {
     const [baker] = await db.select().from(bakersTable).where(eq(bakersTable.id, order.bakerId)).limit(1);
@@ -725,6 +809,18 @@ router.patch("/orders/:orderId/refund", requireBakerAuth, requireBakerOwner, asy
     res.status(404).json({ error: "Order not found." });
     return;
   }
+
+  await logOrderActivity({
+    orderId: order.id,
+    bakerId: order.bakerId,
+    actor: getActorFromRequest(req),
+    action: "refund",
+    metadata: {
+      amountPkr: order.refundAmountPkr,
+      reason: order.refundReason,
+      refundStatus: order.refundStatus
+    }
+  });
   void sendN8nEvent("order.refund_recorded", {
     bakerId: order.bakerId,
     orderId: order.id,
@@ -846,6 +942,14 @@ router.post("/orders/:orderId/guest-receipt", rateLimit(20, 15 * 60 * 1000), asy
     .where(eq(ordersTable.id, orderId))
     .returning();
 
+  await logOrderActivity({
+    orderId: updated.id,
+    bakerId: updated.bakerId,
+    actor: { actorType: "buyer" },
+    action: "receipt_upload",
+    metadata: { method: "guest_receipt_upload" }
+  });
+
   await db.insert(notificationsTable).values({
     bakerId: order.bakerId,
     type: "payment.receipt_uploaded",
@@ -882,6 +986,16 @@ router.patch("/orders/:orderId/payment", requireBakerAuth, requireBakerOwner, as
     res.status(404).json({ error: "Order not found" });
     return;
   }
+
+  await logOrderActivity({
+    orderId: order.id,
+    bakerId: order.bakerId,
+    actor: getActorFromRequest(req),
+    action: "payment_decision",
+    fromStatus: "pending",
+    toStatus: "paid",
+    metadata: { amountReceived: order.paymentAmountReceived }
+  });
   res.json(formatOrder(order));
 });
 
@@ -917,6 +1031,14 @@ router.patch("/orders/:orderId/payment-screenshot", requireBakerAuth, requireBak
     res.status(404).json({ error: "Order not found" });
     return;
   }
+
+  await logOrderActivity({
+    orderId: order.id,
+    bakerId: order.bakerId,
+    actor: getActorFromRequest(req),
+    action: "receipt_upload",
+    metadata: { method: "manual_screenshot_url" }
+  });
   res.json(formatOrder(order));
 });
 

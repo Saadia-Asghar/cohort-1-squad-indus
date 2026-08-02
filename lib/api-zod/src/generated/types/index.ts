@@ -105,3 +105,4 @@ export * from './uploadGuestOrderReceiptBodyContentType';
 export * from './verifyOrderPayment200';
 export * from './verifyOrderPaymentBody';
 export * from './verifyOrderPaymentBodyContentType';
+export * from './weeklySuccessReport';

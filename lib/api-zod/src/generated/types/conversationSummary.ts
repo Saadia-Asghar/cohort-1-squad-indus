@@ -14,6 +14,7 @@ export interface ConversationSummary {
   lastActiveAt: string;
   messageCount: number;
   unread: boolean;
+  needsBakerReply: boolean;
   preferences?: BuyerPreferences;
   /** @nullable */
   summary?: string | null;

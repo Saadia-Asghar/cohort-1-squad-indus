@@ -27,6 +27,7 @@ import {
 } from "../lib/order-feedback.js";
 import { toReceiptDataUrl } from "../lib/receipt-image.js";
 import { normalizePakistanPhone } from "../lib/phone.js";
+import { logOrderActivity } from "../lib/audit.js";
 
 const router = Router();
 
@@ -223,6 +224,14 @@ router.post("/webhooks/whatsapp", async (req, res): Promise<void> => {
                 .update(ordersTable)
                 .set({ paymentScreenshotUrl: dataUrl })
                 .where(eq(ordersTable.id, match.id));
+              
+              await logOrderActivity({
+                orderId: match.id,
+                bakerId: baker.id,
+                actor: { actorType: "buyer" },
+                action: "receipt_upload",
+                metadata: { method: "whatsapp_webhook" }
+              });
               await db.insert(notificationsTable).values({
                 bakerId: baker.id,
                 type: "payment.receipt_uploaded",
@@ -240,6 +249,18 @@ router.post("/webhooks/whatsapp", async (req, res): Promise<void> => {
               );
               if (ocrHint) {
                 msg.text = `${msg.text}\n${ocrHint}`;
+                const isVerified = ocrHint.includes("This looks like a payment receipt");
+                await logOrderActivity({
+                  orderId: match.id,
+                  bakerId: baker.id,
+                  actor: { actorType: "buyer" },
+                  action: "ocr_verification",
+                  metadata: {
+                    verified: isVerified,
+                    hint: ocrHint,
+                    method: "whatsapp"
+                  }
+                });
               }
             } catch (attachErr) {
               logger.warn({ err: attachErr, orderId: match.id }, "Could not attach WA receipt image");

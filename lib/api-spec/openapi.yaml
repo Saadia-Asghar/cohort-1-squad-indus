@@ -748,6 +748,24 @@ paths:
                 items:
                   $ref: "#/components/schemas/OrderSourceStat"
 
+  /analytics/baker/{bakerId}/weekly-report:
+    get:
+      operationId: getWeeklySuccessReport
+      tags: [analytics]
+      summary: Get weekly success report
+      parameters:
+        - name: bakerId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Weekly success report metrics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WeeklySuccessReport"
+
   # ── CHAT ──────────────────────────────────────────────────────────────────────
   /chat:
     post:
@@ -2008,6 +2026,16 @@ components:
         revenue: { type: integer }
         percentage: { type: number }
 
+    WeeklySuccessReport:
+      type: object
+      required: [ordersCount, ordersTrendPercent, repeatBuyersCount, avgResponseTimeSec, failedPaymentReviewsCount]
+      properties:
+        ordersCount: { type: integer }
+        ordersTrendPercent: { type: integer }
+        repeatBuyersCount: { type: integer }
+        avgResponseTimeSec: { type: integer }
+        failedPaymentReviewsCount: { type: integer }
+
     # ── Chat schemas ──────────────────────────────────────────────────────────
     ChatMessage:
       type: object
@@ -2050,7 +2078,7 @@ components:
 
     ConversationSummary:
       type: object
-      required: [buyerId, buyerName, lastMessage, lastActiveAt, messageCount, unread]
+      required: [buyerId, buyerName, lastMessage, lastActiveAt, messageCount, unread, needsBakerReply]
       properties:
         buyerId: { type: integer }
         buyerName: { type: string }
@@ -2058,6 +2086,7 @@ components:
         lastActiveAt: { type: string }
         messageCount: { type: integer }
         unread: { type: boolean }
+        needsBakerReply: { type: boolean }
         preferences:
           $ref: "#/components/schemas/BuyerPreferences"
         summary: { type: ["string", "null"] }

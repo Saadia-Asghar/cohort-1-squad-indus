@@ -126,7 +126,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
               className="flex items-center gap-3 px-3 py-2 w-full text-left rounded-md text-xs font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors disabled:opacity-50"
             >
               <LogOut className="w-4 h-4" />
-              {isLoggingOut ? "Logging out…" : "Logout"}
+              {isLoggingOut ? "Signing out…" : "Sign out"}
             </button>
         </div>
       </aside>
