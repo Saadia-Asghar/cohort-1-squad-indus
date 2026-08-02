@@ -1,33 +1,303 @@
+import { useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { Link } from "wouter";
+import {
+  Bot,
+  ChevronRight,
+  Instagram,
+  Menu,
+  MessageCircle,
+  X,
+} from "lucide-react";
 
-export function BuyerLayout({ children }: { children: React.ReactNode }) {
+import { whatsappSupportLink } from "@/lib/support";
+
+const navigation = [
+  { label: "How it works", href: "/#how-it-works" },
+  { label: "Features", href: "/#features" },
+  { label: "Pricing", href: "/#pricing" },
+  { label: "FAQ", href: "/#faq" },
+];
+
+export function BuyerLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  function closeMobileMenu() {
+    setMobileMenuOpen(false);
+  }
+
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <nav className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-16 items-center justify-between mx-auto px-4">
-          <Link href="/" className="flex items-center gap-2">
-            <span className="font-serif text-2xl font-bold text-primary">Sweet Tooth</span>
+    <div className="flex min-h-screen flex-col bg-background">
+      <header className="sticky top-0 z-50 border-b border-border bg-background/90 backdrop-blur-xl">
+        <nav className="mx-auto flex h-[72px] max-w-6xl items-center justify-between px-4">
+          <Link
+            href="/"
+            onClick={closeMobileMenu}
+            className="flex items-center gap-3"
+          >
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-white shadow-lg shadow-primary/20">
+              <Bot className="h-5 w-5" />
+            </span>
+
+            <div>
+              <span className="block font-serif text-xl font-bold leading-none text-primary sm:text-2xl">
+                Sweet Tooth
+              </span>
+              <span className="mt-1 hidden text-[9px] font-bold uppercase tracking-[0.18em] text-muted-foreground sm:block">
+                AI for home bakers
+              </span>
+            </div>
           </Link>
-          <div className="flex items-center gap-5">
-            <a href="/#features" className="hidden text-sm font-medium text-muted-foreground transition-colors hover:text-primary md:inline">Features</a>
-            <a href="/#how-it-works" className="hidden text-sm font-medium text-muted-foreground transition-colors hover:text-primary md:inline">How it works</a>
-            <a href="/#pricing" className="hidden text-sm font-medium text-muted-foreground transition-colors hover:text-primary md:inline">Pricing</a>
-            <Link href="/contact" className="hidden text-sm font-medium text-muted-foreground transition-colors hover:text-primary md:inline">Contact</Link>
-            <Link href="/dashboard/login" className="hidden text-sm font-medium text-foreground transition-colors hover:text-primary sm:inline">Sign in</Link>
-            <Link href="/dashboard/register" className="rounded-md bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90">Get started</Link>
+
+          <div className="hidden items-center gap-7 lg:flex">
+            {navigation.map((item) => (
+              <a
+                key={item.label}
+                href={item.href}
+                className="text-sm font-semibold text-muted-foreground transition-colors hover:text-primary"
+              >
+                {item.label}
+              </a>
+            ))}
+
+            <Link
+              href="/contact"
+              className="text-sm font-semibold text-muted-foreground transition-colors hover:text-primary"
+            >
+              Contact
+            </Link>
+          </div>
+
+          <div className="hidden items-center gap-3 sm:flex">
+            <Link
+              href="/dashboard/login"
+              className="px-3 py-2 text-sm font-bold text-foreground transition-colors hover:text-primary"
+            >
+              Sign in
+            </Link>
+
+            <Link
+              href="/dashboard/register"
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground shadow-lg shadow-primary/20 transition hover:-translate-y-0.5 hover:bg-primary/90"
+            >
+              Get started
+              <ChevronRight className="h-4 w-4" />
+            </Link>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setMobileMenuOpen((current) => !current)}
+            aria-label={
+              mobileMenuOpen ? "Close navigation menu" : "Open navigation menu"
+            }
+            aria-expanded={mobileMenuOpen}
+            className="flex h-11 w-11 items-center justify-center rounded-xl border border-border bg-white text-foreground shadow-sm sm:hidden"
+          >
+            {mobileMenuOpen ? (
+              <X className="h-5 w-5" />
+            ) : (
+              <Menu className="h-5 w-5" />
+            )}
+          </button>
+        </nav>
+
+        <AnimatePresence>
+          {mobileMenuOpen && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.25 }}
+              className="overflow-hidden border-t border-border bg-background sm:hidden"
+            >
+              <div className="space-y-2 px-4 py-5">
+                {navigation.map((item, index) => (
+                  <motion.a
+                    key={item.label}
+                    href={item.href}
+                    onClick={closeMobileMenu}
+                    initial={{ opacity: 0, x: -12 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.04 }}
+                    className="flex min-h-12 items-center justify-between rounded-xl px-4 text-sm font-bold text-foreground transition-colors hover:bg-primary/5 hover:text-primary"
+                  >
+                    {item.label}
+                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                  </motion.a>
+                ))}
+
+                <Link
+                  href="/contact"
+                  onClick={closeMobileMenu}
+                  className="flex min-h-12 items-center justify-between rounded-xl px-4 text-sm font-bold text-foreground hover:bg-primary/5 hover:text-primary"
+                >
+                  Contact
+                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                </Link>
+
+                <div className="grid grid-cols-2 gap-3 border-t border-border pt-4">
+                  <Link
+                    href="/dashboard/login"
+                    onClick={closeMobileMenu}
+                    className="inline-flex min-h-12 items-center justify-center rounded-xl border border-border bg-white px-4 text-sm font-bold"
+                  >
+                    Sign in
+                  </Link>
+
+                  <Link
+                    href="/dashboard/register"
+                    onClick={closeMobileMenu}
+                    className="inline-flex min-h-12 items-center justify-center rounded-xl bg-primary px-4 text-sm font-bold text-primary-foreground"
+                  >
+                    Get started
+                  </Link>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </header>
+
+      <main className="flex-1">{children}</main>
+
+      <footer className="border-t border-border bg-white">
+        <div className="mx-auto max-w-6xl px-4 py-14 md:py-16">
+          <div className="grid gap-12 md:grid-cols-[1.4fr_0.8fr_0.8fr_0.8fr]">
+            <div>
+              <Link href="/" className="flex items-center gap-3">
+                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-white">
+                  <Bot className="h-5 w-5" />
+                </span>
+
+                <span className="font-serif text-2xl font-bold text-primary">
+                  Sweet Tooth
+                </span>
+              </Link>
+
+              <p className="mt-5 max-w-sm text-sm leading-7 text-muted-foreground">
+                A calm order-management and AI-assistant platform built for
+                Pakistan&apos;s home bakers.
+              </p>
+
+              <div className="mt-6 flex items-center gap-3">
+                <a
+                  href={whatsappSupportLink(
+                    "Assalam-o-Alaikum! I would like to learn more about Sweet Tooth.",
+                  )}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Contact Sweet Tooth on WhatsApp"
+                  className="flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-background text-green-700 transition hover:-translate-y-0.5 hover:bg-green-50"
+                >
+                  <MessageCircle className="h-4 w-4" />
+                </a>
+
+                <span
+                  aria-label="Instagram"
+                  className="flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-background text-pink-700"
+                >
+                  <Instagram className="h-4 w-4" />
+                </span>
+              </div>
+            </div>
+
+            <FooterColumn
+              title="Product"
+              links={[
+                { label: "How it works", href: "/#how-it-works" },
+                { label: "Features", href: "/#features" },
+                { label: "Pricing", href: "/#pricing" },
+                { label: "FAQ", href: "/#faq" },
+              ]}
+            />
+
+            <FooterColumn
+              title="For bakers"
+              links={[
+                {
+                  label: "Create an account",
+                  href: "/dashboard/register",
+                },
+                {
+                  label: "Baker sign in",
+                  href: "/dashboard/login",
+                },
+                {
+                  label: "Book a demo",
+                  href: whatsappSupportLink(
+                    "Assalam-o-Alaikum! I would like to book a Sweet Tooth demo for my bakery.",
+                  ),
+                  external: true,
+                },
+              ]}
+            />
+
+            <FooterColumn
+              title="Company"
+              links={[
+                { label: "Contact", href: "/contact" },
+                { label: "Privacy Policy", href: "/privacy" },
+                { label: "Terms of Service", href: "/terms" },
+              ]}
+            />
+          </div>
+
+          <div className="mt-12 flex flex-col gap-3 border-t border-border pt-6 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+            <p>
+              © {new Date().getFullYear()} Sweet Tooth. All rights reserved.
+            </p>
+
+            <p>Made for Pakistan&apos;s home-baking community.</p>
           </div>
         </div>
-      </nav>
-      <main className="flex-1">
-        {children}
-      </main>
-      <footer className="border-t border-border bg-card py-12 mt-16">
-        <div className="container mx-auto grid max-w-6xl gap-8 px-4 text-left md:grid-cols-[1.2fr_.8fr_.8fr]">
-          <div><p className="mb-2 font-serif text-2xl font-bold text-primary">Sweet Tooth</p><p className="max-w-sm text-sm leading-relaxed text-muted-foreground">The calm operating system for Pakistan&apos;s home bakers: one menu, one bakery agent, and one place for every order.</p></div>
-          <div><p className="mb-3 text-sm font-bold text-foreground">Platform</p><div className="space-y-2 text-sm text-muted-foreground"><a href="/#pricing" className="block hover:text-primary">Plans and pricing</a><Link href="/dashboard/register" className="block hover:text-primary">Create baker account</Link><Link href="/dashboard/login" className="block hover:text-primary">Baker portal</Link></div></div>
-          <div><p className="mb-3 text-sm font-bold text-foreground">Support</p><div className="space-y-2 text-sm text-muted-foreground"><Link href="/contact" className="block hover:text-primary">Contact the team</Link><a href="/#how-it-works" className="block hover:text-primary">How it works</a><Link href="/privacy" className="block hover:text-primary">Privacy Policy</Link><Link href="/terms" className="block hover:text-primary">Terms of Service</Link></div></div>
-        </div>
       </footer>
+    </div>
+  );
+}
+
+function FooterColumn({
+  title,
+  links,
+}: {
+  title: string;
+  links: Array<{
+    label: string;
+    href: string;
+    external?: boolean;
+  }>;
+}) {
+  return (
+    <div>
+      <p className="text-sm font-bold text-foreground">{title}</p>
+
+      <div className="mt-4 space-y-3">
+        {links.map((link) =>
+          link.external ? (
+            <a
+              key={link.label}
+              href={link.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block text-sm text-muted-foreground transition-colors hover:text-primary"
+            >
+              {link.label}
+            </a>
+          ) : (
+            <Link
+              key={link.label}
+              href={link.href}
+              className="block text-sm text-muted-foreground transition-colors hover:text-primary"
+            >
+              {link.label}
+            </Link>
+          ),
+        )}
+      </div>
     </div>
   );
 }
