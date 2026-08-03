@@ -157,7 +157,7 @@ export default function DashboardCustomers() {
 
               <div className="mt-4 flex items-center justify-between rounded-lg bg-muted/50 px-3 py-2">
                 <button type="button" onClick={selectVisible} className="text-xs font-bold text-primary">Select all shown</button>
-                <span className="text-xs text-muted-foreground">{visible.length} customers shown</span>
+                <span className="text-xs text-muted-foreground">{visible.length} {visible.length === 1 ? "customer" : "customers"} shown</span>
               </div>
               <div className="mt-4 divide-y divide-border">
                 {visible.map((customer) => (
@@ -182,7 +182,7 @@ export default function DashboardCustomers() {
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-xs font-bold uppercase tracking-wider text-primary">Personalized outreach</p>
-                <h2 id="offer-title" className="mt-1 font-serif text-2xl font-bold">Message {selectedIds.length} customers</h2>
+                <h2 id="offer-title" className="mt-1 font-serif text-2xl font-bold">Message {selectedIds.length} {selectedIds.length === 1 ? "customer" : "customers"}</h2>
               </div>
               <button type="button" onClick={() => setComposerOpen(false)} aria-label="Close message composer" className="rounded-lg p-2 hover:bg-muted"><X className="h-5 w-5" /></button>
             </div>
