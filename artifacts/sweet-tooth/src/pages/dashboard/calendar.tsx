@@ -14,7 +14,7 @@ import {
   startOfWeek,
   endOfWeek,
 } from "date-fns";
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, MapPin, Phone, DollarSign, Tag, Gift, AlertCircle, Ban, MessageCircle, X } from "lucide-react";
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, MapPin, Phone, DollarSign, Tag, Gift, Ban, MessageCircle, X, ShoppingBag } from "lucide-react";
 
 function whatsappHref(phone: string | undefined | null): string | null {
   const digits = (phone ?? "").replace(/\D/g, "");
@@ -25,6 +25,7 @@ function whatsappHref(phone: string | undefined | null): string | null {
 export default function DashboardCalendar() {
   const { bakerId } = useBuyerSession();
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [selectedDay, setSelectedDay] = useState<Date | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
 
   // Fetch all orders for this baker
@@ -107,13 +108,16 @@ export default function DashboardCalendar() {
                 const isOverCap = dayOrders.length >= maxOrders;
 
                 return (
-                  <div
+                  <button
+                    type="button"
                     key={idx}
-                    className={`border-b border-r border-border p-2 flex flex-col min-h-24 transition-colors relative ${
+                    onClick={() => setSelectedDay(day)}
+                    aria-label={`${format(day, "MMMM d, yyyy")}: ${dayOrders.length} ${dayOrders.length === 1 ? "order" : "orders"}${isBlocked ? ", blocked" : ""}`}
+                    className={`group relative flex min-h-24 flex-col border-b border-r border-border p-2 text-left transition-colors focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary ${
                       isBlocked
                         ? "bg-red-50/30 dark:bg-red-950/5 text-red-900/60"
                         : isCurrentMonth
-                        ? "bg-card"
+                        ? "bg-card hover:bg-accent/35"
                         : "bg-muted/10 text-muted-foreground"
                     }`}
                   >
@@ -135,40 +139,103 @@ export default function DashboardCalendar() {
                       )}
 
                       {!isBlocked && dayOrders.length > 0 && (
-                        <span className={`text-[9px] px-1 py-0.5 rounded font-bold ${
+                        <span className={`rounded px-1.5 py-0.5 text-[9px] font-bold ${
                           isOverCap 
                             ? "bg-orange-100 text-orange-800 dark:bg-orange-950 dark:text-orange-200" 
                             : "bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-200"
                         }`} title={`Orders booked: ${dayOrders.length}/${maxOrders}`}>
-                          {isOverCap ? "Full Capacity" : `${dayOrders.length}/${maxOrders}`}
+                          {isOverCap ? "Full" : `${dayOrders.length} ${dayOrders.length === 1 ? "order" : "orders"}`}
                         </span>
                       )}
                     </div>
 
-                    <div className="flex-1 space-y-1 overflow-y-auto max-h-20 scrollbar-none">
-                      {dayOrders.map((order) => (
-                        <button
-                          key={order.id}
-                          onClick={() => setSelectedOrder(order)}
-                          className={`w-full text-left text-[10px] px-1.5 py-0.5 rounded border transition-all truncate block cursor-pointer hover:shadow-xs ${
-                            order.status === "delivered"
-                              ? "bg-green-50 border-green-200 text-green-700 dark:bg-green-950/20 dark:border-green-900/50"
-                              : order.status === "cancelled"
-                              ? "bg-red-50 border-red-200 text-red-700 dark:bg-red-950/20 dark:border-red-900/50"
-                              : "bg-primary/5 border-primary/20 text-primary"
-                          }`}
-                        >
-                          #{order.id} {order.buyerName}
-                        </button>
-                      ))}
+                    <div className="flex flex-1 flex-col justify-end gap-2 py-1">
+                      {dayOrders.length > 0 ? (
+                        <>
+                          <div className="flex flex-wrap items-center gap-1" aria-hidden="true">
+                            {dayOrders.slice(0, 5).map((order) => (
+                              <span
+                                key={order.id}
+                                className={`h-2.5 w-2.5 rounded-full ring-2 ring-card ${
+                                  order.status === "delivered"
+                                    ? "bg-green-500"
+                                    : order.status === "cancelled"
+                                    ? "bg-red-500"
+                                    : order.status === "in_production"
+                                    ? "bg-secondary"
+                                    : "bg-primary"
+                                }`}
+                              />
+                            ))}
+                            {dayOrders.length > 5 && <span className="text-[10px] font-bold text-muted-foreground">+{dayOrders.length - 5}</span>}
+                          </div>
+                          <span className="text-[10px] font-semibold text-primary opacity-0 transition-opacity group-hover:opacity-100">View orders</span>
+                        </>
+                      ) : (
+                        <span className="text-[10px] text-muted-foreground/0 transition-colors group-hover:text-muted-foreground/60">No orders</span>
+                      )}
                     </div>
-                  </div>
+                  </button>
                 );
               })}
             </div>
           </div>
         )}
       </div>
+
+      {/* Day order list */}
+      {selectedDay && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-xs" role="dialog" aria-modal="true" aria-labelledby="day-orders-title">
+          <div className="max-h-[85vh] w-full max-w-2xl overflow-hidden rounded-2xl border border-border bg-card shadow-xl">
+            <div className="flex items-start justify-between border-b border-border px-5 py-4 sm:px-6">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wider text-primary">Delivery schedule</p>
+                <h2 id="day-orders-title" className="mt-1 font-serif text-2xl font-bold">{format(selectedDay, "EEEE, MMMM d")}</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {getOrdersForDay(selectedDay).length} {getOrdersForDay(selectedDay).length === 1 ? "order" : "orders"} scheduled
+                </p>
+              </div>
+              <button type="button" aria-label="Close order list" onClick={() => setSelectedDay(null)} className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="max-h-[65vh] overflow-y-auto p-4 sm:p-6">
+              {getOrdersForDay(selectedDay).length === 0 ? (
+                <div className="py-12 text-center">
+                  <CalendarIcon className="mx-auto h-10 w-10 text-muted-foreground/50" />
+                  <p className="mt-3 font-semibold">No deliveries scheduled</p>
+                  <p className="mt-1 text-sm text-muted-foreground">This date is currently free for new orders.</p>
+                </div>
+              ) : (
+                <ul className="space-y-3">
+                  {getOrdersForDay(selectedDay).map((order) => (
+                    <li key={order.id}>
+                      <button
+                        type="button"
+                        onClick={() => { setSelectedOrder(order); setSelectedDay(null); }}
+                        className="flex w-full items-center gap-4 rounded-xl border border-border bg-background/60 p-4 text-left transition-colors hover:border-primary/30 hover:bg-accent/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                      >
+                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary"><ShoppingBag className="h-5 w-5" /></span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate font-semibold">#{order.id} · {order.buyerName}</span>
+                          <span className="mt-1 block truncate text-xs text-muted-foreground">{order.buyerArea || "Area not set"} · {order.paymentStatus}</span>
+                        </span>
+                        <span className="shrink-0 text-right">
+                          <span className="block font-mono text-sm font-bold">PKR {order.totalPkr.toLocaleString()}</span>
+                          <span className={`mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${
+                            order.status === "delivered" ? "bg-green-100 text-green-800" : order.status === "cancelled" ? "bg-red-100 text-red-800" : "bg-primary/10 text-primary"
+                          }`}>{order.status.replace(/_/g, " ")}</span>
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Order Details Dialog */}
       {selectedOrder && (
