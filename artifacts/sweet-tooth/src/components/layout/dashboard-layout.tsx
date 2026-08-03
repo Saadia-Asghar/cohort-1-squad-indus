@@ -62,16 +62,16 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground lg:flex">
+    <div className="min-h-screen bg-background text-foreground xl:flex">
       {mobileNavOpen && (
         <button
           type="button"
           aria-label="Close navigation"
-          className="fixed inset-0 z-40 bg-foreground/35 backdrop-blur-sm lg:hidden"
+          className="fixed inset-0 z-40 bg-foreground/35 backdrop-blur-sm xl:hidden"
           onClick={() => setMobileNavOpen(false)}
         />
       )}
-      <aside className={`fixed inset-y-0 left-0 z-50 flex w-[18rem] flex-col border-r border-white/10 bg-[#2f1837] text-white shadow-2xl transition-transform duration-200 lg:sticky lg:top-0 lg:h-screen lg:w-[17rem] lg:translate-x-0 ${mobileNavOpen ? "translate-x-0" : "-translate-x-full"}`}>
+      <aside className={`fixed inset-y-0 left-0 z-50 flex w-[18rem] flex-col border-r border-white/10 bg-[#2f1837] text-white shadow-2xl transition-transform duration-200 xl:sticky xl:top-0 xl:h-screen xl:w-[17rem] xl:translate-x-0 ${mobileNavOpen ? "translate-x-0" : "-translate-x-full"}`}>
         <div className="flex items-start justify-between border-b border-white/10 px-6 py-6">
           <div>
             <div className="mb-2 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em] text-[#e7b7c9]">
@@ -83,11 +83,11 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             <p className="mt-1 text-sm text-white/60">Orders, customers & agents</p>
           </div>
           <div className="flex items-center gap-1">
-            {bakerId && <div className="rounded-full bg-white text-foreground"><NotificationBell bakerId={bakerId} /></div>}
-            <button type="button" aria-label="Close menu" onClick={() => setMobileNavOpen(false)} className="rounded-lg p-2 text-white/70 hover:bg-white/10 lg:hidden"><X className="h-5 w-5" /></button>
+            {bakerId && <div className="hidden rounded-full bg-white text-foreground xl:block"><NotificationBell bakerId={bakerId} /></div>}
+            <button type="button" aria-label="Close menu" onClick={() => setMobileNavOpen(false)} className="rounded-lg p-2 text-white/70 hover:bg-white/10 xl:hidden"><X className="h-5 w-5" /></button>
           </div>
         </div>
-        <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4" aria-label="Dashboard navigation">
+        <nav className="flex-1 space-y-1 overflow-y-auto overscroll-contain px-3 py-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label="Dashboard navigation">
           {navItems.map((item) => {
             const isActive = location === item.href;
             const Icon = item.icon;
@@ -148,7 +148,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
       <main className="min-w-0 flex-1">
-        <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border/80 bg-background/90 px-4 backdrop-blur-xl lg:hidden">
+        <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border/80 bg-background/90 px-4 backdrop-blur-xl xl:hidden">
           <button type="button" aria-label="Open navigation" onClick={() => setMobileNavOpen(true)} className="rounded-xl border border-border bg-card p-2.5 text-primary shadow-sm"><Menu className="h-5 w-5" /></button>
           <span className="font-serif text-lg font-bold text-primary">{baker?.businessName || "Baker workspace"}</span>
           {bakerId ? <NotificationBell bakerId={bakerId} /> : <span className="w-10" />}
