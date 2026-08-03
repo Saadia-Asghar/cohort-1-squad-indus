@@ -1,7 +1,7 @@
 import { Router } from "express";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { z } from "zod";
-import { db, metaConnectionsTable, customersTable, bakersTable } from "@workspace/db";
+import { db, metaConnectionsTable, customersTable, bakersTable, ordersTable } from "@workspace/db";
 import {
   requireBakerAuth,
   requireBakerOwnership,
@@ -25,8 +25,9 @@ router.post(
       /** When set, send a single test message instead of segment blast. */
       testPhone: z.string().trim().min(10).max(24).optional(),
       limit: z.number().int().min(1).max(100).optional(),
+      customerIds: z.array(z.number().int().positive()).min(1).max(100).optional(),
       /** Real CRM filters — matches Analytics segment ids */
-      segment: z.enum(["all", "frequent_buyers", "inactive_loyalists", "festival_buyers"]).optional(),
+      segment: z.enum(["all", "frequent_buyers", "inactive_loyalists", "festival_buyers", "cancellation_risk"]).optional(),
     }).safeParse(req.body);
     if (!parsed.success) {
       res.status(400).json({ error: parsed.error.message });
@@ -90,6 +91,7 @@ router.post(
 
     const allCustomers = await db
       .select({
+        id: customersTable.id,
         phone: customersTable.whatsappNumber,
         name: customersTable.name,
         isRegular: customersTable.isRegular,
@@ -99,11 +101,21 @@ router.post(
       .from(customersTable)
       .where(eq(customersTable.bakerId, bakerId));
 
+    const customerCancelledOrders = await db
+      .select({ buyerId: ordersTable.buyerId })
+      .from(ordersTable)
+      .where(and(eq(ordersTable.bakerId, bakerId), eq(ordersTable.status, "cancelled")));
+    const cancellationRiskIds = new Set(
+      customerCancelledOrders.map((order) => order.buyerId).filter((id): id is number => id !== null),
+    );
+
     const segment = parsed.data.segment ?? "all";
     const filtered = allCustomers.filter((c) => {
+      if (parsed.data.customerIds) return parsed.data.customerIds.includes(c.id);
       if (segment === "frequent_buyers") return c.isRegular && !c.isAtRisk;
       if (segment === "inactive_loyalists") return c.isAtRisk;
       if (segment === "festival_buyers") return !c.isRegular && !c.isAtRisk && (c.totalOrders ?? 0) > 0;
+      if (segment === "cancellation_risk") return cancellationRiskIds.has(c.id);
       return true;
     });
     const customers = filtered.slice(0, parsed.data.limit ?? 50);
@@ -118,7 +130,7 @@ router.post(
       const ok = await sendWhatsAppTextMessage(
         connection.whatsappPhoneNumberId,
         customer.phone,
-        parsed.data.message,
+        parsed.data.message.replace(/\{\{\s*name\s*\}\}/gi, customer.name || "there"),
         accessToken,
       );
       if (ok) sent += 1;
@@ -133,6 +145,7 @@ router.post(
       sent,
       failed,
       connected: true,
+      personalized: /\{\{\s*name\s*\}\}/i.test(parsed.data.message),
     });
   },
 );
