@@ -9,6 +9,7 @@ import {
 import { useGetBaker } from "@workspace/api-client-react";
 import { useBuyerSession } from "@/hooks/use-session";
 import { NotificationBell } from "@/components/notification-bell";
+import { BakeryQuest } from "@/components/dashboard/bakery-quest";
 import { InAppBrowserModal } from "@/components/ui/in-app-browser";
 import { useManagedBaker } from "@/lib/managed-auth";
 import { useAppAuth } from "@/lib/app-auth";
@@ -609,6 +610,8 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
           </section>
         </div>
       ) : null}
+
+      <BakeryQuest />
 
       <InAppBrowserModal
         url={browserUrl}

@@ -259,6 +259,12 @@ export default function DashboardCatalog() {
               getGetBakerProductsQueryKey(bakerId),
           });
 
+          window.dispatchEvent(
+            new CustomEvent(
+              "sweet-tooth:quest-product-created",
+            ),
+          );
+
           closeCreate();
         },
         onError: (error) => {
@@ -475,6 +481,7 @@ export default function DashboardCatalog() {
               {activeTab === "items" ? (
                 <button
                   type="button"
+                  data-quest="add-product"
                   onClick={() => setShowCreate(true)}
                   className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[#632a73] px-5 text-sm font-semibold text-white shadow-[0_10px_25px_rgba(47,24,55,0.12)] transition hover:bg-[#542261]"
                 >
@@ -1224,6 +1231,7 @@ export default function DashboardCatalog() {
           aria-labelledby="new-product-title"
         >
           <form
+            data-quest="product-form"
             onSubmit={handleCreateProduct}
             className="w-full max-w-xl overflow-hidden rounded-3xl border border-[#dfd1c4] bg-[#fbf6ee] text-[#241629] shadow-2xl"
           >
@@ -1346,6 +1354,7 @@ export default function DashboardCatalog() {
 
               <button
                 type="submit"
+                data-quest="save-product"
                 disabled={createProduct.isPending}
                 className="min-h-11 rounded-xl bg-[#632a73] px-5 text-sm font-semibold text-white disabled:opacity-50"
               >
