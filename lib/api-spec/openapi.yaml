@@ -1776,6 +1776,9 @@ components:
         deliveredAt: { type: ["string", "null"], format: date-time }
         serviceFeedback: { type: ["string", "null"], enum: [loved_it, okay, had_issue] }
         feedbackNote: { type: ["string", "null"] }
+        cancellationReason: { type: ["string", "null"] }
+        cancelledBy: { type: ["string", "null"] }
+        cancelledAt: { type: ["string", "null"], format: date-time }
         createdAt: { type: string }
         updatedAt: { type: string }
 
