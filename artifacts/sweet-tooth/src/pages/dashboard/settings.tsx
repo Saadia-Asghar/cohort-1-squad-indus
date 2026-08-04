@@ -162,7 +162,7 @@ export default function DashboardSettings() {
   if (isLoading && !baker) {
     return (
       <DashboardLayout>
-        <div className="p-8 max-w-2xl animate-pulse space-y-4">
+        <div className="mx-auto min-h-screen max-w-[1480px] animate-pulse space-y-4 bg-[#fbf6ee] px-4 py-5 sm:px-6 lg:px-7">
           <div className="h-10 w-64 bg-muted rounded-lg" />
           <div className="h-40 bg-muted rounded-xl" />
         </div>
@@ -172,12 +172,12 @@ export default function DashboardSettings() {
 
   return (
     <DashboardLayout>
-      <div className="p-8 max-w-2xl">
+      <div className="mx-auto min-h-screen max-w-[1480px] overflow-x-hidden bg-[#fbf6ee] px-4 py-5 text-[#241629] sm:px-6 lg:px-7">
         <h1 className="text-4xl font-bold mb-2 font-serif text-primary">Your kitchen, your rules.</h1>
         <p className="text-muted-foreground mb-8">Manage your profile, delivery areas, and policies.</p>
 
         {baker && (
-          <div className="mb-8 rounded-xl border border-primary/20 bg-primary/5 p-6 shadow-sm">
+          <div className="mt-5 rounded-2xl border border-[#dfd1c4] bg-white/45 p-4 shadow-sm sm:p-5">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
                 <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Your package</p>
@@ -238,26 +238,26 @@ export default function DashboardSettings() {
         )}
 
         {bakerId > 0 && (
-          <div id="platform-billing" className="mb-8 scroll-mt-6">
+          <div id="platform-billing" className="mt-4 scroll-mt-6">
             <PlatformBillingPanel bakerId={bakerId} currentPlanId={baker?.subscriptionPlan} />
           </div>
         )}
 
         {bakerId > 0 && (
-          <div id="team-access" className="mb-8 scroll-mt-6">
+          <div id="team-access" className="mt-4 scroll-mt-6">
             <TeamAccessPanel bakerId={bakerId} />
           </div>
         )}
         
-        <div className="space-y-6">
-          <div className="p-6 rounded-xl border border-border bg-card shadow-sm space-y-4">
-            <h3 className="font-serif text-xl font-bold">Kitchen Details</h3>
+        <div className="mt-4 grid gap-4 xl:grid-cols-2">
+          <div className="space-y-4 rounded-2xl border border-[#dfd1c4] bg-white/45 p-4 shadow-sm sm:p-5">
+            <h3 className="font-serif text-2xl font-semibold tracking-[-0.02em] text-[#241629]">Kitchen Details</h3>
             
             <div className="space-y-2">
               <label className="text-sm font-medium text-foreground">Business Name</label>
               <input 
                 type="text" 
-                className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary" 
+                className="min-h-11 w-full rounded-xl border border-[#dfd1c4] bg-[#fffaf6] px-3.5 text-sm text-[#241629] outline-none transition focus:border-[#c24f7a]/60 focus:ring-4 focus:ring-[#c24f7a]/10" 
                 value={businessName}
                 onChange={e => setBusinessName(e.target.value)}
               />
@@ -267,7 +267,7 @@ export default function DashboardSettings() {
               <label className="text-sm font-medium text-foreground">Tagline</label>
               <input 
                 type="text" 
-                className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary" 
+                className="min-h-11 w-full rounded-xl border border-[#dfd1c4] bg-[#fffaf6] px-3.5 text-sm text-[#241629] outline-none transition focus:border-[#c24f7a]/60 focus:ring-4 focus:ring-[#c24f7a]/10" 
                 value={tagline}
                 onChange={e => setTagline(e.target.value)}
               />
@@ -277,23 +277,23 @@ export default function DashboardSettings() {
               <label className="text-sm font-medium text-foreground">WhatsApp Number</label>
               <input 
                 type="text" 
-                className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary" 
+                className="min-h-11 w-full rounded-xl border border-[#dfd1c4] bg-[#fffaf6] px-3.5 text-sm text-[#241629] outline-none transition focus:border-[#c24f7a]/60 focus:ring-4 focus:ring-[#c24f7a]/10" 
                 value={whatsappNumber}
                 onChange={e => setWhatsappNumber(e.target.value)}
               />
             </div>
           </div>
 
-          <div className="p-6 rounded-xl border border-border bg-card shadow-sm space-y-4">
+          <div className="space-y-4 rounded-2xl border border-[#dfd1c4] bg-white/45 p-4 shadow-sm sm:p-5">
             <div className="flex items-center gap-2">
               <QrCode className="w-5 h-5 text-primary" />
-              <h3 className="font-serif text-xl font-bold">Share your menu</h3>
+              <h3 className="font-serif text-2xl font-semibold tracking-[-0.02em] text-[#241629]">Share your menu</h3>
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium text-foreground">Delivery sectors / areas</label>
               <input
                 type="text"
-                className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                className="min-h-11 w-full rounded-xl border border-[#dfd1c4] bg-[#fffaf6] px-3.5 text-sm text-[#241629] outline-none transition focus:border-[#c24f7a]/60 focus:ring-4 focus:ring-[#c24f7a]/10"
                 placeholder="e.g. Gulberg, DHA Phase 5, Model Town"
                 value={deliveryAreasText}
                 onChange={e => setDeliveryAreasText(e.target.value)}
@@ -301,8 +301,8 @@ export default function DashboardSettings() {
               <p className="text-xs text-muted-foreground">Separate sectors with commas. Your menu assistant uses these areas when answering delivery questions.</p>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
-              <label className="space-y-2 text-sm font-medium text-foreground"><span className="flex items-center gap-2"><Instagram className="h-4 w-4" /> Instagram profile link</span><input type="url" className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary" placeholder="https://instagram.com/yourbakery" value={instagramUrl} onChange={(e) => setInstagramUrl(e.target.value)} /></label>
-              <label className="space-y-2 text-sm font-medium text-foreground"><span className="flex items-center gap-2"><Facebook className="h-4 w-4" /> Facebook page link</span><input type="url" className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary" placeholder="https://facebook.com/yourbakery" value={facebookUrl} onChange={(e) => setFacebookUrl(e.target.value)} /></label>
+              <label className="space-y-2 text-sm font-medium text-foreground"><span className="flex items-center gap-2"><Instagram className="h-4 w-4" /> Instagram profile link</span><input type="url" className="min-h-11 w-full rounded-xl border border-[#dfd1c4] bg-[#fffaf6] px-3.5 text-sm text-[#241629] outline-none transition focus:border-[#c24f7a]/60 focus:ring-4 focus:ring-[#c24f7a]/10" placeholder="https://instagram.com/yourbakery" value={instagramUrl} onChange={(e) => setInstagramUrl(e.target.value)} /></label>
+              <label className="space-y-2 text-sm font-medium text-foreground"><span className="flex items-center gap-2"><Facebook className="h-4 w-4" /> Facebook page link</span><input type="url" className="min-h-11 w-full rounded-xl border border-[#dfd1c4] bg-[#fffaf6] px-3.5 text-sm text-[#241629] outline-none transition focus:border-[#c24f7a]/60 focus:ring-4 focus:ring-[#c24f7a]/10" placeholder="https://facebook.com/yourbakery" value={facebookUrl} onChange={(e) => setFacebookUrl(e.target.value)} /></label>
             </div>
             <p className="text-sm text-muted-foreground">Customers scan this QR code to open your live menu, talk to your assistant, and place an order.</p>
             <div className="flex flex-col sm:flex-row gap-5 items-start">
@@ -318,8 +318,8 @@ export default function DashboardSettings() {
             </div>
           </div>
 
-          <div className="p-6 rounded-xl border border-border bg-card shadow-sm space-y-4">
-            <h3 className="font-serif text-xl font-bold">Occasion orders (Eid & special dates)</h3>
+          <div className="space-y-4 rounded-2xl border border-[#dfd1c4] bg-white/45 p-4 shadow-sm sm:p-5">
+            <h3 className="font-serif text-2xl font-semibold tracking-[-0.02em] text-[#241629]">Occasion orders (Eid & special dates)</h3>
             <p className="text-sm text-muted-foreground">
               Choose how your menu behaves during Eid or a custom rush. Shown as a banner on your shared menu link.
             </p>
@@ -328,7 +328,7 @@ export default function DashboardSettings() {
               <select
                 value={occasionPreset}
                 onChange={(e) => setOccasionPreset(e.target.value as OccasionPreset)}
-                className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground"
+                className="min-h-11 w-full rounded-xl border border-[#dfd1c4] bg-[#fffaf6] px-3.5 text-sm text-[#241629] outline-none transition focus:border-[#c24f7a]/60 focus:ring-4 focus:ring-[#c24f7a]/10"
               >
                 {OCCASION_PRESET_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -340,7 +340,7 @@ export default function DashboardSettings() {
                 <label className="text-sm font-medium text-foreground">Custom occasion name</label>
                 <input
                   type="text"
-                  className="w-full px-3 py-2 border border-border rounded-md bg-background"
+                  className="min-h-11 w-full rounded-xl border border-[#dfd1c4] bg-[#fffaf6] px-3.5 text-sm text-[#241629] outline-none transition focus:border-[#c24f7a]/60 focus:ring-4 focus:ring-[#c24f7a]/10"
                   placeholder="e.g. Ramadan pre-orders, Wedding season"
                   value={occasionCustomLabel}
                   onChange={(e) => setOccasionCustomLabel(e.target.value)}
@@ -354,7 +354,7 @@ export default function DashboardSettings() {
                     <label className="text-sm font-medium text-foreground">Last date to accept orders</label>
                     <input
                       type="date"
-                      className="w-full px-3 py-2 border border-border rounded-md bg-background"
+                      className="min-h-11 w-full rounded-xl border border-[#dfd1c4] bg-[#fffaf6] px-3.5 text-sm text-[#241629] outline-none transition focus:border-[#c24f7a]/60 focus:ring-4 focus:ring-[#c24f7a]/10"
                       value={occasionOrderDeadline}
                       onChange={(e) => setOccasionOrderDeadline(e.target.value)}
                     />
@@ -365,7 +365,7 @@ export default function DashboardSettings() {
                       type="number"
                       min={0}
                       max={14}
-                      className="w-full px-3 py-2 border border-border rounded-md bg-background"
+                      className="min-h-11 w-full rounded-xl border border-[#dfd1c4] bg-[#fffaf6] px-3.5 text-sm text-[#241629] outline-none transition focus:border-[#c24f7a]/60 focus:ring-4 focus:ring-[#c24f7a]/10"
                       value={occasionFreshDays}
                       onChange={(e) => setOccasionFreshDays(e.target.value)}
                     />
@@ -385,8 +385,8 @@ export default function DashboardSettings() {
             )}
           </div>
 
-          <div className="p-6 rounded-xl border border-border bg-card shadow-sm space-y-4">
-            <h3 className="font-serif text-xl font-bold">Payment options for customers</h3>
+          <div className="space-y-4 rounded-2xl border border-[#dfd1c4] bg-white/45 p-4 shadow-sm sm:p-5">
+            <h3 className="font-serif text-2xl font-semibold tracking-[-0.02em] text-[#241629]">Payment options for customers</h3>
             <p className="text-sm text-muted-foreground">Select how buyers pay. This appears on your menu and at checkout.</p>
             <div className="space-y-3">
               {PAYMENT_MODE_OPTIONS.map((opt) => (
@@ -413,7 +413,7 @@ export default function DashboardSettings() {
                   <label className="text-sm font-medium text-foreground">Minimum order (PKR) for advance</label>
                   <input
                     type="number"
-                    className="w-full px-3 py-2 border border-border rounded-md bg-background"
+                    className="min-h-11 w-full rounded-xl border border-[#dfd1c4] bg-[#fffaf6] px-3.5 text-sm text-[#241629] outline-none transition focus:border-[#c24f7a]/60 focus:ring-4 focus:ring-[#c24f7a]/10"
                     value={advanceThresholdPkr}
                     onChange={(e) => setAdvanceThresholdPkr(Number(e.target.value))}
                   />
@@ -424,7 +424,7 @@ export default function DashboardSettings() {
                     type="number"
                     min={1}
                     max={99}
-                    className="w-full px-3 py-2 border border-border rounded-md bg-background"
+                    className="min-h-11 w-full rounded-xl border border-[#dfd1c4] bg-[#fffaf6] px-3.5 text-sm text-[#241629] outline-none transition focus:border-[#c24f7a]/60 focus:ring-4 focus:ring-[#c24f7a]/10"
                     value={advancePercentage}
                     onChange={(e) => setAdvancePercentage(Number(e.target.value))}
                   />
@@ -458,15 +458,15 @@ export default function DashboardSettings() {
             )}
           </div>
 
-          <div className="p-6 rounded-xl border border-border bg-card shadow-sm space-y-4">
-            <h3 className="font-serif text-xl font-bold">📅 Calendar Capacity & Date Blocking</h3>
+          <div className="space-y-4 rounded-2xl border border-[#dfd1c4] bg-white/45 p-4 shadow-sm sm:p-5">
+            <h3 className="font-serif text-2xl font-semibold tracking-[-0.02em] text-[#241629]">📅 Calendar Capacity & Date Blocking</h3>
             
             <div className="space-y-2">
               <label className="text-sm font-medium text-foreground">Maximum orders per day</label>
               <input 
                 type="number"
                 min="1"
-                className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary" 
+                className="min-h-11 w-full rounded-xl border border-[#dfd1c4] bg-[#fffaf6] px-3.5 text-sm text-[#241629] outline-none transition focus:border-[#c24f7a]/60 focus:ring-4 focus:ring-[#c24f7a]/10" 
                 value={maxOrdersPerDay}
                 onChange={e => setMaxOrdersPerDay(Number(e.target.value))}
               />
@@ -515,8 +515,8 @@ export default function DashboardSettings() {
             </div>
           </div>
 
-          <div className="p-6 rounded-xl border border-border bg-card shadow-sm space-y-4">
-            <h3 className="font-serif text-xl font-bold">Kitchen policies (agent uses these)</h3>
+          <div className="space-y-4 rounded-2xl border border-[#dfd1c4] bg-white/45 p-4 shadow-sm sm:p-5">
+            <h3 className="font-serif text-2xl font-semibold tracking-[-0.02em] text-[#241629]">Kitchen policies (agent uses these)</h3>
             <p className="text-xs text-muted-foreground">Delivery, pickup, and cancellation rules are shared with buyers via your AI assistant.</p>
             <label className="flex items-center gap-2 text-sm">
               <input type="checkbox" checked={allowDelivery} onChange={(e) => setAllowDelivery(e.target.checked)} />
@@ -566,7 +566,7 @@ export default function DashboardSettings() {
           <button 
             onClick={handleSave}
             disabled={updateBaker.isPending}
-            className="bg-primary text-primary-foreground px-6 py-2 rounded-md font-medium hover:bg-primary/90 transition-colors w-full sm:w-auto disabled:opacity-50"
+            className="min-h-12 w-full rounded-xl bg-[#632a73] px-6 text-sm font-semibold text-white transition hover:bg-[#542261] disabled:opacity-50 xl:col-span-2"
           >
             {updateBaker.isPending ? "Saving..." : "Save Changes"}
           </button>
