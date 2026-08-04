@@ -20,6 +20,7 @@ import {
   BarChart3,
   Bot,
   CalendarDays,
+  ChevronDown,
   DollarSign,
   Globe,
   Grid,
@@ -124,20 +125,27 @@ function DesktopNavLink({
   return (
     <Link
       href={item.href}
-      className={`group flex min-h-11 items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm transition-all ${
+      className={`group flex min-h-10 items-center gap-3 rounded-lg px-3 py-2 text-[13px] transition-all ${
         active
-          ? "bg-white font-semibold text-[#432048] shadow-[0_10px_28px_rgba(20,8,24,0.18)]"
-          : "text-white/[0.68] hover:bg-white/[0.08] hover:text-white"
+          ? "bg-gradient-to-r from-[#7b2d70] to-[#c24f7a] font-semibold text-white shadow-[0_9px_24px_rgba(14,5,19,0.22)]"
+          : "text-white/[0.72] hover:bg-white/[0.08] hover:text-white"
       }`}
     >
       <Icon
-        className={`h-[18px] w-[18px] shrink-0 transition-colors ${
+        className={`h-4 w-4 shrink-0 transition-colors ${
           active
-            ? "text-[#b74670]"
-            : "text-white/[0.45] group-hover:text-white/[0.85]"
+            ? "text-white"
+            : "text-white/[0.5] group-hover:text-white/[0.9]"
         }`}
       />
-      <span>{item.label}</span>
+
+      <span className="min-w-0 flex-1 truncate">{item.label}</span>
+
+      {item.label === "Orders" ? (
+        <span className="grid h-5 min-w-5 place-items-center rounded-full bg-[#d64f82] px-1 text-[9px] font-bold text-white">
+          3
+        </span>
+      ) : null}
     </Link>
   );
 }
@@ -147,6 +155,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [browserUrl, setBrowserUrl] = useState<string | null>(null);
   const [moreOpen, setMoreOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
 
   const { logoutNatively, role } = useManagedBaker();
   const { signOut } = useAppAuth();
@@ -175,6 +184,14 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
       | undefined
   )?.trial;
 
+  const businessName = baker?.businessName || "Sweet Tooth Bakery";
+  const businessInitials = businessName
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((word) => word[0]?.toUpperCase())
+    .join("") || "ST";
+
   const visiblePrimaryItems = useMemo(
     () =>
       desktopPrimaryItems.filter(
@@ -199,6 +216,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     setMoreOpen(false);
+    setProfileOpen(false);
   }, [location]);
 
   useEffect(() => {
@@ -246,34 +264,20 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-dvh bg-[#f7f2ec] text-foreground">
-      <aside className="fixed inset-y-0 left-0 z-40 hidden w-[17.5rem] flex-col overflow-hidden border-r border-white/10 bg-[#28142f] text-white shadow-[24px_0_80px_rgba(39,20,47,0.11)] xl:flex">
-        <div className="border-b border-white/10 px-5 py-5">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <div className="mb-2 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-[#e5b3c7]">
-                <Sparkles className="h-3.5 w-3.5 shrink-0" />
-                Sweet Tooth OS
-              </div>
-
-              <h2 className="truncate font-serif text-[1.65rem] font-semibold leading-tight tracking-[-0.02em] text-white">
-                {baker?.businessName || "Your bakery"}
-              </h2>
-
-              <p className="mt-1 text-xs text-white/[0.48]">
-                Your daily command centre
-              </p>
-            </div>
-
-            {bakerId ? (
-              <div className="shrink-0 rounded-full bg-white text-foreground shadow-sm">
-                <NotificationBell bakerId={bakerId} />
-              </div>
-            ) : null}
-          </div>
+      <aside className="fixed inset-y-0 left-0 z-40 hidden w-[12.75rem] flex-col overflow-hidden border-r border-white/10 bg-gradient-to-b from-[#32173b] via-[#291330] to-[#211027] text-white shadow-[22px_0_65px_rgba(39,20,47,0.14)] xl:flex">        <div className="px-5 pb-5 pt-6">
+          <Link
+            href="/dashboard"
+            aria-label="Sweet Tooth dashboard"
+            className="inline-block font-serif text-[1.85rem] font-semibold leading-[0.82] tracking-[-0.045em] text-[#d2a25a]"
+          >
+            <span className="block">Sweet</span>
+            <span className="mt-1 block">Tooth</span>
+          </Link>
         </div>
 
-        <div className="flex-1 overflow-y-auto overscroll-contain px-3 py-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          <p className="mb-2 px-3 text-[10px] font-bold uppercase tracking-[0.16em] text-white/[0.34]">
+
+        <div className="flex-1 overflow-y-auto overscroll-contain px-3 pb-4 pt-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <p className="mb-2 px-2 text-[9px] font-bold uppercase tracking-[0.16em] text-white/[0.42]">
             Workspace
           </p>
 
@@ -289,7 +293,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
 
           <div className="my-4 h-px bg-white/8" />
 
-          <p className="mb-2 px-3 text-[10px] font-bold uppercase tracking-[0.16em] text-white/[0.34]">
+          <p className="mb-2 px-2 text-[9px] font-bold uppercase tracking-[0.16em] text-white/[0.42]">
             Business
           </p>
 
@@ -302,40 +306,112 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
               />
             ))}
           </nav>
-        </div>
+        </div>        <div className="space-y-3 border-t border-white/10 p-3">
+          {trial?.isFree &&
+          trial.active &&
+          typeof trial.daysLeft === "number" ? (
+            <Link
+              href="/dashboard/settings#platform-billing"
+              className="group flex items-center justify-between rounded-lg border border-white/45 bg-white/[0.025] px-3 py-3 text-white transition hover:bg-white/[0.07]"
+            >
+              <span>
+                <span className="block text-[10px] font-semibold">
+                  Trial · {trial.daysLeft} day
+                  {trial.daysLeft === 1 ? "" : "s"} left
+                </span>
 
-        <div className="space-y-1.5 border-t border-white/10 p-3">
-          <button
-            type="button"
-            onClick={() => setBrowserUrl(window.location.origin)}
-            className="flex min-h-11 w-full items-center gap-3 rounded-xl bg-white/[0.09] px-3.5 py-2.5 text-left text-xs font-semibold text-white transition-colors hover:bg-white/[0.14]"
-          >
-            <Globe className="h-4 w-4 text-[#e8b7c9]" />
-            Preview storefront
-          </button>
+                <span className="mt-1 block text-[9px] text-white/[0.62]">
+                  Upgrade anytime
+                </span>
+              </span>
 
-          <button
-            type="button"
-            onClick={openFeedback}
-            className="flex min-h-10 w-full items-center gap-3 rounded-xl px-3.5 py-2 text-left text-xs font-semibold text-white/[0.58] transition-colors hover:bg-white/[0.08] hover:text-white"
-          >
-            <MessageSquareText className="h-4 w-4" />
-            Share feedback
-          </button>
+              <span
+                aria-hidden="true"
+                className="text-sm text-white/[0.65] transition-transform group-hover:translate-x-0.5"
+              >
+                →
+              </span>
+            </Link>
+          ) : null}
 
-          <button
-            type="button"
-            onClick={() => void handleLogout()}
-            disabled={isLoggingOut}
-            className="flex min-h-10 w-full items-center gap-3 rounded-xl px-3.5 py-2 text-left text-xs font-medium text-white/[0.48] transition-colors hover:bg-red-400/[0.12] hover:text-red-100 disabled:opacity-50"
-          >
-            <LogOut className="h-4 w-4" />
-            {isLoggingOut ? "Signing out…" : "Sign out"}
-          </button>
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setProfileOpen((current) => !current)}
+              aria-expanded={profileOpen}
+              className="flex min-h-12 w-full items-center gap-2 rounded-lg px-1 py-1.5 text-left transition hover:bg-white/[0.07]"
+            >
+              <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[#fff6ee] text-[10px] font-bold text-[#4d2354]">
+                {businessInitials}
+              </span>
+
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-[11px] font-semibold text-white">
+                  {businessName}
+                </span>
+
+                <span className="mt-0.5 block truncate text-[9px] text-white/[0.48]">
+                  {role === "owner" ? "Owner workspace" : "Team workspace"}
+                </span>
+              </span>
+
+              <ChevronDown
+                className={`h-4 w-4 shrink-0 text-white/[0.48] transition-transform ${
+                  profileOpen ? "rotate-180" : ""
+                }`}
+              />
+            </button>
+
+            {profileOpen ? (
+              <div className="absolute bottom-[calc(100%+0.5rem)] left-0 right-0 overflow-hidden rounded-xl border border-white/15 bg-[#37183f] p-1.5 shadow-2xl">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setProfileOpen(false);
+                    setBrowserUrl(window.location.origin);
+                  }}
+                  className="flex min-h-9 w-full items-center gap-2 rounded-lg px-2.5 text-left text-[10px] font-semibold text-white/[0.74] hover:bg-white/[0.09] hover:text-white"
+                >
+                  <Globe className="h-3.5 w-3.5" />
+                  Preview storefront
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setProfileOpen(false);
+                    openFeedback();
+                  }}
+                  className="flex min-h-9 w-full items-center gap-2 rounded-lg px-2.5 text-left text-[10px] font-semibold text-white/[0.74] hover:bg-white/[0.09] hover:text-white"
+                >
+                  <MessageSquareText className="h-3.5 w-3.5" />
+                  Share feedback
+                </button>
+
+                <Link
+                  href="/dashboard/settings"
+                  className="flex min-h-9 items-center gap-2 rounded-lg px-2.5 text-[10px] font-semibold text-white/[0.74] hover:bg-white/[0.09] hover:text-white"
+                >
+                  <Settings className="h-3.5 w-3.5" />
+                  Settings
+                </Link>
+
+                <button
+                  type="button"
+                  onClick={() => void handleLogout()}
+                  disabled={isLoggingOut}
+                  className="flex min-h-9 w-full items-center gap-2 rounded-lg px-2.5 text-left text-[10px] font-semibold text-red-200/[0.75] hover:bg-red-400/[0.12] hover:text-red-100 disabled:opacity-50"
+                >
+                  <LogOut className="h-3.5 w-3.5" />
+                  {isLoggingOut ? "Signing out…" : "Sign out"}
+                </button>
+              </div>
+            ) : null}
+          </div>
         </div>
       </aside>
 
-      <main className="min-w-0 pb-24 xl:pl-[17.5rem] xl:pb-0">
+      <main className="min-w-0 pb-24 xl:pl-[12.75rem] xl:pb-0">
         <header className="sticky top-0 z-30 flex min-h-16 items-center justify-between gap-3 border-b border-[#dfd3c7] bg-[#fbf7f2]/[0.92] px-4 backdrop-blur-xl xl:hidden">
           <div className="min-w-0">
             <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-secondary">
@@ -374,7 +450,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
         typeof trial.daysLeft === "number" ? (
           <div className="border-b border-[#dfd3c7] bg-[#efe0e7] px-4 py-2.5 text-xs text-foreground sm:px-6 sm:text-sm xl:px-8">
             <span className="font-semibold">Launch Free trial</span>
-            {" · "}
+            {" Â· "}
             {trial.daysLeft} day{trial.daysLeft === 1 ? "" : "s"} left.{" "}
             <Link
               href="/dashboard/settings#platform-billing"
@@ -526,7 +602,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
                   className="flex min-h-12 w-full items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-4 text-left text-sm font-semibold text-red-700 disabled:opacity-50"
                 >
                   <LogOut className="h-5 w-5" />
-                  {isLoggingOut ? "Signing out…" : "Sign out"}
+                  {isLoggingOut ? "Signing outâ€¦" : "Sign out"}
                 </button>
               </div>
             </div>
