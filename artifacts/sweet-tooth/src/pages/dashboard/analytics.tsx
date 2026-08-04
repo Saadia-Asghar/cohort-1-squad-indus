@@ -1,36 +1,62 @@
-import { useState } from "react";
+import {
+  useState,
+  type ComponentType,
+} from "react";
 import { useQuery } from "@tanstack/react-query";
 import { format, parseISO } from "date-fns";
 import {
-  LineChart, Line, BarChart, Bar, PieChart, Pie, Cell,
-  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Legend,
+  Line,
+  LineChart,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
 } from "recharts";
-import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import {
-  useGetBakerAnalytics,
-  useGetOrderSources,
-  useListCustomers,
+  customFetch,
   getGetBakerAnalyticsQueryKey,
   getGetOrderSourcesQueryKey,
-  getListCustomersQueryKey,
-  useGetWeeklySuccessReport,
   getGetWeeklySuccessReportQueryKey,
+  getListCustomersQueryKey,
+  useGetBakerAnalytics,
+  useGetOrderSources,
+  useGetWeeklySuccessReport,
+  useListCustomers,
 } from "@workspace/api-client-react";
+import {
+  AlertTriangle,
+  CalendarDays,
+  CheckCircle2,
+  CircleDollarSign,
+  Clock3,
+  Heart,
+  Megaphone,
+  PackageCheck,
+  Percent,
+  Send,
+  ShoppingBag,
+  Sparkles,
+  TrendingDown,
+  TrendingUp,
+  Users,
+  X,
+} from "lucide-react";
+import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { useBuyerSession } from "@/hooks/use-session";
-import { Users, Megaphone, Sparkles, Percent, Calendar, Heart, Send, CheckCircle } from "lucide-react";
-import { customFetch } from "@workspace/api-client-react";
-import { ANALYTICS_POLL_MS, liveDashboardQuery } from "@/lib/dashboard-query";
+import {
+  ANALYTICS_POLL_MS,
+  liveDashboardQuery,
+} from "@/lib/dashboard-query";
 
 type Period = "daily" | "weekly" | "monthly";
 type Tab = "sales" | "marketing";
-
-const PERIODS: { id: Period; label: string }[] = [
-  { id: "daily", label: "7 days" },
-  { id: "weekly", label: "4 weeks" },
-  { id: "monthly", label: "90 days" },
-];
-
-const SOURCE_COLORS = ["#4A0E8F", "#F5C518", "#E879A9", "#6B7280"];
 
 type CampaignSegment = {
   id: string;
@@ -44,19 +70,65 @@ type CampaignSegment = {
   };
 };
 
+const periods: {
+  id: Period;
+  label: string;
+}[] = [
+  {
+    id: "daily",
+    label: "7 days",
+  },
+  {
+    id: "weekly",
+    label: "4 weeks",
+  },
+  {
+    id: "monthly",
+    label: "90 days",
+  },
+];
+
+const sourceColors = [
+  "#632a73",
+  "#c24f7a",
+  "#d8a846",
+  "#168a55",
+  "#746876",
+];
+
+const inputClass =
+  "min-h-11 w-full rounded-xl border border-[#dfd1c4] bg-[#fffaf6] px-3.5 text-sm text-[#241629] outline-none transition placeholder:text-[#a99ca9] focus:border-[#c24f7a]/60 focus:ring-4 focus:ring-[#c24f7a]/10";
+
 function buildCampaignSegments(
-  customers: Array<{ isRegular?: boolean; isAtRisk?: boolean; totalOrders?: number }>,
+  customers: Array<{
+    isRegular?: boolean;
+    isAtRisk?: boolean;
+    totalOrders?: number;
+  }>,
   bakeryName: string,
 ): CampaignSegment[] {
-  const loyal = customers.filter((c) => c.isRegular && !c.isAtRisk);
-  const inactive = customers.filter((c) => c.isAtRisk);
-  const occasional = customers.filter((c) => !c.isRegular && !c.isAtRisk && (c.totalOrders ?? 0) > 0);
+  const loyal = customers.filter(
+    (customer) =>
+      customer.isRegular && !customer.isAtRisk,
+  );
+
+  const inactive = customers.filter(
+    (customer) => customer.isAtRisk,
+  );
+
+  const occasional = customers.filter(
+    (customer) =>
+      !customer.isRegular &&
+      !customer.isAtRisk &&
+      (customer.totalOrders ?? 0) > 0,
+  );
 
   return [
     {
       id: "frequent_buyers",
-      name: "Loyal Custom Buyers",
-      description: "Regular customers who ordered recently.",
+      name: "Loyal custom buyers",
+      description:
+        "Regular customers who ordered recently.",
       count: loyal.length,
       templates: {
         launch: `Salam! We just launched a new item at ${bakeryName}! Since you love our treats, reply to pre-order.`,
@@ -66,8 +138,9 @@ function buildCampaignSegments(
     },
     {
       id: "inactive_loyalists",
-      name: "We Miss You (Inactive)",
-      description: "Past buyers who have not ordered in 30+ days.",
+      name: "We miss you",
+      description:
+        "Past buyers who have not ordered in 30+ days.",
       count: inactive.length,
       templates: {
         launch: `Salam from ${bakeryName}! We miss you — try our latest seasonal menu this week.`,
@@ -77,8 +150,9 @@ function buildCampaignSegments(
     },
     {
       id: "festival_buyers",
-      name: "Occasional / Festival Buyers",
-      description: "Customers who order for special occasions.",
+      name: "Occasional buyers",
+      description:
+        "Customers who order for special occasions.",
       count: occasional.length,
       templates: {
         launch: `Salam! Planning your next gathering? ${bakeryName} now offers custom dessert tables.`,
@@ -91,57 +165,106 @@ function buildCampaignSegments(
 
 export default function DashboardAnalytics() {
   const { bakerId } = useBuyerSession();
-  const [period, setPeriod] = useState<Period>("monthly");
-  const [activeTab, setActiveTab] = useState<Tab>("sales");
-  
-  // Marketing Campaign State
-  const [campaignModalOpen, setCampaignModalOpen] = useState(false);
-  const [selectedSegment, setSelectedSegment] = useState<CampaignSegment | null>(null);
-  const [campaignType, setCampaignType] = useState<"launch" | "discount" | "festival">("launch");
-  const [campaignMessage, setCampaignMessage] = useState("");
-  const [campaignSentSuccess, setCampaignSentSuccess] = useState(false);
-  const [isSending, setIsSending] = useState(false);
-  const [broadcastError, setBroadcastError] = useState<string | null>(null);
+
+  const [period, setPeriod] =
+    useState<Period>("monthly");
+
+  const [activeTab, setActiveTab] =
+    useState<Tab>("sales");
+
+  const [campaignModalOpen, setCampaignModalOpen] =
+    useState(false);
+
+  const [selectedSegment, setSelectedSegment] =
+    useState<CampaignSegment | null>(null);
+
+  const [campaignType, setCampaignType] = useState<
+    "launch" | "discount" | "festival"
+  >("launch");
+
+  const [campaignMessage, setCampaignMessage] =
+    useState("");
+
+  const [
+    campaignSentSuccess,
+    setCampaignSentSuccess,
+  ] = useState(false);
+
+  const [isSending, setIsSending] =
+    useState(false);
+
+  const [broadcastError, setBroadcastError] =
+    useState<string | null>(null);
+
   const [testPhone, setTestPhone] = useState("");
-  const [lastBroadcastSummary, setLastBroadcastSummary] = useState<string | null>(null);
 
-  const { data: analytics, isLoading } = useGetBakerAnalytics(bakerId, period, {
-    query: {
-      enabled: !!bakerId,
-      queryKey: getGetBakerAnalyticsQueryKey(bakerId, period),
-      ...liveDashboardQuery(ANALYTICS_POLL_MS),
-    },
-  });
+  const [
+    lastBroadcastSummary,
+    setLastBroadcastSummary,
+  ] = useState<string | null>(null);
 
-  const { data: sources } = useGetOrderSources(bakerId, {
-    query: {
-      enabled: !!bakerId,
-      queryKey: getGetOrderSourcesQueryKey(bakerId),
-      ...liveDashboardQuery(ANALYTICS_POLL_MS),
-    },
-  });
-
-  const { data: weeklyReport } = useGetWeeklySuccessReport(bakerId, {
-    query: {
-      enabled: !!bakerId,
-      queryKey: getGetWeeklySuccessReportQueryKey(bakerId),
-      ...liveDashboardQuery(ANALYTICS_POLL_MS),
-    },
-  });
-
-  const { data: customers = [] } = useListCustomers(
-    { bakerId },
-    {
+  const { data: analytics, isLoading } =
+    useGetBakerAnalytics(bakerId, period, {
       query: {
-        enabled: !!bakerId,
-        queryKey: getListCustomersQueryKey({ bakerId }),
-        ...liveDashboardQuery(ANALYTICS_POLL_MS),
+        enabled: Boolean(bakerId),
+        queryKey:
+          getGetBakerAnalyticsQueryKey(
+            bakerId,
+            period,
+          ),
+        ...liveDashboardQuery(
+          ANALYTICS_POLL_MS,
+        ),
       },
-    },
-  );
+    });
+
+  const { data: sources } =
+    useGetOrderSources(bakerId, {
+      query: {
+        enabled: Boolean(bakerId),
+        queryKey:
+          getGetOrderSourcesQueryKey(bakerId),
+        ...liveDashboardQuery(
+          ANALYTICS_POLL_MS,
+        ),
+      },
+    });
+
+  const { data: weeklyReport } =
+    useGetWeeklySuccessReport(bakerId, {
+      query: {
+        enabled: Boolean(bakerId),
+        queryKey:
+          getGetWeeklySuccessReportQueryKey(
+            bakerId,
+          ),
+        ...liveDashboardQuery(
+          ANALYTICS_POLL_MS,
+        ),
+      },
+    });
+
+  const { data: customers = [] } =
+    useListCustomers(
+      { bakerId },
+      {
+        query: {
+          enabled: Boolean(bakerId),
+          queryKey: getListCustomersQueryKey({
+            bakerId,
+          }),
+          ...liveDashboardQuery(
+            ANALYTICS_POLL_MS,
+          ),
+        },
+      },
+    );
 
   const { data: feedbackStats } = useQuery({
-    queryKey: ["feedback-analytics", bakerId],
+    queryKey: [
+      "feedback-analytics",
+      bakerId,
+    ],
     queryFn: () =>
       customFetch<{
         deliveredCount: number;
@@ -152,88 +275,171 @@ export default function DashboardAnalytics() {
         hadIssue: number;
         satisfactionRate: number | null;
         happyRate: number | null;
-      }>(`/api/analytics/baker/${bakerId}/feedback`),
-    enabled: !!bakerId,
+      }>(
+        `/api/analytics/baker/${bakerId}/feedback`,
+      ),
+    enabled: Boolean(bakerId),
     refetchInterval: ANALYTICS_POLL_MS,
     refetchIntervalInBackground: false,
   });
 
-  const segments = buildCampaignSegments(customers, "your bakery");
-  const returningBuyers = customers.filter((c) => c.totalOrders > 1);
+  const segments = buildCampaignSegments(
+    customers,
+    "your bakery",
+  );
+
+  const returningBuyers = customers.filter(
+    (customer) => customer.totalOrders > 1,
+  );
+
   const repeatOrderRatio =
     customers.length > 0
-      ? Math.round((returningBuyers.length / customers.length) * 1000) / 10
+      ? Math.round(
+          (returningBuyers.length /
+            customers.length) *
+            1000,
+        ) / 10
       : 0;
+
   const avgOrdersPerReturning =
     returningBuyers.length > 0
       ? Math.round(
-          (returningBuyers.reduce((sum, c) => sum + c.totalOrders, 0) / returningBuyers.length) * 10,
+          (returningBuyers.reduce(
+            (sum, customer) =>
+              sum + customer.totalOrders,
+            0,
+          ) /
+            returningBuyers.length) *
+            10,
         ) / 10
       : 0;
+
   const avgCustomerLifetimeValue =
     customers.length > 0
-      ? Math.round(customers.reduce((sum, c) => sum + c.totalSpentPkr, 0) / customers.length)
+      ? Math.round(
+          customers.reduce(
+            (sum, customer) =>
+              sum +
+              customer.totalSpentPkr,
+            0,
+          ) / customers.length,
+        )
       : 0;
 
-  const chartData = analytics?.dataPoints?.map((point) => ({
-    label: format(parseISO(point.date), period === "daily" ? "EEE" : "MMM d"),
-    orders: point.orders,
-    revenue: point.revenue,
-  })) ?? [];
+  const chartData =
+    analytics?.dataPoints?.map((point) => ({
+      label: format(
+        parseISO(point.date),
+        period === "daily"
+          ? "EEE"
+          : "MMM d",
+      ),
+      orders: point.orders,
+      revenue: point.revenue,
+    })) ?? [];
 
-  const sourceData = sources?.map((s) => ({
-    name: s.source.replace(/_/g, " "),
-    value: s.orders,
-    percentage: s.percentage,
-  })) ?? [];
+  const sourceData =
+    sources?.map((source) => ({
+      name: source.source
+        .replace(/_/g, " ")
+        .replace(/\b\w/g, (letter) =>
+          letter.toUpperCase(),
+        ),
+      value: source.orders,
+      percentage: source.percentage,
+    })) ?? [];
 
-  const handleOpenCampaign = (segment: CampaignSegment) => {
+  const handleOpenCampaign = (
+    segment: CampaignSegment,
+  ) => {
     setSelectedSegment(segment);
     setCampaignType("launch");
-    setCampaignMessage(segment.templates.launch);
+    setCampaignMessage(
+      segment.templates.launch,
+    );
     setCampaignSentSuccess(false);
+    setBroadcastError(null);
+    setLastBroadcastSummary(null);
     setCampaignModalOpen(true);
   };
 
-  const handleCampaignTypeChange = (type: "launch" | "discount" | "festival") => {
+  const closeCampaign = () => {
+    setCampaignModalOpen(false);
+    setBroadcastError(null);
+    setLastBroadcastSummary(null);
+  };
+
+  const handleCampaignTypeChange = (
+    type:
+      | "launch"
+      | "discount"
+      | "festival",
+  ) => {
     setCampaignType(type);
+
     if (selectedSegment) {
-      setCampaignMessage(selectedSegment.templates[type]);
+      setCampaignMessage(
+        selectedSegment.templates[type],
+      );
     }
   };
 
   const handleSendCampaign = async () => {
-    if (!bakerId || !campaignMessage.trim()) return;
+    if (
+      !bakerId ||
+      !campaignMessage.trim()
+    ) {
+      return;
+    }
+
     setIsSending(true);
     setBroadcastError(null);
     setLastBroadcastSummary(null);
+
     try {
       const result = await customFetch<{
         sent: number;
         failed: number;
         targeted?: number;
         mode: string;
-      }>(`/api/bakers/${bakerId}/broadcast`, {
-        method: "POST",
-        responseType: "json",
-        body: JSON.stringify({
-          message: campaignMessage.trim(),
-          segment: selectedSegment?.id ?? "all",
-          limit: Math.min(selectedSegment?.count || 50, 50),
-        }),
-      });
-      setLastBroadcastSummary(
-        `Sent ${result.sent} of ${result.targeted ?? result.sent + result.failed} via WhatsApp (${result.failed} failed).`,
+      }>(
+        `/api/bakers/${bakerId}/broadcast`,
+        {
+          method: "POST",
+          responseType: "json",
+          body: JSON.stringify({
+            message:
+              campaignMessage.trim(),
+            segment:
+              selectedSegment?.id ?? "all",
+            limit: Math.min(
+              selectedSegment?.count || 50,
+              50,
+            ),
+          }),
+        },
       );
+
+      setLastBroadcastSummary(
+        `Sent ${result.sent} of ${
+          result.targeted ??
+          result.sent + result.failed
+        } via WhatsApp (${result.failed} failed).`,
+      );
+
       setCampaignSentSuccess(true);
-      setTimeout(() => {
+
+      window.setTimeout(() => {
         setCampaignModalOpen(false);
         setCampaignSentSuccess(false);
       }, 2200);
     } catch (cause) {
       setBroadcastError(
         cause instanceof Error
-          ? cause.message.replace(/^HTTP \d+\s*[^:]*:\s*/, "")
+          ? cause.message.replace(
+              /^HTTP \d+\s*[^:]*:\s*/,
+              "",
+            )
           : "Broadcast failed. Connect WhatsApp in Agent Hub first.",
       );
     } finally {
@@ -242,20 +448,34 @@ export default function DashboardAnalytics() {
   };
 
   const handleSendTest = async () => {
-    if (!bakerId || !campaignMessage.trim() || !testPhone.trim()) return;
+    if (
+      !bakerId ||
+      !campaignMessage.trim() ||
+      !testPhone.trim()
+    ) {
+      return;
+    }
+
     setBroadcastError(null);
+    setLastBroadcastSummary(null);
+
     try {
-      const result = await customFetch<{ sent: number; failed: number }>(
+      const result = await customFetch<{
+        sent: number;
+        failed: number;
+      }>(
         `/api/bakers/${bakerId}/broadcast`,
         {
           method: "POST",
           responseType: "json",
           body: JSON.stringify({
-            message: campaignMessage.trim(),
+            message:
+              campaignMessage.trim(),
             testPhone: testPhone.trim(),
           }),
         },
       );
+
       setLastBroadcastSummary(
         result.sent
           ? `Test message delivered to ${testPhone.trim()}.`
@@ -264,7 +484,10 @@ export default function DashboardAnalytics() {
     } catch (cause) {
       setBroadcastError(
         cause instanceof Error
-          ? cause.message.replace(/^HTTP \d+\s*[^:]*:\s*/, "")
+          ? cause.message.replace(
+              /^HTTP \d+\s*[^:]*:\s*/,
+              "",
+            )
           : "Test send failed. Connect WhatsApp in Agent Hub first.",
       );
     }
@@ -272,533 +495,1533 @@ export default function DashboardAnalytics() {
 
   return (
     <DashboardLayout>
-      <div className="p-8 max-w-7xl mx-auto space-y-8">
-        {/* Header Section */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-4xl font-bold font-serif text-primary">Analytics & Growth</h1>
-            <p className="text-muted-foreground text-sm mt-1">Track performance and run marketing outreach campaigns.</p>
-          </div>
-          
-          <div className="flex gap-4">
-            {/* Sales vs Marketing Tab Switcher */}
-            <div className="flex bg-muted/60 p-1 rounded-xl border border-border">
-              <button
-                onClick={() => setActiveTab("sales")}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                  activeTab === "sales" ? "bg-background shadow-xs text-primary" : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                📊 Performance
-              </button>
-              <button
-                onClick={() => setActiveTab("marketing")}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                  activeTab === "marketing" ? "bg-background shadow-xs text-primary" : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                📣 Customer Outreach
-              </button>
+      <div className="min-h-screen bg-[#fbf6ee] px-4 py-5 text-[#241629] sm:px-6 lg:px-7">
+        <div className="mx-auto max-w-[1480px]">
+          <header className="flex flex-col gap-5 border-b border-[#dfd1c4] pb-5 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#c24f7a]">
+                Business intelligence
+              </p>
+
+              <h1 className="mt-2 font-serif text-[2.8rem] font-semibold leading-none tracking-[-0.045em] sm:text-[3.35rem]">
+                Analytics
+              </h1>
+
+              <p className="mt-3 max-w-2xl text-sm leading-6 text-[#746876]">
+                Understand revenue, customer
+                behaviour, service quality and
+                marketing opportunities using your
+                bakery&apos;s live activity.
+              </p>
             </div>
 
-            {activeTab === "sales" && (
-              <div className="flex gap-1 bg-muted/50 p-1 rounded-xl">
-                {PERIODS.map((p) => (
-                  <button
-                    key={p.id}
-                    onClick={() => setPeriod(p.id)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                      period === p.id ? "bg-background shadow-xs text-primary border border-border/30" : "text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    {p.label}
-                  </button>
-                ))}
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <div className="flex rounded-xl border border-[#dfd1c4] bg-[#f4eae1] p-1">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setActiveTab("sales")
+                  }
+                  className={`min-h-10 rounded-lg px-4 text-xs font-semibold transition ${
+                    activeTab === "sales"
+                      ? "bg-white text-[#632a73] shadow-sm"
+                      : "text-[#746876]"
+                  }`}
+                >
+                  Performance
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    setActiveTab("marketing")
+                  }
+                  className={`min-h-10 rounded-lg px-4 text-xs font-semibold transition ${
+                    activeTab === "marketing"
+                      ? "bg-white text-[#632a73] shadow-sm"
+                      : "text-[#746876]"
+                  }`}
+                >
+                  Customer outreach
+                </button>
               </div>
-            )}
-          </div>
+
+              {activeTab === "sales" ? (
+                <div className="flex rounded-xl border border-[#dfd1c4] bg-[#fffaf6] p-1">
+                  {periods.map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() =>
+                        setPeriod(item.id)
+                      }
+                      className={`min-h-10 rounded-lg px-3 text-xs font-semibold transition ${
+                        period === item.id
+                          ? "bg-[#632a73] text-white"
+                          : "text-[#746876]"
+                      }`}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          </header>
+
+          <section className="grid border-b border-[#dfd1c4] sm:grid-cols-2 xl:grid-cols-5">
+            <AnalyticsMetric
+              icon={CircleDollarSign}
+              label="Revenue"
+              value={`PKR ${(
+                analytics?.totalRevenue ?? 0
+              ).toLocaleString()}`}
+              valueClass="text-[#168a55]"
+            />
+
+            <AnalyticsMetric
+              icon={ShoppingBag}
+              label="Orders"
+              value={(analytics?.totalOrders ?? 0)
+                .toString()
+                .padStart(2, "0")}
+            />
+
+            <AnalyticsMetric
+              icon={PackageCheck}
+              label="Average order"
+              value={`PKR ${(
+                analytics?.avgOrderValue ?? 0
+              ).toLocaleString()}`}
+              valueClass="text-[#632a73]"
+            />
+
+            <AnalyticsMetric
+              icon={Users}
+              label="New customers"
+              value={(analytics?.newCustomers ?? 0)
+                .toString()
+                .padStart(2, "0")}
+              valueClass="text-[#c24f7a]"
+            />
+
+            <AnalyticsMetric
+              icon={Heart}
+              label="Repeat customers"
+              value={(
+                analytics?.repeatCustomers ?? 0
+              )
+                .toString()
+                .padStart(2, "0")}
+              valueClass="text-[#b86a24]"
+            />
+          </section>
+
+          {isLoading && !analytics ? (
+            <div className="mt-5 space-y-4">
+              <div className="h-40 animate-pulse rounded-2xl bg-[#f1e9e2]" />
+              <div className="grid gap-4 lg:grid-cols-2">
+                <div className="h-80 animate-pulse rounded-2xl bg-[#f1e9e2]" />
+                <div className="h-80 animate-pulse rounded-2xl bg-[#f1e9e2]" />
+              </div>
+            </div>
+          ) : activeTab === "sales" ? (
+            <PerformanceView
+              analytics={analytics}
+              weeklyReport={weeklyReport}
+              feedbackStats={feedbackStats}
+              chartData={chartData}
+              sourceData={sourceData}
+              period={period}
+            />
+          ) : (
+            <OutreachView
+              segments={segments}
+              repeatOrderRatio={
+                repeatOrderRatio
+              }
+              avgOrdersPerReturning={
+                avgOrdersPerReturning
+              }
+              avgCustomerLifetimeValue={
+                avgCustomerLifetimeValue
+              }
+              customerCount={customers.length}
+              onOpenCampaign={
+                handleOpenCampaign
+              }
+            />
+          )}
         </div>
-
-        {isLoading && !analytics ? (
-          <div className="animate-pulse space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-              {[...Array(5)].map((_, i) => (
-                <div key={i} className="h-28 bg-muted rounded-xl" />
-              ))}
-            </div>
-            <div className="h-80 bg-muted rounded-xl w-full" />
-          </div>
-        ) : (
-          <div className="space-y-8">
-            {/* Top Stat Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
-              <div className="p-5 rounded-xl border border-border bg-card shadow-sm hover:shadow-md transition-shadow">
-                <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Total Revenue</p>
-                <p className="text-2xl font-bold font-mono text-primary mt-2">PKR {analytics?.totalRevenue?.toLocaleString() || 0}</p>
-              </div>
-              <div className="p-5 rounded-xl border border-border bg-card shadow-sm hover:shadow-md transition-shadow">
-                <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Total Orders</p>
-                <p className="text-2xl font-bold font-mono mt-2">{analytics?.totalOrders || 0}</p>
-              </div>
-              <div className="p-5 rounded-xl border border-border bg-card shadow-sm hover:shadow-md transition-shadow">
-                <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Avg Order Value</p>
-                <p className="text-2xl font-bold font-mono text-secondary mt-2">PKR {analytics?.avgOrderValue?.toLocaleString() || 0}</p>
-              </div>
-              <div className="p-5 rounded-xl border border-border bg-card shadow-sm hover:shadow-md transition-shadow">
-                <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">New Customers</p>
-                <p className="text-2xl font-bold font-mono text-emerald-600 dark:text-emerald-400 mt-2">{analytics?.newCustomers || 0}</p>
-              </div>
-              <div className="p-5 rounded-xl border border-border bg-card shadow-sm hover:shadow-md transition-shadow">
-                <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Repeat Customers</p>
-                <p className="text-2xl font-bold font-mono text-indigo-600 dark:text-indigo-400 mt-2">{analytics?.repeatCustomers || 0}</p>
-              </div>
-            </div>
-
-            {activeTab === "sales" ? (
-              <>
-                {weeklyReport && (
-                  <div className="rounded-xl border border-border bg-card p-6 shadow-xs bg-gradient-to-br from-card to-muted/10 mb-8">
-                    <div className="flex items-center justify-between mb-4 border-b border-border pb-3">
-                      <div>
-                        <h3 className="font-serif text-lg font-bold text-foreground">Weekly Success Report</h3>
-                        <p className="text-sm text-muted-foreground">
-                          Bakery performance metrics for the last 7 days.
-                        </p>
-                      </div>
-                      <span className="bg-primary/10 text-primary px-3 py-1 rounded-full text-xs font-semibold">
-                        7-Day Summary
-                      </span>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                      {/* Metric 1 */}
-                      <div className="p-4 rounded-lg bg-card border border-border/50 shadow-2xs">
-                        <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Weekly Orders</p>
-                        <div className="flex items-baseline gap-2 mt-2">
-                          <span className="text-2xl font-bold font-mono">{weeklyReport.ordersCount}</span>
-                          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full flex items-center ${
-                            weeklyReport.ordersTrendPercent > 0
-                              ? "bg-green-500/10 text-green-600 dark:text-green-400"
-                              : weeklyReport.ordersTrendPercent < 0
-                                ? "bg-red-500/10 text-red-600 dark:text-red-400"
-                                : "bg-muted text-muted-foreground"
-                          }`}>
-                            {weeklyReport.ordersTrendPercent > 0 ? "↑" : weeklyReport.ordersTrendPercent < 0 ? "↓" : ""}
-                            {Math.abs(weeklyReport.ordersTrendPercent)}%
-                          </span>
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-1">vs. previous week</p>
-                      </div>
-
-                      {/* Metric 2 */}
-                      <div className="p-4 rounded-lg bg-card border border-border/50 shadow-2xs">
-                        <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Customer Retention</p>
-                        <div className="flex items-baseline gap-2 mt-2">
-                          <span className="text-2xl font-bold font-mono">{weeklyReport.repeatBuyersCount}</span>
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-1">Repeat buyers active this week</p>
-                      </div>
-
-                      {/* Metric 3 */}
-                      <div className="p-4 rounded-lg bg-card border border-border/50 shadow-2xs">
-                        <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">AI Assistant Response</p>
-                        <div className="flex items-baseline gap-2 mt-2">
-                          <span className="text-2xl font-bold font-mono">{weeklyReport.avgResponseTimeSec}s</span>
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-1">Average response time this week</p>
-                      </div>
-
-                      {/* Metric 4 */}
-                      <div className="p-4 rounded-lg bg-card border border-border/50 shadow-2xs">
-                        <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Payment Review Issues</p>
-                        <div className="flex items-baseline gap-2 mt-2">
-                          <span className="text-2xl font-bold font-mono text-amber-600 dark:text-amber-400">{weeklyReport.failedPaymentReviewsCount}</span>
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-1">Unverified payment reviews flagged</p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {feedbackStats && (
-                  <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
-                    <h3 className="font-serif text-lg font-bold mb-1">Service quality (after delivery)</h3>
-                    <p className="text-sm text-muted-foreground mb-4">
-                      When you mark orders Delivered, buyers get a WhatsApp feedback request automatically.
-                    </p>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      <div>
-                        <p className="text-xs text-muted-foreground uppercase font-bold">Delivered</p>
-                        <p className="text-2xl font-bold">{feedbackStats.deliveredCount}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground uppercase font-bold">Feedback received</p>
-                        <p className="text-2xl font-bold text-primary">{feedbackStats.feedbackReceived}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground uppercase font-bold">Happy rate</p>
-                        <p className="text-2xl font-bold text-green-700">
-                          {feedbackStats.happyRate != null ? `${feedbackStats.happyRate}%` : "—"}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground uppercase font-bold">Issues flagged</p>
-                        <p className="text-2xl font-bold text-amber-700">{feedbackStats.hadIssue}</p>
-                      </div>
-                    </div>
-                    <div className="mt-4 flex flex-wrap gap-3 text-sm">
-                      <span className="rounded-full bg-green-100 text-green-800 px-3 py-1">Loved it: {feedbackStats.lovedIt}</span>
-                      <span className="rounded-full bg-muted px-3 py-1">Okay: {feedbackStats.okay}</span>
-                      <span className="rounded-full bg-amber-100 text-amber-800 px-3 py-1">Pending: {feedbackStats.feedbackPending}</span>
-                    </div>
-                  </div>
-                )}
-
-                {/* Revenue & Orders Charts */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                  <div className="p-6 rounded-xl border border-border bg-card shadow-sm">
-                    <h3 className="font-serif text-xl font-bold mb-4 text-foreground">Revenue over time</h3>
-                    <ResponsiveContainer width="100%" height={260}>
-                      <LineChart data={chartData}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-                        <XAxis dataKey="label" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
-                        <YAxis tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
-                        <Tooltip formatter={(v: number) => [`PKR ${v.toLocaleString()}`, "Revenue"]} />
-                        <Line type="monotone" dataKey="revenue" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </div>
-
-                  <div className="p-6 rounded-xl border border-border bg-card shadow-sm">
-                    <h3 className="font-serif text-xl font-bold mb-4 text-foreground">Orders over time</h3>
-                    <ResponsiveContainer width="100%" height={260}>
-                      <BarChart data={chartData}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-                        <XAxis dataKey="label" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
-                        <YAxis tick={{ fontSize: 11 }} axisLine={false} tickLine={false} allowDecimals={false} />
-                        <Tooltip />
-                        <Bar dataKey="orders" fill="hsl(var(--secondary))" radius={[4, 4, 0, 0]} />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
-
-                {/* Sources & Top Products */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                  <div className="p-6 rounded-xl border border-border bg-card shadow-sm">
-                    <h3 className="font-serif text-xl font-bold mb-4 text-foreground">Order sources</h3>
-                    {sourceData.length > 0 ? (
-                      <ResponsiveContainer width="100%" height={260}>
-                        <PieChart>
-                          <Pie data={sourceData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={90} label={({ name, percentage }) => `${name} (${percentage}%)`}>
-                            {sourceData.map((_, i) => (
-                              <Cell key={i} fill={SOURCE_COLORS[i % SOURCE_COLORS.length]} />
-                            ))}
-                          </Pie>
-                          <Tooltip />
-                          <Legend />
-                        </PieChart>
-                      </ResponsiveContainer>
-                    ) : (
-                      <p className="text-muted-foreground">No source data yet.</p>
-                    )}
-                  </div>
-
-                  <div className="p-6 rounded-xl border border-border bg-card shadow-sm">
-                    <h3 className="font-serif text-xl font-bold mb-4 text-foreground">Top Products</h3>
-                    <div className="space-y-4">
-                      {analytics?.topProducts?.map((product, i) => (
-                        <div key={i} className="flex justify-between items-center border-b border-border pb-2 last:border-0 last:pb-0">
-                          <div>
-                            <p className="font-medium">{product.name}</p>
-                            <p className="text-sm text-muted-foreground">{product.orders} orders</p>
-                          </div>
-                          <p className="font-mono font-medium text-primary">PKR {product.revenue.toLocaleString()}</p>
-                        </div>
-                      ))}
-                      {(!analytics?.topProducts || analytics.topProducts.length === 0) && (
-                        <p className="text-muted-foreground">No data available.</p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
-                    <h3 className="font-serif text-xl font-bold">7-day sales estimate</h3>
-                    <p className="mt-3 text-3xl font-bold font-mono text-primary">
-                      PKR {analytics?.salesForecast?.next7DaysRevenue.toLocaleString() ?? 0}
-                    </p>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      About {analytics?.salesForecast?.next7DaysOrders ?? 0} orders · {analytics?.salesForecast?.confidence ?? "low"} confidence
-                    </p>
-                    <p className="mt-3 text-xs text-muted-foreground">
-                      Simple {analytics?.salesForecast?.method ?? "historical run-rate estimate"}; this is planning guidance, not a guarantee.
-                    </p>
-                  </div>
-                  <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
-                    <h3 className="font-serif text-xl font-bold mb-3">Customer price bands</h3>
-                    <div className="space-y-3">
-                      {analytics?.priceBands?.map((band) => (
-                        <div key={band.name} className="flex items-center justify-between gap-3 text-sm">
-                          <div><p className="font-medium">{band.name}</p><p className="text-xs text-muted-foreground">{band.orders} orders</p></div>
-                          <span className="font-mono">PKR {band.revenue.toLocaleString()}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
-                    <h3 className="font-serif text-xl font-bold mb-3">Product momentum</h3>
-                    <div className="space-y-3">
-                      {analytics?.productTrends?.map((trend) => (
-                        <div key={trend.name} className="flex items-center justify-between gap-3 text-sm">
-                          <div><p className="font-medium">{trend.name}</p><p className="text-xs text-muted-foreground">{trend.currentOrders} vs {trend.previousOrders} prior</p></div>
-                          <span className={`font-mono font-semibold ${trend.changePercent >= 0 ? "text-emerald-600" : "text-destructive"}`}>
-                            {trend.changePercent >= 0 ? "+" : ""}{trend.changePercent}%
-                          </span>
-                        </div>
-                      ))}
-                      {!analytics?.productTrends?.length && <p className="text-sm text-muted-foreground">Product trends appear after orders are recorded.</p>}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  <div className="p-6 rounded-xl border border-border bg-card shadow-sm">
-                    <h3 className="font-serif text-xl font-bold">Order cancellations</h3>
-                    <p className="mt-2 text-3xl font-bold font-mono text-destructive">{analytics?.cancellationAnalytics?.total ?? 0}</p>
-                    <p className="text-sm text-muted-foreground">{analytics?.cancellationAnalytics?.rate ?? 0}% of all orders</p>
-                  </div>
-                  <div className="p-6 rounded-xl border border-border bg-card shadow-sm">
-                    <h3 className="font-serif text-xl font-bold mb-3">Why orders cancel</h3>
-                    <div className="space-y-2 text-sm">
-                      {analytics?.cancellationAnalytics?.byReason?.slice(0, 4).map((item) => <div key={item.name} className="flex justify-between gap-3"><span className="truncate">{item.name}</span><span className="font-mono">{item.count}</span></div>)}
-                      {!analytics?.cancellationAnalytics?.byReason?.length && <p className="text-muted-foreground">No cancellation data yet.</p>}
-                    </div>
-                  </div>
-                  <div className="p-6 rounded-xl border border-border bg-card shadow-sm">
-                    <h3 className="font-serif text-xl font-bold mb-3">Products affected</h3>
-                    <div className="space-y-2 text-sm">
-                      {analytics?.cancellationAnalytics?.byProduct?.slice(0, 4).map((item) => <div key={item.name} className="flex justify-between gap-3"><span className="truncate">{item.name}</span><span className="font-mono">{item.count}</span></div>)}
-                      {!analytics?.cancellationAnalytics?.byProduct?.length && <p className="text-muted-foreground">No cancelled products yet.</p>}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
-                  <h3 className="font-serif text-xl font-bold">Most requested delivery areas</h3>
-                  <p className="mt-1 text-sm text-muted-foreground">Based on checkout locations from your marketplace orders.</p>
-                  <div className="mt-4 flex flex-wrap gap-3">
-                    {(analytics?.topDeliveryAreas ?? []).map((item) => (
-                      <div key={item.area} className="rounded-lg bg-primary/10 px-4 py-3 text-sm text-primary">
-                        <span className="font-semibold">{item.area}</span><span className="ml-2 font-mono text-xs">{item.orders} orders</span>
-                      </div>
-                    ))}
-                    {!analytics?.topDeliveryAreas?.length && <p className="text-sm text-muted-foreground">Delivery-area data appears after customers complete checkout.</p>}
-                  </div>
-                </div>
-              </>
-            ) : (
-              /* Returning Customer Activity & Marketing Outreach Hub */
-              <div className="space-y-8 animate-in fade-in duration-200">
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  {/* Returning Customer Activity Insight card */}
-                  <div className="lg:col-span-1 p-6 rounded-xl border border-border bg-card shadow-sm space-y-4">
-                    <div className="flex items-center gap-3 text-primary">
-                      <Users className="w-6 h-6" />
-                      <h3 className="font-serif text-xl font-bold">Loyalty Retention</h3>
-                    </div>
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      Analyze repeat buyer patterns. Bakers who reach out to past customers with discount coupons or new product announcements during festivals double their sales conversion.
-                    </p>
-
-                    <div className="pt-4 border-t border-border/50 space-y-3">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-muted-foreground">Repeat Order Ratio</span>
-                        <span className="font-mono font-bold text-emerald-600">{repeatOrderRatio}%</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-muted-foreground">Avg. Orders Per returning Buyer</span>
-                        <span className="font-mono font-bold">{avgOrdersPerReturning} orders</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-muted-foreground">Avg. Customer Lifetime Value</span>
-                        <span className="font-mono font-bold text-primary">PKR {avgCustomerLifetimeValue.toLocaleString()}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Smart customer marketing panel */}
-                  <div className="lg:col-span-2 p-6 rounded-xl border border-border bg-card shadow-sm space-y-6">
-                    <div>
-                      <div className="flex items-center gap-2 text-primary">
-                        <Sparkles className="w-5 h-5" />
-                        <h3 className="font-serif text-xl font-bold">Sweet Tooth Smart Campaigns</h3>
-                      </div>
-                      <p className="text-sm text-muted-foreground mt-1">Select a customer segment below to blast custom WhatsApp/SMS announcements automatically.</p>
-                    </div>
-
-                    <div className="space-y-4">
-                      {segments.map((segment) => (
-                        <div key={segment.id} className="p-4 rounded-xl border border-border bg-muted/20 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 hover:bg-muted/40 transition-colors">
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <h4 className="font-bold text-foreground">{segment.name}</h4>
-                              <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-bold">
-                                {segment.count} customers
-                              </span>
-                            </div>
-                            <p className="text-xs text-muted-foreground mt-1">{segment.description}</p>
-                          </div>
-
-                          <button
-                            onClick={() => handleOpenCampaign(segment)}
-                            className="w-full sm:w-auto shrink-0 bg-primary text-primary-foreground px-4 py-2 rounded-lg text-xs font-semibold hover:bg-primary/90 flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-                          >
-                            <Megaphone className="w-3.5 h-3.5" />
-                            Launch Campaign
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
       </div>
 
-      {/* Campaign Details Modal */}
-      {campaignModalOpen && selectedSegment && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
-          <div className="bg-card border border-border rounded-2xl shadow-xl w-full max-w-lg p-6 space-y-4 animate-in zoom-in-95 duration-200">
+      {campaignModalOpen &&
+      selectedSegment ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-[#241629]/55 p-4 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="campaign-title"
+        >
+          <div className="max-h-[92vh] w-full max-w-xl overflow-hidden rounded-3xl border border-[#dfd1c4] bg-[#fbf6ee] text-[#241629] shadow-2xl">
             {campaignSentSuccess ? (
-              <div className="py-8 text-center space-y-3 flex flex-col items-center justify-center">
-                <CheckCircle className="w-16 h-16 text-emerald-500 animate-bounce" />
-                <h3 className="text-xl font-bold font-serif text-foreground">Campaign Sent!</h3>
-                <p className="text-sm text-muted-foreground">
-                  Your broadcast has been successfully queued and sent to {selectedSegment.count} customers!
-                </p>
+              <div className="grid min-h-[420px] place-items-center p-8 text-center">
+                <div>
+                  <span className="mx-auto grid h-20 w-20 place-items-center rounded-full bg-[#e4f3e8] text-[#168a55]">
+                    <CheckCircle2 className="h-10 w-10" />
+                  </span>
+
+                  <h2 className="mt-5 font-serif text-3xl font-semibold">
+                    Campaign sent
+                  </h2>
+
+                  <p className="mx-auto mt-3 max-w-sm text-sm leading-6 text-[#746876]">
+                    The broadcast was processed for
+                    the selected customer group.
+                  </p>
+
+                  {lastBroadcastSummary ? (
+                    <p className="mt-3 text-xs font-semibold text-[#168a55]">
+                      {lastBroadcastSummary}
+                    </p>
+                  ) : null}
+                </div>
               </div>
             ) : (
               <>
-                <div className="border-b border-border pb-3 flex justify-between items-center">
+                <div className="flex items-start justify-between border-b border-[#dfd1c4] px-5 py-5 sm:px-6">
                   <div>
-                    <h3 className="text-lg font-bold font-serif text-primary">Outreach Broadcast</h3>
-                    <p className="text-xs text-muted-foreground mt-0.5">Targeting: {selectedSegment.name} ({selectedSegment.count} buyers)</p>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#c24f7a]">
+                      WhatsApp outreach
+                    </p>
+
+                    <h2
+                      id="campaign-title"
+                      className="mt-2 font-serif text-3xl font-semibold"
+                    >
+                      Create campaign
+                    </h2>
+
+                    <p className="mt-2 text-sm text-[#746876]">
+                      {selectedSegment.name} ·{" "}
+                      {selectedSegment.count}{" "}
+                      customers
+                    </p>
                   </div>
+
                   <button
-                    onClick={() => setCampaignModalOpen(false)}
-                    className="text-muted-foreground hover:text-foreground text-sm font-semibold"
+                    type="button"
+                    onClick={closeCampaign}
+                    aria-label="Close campaign composer"
+                    className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-[#dfd1c4] bg-white/60"
                   >
-                    Cancel
+                    <X className="h-4 w-4" />
                   </button>
                 </div>
 
-                {/* Campaign Type Tab Selectors */}
-                <div className="grid grid-cols-3 gap-2 bg-muted/50 p-1 rounded-xl">
-                  <button
-                    onClick={() => handleCampaignTypeChange("launch")}
-                    className={`py-2 rounded-lg text-xs font-medium flex items-center justify-center gap-1 transition-all ${
-                      campaignType === "launch" ? "bg-background text-primary shadow-xs" : "text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    <Sparkles className="w-3 h-3" />
-                    New Launch
-                  </button>
-                  <button
-                    onClick={() => handleCampaignTypeChange("discount")}
-                    className={`py-2 rounded-lg text-xs font-medium flex items-center justify-center gap-1 transition-all ${
-                      campaignType === "discount" ? "bg-background text-primary shadow-xs" : "text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    <Percent className="w-3 h-3" />
-                    Discount
-                  </button>
-                  <button
-                    onClick={() => handleCampaignTypeChange("festival")}
-                    className={`py-2 rounded-lg text-xs font-medium flex items-center justify-center gap-1 transition-all ${
-                      campaignType === "festival" ? "bg-background text-primary shadow-xs" : "text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    <Calendar className="w-3 h-3" />
-                    Festival Special
-                  </button>
-                </div>
+                <div className="max-h-[68vh] overflow-y-auto px-5 py-5 sm:px-6">
+                  <div className="grid grid-cols-3 gap-1 rounded-xl border border-[#dfd1c4] bg-[#f4eae1] p-1">
+                    <CampaignTypeButton
+                      active={
+                        campaignType === "launch"
+                      }
+                      icon={Sparkles}
+                      label="New launch"
+                      onClick={() =>
+                        handleCampaignTypeChange(
+                          "launch",
+                        )
+                      }
+                    />
 
-                {/* Message Customization Input & WhatsApp Preview */}
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Customize Broadcast Message</label>
-                    <textarea
-                      value={campaignMessage}
-                      onChange={(e) => setCampaignMessage(e.target.value)}
-                      rows={3}
-                      className="w-full px-3 py-2 border border-border rounded-lg text-sm bg-muted/20 focus:ring-1 focus:ring-primary focus:outline-none resize-none text-foreground font-sans leading-relaxed"
+                    <CampaignTypeButton
+                      active={
+                        campaignType ===
+                        "discount"
+                      }
+                      icon={Percent}
+                      label="Discount"
+                      onClick={() =>
+                        handleCampaignTypeChange(
+                          "discount",
+                        )
+                      }
+                    />
+
+                    <CampaignTypeButton
+                      active={
+                        campaignType ===
+                        "festival"
+                      }
+                      icon={CalendarDays}
+                      label="Festival"
+                      onClick={() =>
+                        handleCampaignTypeChange(
+                          "festival",
+                        )
+                      }
                     />
                   </div>
 
-                  {/* Live WhatsApp Preview */}
-                  <div className="border border-border rounded-xl bg-muted/30 p-3 space-y-2">
-                    <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block">Live WhatsApp Broadcast Preview</span>
-                    <div className="rounded-lg p-3 bg-[#e5ddd5] dark:bg-zinc-800 border border-[#b4a996]/30 text-zinc-800 dark:text-zinc-100 flex flex-col gap-1 max-w-sm mx-auto shadow-sm">
-                      <div className="bg-emerald-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-t-md flex items-center justify-between">
-                        <span>Sweet Tooth Agent</span>
-                        <span>{new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                      </div>
-                      <div className="bg-white dark:bg-zinc-950 p-2.5 rounded-b-md rounded-tr-md text-xs relative shadow-xs leading-relaxed">
-                        <p className="whitespace-pre-wrap">{campaignMessage}</p>
-                        <span className="absolute bottom-1 right-2 text-[9px] text-muted-foreground">Delivered</span>
-                      </div>
-                    </div>
+                  <label className="mt-5 grid gap-2">
+                    <span className="text-sm font-semibold">
+                      Broadcast message
+                    </span>
+
+                    <textarea
+                      value={campaignMessage}
+                      onChange={(event) =>
+                        setCampaignMessage(
+                          event.target.value,
+                        )
+                      }
+                      rows={5}
+                      maxLength={900}
+                      className="w-full resize-none rounded-2xl border border-[#dfd1c4] bg-[#fffaf6] p-4 text-sm leading-6 outline-none transition focus:border-[#c24f7a]/60 focus:ring-4 focus:ring-[#c24f7a]/10"
+                    />
+                  </label>
+
+                  <div className="mt-2 flex justify-end text-[10px] text-[#746876]">
+                    {campaignMessage.length}/900
                   </div>
 
-                  {/* Test Send Input */}
-                  <div className="space-y-2 pt-2 border-t border-border/50">
-                    <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block">Send Test WhatsApp (Optional)</label>
-                    <div className="flex gap-2">
-                      <input 
-                        type="text"
+                  <section className="mt-5 rounded-2xl border border-[#dfd1c4] bg-[#f1e9e2] p-4">
+                    <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-[#9b8d9c]">
+                      WhatsApp preview
+                    </p>
+
+                    <div className="mt-3 rounded-2xl bg-[#dfe6dc] p-3">
+                      <div className="ml-auto max-w-[88%] rounded-2xl rounded-tr-sm bg-white px-4 py-3 shadow-sm">
+                        <p className="whitespace-pre-wrap text-xs leading-5 text-[#3f373f]">
+                          {campaignMessage ||
+                            "Your message preview will appear here."}
+                        </p>
+
+                        <p className="mt-2 text-right text-[8px] text-[#8b8089]">
+                          {new Date().toLocaleTimeString(
+                            [],
+                            {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            },
+                          )}{" "}
+                          ✓✓
+                        </p>
+                      </div>
+                    </div>
+                  </section>
+
+                  <section className="mt-5 rounded-2xl border border-[#dfd1c4] bg-[#fffaf6] p-4">
+                    <p className="text-sm font-semibold">
+                      Test message
+                    </p>
+
+                    <p className="mt-1 text-xs leading-5 text-[#746876]">
+                      Send the campaign to one phone
+                      number before broadcasting it.
+                    </p>
+
+                    <div className="mt-3 grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
+                      <input
+                        type="tel"
                         value={testPhone}
-                        onChange={(e) => setTestPhone(e.target.value)}
-                        placeholder="e.g. +92 300 1234567"
-                        className="flex-1 px-3 py-1.5 border border-border rounded-lg text-xs bg-background text-foreground"
+                        onChange={(event) =>
+                          setTestPhone(
+                            event.target.value,
+                          )
+                        }
+                        placeholder="+92 300 1234567"
+                        className={inputClass}
                       />
+
                       <button
                         type="button"
-                        onClick={() => void handleSendTest()}
-                        disabled={!campaignMessage.trim() || !testPhone.trim()}
-                        className="px-3 py-1.5 bg-secondary text-primary rounded-lg text-xs font-medium hover:bg-secondary/90 transition-colors cursor-pointer disabled:opacity-50"
+                        onClick={() =>
+                          void handleSendTest()
+                        }
+                        disabled={
+                          !campaignMessage.trim() ||
+                          !testPhone.trim()
+                        }
+                        className="min-h-11 rounded-xl border border-[#dcb8c8] bg-[#fff0f5] px-4 text-xs font-semibold text-[#632a73] disabled:opacity-40"
                       >
-                        Send Test
+                        Send test
                       </button>
                     </div>
-                    {broadcastError && (
-                      <p role="alert" className="text-xs text-destructive">{broadcastError}</p>
-                    )}
-                    {lastBroadcastSummary && !broadcastError && (
-                      <p className="text-xs text-muted-foreground">{lastBroadcastSummary}</p>
-                    )}
-                    <p className="text-[11px] text-muted-foreground">
-                      Requires a connected WhatsApp Business number in Agent Hub. Broadcasts use real CRM segment filters (loyal / inactive / occasional).
+                  </section>
+
+                  {broadcastError ? (
+                    <p
+                      role="alert"
+                      className="mt-4 rounded-xl bg-[#f8dddd] px-4 py-3 text-sm font-semibold text-[#a7313b]"
+                    >
+                      {broadcastError}
                     </p>
-                  </div>
+                  ) : null}
+
+                  {lastBroadcastSummary &&
+                  !broadcastError ? (
+                    <p
+                      role="status"
+                      className="mt-4 rounded-xl bg-[#e4f3e8] px-4 py-3 text-sm font-semibold text-[#168a55]"
+                    >
+                      {lastBroadcastSummary}
+                    </p>
+                  ) : null}
+
+                  <p className="mt-4 text-[10px] leading-5 text-[#746876]">
+                    A connected WhatsApp Business
+                    number is required in Agent Hub.
+                    Campaigns use real CRM customer
+                    segments.
+                  </p>
                 </div>
 
-                {/* Send button */}
-                <button
-                  onClick={handleSendCampaign}
-                  disabled={isSending || !campaignMessage.trim()}
-                  className="w-full bg-primary text-primary-foreground py-3 rounded-xl font-bold hover:bg-primary/90 disabled:opacity-50 flex items-center justify-center gap-2 transition-all cursor-pointer"
-                >
-                  <Send className="w-4 h-4" />
-                  {isSending ? "Dispatching broadcast..." : `Send Broadcast to ${selectedSegment.count} Customers`}
-                </button>
+                <div className="border-t border-[#dfd1c4] px-5 py-4 sm:px-6">
+                  <button
+                    type="button"
+                    onClick={
+                      handleSendCampaign
+                    }
+                    disabled={
+                      isSending ||
+                      !campaignMessage.trim()
+                    }
+                    className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#632a73] px-5 text-sm font-semibold text-white disabled:opacity-50"
+                  >
+                    <Send className="h-4 w-4" />
+
+                    {isSending
+                      ? "Sending campaign…"
+                      : `Send to ${selectedSegment.count} customers`}
+                  </button>
+                </div>
               </>
             )}
           </div>
         </div>
-      )}
+      ) : null}
     </DashboardLayout>
+  );
+}
+
+function PerformanceView({
+  analytics,
+  weeklyReport,
+  feedbackStats,
+  chartData,
+  sourceData,
+  period,
+}: {
+  analytics: any;
+  weeklyReport: any;
+  feedbackStats:
+    | {
+        deliveredCount: number;
+        feedbackReceived: number;
+        feedbackPending: number;
+        lovedIt: number;
+        okay: number;
+        hadIssue: number;
+        satisfactionRate: number | null;
+        happyRate: number | null;
+      }
+    | undefined;
+  chartData: Array<{
+    label: string;
+    orders: number;
+    revenue: number;
+  }>;
+  sourceData: Array<{
+    name: string;
+    value: number;
+    percentage: number;
+  }>;
+  period: Period;
+}) {
+  return (
+    <div className="mt-5 space-y-4">
+      {weeklyReport ? (
+        <section className="overflow-hidden rounded-2xl border border-[#dfd1c4] bg-white/45">
+          <div className="flex flex-col gap-3 border-b border-[#dfd1c4] px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#c24f7a]">
+                Seven-day report
+              </p>
+
+              <h2 className="mt-1 font-serif text-2xl font-semibold">
+                Weekly performance
+              </h2>
+            </div>
+
+            <TrendBadge
+              value={
+                weeklyReport.ordersTrendPercent
+              }
+            />
+          </div>
+
+          <div className="grid sm:grid-cols-2 xl:grid-cols-4">
+            <CompactStat
+              label="Weekly orders"
+              value={weeklyReport.ordersCount}
+              detail="Compared with the previous week"
+            />
+
+            <CompactStat
+              label="Repeat buyers"
+              value={
+                weeklyReport.repeatBuyersCount
+              }
+              detail="Active returning customers"
+            />
+
+            <CompactStat
+              label="Assistant response"
+              value={`${weeklyReport.avgResponseTimeSec}s`}
+              detail="Average response time"
+            />
+
+            <CompactStat
+              label="Payment issues"
+              value={
+                weeklyReport.failedPaymentReviewsCount
+              }
+              detail="Reviews requiring attention"
+              warning={
+                weeklyReport.failedPaymentReviewsCount >
+                0
+              }
+            />
+          </div>
+        </section>
+      ) : null}
+
+      {feedbackStats ? (
+        <section className="grid gap-4 rounded-2xl border border-[#dfd1c4] bg-white/45 p-4 lg:grid-cols-[minmax(0,1fr)_1.2fr]">
+          <div>
+            <Heart className="h-5 w-5 text-[#c24f7a]" />
+
+            <h2 className="mt-3 font-serif text-2xl font-semibold">
+              Service quality
+            </h2>
+
+            <p className="mt-2 max-w-md text-xs leading-5 text-[#746876]">
+              Feedback requested after orders are
+              marked as delivered.
+            </p>
+
+            <div className="mt-5 flex flex-wrap gap-2">
+              <FeedbackPill
+                label="Loved it"
+                value={feedbackStats.lovedIt}
+                tone="positive"
+              />
+
+              <FeedbackPill
+                label="Okay"
+                value={feedbackStats.okay}
+              />
+
+              <FeedbackPill
+                label="Pending"
+                value={
+                  feedbackStats.feedbackPending
+                }
+                tone="warning"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <MiniValue
+              label="Delivered"
+              value={feedbackStats.deliveredCount}
+            />
+
+            <MiniValue
+              label="Responses"
+              value={
+                feedbackStats.feedbackReceived
+              }
+            />
+
+            <MiniValue
+              label="Happy rate"
+              value={
+                feedbackStats.happyRate !== null
+                  ? `${feedbackStats.happyRate}%`
+                  : "—"
+              }
+              positive
+            />
+
+            <MiniValue
+              label="Issues"
+              value={feedbackStats.hadIssue}
+              warning={
+                feedbackStats.hadIssue > 0
+              }
+            />
+          </div>
+        </section>
+      ) : null}
+
+      <section className="grid gap-4 lg:grid-cols-2">
+        <ChartPanel
+          title="Revenue over time"
+          description={`Revenue recorded during the selected ${period} period.`}
+        >
+          {chartData.length > 0 ? (
+            <ResponsiveContainer
+              width="100%"
+              height={280}
+            >
+              <LineChart data={chartData}>
+                <CartesianGrid
+                  stroke="#eadfd5"
+                  strokeDasharray="3 3"
+                  vertical={false}
+                />
+
+                <XAxis
+                  dataKey="label"
+                  tick={{
+                    fontSize: 10,
+                    fill: "#746876",
+                  }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+
+                <YAxis
+                  tick={{
+                    fontSize: 10,
+                    fill: "#746876",
+                  }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+
+                <Tooltip
+                  formatter={(value: number) => [
+                    `PKR ${value.toLocaleString()}`,
+                    "Revenue",
+                  ]}
+                  contentStyle={{
+                    borderRadius: 12,
+                    borderColor: "#dfd1c4",
+                    background: "#fffaf6",
+                  }}
+                />
+
+                <Line
+                  type="monotone"
+                  dataKey="revenue"
+                  stroke="#632a73"
+                  strokeWidth={3}
+                  dot={false}
+                  activeDot={{
+                    r: 5,
+                    fill: "#c24f7a",
+                  }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          ) : (
+            <ChartEmpty />
+          )}
+        </ChartPanel>
+
+        <ChartPanel
+          title="Orders over time"
+          description="Daily order volume for the selected reporting period."
+        >
+          {chartData.length > 0 ? (
+            <ResponsiveContainer
+              width="100%"
+              height={280}
+            >
+              <BarChart data={chartData}>
+                <CartesianGrid
+                  stroke="#eadfd5"
+                  strokeDasharray="3 3"
+                  vertical={false}
+                />
+
+                <XAxis
+                  dataKey="label"
+                  tick={{
+                    fontSize: 10,
+                    fill: "#746876",
+                  }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+
+                <YAxis
+                  allowDecimals={false}
+                  tick={{
+                    fontSize: 10,
+                    fill: "#746876",
+                  }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+
+                <Tooltip
+                  contentStyle={{
+                    borderRadius: 12,
+                    borderColor: "#dfd1c4",
+                    background: "#fffaf6",
+                  }}
+                />
+
+                <Bar
+                  dataKey="orders"
+                  fill="#c24f7a"
+                  radius={[7, 7, 0, 0]}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <ChartEmpty />
+          )}
+        </ChartPanel>
+      </section>
+
+      <section className="grid gap-4 lg:grid-cols-2">
+        <ChartPanel
+          title="Order sources"
+          description="Where your customer orders originated."
+        >
+          {sourceData.length > 0 ? (
+            <ResponsiveContainer
+              width="100%"
+              height={290}
+            >
+              <PieChart>
+                <Pie
+                  data={sourceData}
+                  dataKey="value"
+                  nameKey="name"
+                  cx="50%"
+                  cy="45%"
+                  innerRadius={55}
+                  outerRadius={88}
+                  paddingAngle={3}
+                >
+                  {sourceData.map(
+                    (_, index) => (
+                      <Cell
+                        key={index}
+                        fill={
+                          sourceColors[
+                            index %
+                              sourceColors.length
+                          ]
+                        }
+                      />
+                    ),
+                  )}
+                </Pie>
+
+                <Tooltip
+                  contentStyle={{
+                    borderRadius: 12,
+                    borderColor: "#dfd1c4",
+                    background: "#fffaf6",
+                  }}
+                />
+
+                <Legend
+                  wrapperStyle={{
+                    fontSize: 11,
+                  }}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          ) : (
+            <ChartEmpty />
+          )}
+        </ChartPanel>
+
+        <section className="rounded-2xl border border-[#dfd1c4] bg-white/45 p-4 sm:p-5">
+          <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#c24f7a]">
+            Product performance
+          </p>
+
+          <h2 className="mt-1 font-serif text-2xl font-semibold">
+            Top products
+          </h2>
+
+          <div className="mt-5 divide-y divide-[#eadfd5]">
+            {analytics?.topProducts?.length ? (
+              analytics.topProducts.map(
+                (
+                  product: {
+                    name: string;
+                    orders: number;
+                    revenue: number;
+                  },
+                  index: number,
+                ) => (
+                  <div
+                    key={`${product.name}-${index}`}
+                    className="grid grid-cols-[32px_minmax(0,1fr)_auto] items-center gap-3 py-3 first:pt-0"
+                  >
+                    <span className="font-mono text-xs font-semibold text-[#c24f7a]">
+                      {(index + 1)
+                        .toString()
+                        .padStart(2, "0")}
+                    </span>
+
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold">
+                        {product.name}
+                      </p>
+
+                      <p className="mt-1 text-[10px] text-[#746876]">
+                        {product.orders} orders
+                      </p>
+                    </div>
+
+                    <p className="font-mono text-xs font-semibold text-[#632a73]">
+                      PKR{" "}
+                      {product.revenue.toLocaleString()}
+                    </p>
+                  </div>
+                ),
+              )
+            ) : (
+              <EmptyMessage text="Product performance appears after orders are recorded." />
+            )}
+          </div>
+        </section>
+      </section>
+
+      <section className="grid gap-4 lg:grid-cols-3">
+        <InsightCard
+          eyebrow="Planning estimate"
+          title="Next seven days"
+          icon={TrendingUp}
+        >
+          <p className="font-mono text-2xl font-semibold text-[#632a73]">
+            PKR{" "}
+            {(
+              analytics?.salesForecast
+                ?.next7DaysRevenue ?? 0
+            ).toLocaleString()}
+          </p>
+
+          <p className="mt-2 text-xs leading-5 text-[#746876]">
+            Approximately{" "}
+            {analytics?.salesForecast
+              ?.next7DaysOrders ?? 0}{" "}
+            orders ·{" "}
+            {analytics?.salesForecast
+              ?.confidence ?? "low"}{" "}
+            confidence.
+          </p>
+
+          <p className="mt-3 text-[10px] leading-5 text-[#9b8d9c]">
+            Planning guidance based on{" "}
+            {analytics?.salesForecast?.method ??
+              "historical activity"}.
+          </p>
+        </InsightCard>
+
+        <InsightCard
+          eyebrow="Customer spend"
+          title="Price bands"
+          icon={CircleDollarSign}
+        >
+          <div className="space-y-3">
+            {analytics?.priceBands?.length ? (
+              analytics.priceBands.map(
+                (band: {
+                  name: string;
+                  orders: number;
+                  revenue: number;
+                }) => (
+                  <InsightRow
+                    key={band.name}
+                    label={band.name}
+                    detail={`${band.orders} orders`}
+                    value={`PKR ${band.revenue.toLocaleString()}`}
+                  />
+                ),
+              )
+            ) : (
+              <EmptyMessage text="Customer price bands appear after orders are recorded." />
+            )}
+          </div>
+        </InsightCard>
+
+        <InsightCard
+          eyebrow="Product movement"
+          title="Momentum"
+          icon={Sparkles}
+        >
+          <div className="space-y-3">
+            {analytics?.productTrends?.length ? (
+              analytics.productTrends.map(
+                (trend: {
+                  name: string;
+                  currentOrders: number;
+                  previousOrders: number;
+                  changePercent: number;
+                }) => (
+                  <InsightRow
+                    key={trend.name}
+                    label={trend.name}
+                    detail={`${trend.currentOrders} vs ${trend.previousOrders} prior`}
+                    value={`${
+                      trend.changePercent >= 0
+                        ? "+"
+                        : ""
+                    }${trend.changePercent}%`}
+                    positive={
+                      trend.changePercent >= 0
+                    }
+                    warning={
+                      trend.changePercent < 0
+                    }
+                  />
+                ),
+              )
+            ) : (
+              <EmptyMessage text="Product momentum appears after enough sales history is collected." />
+            )}
+          </div>
+        </InsightCard>
+      </section>
+
+      <section className="grid gap-4 lg:grid-cols-[0.7fr_1fr_1fr]">
+        <InsightCard
+          eyebrow="Order health"
+          title="Cancellations"
+          icon={AlertTriangle}
+        >
+          <p className="font-mono text-3xl font-semibold text-[#a7313b]">
+            {analytics?.cancellationAnalytics
+              ?.total ?? 0}
+          </p>
+
+          <p className="mt-2 text-xs leading-5 text-[#746876]">
+            {analytics?.cancellationAnalytics
+              ?.rate ?? 0}
+            % of recorded orders.
+          </p>
+        </InsightCard>
+
+        <InsightCard
+          eyebrow="Cancellation reasons"
+          title="Why orders cancel"
+          icon={TrendingDown}
+        >
+          <div className="space-y-3">
+            {analytics?.cancellationAnalytics
+              ?.byReason?.length ? (
+              analytics.cancellationAnalytics.byReason
+                .slice(0, 4)
+                .map(
+                  (item: {
+                    name: string;
+                    count: number;
+                  }) => (
+                    <InsightRow
+                      key={item.name}
+                      label={item.name}
+                      value={item.count.toString()}
+                    />
+                  ),
+                )
+            ) : (
+              <EmptyMessage text="No cancellation reasons have been recorded." />
+            )}
+          </div>
+        </InsightCard>
+
+        <InsightCard
+          eyebrow="Affected products"
+          title="Product impact"
+          icon={PackageCheck}
+        >
+          <div className="space-y-3">
+            {analytics?.cancellationAnalytics
+              ?.byProduct?.length ? (
+              analytics.cancellationAnalytics.byProduct
+                .slice(0, 4)
+                .map(
+                  (item: {
+                    name: string;
+                    count: number;
+                  }) => (
+                    <InsightRow
+                      key={item.name}
+                      label={item.name}
+                      value={item.count.toString()}
+                    />
+                  ),
+                )
+            ) : (
+              <EmptyMessage text="No cancelled products have been recorded." />
+            )}
+          </div>
+        </InsightCard>
+      </section>
+
+      <section className="rounded-2xl border border-[#dfd1c4] bg-white/45 p-4 sm:p-5">
+        <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#c24f7a]">
+          Delivery demand
+        </p>
+
+        <h2 className="mt-1 font-serif text-2xl font-semibold">
+          Most requested areas
+        </h2>
+
+        <p className="mt-2 text-xs leading-5 text-[#746876]">
+          Based on customer checkout locations.
+        </p>
+
+        <div className="mt-5 flex flex-wrap gap-2">
+          {analytics?.topDeliveryAreas?.length ? (
+            analytics.topDeliveryAreas.map(
+              (item: {
+                area: string;
+                orders: number;
+              }) => (
+                <span
+                  key={item.area}
+                  className="rounded-xl border border-[#e5cfd9] bg-[#fff0f5] px-4 py-3 text-xs font-semibold text-[#632a73]"
+                >
+                  {item.area}
+                  <span className="ml-2 font-mono text-[10px] text-[#746876]">
+                    {item.orders} orders
+                  </span>
+                </span>
+              ),
+            )
+          ) : (
+            <EmptyMessage text="Delivery-area data appears after customers complete checkout." />
+          )}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function OutreachView({
+  segments,
+  repeatOrderRatio,
+  avgOrdersPerReturning,
+  avgCustomerLifetimeValue,
+  customerCount,
+  onOpenCampaign,
+}: {
+  segments: CampaignSegment[];
+  repeatOrderRatio: number;
+  avgOrdersPerReturning: number;
+  avgCustomerLifetimeValue: number;
+  customerCount: number;
+  onOpenCampaign: (
+    segment: CampaignSegment,
+  ) => void;
+}) {
+  return (
+    <div className="mt-5 grid gap-4 xl:grid-cols-[minmax(0,1fr)_280px]">
+      <main className="min-w-0 space-y-4">
+        <section className="grid gap-4 sm:grid-cols-3">
+          <RetentionCard
+            label="Repeat order ratio"
+            value={`${repeatOrderRatio}%`}
+            detail="Customers who ordered more than once"
+          />
+
+          <RetentionCard
+            label="Orders per returning buyer"
+            value={`${avgOrdersPerReturning}`}
+            detail="Average repeat-customer activity"
+          />
+
+          <RetentionCard
+            label="Average customer value"
+            value={`PKR ${avgCustomerLifetimeValue.toLocaleString()}`}
+            detail="Average lifetime spend"
+          />
+        </section>
+
+        <section className="overflow-hidden rounded-2xl border border-[#dfd1c4] bg-white/45">
+          <div className="border-b border-[#dfd1c4] px-4 py-4 sm:px-5">
+            <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#c24f7a]">
+              Smart campaigns
+            </p>
+
+            <h2 className="mt-1 font-serif text-2xl font-semibold">
+              Customer segments
+            </h2>
+
+            <p className="mt-2 max-w-2xl text-xs leading-5 text-[#746876]">
+              Choose a meaningful customer group,
+              review the message and test it before
+              broadcasting.
+            </p>
+          </div>
+
+          <div className="divide-y divide-[#eadfd5]">
+            {segments.map((segment) => (
+              <article
+                key={segment.id}
+                className="grid gap-4 p-4 transition hover:bg-[#fff8f3] sm:grid-cols-[44px_minmax(0,1fr)_auto] sm:items-center sm:p-5"
+              >
+                <span className="grid h-11 w-11 place-items-center rounded-2xl bg-[#f1dde5] text-[#c24f7a]">
+                  <Users className="h-5 w-5" />
+                </span>
+
+                <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h3 className="font-serif text-xl font-semibold">
+                      {segment.name}
+                    </h3>
+
+                    <span className="rounded-lg bg-[#f1e9e2] px-2.5 py-1 font-mono text-[9px] font-semibold text-[#632a73]">
+                      {segment.count} customers
+                    </span>
+                  </div>
+
+                  <p className="mt-2 text-xs leading-5 text-[#746876]">
+                    {segment.description}
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    onOpenCampaign(segment)
+                  }
+                  disabled={segment.count === 0}
+                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#632a73] px-4 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  <Megaphone className="h-4 w-4" />
+                  Create campaign
+                </button>
+              </article>
+            ))}
+          </div>
+        </section>
+      </main>
+
+      <aside className="space-y-4">
+        <section className="rounded-2xl border border-[#dfd1c4] bg-white/45 p-4">
+          <Users className="h-5 w-5 text-[#c24f7a]" />
+
+          <h2 className="mt-3 font-serif text-xl font-semibold">
+            Audience overview
+          </h2>
+
+          <p className="mt-2 text-xs leading-5 text-[#746876]">
+            Customer groups are created from actual
+            order and CRM activity.
+          </p>
+
+          <div className="mt-5 space-y-4">
+            <SideValue
+              label="Total customers"
+              value={customerCount}
+            />
+
+            {segments.map((segment) => (
+              <SideValue
+                key={segment.id}
+                label={segment.name}
+                value={segment.count}
+              />
+            ))}
+          </div>
+        </section>
+
+        <section className="rounded-2xl border border-[#e5cfd9] bg-[#fff0f5] p-4">
+          <Sparkles className="h-5 w-5 text-[#c24f7a]" />
+
+          <h2 className="mt-3 font-serif text-xl font-semibold">
+            Better outreach
+          </h2>
+
+          <p className="mt-2 text-xs leading-5 text-[#746876]">
+            Keep messages relevant, avoid excessive
+            broadcasts and test every campaign before
+            sending it to customers.
+          </p>
+        </section>
+
+        <section className="rounded-2xl border border-[#dfd1c4] bg-white/45 p-4">
+          <Megaphone className="h-5 w-5 text-[#c24f7a]" />
+
+          <h2 className="mt-3 font-serif text-xl font-semibold">
+            Delivery requirement
+          </h2>
+
+          <p className="mt-2 text-xs leading-5 text-[#746876]">
+            Real broadcasts require a connected
+            WhatsApp Business number in Agent Hub.
+          </p>
+        </section>
+      </aside>
+    </div>
+  );
+}
+
+function AnalyticsMetric({
+  icon: Icon,
+  label,
+  value,
+  valueClass = "",
+}: {
+  icon: ComponentType<{ className?: string }>;
+  label: string;
+  value: string;
+  valueClass?: string;
+}) {
+  return (
+    <div className="border-[#dfd1c4] px-4 py-5 sm:border-r sm:last:border-r-0 lg:px-5">
+      <div className="flex items-center gap-2 text-[#746876]">
+        <Icon className="h-5 w-5 text-[#c24f7a]" />
+
+        <span className="text-[11px] font-medium">
+          {label}
+        </span>
+      </div>
+
+      <p
+        className={`mt-2 whitespace-nowrap font-mono text-xl font-semibold tracking-[-0.03em] ${valueClass}`}
+      >
+        {value}
+      </p>
+    </div>
+  );
+}
+
+function TrendBadge({
+  value,
+}: {
+  value: number;
+}) {
+  const positive = value > 0;
+  const negative = value < 0;
+
+  return (
+    <span
+      className={`inline-flex w-fit items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold ${
+        positive
+          ? "bg-[#e4f3e8] text-[#168a55]"
+          : negative
+            ? "bg-[#f8dddd] text-[#a7313b]"
+            : "bg-[#f1e9e2] text-[#746876]"
+      }`}
+    >
+      {positive ? (
+        <TrendingUp className="h-3.5 w-3.5" />
+      ) : negative ? (
+        <TrendingDown className="h-3.5 w-3.5" />
+      ) : null}
+
+      {positive ? "+" : ""}
+      {value}% vs previous week
+    </span>
+  );
+}
+
+function CompactStat({
+  label,
+  value,
+  detail,
+  warning = false,
+}: {
+  label: string;
+  value: string | number;
+  detail: string;
+  warning?: boolean;
+}) {
+  return (
+    <div className="border-b border-[#dfd1c4] px-4 py-5 sm:border-b-0 sm:border-r sm:last:border-r-0">
+      <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-[#9b8d9c]">
+        {label}
+      </p>
+
+      <p
+        className={`mt-2 font-mono text-2xl font-semibold ${
+          warning
+            ? "text-[#b86a24]"
+            : "text-[#241629]"
+        }`}
+      >
+        {value}
+      </p>
+
+      <p className="mt-1 text-[10px] leading-5 text-[#746876]">
+        {detail}
+      </p>
+    </div>
+  );
+}
+
+function FeedbackPill({
+  label,
+  value,
+  tone = "neutral",
+}: {
+  label: string;
+  value: number;
+  tone?: "neutral" | "positive" | "warning";
+}) {
+  return (
+    <span
+      className={`rounded-lg px-3 py-2 text-xs font-semibold ${
+        tone === "positive"
+          ? "bg-[#e4f3e8] text-[#168a55]"
+          : tone === "warning"
+            ? "bg-[#fff0dd] text-[#b86a24]"
+            : "bg-[#f1e9e2] text-[#632a73]"
+      }`}
+    >
+      {label}: {value}
+    </span>
+  );
+}
+
+function MiniValue({
+  label,
+  value,
+  positive = false,
+  warning = false,
+}: {
+  label: string;
+  value: string | number;
+  positive?: boolean;
+  warning?: boolean;
+}) {
+  return (
+    <div className="rounded-2xl bg-[#fffaf6] p-3">
+      <p className="text-[9px] font-bold uppercase tracking-[0.08em] text-[#9b8d9c]">
+        {label}
+      </p>
+
+      <p
+        className={`mt-2 font-mono text-xl font-semibold ${
+          positive
+            ? "text-[#168a55]"
+            : warning
+              ? "text-[#b86a24]"
+              : "text-[#241629]"
+        }`}
+      >
+        {value}
+      </p>
+    </div>
+  );
+}
+
+function ChartPanel({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="min-w-0 rounded-2xl border border-[#dfd1c4] bg-white/45 p-4 sm:p-5">
+      <h2 className="font-serif text-2xl font-semibold">
+        {title}
+      </h2>
+
+      <p className="mt-1 text-xs leading-5 text-[#746876]">
+        {description}
+      </p>
+
+      <div className="mt-5 min-h-[280px]">
+        {children}
+      </div>
+    </section>
+  );
+}
+
+function ChartEmpty() {
+  return (
+    <div className="grid h-[280px] place-items-center text-center">
+      <div>
+        <span className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-[#f1dde5] text-[#c24f7a]">
+          <TrendingUp className="h-5 w-5" />
+        </span>
+
+        <p className="mt-3 text-sm font-semibold">
+          No chart data yet
+        </p>
+
+        <p className="mt-1 text-xs text-[#746876]">
+          Activity will appear after orders are
+          recorded.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function EmptyMessage({
+  text,
+}: {
+  text: string;
+}) {
+  return (
+    <p className="text-xs leading-5 text-[#746876]">
+      {text}
+    </p>
+  );
+}
+
+function InsightCard({
+  eyebrow,
+  title,
+  icon: Icon,
+  children,
+}: {
+  eyebrow: string;
+  title: string;
+  icon: ComponentType<{ className?: string }>;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="rounded-2xl border border-[#dfd1c4] bg-white/45 p-4 sm:p-5">
+      <div className="flex items-center gap-2">
+        <Icon className="h-4 w-4 text-[#c24f7a]" />
+
+        <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-[#c24f7a]">
+          {eyebrow}
+        </p>
+      </div>
+
+      <h2 className="mt-2 font-serif text-xl font-semibold">
+        {title}
+      </h2>
+
+      <div className="mt-4">{children}</div>
+    </section>
+  );
+}
+
+function InsightRow({
+  label,
+  detail,
+  value,
+  positive = false,
+  warning = false,
+}: {
+  label: string;
+  detail?: string;
+  value: string;
+  positive?: boolean;
+  warning?: boolean;
+}) {
+  return (
+    <div className="flex items-start justify-between gap-3">
+      <div className="min-w-0">
+        <p className="truncate text-xs font-semibold">
+          {label}
+        </p>
+
+        {detail ? (
+          <p className="mt-1 text-[10px] text-[#746876]">
+            {detail}
+          </p>
+        ) : null}
+      </div>
+
+      <span
+        className={`shrink-0 font-mono text-xs font-semibold ${
+          positive
+            ? "text-[#168a55]"
+            : warning
+              ? "text-[#a7313b]"
+              : "text-[#632a73]"
+        }`}
+      >
+        {value}
+      </span>
+    </div>
+  );
+}
+
+function RetentionCard({
+  label,
+  value,
+  detail,
+}: {
+  label: string;
+  value: string;
+  detail: string;
+}) {
+  return (
+    <section className="rounded-2xl border border-[#dfd1c4] bg-white/45 p-4">
+      <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-[#9b8d9c]">
+        {label}
+      </p>
+
+      <p className="mt-2 font-mono text-2xl font-semibold text-[#632a73]">
+        {value}
+      </p>
+
+      <p className="mt-2 text-[10px] leading-5 text-[#746876]">
+        {detail}
+      </p>
+    </section>
+  );
+}
+
+function SideValue({
+  label,
+  value,
+}: {
+  label: string;
+  value: number;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <span className="text-xs text-[#746876]">
+        {label}
+      </span>
+
+      <span className="rounded-lg bg-[#f1e9e2] px-2.5 py-1 font-mono text-[10px] font-semibold text-[#632a73]">
+        {value.toString().padStart(2, "0")}
+      </span>
+    </div>
+  );
+}
+
+function CampaignTypeButton({
+  active,
+  icon: Icon,
+  label,
+  onClick,
+}: {
+  active: boolean;
+  icon: ComponentType<{ className?: string }>;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`inline-flex min-h-10 items-center justify-center gap-1.5 rounded-lg px-2 text-[10px] font-semibold transition ${
+        active
+          ? "bg-white text-[#632a73] shadow-sm"
+          : "text-[#746876]"
+      }`}
+    >
+      <Icon className="h-3.5 w-3.5" />
+      {label}
+    </button>
   );
 }
