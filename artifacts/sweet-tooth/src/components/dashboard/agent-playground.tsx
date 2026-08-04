@@ -5,7 +5,7 @@ import { Bot, Send, Sparkles } from "lucide-react";
 const DEMO_PROMPTS = [
   "Do you have eggless options?",
   "What are your delivery areas?",
-  "I need a birthday cake for Saturday — what do you recommend?",
+  "I need a birthday cake for Saturday â€” what do you recommend?",
   "Any active discounts right now?",
 ];
 
@@ -19,7 +19,7 @@ export function AgentPlayground({ bakerId, bakeryName }: { bakerId: number; bake
       id: "welcome",
       role: "assistant",
       content: bakeryName
-        ? `Assalam-o-Alaikum! I'm the ${bakeryName} assistant. Ask me about the menu, delivery, or dietary options — exactly like a buyer would.`
+        ? `Assalam-o-Alaikum! I'm the ${bakeryName} assistant. Ask me about the menu, delivery, or dietary options â€” exactly like a buyer would.`
         : "Ask a test question to preview how your shop assistant replies to buyers.",
     },
   ]);
@@ -60,8 +60,8 @@ export function AgentPlayground({ bakerId, bakeryName }: { bakerId: number; bake
 
   return (
     <div className="rounded-xl border border-primary/20 bg-gradient-to-br from-primary/5 via-card to-card shadow-sm overflow-hidden">
-      <div className="flex items-center justify-between gap-3 border-b border-border/60 px-5 py-4">
-        <div className="flex items-center gap-2">
+      <div className="flex flex-col items-start gap-3 border-b border-border/60 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 items-center gap-2">
           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10">
             <Sparkles className="h-4 w-4 text-primary" />
           </div>
@@ -70,7 +70,7 @@ export function AgentPlayground({ bakerId, bakeryName }: { bakerId: number; bake
             <p className="text-xs text-muted-foreground">Test replies before buyers see them on your shop</p>
           </div>
         </div>
-        <span className="hidden sm:inline-flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-green-800">
+        <span className="inline-flex max-w-full shrink-0 items-center gap-1 rounded-full bg-green-100 px-2.5 py-1 text-[9px] font-bold uppercase tracking-wide text-green-800">
           <Bot className="h-3 w-3" />
           Same brain as web + WhatsApp
         </span>
@@ -105,7 +105,7 @@ export function AgentPlayground({ bakerId, bakeryName }: { bakerId: number; bake
           </div>
         ))}
         {sendMessage.isPending && (
-          <p className="text-xs text-muted-foreground animate-pulse">Agent is typing…</p>
+          <p className="text-xs text-muted-foreground animate-pulse">Agent is typingâ€¦</p>
         )}
       </div>
 
@@ -120,7 +120,7 @@ export function AgentPlayground({ bakerId, bakeryName }: { bakerId: number; bake
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Type a buyer question…"
+          placeholder="Type a buyer questionâ€¦"
           className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
         />
         <button
