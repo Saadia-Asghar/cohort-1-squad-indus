@@ -26,7 +26,7 @@ export function AuthShell({
 
         <Link href="/" className="relative z-10 inline-flex w-fit items-center rounded-2xl bg-white px-3 py-2 shadow-lg shadow-black/10">
           <img
-            src="/sweet-tooth-logo.jpg"
+            src="/sweet-tooth-logo.png"
             alt="Sweet Tooth — AI Assistant for Bakeries"
             className="h-14 w-auto max-w-[245px] object-contain"
           />
@@ -67,7 +67,7 @@ export function AuthShell({
           </Link>
           <Link href="/" className="flex items-center lg:hidden" aria-label="Sweet Tooth home">
             <img
-              src="/sweet-tooth-logo.jpg"
+              src="/sweet-tooth-logo.png"
               alt="Sweet Tooth — AI Assistant for Bakeries"
               className="h-10 w-auto max-w-[165px] object-contain"
             />

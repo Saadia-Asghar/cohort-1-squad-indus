@@ -76,7 +76,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           <div className="min-w-0">
             <div className="mb-4 flex items-center gap-3">
               <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white p-1.5 shadow-lg shadow-black/15">
-                <img src="/sweet-tooth-mark.jpg" alt="" className="h-full w-full object-contain" />
+                <img src="/sweet-tooth-mark.png" alt="" className="h-full w-full object-contain" />
               </span>
               <div className="min-w-0">
                 <p className="text-sm font-bold leading-none text-white">Sweet Tooth</p>
@@ -160,7 +160,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           <button type="button" aria-label="Open navigation" onClick={() => setMobileNavOpen(true)} className="rounded-xl border border-border bg-card p-2.5 text-primary shadow-sm"><Menu className="h-5 w-5" /></button>
           <div className="flex min-w-0 items-center gap-2.5">
             <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-border bg-white p-1 shadow-sm">
-              <img src="/sweet-tooth-mark.jpg" alt="" className="h-full w-full object-contain" />
+              <img src="/sweet-tooth-mark.png" alt="" className="h-full w-full object-contain" />
             </span>
             <div className="min-w-0">
               <p className="text-[9px] font-bold uppercase tracking-[0.15em] text-primary/60">Sweet Tooth</p>

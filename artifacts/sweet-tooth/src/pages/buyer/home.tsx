@@ -872,11 +872,9 @@ function HowItWorksSection() {
           initial={{ opacity: 0, y: 22 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-100px" }}
-          className="grid gap-5 lg:grid-cols-[0.58fr_1.42fr] lg:gap-10"
+          className="block"
         >
-          <p className="text-[9px] font-bold uppercase tracking-[0.23em] text-secondary">
-            How it works
-          </p>
+
           <h2 className="max-w-5xl font-serif text-[2.6rem] font-semibold leading-[0.98] tracking-[-0.038em] sm:text-5xl md:text-6xl lg:text-7xl">
             See the journey from scattered messages to one clear order.
           </h2>

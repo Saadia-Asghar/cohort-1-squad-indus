@@ -41,7 +41,7 @@ export function BuyerLayout({
             aria-label="Sweet Tooth home"
           >
             <img
-              src="/sweet-tooth-logo.jpg"
+              src="/sweet-tooth-logo.png"
               alt="Sweet Tooth — AI Assistant for Bakeries"
               className="h-11 w-auto max-w-[188px] object-contain sm:h-12 sm:max-w-[205px]"
             />
@@ -165,7 +165,7 @@ export function BuyerLayout({
             <div>
               <Link href="/" className="inline-flex items-center" aria-label="Sweet Tooth home">
                 <img
-                  src="/sweet-tooth-logo.jpg"
+                  src="/sweet-tooth-logo.png"
                   alt="Sweet Tooth — AI Assistant for Bakeries"
                   className="h-14 w-auto max-w-[245px] object-contain"
                 />
