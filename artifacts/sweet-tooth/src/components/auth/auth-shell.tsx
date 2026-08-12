@@ -1,4 +1,4 @@
-import { ArrowLeft, Bot, Check, MessageCircle } from "lucide-react";
+import { ArrowLeft, Check, MessageCircle } from "lucide-react";
 import { Link } from "wouter";
 
 const benefits = [
@@ -24,14 +24,12 @@ export function AuthShell({
         <div aria-hidden="true" className="absolute -left-28 top-1/3 h-80 w-80 rounded-full border border-white/10" />
         <div aria-hidden="true" className="absolute -right-20 bottom-10 h-72 w-72 rounded-full bg-[#f1a93b]/10 blur-3xl" />
 
-        <Link href="/" className="relative z-10 inline-flex w-fit items-center gap-3">
-          <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-white text-[#4e168f]">
-            <Bot className="h-5 w-5" />
-          </span>
-          <span>
-            <span className="block font-serif text-2xl font-bold leading-none">Sweet Tooth</span>
-            <span className="mt-1 block text-[10px] font-bold uppercase tracking-[0.2em] text-white/55">AI for home bakers</span>
-          </span>
+        <Link href="/" className="relative z-10 inline-flex w-fit items-center rounded-2xl bg-white px-3 py-2 shadow-lg shadow-black/10">
+          <img
+            src="/sweet-tooth-logo.jpg"
+            alt="Sweet Tooth — AI Assistant for Bakeries"
+            className="h-14 w-auto max-w-[245px] object-contain"
+          />
         </Link>
 
         <div className="relative z-10 my-auto max-w-xl py-16">
@@ -61,21 +59,22 @@ export function AuthShell({
         </div>
       </section>
 
-      <section className="flex min-h-screen flex-col px-4 py-5 sm:px-8 sm:py-8 lg:px-12 xl:px-20">
+      <section className="flex min-h-screen flex-col px-4 py-4 sm:px-8 sm:py-7 lg:px-12 xl:px-18">
         <header className="mx-auto flex w-full max-w-xl items-center justify-between">
           <Link href="/" className="inline-flex min-h-11 items-center gap-2 text-sm font-bold text-muted-foreground transition-colors hover:text-primary">
             <ArrowLeft className="h-4 w-4" />
             Back to home
           </Link>
-          <Link href="/" className="flex items-center gap-2 lg:hidden">
-            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-white">
-              <Bot className="h-4 w-4" />
-            </span>
-            <span className="font-serif text-xl font-bold text-primary">Sweet Tooth</span>
+          <Link href="/" className="flex items-center lg:hidden" aria-label="Sweet Tooth home">
+            <img
+              src="/sweet-tooth-logo.jpg"
+              alt="Sweet Tooth — AI Assistant for Bakeries"
+              className="h-10 w-auto max-w-[165px] object-contain"
+            />
           </Link>
         </header>
 
-        <div className="mx-auto flex w-full max-w-xl flex-1 items-center py-8 sm:py-12">
+        <div className="mx-auto flex w-full max-w-xl flex-1 items-center py-6 sm:py-10">
           <div className="w-full">
             {step && <p className="mb-4 text-xs font-bold uppercase tracking-[0.18em] text-primary/65">{step}</p>}
             <h1 className="font-serif text-4xl font-bold leading-tight tracking-[-0.025em] text-[#241532] sm:text-5xl">{title}</h1>

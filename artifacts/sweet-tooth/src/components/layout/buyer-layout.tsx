@@ -2,7 +2,7 @@ import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Link } from "wouter";
 import {
-  Bot,
+
   ChevronRight,
   Instagram,
   Menu,
@@ -33,24 +33,18 @@ export function BuyerLayout({
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <header className="sticky top-0 z-50 border-b border-border bg-background/90 backdrop-blur-xl">
-        <nav className="mx-auto flex h-[72px] max-w-6xl items-center justify-between px-4">
+        <nav className="mx-auto flex h-[68px] max-w-[1220px] items-center justify-between px-4 sm:px-6 lg:px-8">
           <Link
             href="/"
             onClick={closeMobileMenu}
-            className="flex items-center gap-3"
+            className="flex min-w-0 items-center"
+            aria-label="Sweet Tooth home"
           >
-            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-white shadow-lg shadow-primary/20">
-              <Bot className="h-5 w-5" />
-            </span>
-
-            <div>
-              <span className="block font-serif text-xl font-bold leading-none text-primary sm:text-2xl">
-                Sweet Tooth
-              </span>
-              <span className="mt-1 hidden text-[9px] font-bold uppercase tracking-[0.18em] text-muted-foreground sm:block">
-                AI for home bakers
-              </span>
-            </div>
+            <img
+              src="/sweet-tooth-logo.jpg"
+              alt="Sweet Tooth — AI Assistant for Bakeries"
+              className="h-11 w-auto max-w-[188px] object-contain sm:h-12 sm:max-w-[205px]"
+            />
           </Link>
 
           <div className="hidden items-center gap-7 lg:flex">
@@ -166,17 +160,15 @@ export function BuyerLayout({
       <main className="flex-1">{children}</main>
 
       <footer className="border-t border-border bg-white">
-        <div className="mx-auto max-w-6xl px-4 py-14 md:py-16">
-          <div className="grid gap-12 md:grid-cols-[1.4fr_0.8fr_0.8fr_0.8fr]">
+        <div className="mx-auto max-w-[1220px] px-4 py-12 sm:px-6 md:py-14 lg:px-8">
+          <div className="grid gap-9 md:grid-cols-[1.4fr_0.8fr_0.8fr_0.8fr] lg:gap-11">
             <div>
-              <Link href="/" className="flex items-center gap-3">
-                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-white">
-                  <Bot className="h-5 w-5" />
-                </span>
-
-                <span className="font-serif text-2xl font-bold text-primary">
-                  Sweet Tooth
-                </span>
+              <Link href="/" className="inline-flex items-center" aria-label="Sweet Tooth home">
+                <img
+                  src="/sweet-tooth-logo.jpg"
+                  alt="Sweet Tooth — AI Assistant for Bakeries"
+                  className="h-14 w-auto max-w-[245px] object-contain"
+                />
               </Link>
 
               <p className="mt-5 max-w-sm text-sm leading-7 text-muted-foreground">

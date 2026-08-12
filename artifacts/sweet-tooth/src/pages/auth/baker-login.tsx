@@ -67,11 +67,17 @@ export default function BakerLogin({ initialTab = "login" }: { initialTab?: "log
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const finishAuth = (token: string, bakerId: number, method: "password" | "google", role: "owner" | "staff" = "owner") => {
+  const finishAuth = (
+    token: string,
+    bakerId: number,
+    method: "password" | "google",
+    role: "owner" | "staff" = "owner",
+    destination = "/dashboard",
+  ) => {
     loginNatively(token, bakerId, role);
     identifyBakerForAnalytics(bakerId);
     captureProductEvent("baker_login_completed", { method });
-    setLocation("/dashboard");
+    setLocation(destination);
   };
 
   const continueWithGoogle = async (onboarding: boolean) => {
@@ -139,7 +145,7 @@ export default function BakerLogin({ initialTab = "login" }: { initialTab?: "log
       });
       identifyBakerForAnalytics(response.baker.id);
       captureProductEvent("baker_registration_completed");
-      finishAuth(response.token, response.baker.id, "password");
+      finishAuth(response.token, response.baker.id, "password", "owner", "/dashboard/guide?welcome=1");
     } catch (cause: unknown) {
       const message = cause instanceof Error ? cause.message.replace(/^HTTP \d+\s*[^:]*:\s*/, "") : "Could not create your bakery account";
       setError(message || "Could not create your bakery account");

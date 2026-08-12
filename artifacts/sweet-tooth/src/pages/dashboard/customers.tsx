@@ -1,4 +1,4 @@
-import { format } from "date-fns";
+﻿import { format } from "date-fns";
 import { useMemo, useState } from "react";
 import {
   customFetch,
@@ -41,7 +41,8 @@ export default function DashboardCustomers() {
   const cancelledByCustomer = useMemo(() => {
     const counts = new Map<number, number>();
     for (const order of orders ?? []) {
-      if (order.status === "cancelled" && order.cancelledBy === "customer" && order.buyerId) {
+      const cancellationActor = (order as typeof order & { cancelledBy?: string | null }).cancelledBy;
+      if (order.status === "cancelled" && cancellationActor === "customer" && order.buyerId) {
         counts.set(order.buyerId, (counts.get(order.buyerId) ?? 0) + 1);
       }
     }
@@ -144,7 +145,7 @@ export default function DashboardCustomers() {
                       onClick={() => setFilter(id)}
                       className={`rounded-full px-3 py-1.5 text-xs font-bold ${filter === id ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:text-foreground"}`}
                     >
-                      {label} · {count}
+                      {label} Â· {count}
                     </button>
                   ))}
                 </div>
@@ -193,7 +194,7 @@ export default function DashboardCustomers() {
             <div className="mt-5 flex justify-end gap-3">
               <button type="button" onClick={() => setComposerOpen(false)} className="rounded-xl border border-border px-4 py-2.5 text-sm font-bold">Close</button>
               <button type="button" disabled={sending || message.trim().length < 5} onClick={sendOffer} className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground disabled:opacity-50">
-                {sending ? "Sending…" : <><Send className="h-4 w-4" /> Send personalized offer</>}
+                {sending ? "Sendingâ€¦" : <><Send className="h-4 w-4" /> Send personalized offer</>}
               </button>
             </div>
           </div>
@@ -229,7 +230,7 @@ function CustomerRow({ customer, selected, onToggle, cancellationCount }: {
           {customer.isAtRisk && <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-bold uppercase text-amber-700">At risk</span>}
           {cancellationCount > 0 && <span className="rounded-full bg-red-50 px-2 py-0.5 text-[10px] font-bold uppercase text-red-700">{cancellationCount} customer cancellation{cancellationCount > 1 ? "s" : ""}</span>}
         </div>
-        <p className="truncate text-sm text-muted-foreground">{customer.whatsappNumber}{customer.preferredArea ? ` · ${customer.preferredArea}` : ""}</p>
+        <p className="truncate text-sm text-muted-foreground">{customer.whatsappNumber}{customer.preferredArea ? ` Â· ${customer.preferredArea}` : ""}</p>
         {customer.lastOrderAt && <p className="mt-0.5 text-xs text-muted-foreground">Last order {format(new Date(customer.lastOrderAt), "MMM d, yyyy")}</p>}
       </div>
       <div className="shrink-0 text-right">

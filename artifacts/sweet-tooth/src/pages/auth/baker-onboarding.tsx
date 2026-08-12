@@ -38,7 +38,7 @@ export default function BakerOnboarding() {
         body: JSON.stringify({ ...form, idToken }),
       });
       managed.loginNatively(response.token, response.baker.id);
-      navigate("/dashboard");
+      navigate("/dashboard/guide?welcome=1");
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Could not create your bakery.");
     } finally {
@@ -47,7 +47,7 @@ export default function BakerOnboarding() {
   };
 
   return (
-    <AuthShell step="Final step" title="Tell us about your bakery" description="Your Google identity is verified. Add the business details used by your menu and customer assistant.">
+    <AuthShell step="Step 1 of 2" title="Tell us about your bakery" description="Start with the basics. After this, Sweet Tooth will guide you through the exact setup needed before you share your bakery with customers.">
       <form onSubmit={submit} className="space-y-5">
         <div className="grid gap-5 sm:grid-cols-2">
           <label className="text-sm font-bold text-[#382b43] sm:col-span-2">Bakery name<input required minLength={2} maxLength={120} value={form.businessName} onChange={update("businessName")} autoComplete="organization" className={inputClass} /></label>
@@ -56,7 +56,7 @@ export default function BakerOnboarding() {
           <label className="text-sm font-bold text-[#382b43] sm:col-span-2">WhatsApp number<input required type="tel" inputMode="tel" placeholder="+92 300 1234567" value={form.whatsappNumber} onChange={update("whatsappNumber")} autoComplete="tel" className={inputClass} /></label>
         </div>
         {error && <p role="alert" className="rounded-xl border border-destructive/20 bg-destructive/5 p-3 text-sm font-semibold text-destructive">{error}</p>}
-        <button disabled={loading} className="h-12 w-full rounded-xl bg-primary px-5 text-sm font-bold text-primary-foreground shadow-lg shadow-primary/15 transition hover:bg-primary/90 disabled:opacity-50">{loading ? "Creating bakery…" : "Continue to dashboard"}</button>
+        <button disabled={loading} className="h-12 w-full rounded-xl bg-primary px-5 text-sm font-bold text-primary-foreground shadow-lg shadow-primary/15 transition hover:bg-primary/90 disabled:opacity-50">{loading ? "Creating bakery…" : "Continue to setup guide"}</button>
       </form>
     </AuthShell>
   );

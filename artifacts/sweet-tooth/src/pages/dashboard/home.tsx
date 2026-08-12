@@ -138,7 +138,7 @@ export default function DashboardHome() {
 
   return (
     <DashboardLayout>
-      <div className="sweet-surface min-h-screen px-4 py-6 sm:px-8 sm:py-8 xl:px-12">
+      <div className="sweet-surface min-h-screen px-4 py-5 sm:px-6 sm:py-7 lg:px-8 xl:px-10">
         <div className="mx-auto max-w-[90rem]">
         <div className="mb-7 flex flex-col gap-5 border-b border-border/70 pb-7 sm:flex-row sm:items-end sm:justify-between">
           <div>

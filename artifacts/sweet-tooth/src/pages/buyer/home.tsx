@@ -153,7 +153,7 @@ function HeroSection() {
         }}
       />
 
-      <div className="relative mx-auto min-h-[calc(100svh-4rem)] max-w-[1600px] px-4 pb-10 pt-6 sm:px-7 sm:pb-12 sm:pt-8 md:px-10 lg:px-14 lg:pb-8 xl:px-20">
+      <div className="relative mx-auto max-w-[1480px] px-4 pb-8 pt-5 sm:px-6 sm:pb-10 sm:pt-6 md:px-8 lg:min-h-[720px] lg:px-10 lg:pb-8 xl:px-14">
         <motion.div
           initial={{ opacity: 0, y: -12 }}
           animate={{ opacity: 1, y: 0 }}
@@ -179,7 +179,7 @@ function HeroSection() {
           </div>
         </motion.div>
 
-        <div className="relative mt-6 grid items-center gap-2 sm:mt-8 sm:gap-6 lg:min-h-[calc(100svh-10rem)] lg:grid-cols-[minmax(0,1.08fr)_minmax(360px,0.92fr)] lg:gap-8 xl:grid-cols-[minmax(0,1.12fr)_minmax(420px,0.88fr)] xl:gap-12">
+        <div className="relative mt-5 grid items-center gap-3 sm:mt-7 sm:gap-5 lg:min-h-[620px] lg:grid-cols-[minmax(0,1.08fr)_minmax(360px,0.92fr)] lg:gap-8 xl:grid-cols-[minmax(0,1.12fr)_minmax(420px,0.88fr)] xl:gap-10">
           <div className="relative z-30 w-full max-w-[560px] pt-8 text-primary-foreground sm:pt-12 lg:max-w-[640px] lg:pb-0 lg:pr-0 lg:pt-0 xl:max-w-[680px]">
             <motion.div
               initial={{ opacity: 0, x: -24 }}
