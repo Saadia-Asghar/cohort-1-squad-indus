@@ -120,9 +120,11 @@ export function resolveConversationFlow(input: ChannelReadinessInput): ResolvedC
     instagram: instagramReady,
   };
 
-  let active: ConversationChannel = preferred;
-  let fallbackUsed = false;
-  if (!ready[preferred]) {
+  // Keep the public menu reliable even when Meta is disconnected or changes
+  // its API. Social agents remain optional secondary channels.
+  let active: ConversationChannel = webReady ? "web" : preferred;
+  let fallbackUsed = active !== preferred;
+  if (!ready[active]) {
     fallbackUsed = true;
     // Prefer another social channel the baker already runs, then web.
     const fallbackOrder: ConversationChannel[] =
@@ -134,20 +136,15 @@ export function resolveConversationFlow(input: ChannelReadinessInput): ResolvedC
     active = fallbackOrder.find((ch) => ready[ch]) ?? "web";
   }
 
-  const showWebChatEffective = webReady && (active === "web" || preferred === "web");
+  const showWebChatEffective = webReady;
   const showWhatsAppCtaEffective = whatsappReady && (active === "whatsapp" || Boolean(input.whatsappAgentEnabled));
   const showInstagramCtaEffective =
     instagramReady && (active === "instagram" || Boolean(input.instagramAgentEnabled));
 
-  const primaryCtaLabel =
-    active === "whatsapp"
-      ? "Order on WhatsApp"
-      : active === "instagram"
-        ? "Message on Instagram"
-        : "Chat with assistant";
+  const primaryCtaLabel = "Add to bag";
 
-  let statusNote = `Primary channel: ${preferred}. Buyers are routed to ${active}.`;
-  if (fallbackUsed) {
+  let statusNote = "The menu assistant and web checkout are always primary. Connected social agents are optional additional channels.";
+  if (fallbackUsed && !ready[preferred]) {
     if (preferred === "whatsapp" && !planAllowsWhatsApp) {
       statusNote = "WhatsApp agent needs Kitchen Standard or higher — buyers use the web assistant for now.";
     } else if (preferred === "instagram" && !planAllowsInstagram) {

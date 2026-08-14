@@ -373,9 +373,9 @@ export default function AgentHub() {
 
             <div className="p-5 rounded-xl border border-border bg-card shadow-sm space-y-3">
               <div>
-                <p className="font-semibold">How buyers talk to you (channel flow)</p>
+                <p className="font-semibold">Menu assistant and optional social channels</p>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Your shared menu stays a catalogue. Pick the main channel for questions and bookings. Turn WhatsApp and Instagram agents on separately (your package must allow them).
+                  Your shared menu assistant and checkout always work on the website. WhatsApp and Instagram can be connected later as additional channels; they are not required to receive web orders.
                 </p>
               </div>
               {(config as unknown as { conversationFlow?: { statusNote?: string } } | undefined)?.conversationFlow?.statusNote && (
@@ -390,12 +390,12 @@ export default function AgentHub() {
                   onChange={(e) => setLocalConfig(prev => ({ ...prev, preferredCustomerChannel: e.target.value as "web" | "whatsapp" | "instagram" }))}
                   className="mt-1 w-full px-3 py-2 border border-border rounded-lg bg-background text-sm"
                 >
-                  <option value="web">Built-in web assistant (all packages)</option>
+                  <option value="web">Built-in menu assistant (recommended)</option>
                   <option
                     value="whatsapp"
                     disabled={(config as unknown as { channelEntitlements?: { whatsapp?: boolean } } | undefined)?.channelEntitlements?.whatsapp === false}
                   >
-                    WhatsApp agent {(config as unknown as { channelEntitlements?: { whatsapp?: boolean } } | undefined)?.channelEntitlements?.whatsapp === false ? "(needs Kitchen Standard+)" : "(recommended)"}
+                    WhatsApp agent {(config as unknown as { channelEntitlements?: { whatsapp?: boolean } } | undefined)?.channelEntitlements?.whatsapp === false ? "(needs Kitchen Standard+)" : "(optional)"}
                   </option>
                   <option
                     value="instagram"
@@ -406,8 +406,8 @@ export default function AgentHub() {
                 </select>
               </label>
               <ul className="text-xs text-muted-foreground space-y-1 list-disc pl-4">
-                <li>Turn on WhatsApp / Instagram agents in their tabs — both can run at once.</li>
-                <li>If your primary channel is not ready, the menu falls back to the next ready channel.</li>
+                <li>The menu assistant remains available even when Meta is disconnected.</li>
+                <li>Turn on WhatsApp / Instagram agents in their tabs only when those connections are ready.</li>
                 <li>Launch Free = web only · Kitchen Standard = web + WhatsApp · Kitchen Pro / Bakery Team = web + WhatsApp + Instagram.</li>
               </ul>
             </div>

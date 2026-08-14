@@ -247,7 +247,7 @@ export async function generateAgentReply(
 
   if (agentConf.blockedTopics?.some((t) => lowerMsg.includes(t.toLowerCase()))) {
     return {
-      reply: `I'm sorry, I can't help with that. Please contact ${baker.businessName} directly on WhatsApp for more information.`,
+      reply: `I'm sorry, I can't help with that. I've kept this conversation for ${baker.businessName} to review. Please use the bakery's published contact details if you need a personal reply.`,
       action: null,
       cartItemId: null,
       escalated: false,
@@ -279,7 +279,7 @@ export async function generateAgentReply(
   });
   if (hitsEscalate) {
     return {
-      reply: `I'm sorry to hear you're having an issue. I've flagged this for ${baker.businessName} and they'll be in touch shortly. You can also reach them directly on WhatsApp.`,
+      reply: `I'm sorry to hear you're having an issue. I've flagged this in ${baker.businessName}'s dashboard so the baker can follow up.`,
       action: "escalate",
       cartItemId: null,
       escalated: true,
@@ -439,7 +439,7 @@ export async function generateAgentReply(
     return {
       reply: areas
         ? `${baker.businessName} delivers to: ${areas}.${zonePricing || (deliveryPricing ? ` Delivery charges: ${deliveryPricing}.` : "")}${personalNote} Pickup is also available. Which area are you in?`
-        : `Please contact ${baker.businessName} directly on WhatsApp to confirm delivery to your area.`,
+        : `${baker.businessName} has not published delivery areas yet. I cannot confirm delivery or invent a fee; please use the bakery's published contact details to ask the baker.`,
       action: null,
       cartItemId: null,
       escalated: false,

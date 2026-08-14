@@ -90,7 +90,7 @@ export default function DashboardHome() {
   });
 
   const setupSteps = [
-    { label: "Add your WhatsApp number and delivery areas", complete: Boolean(baker?.whatsappNumber && baker?.deliveryAreas?.length), href: "/dashboard/settings" },
+    { label: "Add your delivery areas and contact details", complete: Boolean(baker?.whatsappNumber && baker?.deliveryAreas?.length), href: "/dashboard/settings" },
     { label: "Publish your first menu item", complete: Boolean(products?.length), href: "/dashboard/catalog" },
     { label: "Set your assistant greeting and rules", complete: Boolean(agentConfig?.agentActive), href: "/dashboard/agent-hub" },
     { label: "Share your menu link or QR code", complete: Boolean(products?.length && agentConfig?.agentActive), href: "/dashboard/agent-hub" },

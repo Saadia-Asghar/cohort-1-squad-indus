@@ -129,21 +129,6 @@ export default function BakerProfile() {
   const showWhatsAppCta = flow.showWhatsAppCta && Boolean(whatsappChatUrl);
   const showInstagramCta = flow.showInstagramCta && Boolean(instagramUrl);
 
-  const orderProduct = (productName: string) => {
-    if (flow.active === "whatsapp" && whatsappChatUrl) {
-      const url = new URL(whatsappChatUrl);
-      url.searchParams.set("text", buildWhatsAppOrderText(productName, baker?.businessName));
-      window.open(url.toString(), "_blank", "noopener,noreferrer");
-      return;
-    }
-    if (flow.active === "instagram" && instagramUrl) {
-      window.open(instagramUrl, "_blank", "noopener,noreferrer");
-      toast({ title: "Instagram opened", description: `Message the bakery to order ${productName}.` });
-      return;
-    }
-    askAboutProduct(productName);
-  };
-
   const openWhatsAppGeneral = () => {
     if (!whatsappChatUrl) return;
     window.open(whatsappChatUrl, "_blank", "noopener,noreferrer");
@@ -340,11 +325,7 @@ export default function BakerProfile() {
             <div className="mb-8">
               <h2 className="text-3xl font-bold font-serif">Menu</h2>
               <p className="mt-2 text-sm text-muted-foreground">
-                {flow.active === "whatsapp"
-                  ? "Browse the menu here, then continue booking on WhatsApp — no need to reopen the website."
-                  : flow.active === "instagram"
-                    ? "Browse the menu here, then message the bakery on Instagram to book."
-                    : "Ask the built-in assistant about items, or add to bag. WhatsApp/Instagram appear when the baker has those agents on."}
+                Add items to your bag and check out here. Ask the menu assistant about prices, ingredients, availability, delivery, or bakery policies.
               </p>
             </div>
             
@@ -466,7 +447,7 @@ export default function BakerProfile() {
                                 </button>
                               )}
                               <button
-                                onClick={() => orderProduct(product.name)}
+                                onClick={() => addProductToBag(product)}
                                 disabled={!product.isAvailable}
                                 className="bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground px-4 py-1.5 rounded-md text-sm font-bold transition-colors disabled:opacity-50"
                               >
