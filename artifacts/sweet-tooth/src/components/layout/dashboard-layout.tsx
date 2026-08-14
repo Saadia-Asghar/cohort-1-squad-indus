@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useGetBaker } from "@workspace/api-client-react";
 import { useBuyerSession } from "@/hooks/use-session";
 import { NotificationBell } from "@/components/notification-bell";
@@ -8,8 +8,15 @@ import { useManagedBaker } from "@/lib/managed-auth";
 import { useAppAuth } from "@/lib/app-auth";
 import { captureProductEvent, resetProductAnalytics } from "@/lib/product-analytics";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   LayoutDashboard, ShoppingBag, Grid, DollarSign, Menu, X,
-  BarChart3, Users, Calendar, Settings, LogOut, Bot, Globe, BookOpen, NotebookText, Sparkles,
+  BarChart3, Users, Calendar, Settings, LogOut, Bot, Globe, BookOpen, NotebookText, Sparkles, Keyboard,
 } from "lucide-react";
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -17,6 +24,10 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [browserUrl, setBrowserUrl] = useState<string | null>(null);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [shortcutGuideOpen, setShortcutGuideOpen] = useState(false);
+  const [shortcutStatus, setShortcutStatus] = useState("");
+  const shortcutPendingRef = useRef(false);
+  const shortcutTimerRef = useRef<number | null>(null);
   const { logoutNatively } = useManagedBaker();
   const { signOut } = useAppAuth();
   const { bakerId } = useBuyerSession();
@@ -30,19 +41,74 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
   useEffect(() => setMobileNavOpen(false), [location]);
 
-  const navItems = [
-    { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
-    { href: "/dashboard/orders", label: "Orders", icon: ShoppingBag },
-    { href: "/dashboard/catalog", label: "Catalog", icon: Grid },
-    ...(role === "owner" ? [{ href: "/dashboard/payments", label: "Payments", icon: DollarSign }] : []),
-    { href: "/dashboard/analytics", label: "Analytics", icon: BarChart3 },
-    { href: "/dashboard/customers", label: "Customers", icon: Users },
-    { href: "/dashboard/khata", label: "Khata", icon: NotebookText },
-    ...(role === "owner" ? [{ href: "/dashboard/agent-hub", label: "Agent Hub", icon: Bot }] : []),
-    { href: "/dashboard/guide", label: "Baker Guide", icon: BookOpen },
-    { href: "/dashboard/calendar", label: "Calendar", icon: Calendar },
-    ...(role === "owner" ? [{ href: "/dashboard/settings", label: "Settings", icon: Settings }] : []),
-  ];
+  const navItems = useMemo(() => [
+    { href: "/dashboard", label: "Overview", icon: LayoutDashboard, shortcut: "h" },
+    { href: "/dashboard/orders", label: "Orders", icon: ShoppingBag, shortcut: "o" },
+    { href: "/dashboard/catalog", label: "Catalog", icon: Grid, shortcut: "c" },
+    ...(role === "owner" ? [{ href: "/dashboard/payments", label: "Payments", icon: DollarSign, shortcut: "p" }] : []),
+    { href: "/dashboard/analytics", label: "Analytics", icon: BarChart3, shortcut: "a" },
+    { href: "/dashboard/customers", label: "Customers", icon: Users, shortcut: "u" },
+    { href: "/dashboard/khata", label: "Khata", icon: NotebookText, shortcut: "k" },
+    ...(role === "owner" ? [{ href: "/dashboard/agent-hub", label: "Agent Hub", icon: Bot, shortcut: "i" }] : []),
+    { href: "/dashboard/guide", label: "Baker Guide", icon: BookOpen, shortcut: "g" },
+    { href: "/dashboard/calendar", label: "Calendar", icon: Calendar, shortcut: "d" },
+    ...(role === "owner" ? [{ href: "/dashboard/settings", label: "Settings", icon: Settings, shortcut: "s" }] : []),
+  ], [role]);
+
+  useEffect(() => {
+    const clearPendingShortcut = () => {
+      shortcutPendingRef.current = false;
+      if (shortcutTimerRef.current !== null) window.clearTimeout(shortcutTimerRef.current);
+      shortcutTimerRef.current = null;
+    };
+
+    const handleShortcut = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (
+        target?.isContentEditable ||
+        target?.closest("input, textarea, select, [contenteditable='true']")
+      ) return;
+
+      if (event.key === "?" && !event.ctrlKey && !event.metaKey && !event.altKey) {
+        event.preventDefault();
+        clearPendingShortcut();
+        setShortcutGuideOpen(true);
+        return;
+      }
+
+      const key = event.key.toLowerCase();
+      if (shortcutPendingRef.current) {
+        const destination = navItems.find((item) => item.shortcut === key);
+        clearPendingShortcut();
+        if (destination) {
+          event.preventDefault();
+          navigate(destination.href);
+          setMobileNavOpen(false);
+          setShortcutStatus(`Opened ${destination.label}`);
+        } else if (key !== "escape") {
+          setShortcutStatus("Shortcut not recognized");
+        }
+        return;
+      }
+
+      if (key === "g" && !event.ctrlKey && !event.metaKey && !event.altKey) {
+        event.preventDefault();
+        shortcutPendingRef.current = true;
+        setShortcutStatus("Go to… press a destination key");
+        shortcutTimerRef.current = window.setTimeout(() => {
+          shortcutPendingRef.current = false;
+          shortcutTimerRef.current = null;
+          setShortcutStatus("");
+        }, 1800);
+      }
+    };
+
+    window.addEventListener("keydown", handleShortcut);
+    return () => {
+      window.removeEventListener("keydown", handleShortcut);
+      clearPendingShortcut();
+    };
+  }, [navigate, navItems]);
 
   const finishLogout = () => {
     resetProductAnalytics();
@@ -145,6 +211,15 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             In-App Storefront Browser
           </button>
           <button
+            type="button"
+            onClick={() => setShortcutGuideOpen(true)}
+            className="flex min-h-10 w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-xs font-semibold text-white/70 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+          >
+            <Keyboard className="h-4 w-4" aria-hidden="true" />
+            Keyboard shortcuts
+            <kbd className="ml-auto rounded border border-white/20 bg-white/10 px-1.5 py-0.5 font-mono text-[10px] text-white/70">?</kbd>
+          </button>
+          <button
               type="button"
               onClick={() => void handleNativeLogout()}
               disabled={isLoggingOut}
@@ -196,6 +271,49 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         isOpen={!!browserUrl}
         onClose={() => setBrowserUrl(null)}
       />
+
+      <Dialog open={shortcutGuideOpen} onOpenChange={setShortcutGuideOpen}>
+        <DialogContent className="max-w-md rounded-2xl border-border bg-card p-0 shadow-2xl">
+          <DialogHeader className="border-b border-border px-6 py-5 text-left">
+            <DialogTitle className="flex items-center gap-2 font-serif text-2xl text-primary">
+              <Keyboard className="h-5 w-5" aria-hidden="true" /> Keyboard shortcuts
+            </DialogTitle>
+            <DialogDescription>
+              Press <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-xs">G</kbd>, then the destination key. Shortcuts pause while you type in a form.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid max-h-[60vh] grid-cols-1 gap-1 overflow-y-auto px-4 py-4 sm:grid-cols-2">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              return (
+                <button
+                  key={item.href}
+                  type="button"
+                  onClick={() => {
+                    navigate(item.href);
+                    setShortcutGuideOpen(false);
+                  }}
+                  className="flex min-h-11 items-center gap-3 rounded-xl px-3 py-2 text-left text-sm hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                >
+                  <Icon className="h-4 w-4 text-primary" aria-hidden="true" />
+                  <span className="flex-1 font-medium">{item.label}</span>
+                  <span className="flex gap-1" aria-label={`Shortcut G then ${item.shortcut.toUpperCase()}`}>
+                    <kbd className="rounded border border-border bg-background px-1.5 py-0.5 font-mono text-[10px]">G</kbd>
+                    <kbd className="rounded border border-border bg-background px-1.5 py-0.5 font-mono text-[10px]">{item.shortcut.toUpperCase()}</kbd>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <div className="sr-only" aria-live="polite" aria-atomic="true">{shortcutStatus}</div>
+      {shortcutPendingRef.current && shortcutStatus && (
+        <div className="fixed bottom-5 left-1/2 z-[60] -translate-x-1/2 rounded-full bg-[#2f1837] px-4 py-2 text-sm font-semibold text-white shadow-xl" aria-hidden="true">
+          {shortcutStatus}
+        </div>
+      )}
     </div>
   );
 }
