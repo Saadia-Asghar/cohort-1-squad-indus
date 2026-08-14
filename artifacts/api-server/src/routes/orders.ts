@@ -61,17 +61,26 @@ const CustomQuoteRequestBody = z.object({
   buyerName: z.string().trim().min(2).max(120),
   buyerWhatsapp: z.string().trim().min(10).max(24),
   buyerArea: z.string().trim().max(120).optional(),
+  buyerAddress: z.string().trim().max(500).optional(),
   deliveryDate: z.string().date().optional(),
   servings: z.number().int().min(1).max(500),
   cakeType: z.string().trim().min(2).max(120),
   flavour: z.string().trim().max(120).optional(),
   occasion: z.string().trim().max(120).optional(),
+  allergies: z.string().trim().max(300).optional(),
+  inspirationImageUrl: z.string().url().max(1000).optional(),
   specialInstructions: z.string().trim().min(5).max(600),
 });
 
 const QuoteApprovalBody = z.object({
   totalPkr: z.number().int().min(100).max(10_000_000),
   deliveryDate: z.string().date().optional(),
+  expiresInDays: z.number().int().min(1).max(30).default(3),
+});
+
+const QuoteResponseBody = z.object({
+  buyerWhatsapp: z.string().trim().min(10).max(24),
+  decision: z.enum(["accept", "reject"]),
 });
 
 function formatOrder(o: typeof ordersTable.$inferSelect) {
@@ -121,6 +130,8 @@ async function getScheduleBlockReason(
       eq(ordersTable.bakerId, baker.id),
       eq(ordersTable.deliveryDate, deliveryDate),
       ne(ordersTable.status, "cancelled"),
+      ne(ordersTable.status, "quoted"),
+      ne(ordersTable.status, "quote_rejected"),
       gt(ordersTable.totalPkr, 0),
     ));
   return booked.length >= maxOrders
@@ -185,6 +196,8 @@ router.get("/orders/lookup", rateLimit(20, 15 * 60 * 1000), async (req, res): Pr
       deliveryDate: ordersTable.deliveryDate,
       createdAt: ordersTable.createdAt,
       items: ordersTable.items,
+      depositRequiredPkr: ordersTable.depositRequiredPkr,
+      quoteExpiresAt: ordersTable.quoteExpiresAt,
     })
     .from(ordersTable)
     .where(inArray(ordersTable.buyerWhatsapp, variants))
@@ -499,9 +512,15 @@ router.post("/orders/custom-quote", rateLimit(10, 15 * 60 * 1000), async (req, r
     buyerId: customer.id,
     buyerName: data.buyerName,
     buyerWhatsapp: phone,
-    buyerAddress: data.buyerArea?.trim() || "To be confirmed",
+    buyerAddress: data.buyerAddress?.trim() || data.buyerArea?.trim() || "To be confirmed",
     buyerArea: data.buyerArea ?? null,
-    items: [{ productName: `Custom ${data.cakeType}`, quantity: 1, servings: data.servings }],
+    items: [{
+      productName: `Custom ${data.cakeType}`,
+      quantity: 1,
+      servings: data.servings,
+      allergies: data.allergies || null,
+      inspirationImageUrl: data.inspirationImageUrl || null,
+    }],
     totalPkr: 0,
     deliveryDate: data.deliveryDate ?? null,
     occasion: data.occasion ?? null,
@@ -568,11 +587,27 @@ router.patch("/orders/:orderId/quote", requireBakerAuth, async (req, res): Promi
     return;
   }
 
+  const depositRequiredPkr = baker.requireAdvance
+    ? Math.ceil(parsed.data.totalPkr * Math.max(0, Math.min(100, baker.advancePercentage ?? 50)) / 100)
+    : 0;
+  const quoteExpiresAt = new Date(Date.now() + parsed.data.expiresInDays * 24 * 60 * 60 * 1000);
   const [order] = await db.update(ordersTable).set({
     totalPkr: parsed.data.totalPkr,
     deliveryDate: parsed.data.deliveryDate ?? existing.deliveryDate,
-    status: "confirmed",
-  }).where(eq(ordersTable.id, orderId)).returning();
+    status: "quoted",
+    depositRequiredPkr,
+    quoteExpiresAt,
+    customerApprovedAt: null,
+    customerRejectedAt: null,
+  }).where(and(
+    eq(ordersTable.id, orderId),
+    eq(ordersTable.status, "new"),
+    eq(ordersTable.totalPkr, 0),
+  )).returning();
+  if (!order) {
+    res.status(409).json({ error: "This custom request has already been quoted." });
+    return;
+  }
 
   await logOrderActivity({
     orderId: order.id,
@@ -580,22 +615,86 @@ router.patch("/orders/:orderId/quote", requireBakerAuth, async (req, res): Promi
     actor: getActorFromRequest(req),
     action: "status_change",
     fromStatus: "new",
-    toStatus: "confirmed",
+    toStatus: "quoted",
     metadata: { totalPkr: order.totalPkr, prevTotalPkr: existing.totalPkr }
   });
 
-  if (existing.buyerId) {
+  await db.insert(notificationsTable).values({
+    bakerId,
+    type: "quote.sent",
+    title: `Quote ready for order #${order.id}`,
+    message: `PKR ${order.totalPkr.toLocaleString()} quoted to ${order.buyerName}; waiting for customer acceptance.`,
+    relatedId: order.id,
+    relatedType: "order",
+  });
+  void sendN8nEvent("custom_quote.sent", { bakerId, orderId: order.id, totalPkr: order.totalPkr, quoteExpiresAt });
+  res.json(formatOrderForRole(order, (req as AuthenticatedRequest).memberRole));
+});
+
+router.patch("/orders/:orderId/quote-response", rateLimit(20, 15 * 60 * 1000), async (req, res): Promise<void> => {
+  const orderId = Number.parseInt(String(req.params.orderId), 10);
+  const parsed = QuoteResponseBody.safeParse(req.body);
+  const phone = parsed.success ? normalizePakistanPhone(parsed.data.buyerWhatsapp) : null;
+  if (!Number.isInteger(orderId) || !parsed.success || !phone) {
+    res.status(400).json({ error: "Enter the WhatsApp number used for this quote." });
+    return;
+  }
+  const [existing] = await db.select().from(ordersTable).where(eq(ordersTable.id, orderId)).limit(1);
+  if (!existing || existing.source !== "custom_quote" || normalizePakistanPhone(existing.buyerWhatsapp) !== phone) {
+    res.status(404).json({ error: "Quote not found for that WhatsApp number." });
+    return;
+  }
+  if (existing.status !== "quoted") {
+    res.status(409).json({ error: "This quote is no longer waiting for a response." });
+    return;
+  }
+  if (existing.quoteExpiresAt && existing.quoteExpiresAt.getTime() < Date.now()) {
+    res.status(409).json({ error: "This quote has expired. Ask the bakery for an updated quote." });
+    return;
+  }
+
+  const accepted = parsed.data.decision === "accept";
+  const [order] = await db.update(ordersTable).set({
+    status: accepted ? "confirmed" : "quote_rejected",
+    customerApprovedAt: accepted ? new Date() : null,
+    customerRejectedAt: accepted ? null : new Date(),
+  }).where(and(eq(ordersTable.id, orderId), eq(ordersTable.status, "quoted"))).returning();
+  if (!order) {
+    res.status(409).json({ error: "This quote was already answered." });
+    return;
+  }
+
+  if (accepted && existing.buyerId) {
     await db.update(customersTable).set({
       totalOrders: sql`${customersTable.totalOrders} + 1`,
-      totalSpentPkr: sql`${customersTable.totalSpentPkr} + ${parsed.data.totalPkr}`,
+      totalSpentPkr: sql`${customersTable.totalSpentPkr} + ${existing.totalPkr}`,
       isRegular: sql`${customersTable.totalOrders} + 1 >= 2`,
       lastOrderAt: new Date(),
     }).where(eq(customersTable.id, existing.buyerId));
   }
-  await syncBakerStats(bakerId);
-  void maybeSendAdvanceReminder(order.id);
-  void sendN8nEvent("custom_quote.approved", { bakerId, orderId: order.id, totalPkr: order.totalPkr });
-  res.json(formatOrderForRole(order, (req as AuthenticatedRequest).memberRole));
+  await logOrderActivity({
+    orderId: order.id,
+    bakerId: order.bakerId,
+    actor: { actorType: "buyer" },
+    action: "status_change",
+    fromStatus: "quoted",
+    toStatus: order.status,
+    metadata: { quoteDecision: parsed.data.decision },
+  });
+  await db.insert(notificationsTable).values({
+    bakerId: order.bakerId,
+    type: accepted ? "quote.accepted" : "quote.rejected",
+    title: `Quote ${accepted ? "accepted" : "declined"} for order #${order.id}`,
+    message: `${order.buyerName} ${accepted ? "accepted the quote. Review the deposit before production." : "declined the quote."}`,
+    relatedId: order.id,
+    relatedType: "order",
+  });
+  if (accepted) {
+    await syncBakerStats(order.bakerId);
+    void maybeSendAdvanceReminder(order.id);
+  }
+  void sendN8nEvent(accepted ? "custom_quote.accepted" : "custom_quote.rejected", { bakerId: order.bakerId, orderId: order.id });
+  res.json({ id: order.id, status: order.status, paymentStatus: order.paymentStatus, depositRequiredPkr: order.depositRequiredPkr });
 });
 
 // POST /orders/:orderId/verify-payment
@@ -713,10 +812,18 @@ router.patch("/orders/:orderId/status", requireBakerAuth, async (req, res): Prom
   const isCancelled = parsed.data.status === "cancelled";
   const isDelivered = parsed.data.status === "delivered";
   const [existingOrder] = await db
-    .select({ status: ordersTable.status })
+    .select({ status: ordersTable.status, source: ordersTable.source, customerApprovedAt: ordersTable.customerApprovedAt })
     .from(ordersTable)
     .where(and(eq(ordersTable.id, params.data.orderId), eq(ordersTable.bakerId, (req as AuthenticatedRequest).bakerId!)))
     .limit(1);
+  if (!existingOrder) {
+    res.status(404).json({ error: "Order not found" });
+    return;
+  }
+  if (existingOrder.source === "custom_quote" && existingOrder.status === "quoted" && parsed.data.status !== "cancelled") {
+    res.status(409).json({ error: "The customer must accept this quote before production can begin." });
+    return;
+  }
 
   const [order] = await db.update(ordersTable)
     .set({

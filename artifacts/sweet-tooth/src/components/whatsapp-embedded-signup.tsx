@@ -34,6 +34,10 @@ type ConnectionStatus = {
     connected: boolean;
     phoneNumberId: string | null;
     wabaId: string | null;
+    lastEventAt: string | null;
+    lastEventStatus: string | null;
+    lastErrorCode: string | null;
+    failuresLast24Hours: number;
   };
 };
 
@@ -43,6 +47,7 @@ export function WhatsAppEmbeddedSignup({ onStatusChange }: { onStatusChange?: (c
   const [sdkReady, setSdkReady] = useState(false);
   const [connecting, setConnecting] = useState(false);
   const [connected, setConnected] = useState(false);
+  const [health, setHealth] = useState<ConnectionStatus["whatsapp"] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const codeRef = useRef<string | null>(null);
   const sessionRef = useRef<EmbeddedSignupSession | null>(null);
@@ -52,6 +57,7 @@ export function WhatsAppEmbeddedSignup({ onStatusChange }: { onStatusChange?: (c
       responseType: "json",
     });
     setConnected(status.whatsapp.connected);
+    setHealth(status.whatsapp);
     onStatusChange?.(status.whatsapp.connected);
   }, [onStatusChange]);
 
@@ -181,6 +187,13 @@ export function WhatsAppEmbeddedSignup({ onStatusChange }: { onStatusChange?: (c
     <div className="space-y-3">
       <div className={`rounded-lg border px-4 py-3 text-sm ${connected ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-border bg-muted/30 text-muted-foreground"}`}>
         {connected ? "WhatsApp Business is securely connected." : "No WhatsApp Business account connected yet."}
+        {connected && health && (
+          <div className="mt-2 grid gap-1 text-xs sm:grid-cols-2">
+            <span>Last message event: {health.lastEventAt ? new Date(health.lastEventAt).toLocaleString() : "No messages yet"}</span>
+            <span className={health.failuresLast24Hours ? "font-semibold text-red-700" : ""}>Failures (24h): {health.failuresLast24Hours}</span>
+            {health.lastErrorCode && <span className="sm:col-span-2 text-red-700">Last error: {health.lastErrorCode}</span>}
+          </div>
+        )}
       </div>
       <button
         type="button"

@@ -13,6 +13,8 @@ type LookupOrder = {
   deliveryDate: string | null;
   createdAt: string;
   items: Array<{ productName?: string; quantity?: number }>;
+  depositRequiredPkr?: number | null;
+  quoteExpiresAt?: string | null;
 };
 
 export default function BuyerOrders() {
@@ -20,6 +22,7 @@ export default function BuyerOrders() {
   const [orders, setOrders] = useState<LookupOrder[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [respondingTo, setRespondingTo] = useState<number | null>(null);
 
   const lookup = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -36,6 +39,26 @@ export default function BuyerOrders() {
       setError(cause instanceof Error ? cause.message : "Lookup failed.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const respondToQuote = async (orderId: number, decision: "accept" | "reject") => {
+    setRespondingTo(orderId);
+    setError(null);
+    try {
+      await customFetch(`/api/orders/${orderId}/quote-response`, {
+        method: "PATCH",
+        responseType: "json",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ buyerWhatsapp: phone.trim(), decision }),
+      });
+      setOrders((current) => current?.map((order) => order.id === orderId
+        ? { ...order, status: decision === "accept" ? "confirmed" : "quote_rejected" }
+        : order) ?? null);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Could not update the quote.");
+    } finally {
+      setRespondingTo(null);
     }
   };
 
@@ -79,6 +102,17 @@ export default function BuyerOrders() {
                   <p className="text-xs capitalize rounded-full bg-muted px-2 py-0.5">{order.status.replace(/_/g, " ")}</p>
                 </div>
                 <p className="mt-2 font-semibold">PKR {order.totalPkr.toLocaleString()}</p>
+                {order.status === "quoted" && (
+                  <div className="mt-3 rounded-lg border border-primary/20 bg-primary/5 p-3">
+                    <p className="text-sm font-semibold">Your custom quote is ready</p>
+                    {Boolean(order.depositRequiredPkr) && <p className="mt-1 text-xs text-muted-foreground">Deposit required after acceptance: PKR {order.depositRequiredPkr!.toLocaleString()}</p>}
+                    {order.quoteExpiresAt && <p className="mt-1 text-xs text-muted-foreground">Valid until {format(new Date(order.quoteExpiresAt), "MMM d, h:mm a")}</p>}
+                    <div className="mt-3 flex gap-2">
+                      <button type="button" disabled={respondingTo === order.id} onClick={() => void respondToQuote(order.id, "accept")} className="rounded-md bg-primary px-3 py-2 text-xs font-bold text-primary-foreground disabled:opacity-50">Accept quote</button>
+                      <button type="button" disabled={respondingTo === order.id} onClick={() => void respondToQuote(order.id, "reject")} className="rounded-md border border-border px-3 py-2 text-xs font-semibold disabled:opacity-50">Decline</button>
+                    </div>
+                  </div>
+                )}
                 <p className="text-xs text-muted-foreground mt-1">
                   Payment: {order.paymentStatus}
                   {order.deliveryDate ? ` · Delivery ${format(new Date(order.deliveryDate), "MMM d")}` : ""}

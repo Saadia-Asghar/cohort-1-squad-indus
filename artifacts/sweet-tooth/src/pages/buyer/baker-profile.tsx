@@ -35,7 +35,7 @@ export default function BakerProfile() {
   const { data: reviews } = useGetBakerReviews(bakerId, { query: { enabled: !!bakerId, queryKey: getGetBakerReviewsQueryKey(bakerId) } });
 
   const [selectedSizes, setSelectedSizes] = useState<Record<number, string>>({});
-  const [customQuote, setCustomQuote] = useState({ name: "", whatsapp: "", area: "", deliveryDate: "", servings: "12", cakeType: "", flavour: "", occasion: "", notes: "" });
+  const [customQuote, setCustomQuote] = useState({ name: "", whatsapp: "", area: "", address: "", deliveryDate: "", servings: "12", cakeType: "", flavour: "", occasion: "", allergies: "", inspirationImageUrl: "", notes: "" });
   const [customQuoteError, setCustomQuoteError] = useState<string | null>(null);
   const [savingCustomQuote, setSavingCustomQuote] = useState(false);
 
@@ -186,7 +186,7 @@ export default function BakerProfile() {
   };
 
   const openCustomQuote = () => {
-    setCustomQuote({ name: "", whatsapp: "", area: "", deliveryDate: "", servings: "12", cakeType: "", flavour: "", occasion: "", notes: "" });
+    setCustomQuote({ name: "", whatsapp: "", area: "", address: "", deliveryDate: "", servings: "12", cakeType: "", flavour: "", occasion: "", allergies: "", inspirationImageUrl: "", notes: "" });
     setCustomQuoteError(null);
     (document.getElementById("custom-quote-dialog") as HTMLDialogElement | null)?.showModal();
   };
@@ -205,9 +205,10 @@ export default function BakerProfile() {
         method: "POST", responseType: "json", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           bakerId, buyerName: customQuote.name, buyerWhatsapp: customQuote.whatsapp,
-          buyerArea: customQuote.area || undefined, deliveryDate: customQuote.deliveryDate || undefined,
+          buyerArea: customQuote.area || undefined, buyerAddress: customQuote.address || undefined, deliveryDate: customQuote.deliveryDate || undefined,
           servings, cakeType: customQuote.cakeType, flavour: customQuote.flavour || undefined,
-          occasion: customQuote.occasion || undefined, specialInstructions: customQuote.notes,
+          occasion: customQuote.occasion || undefined, allergies: customQuote.allergies || undefined,
+          inspirationImageUrl: customQuote.inspirationImageUrl || undefined, specialInstructions: customQuote.notes,
         }),
       });
       (document.getElementById("custom-quote-dialog") as HTMLDialogElement | null)?.close();
@@ -339,8 +340,11 @@ export default function BakerProfile() {
                   <label className="grid gap-1 text-sm font-medium">Servings<input required type="number" min="1" value={customQuote.servings} onChange={(event) => setCustomQuote((value) => ({ ...value, servings: event.target.value }))} className="rounded-md border border-border bg-background px-3 py-2" /></label>
                   <label className="grid gap-1 text-sm font-medium">Needed by<input type="date" value={customQuote.deliveryDate} onChange={(event) => setCustomQuote((value) => ({ ...value, deliveryDate: event.target.value }))} className="rounded-md border border-border bg-background px-3 py-2" /></label>
                   <label className="grid gap-1 text-sm font-medium">Area / sector<input value={customQuote.area} onChange={(event) => setCustomQuote((value) => ({ ...value, area: event.target.value }))} className="rounded-md border border-border bg-background px-3 py-2" /></label>
+                  <label className="grid gap-1 text-sm font-medium sm:col-span-2">Delivery address<input value={customQuote.address} onChange={(event) => setCustomQuote((value) => ({ ...value, address: event.target.value }))} placeholder="House, street and landmark (can be confirmed later)" className="rounded-md border border-border bg-background px-3 py-2" /></label>
                   <label className="grid gap-1 text-sm font-medium">Flavour<input value={customQuote.flavour} onChange={(event) => setCustomQuote((value) => ({ ...value, flavour: event.target.value }))} placeholder="Chocolate, vanilla…" className="rounded-md border border-border bg-background px-3 py-2" /></label>
                   <label className="grid gap-1 text-sm font-medium">Occasion<input value={customQuote.occasion} onChange={(event) => setCustomQuote((value) => ({ ...value, occasion: event.target.value }))} placeholder="Birthday" className="rounded-md border border-border bg-background px-3 py-2" /></label>
+                  <label className="grid gap-1 text-sm font-medium">Allergies / dietary needs<input value={customQuote.allergies} onChange={(event) => setCustomQuote((value) => ({ ...value, allergies: event.target.value }))} placeholder="Egg-free request, nut allergy" className="rounded-md border border-border bg-background px-3 py-2" /></label>
+                  <label className="grid gap-1 text-sm font-medium">Inspiration image URL<input type="url" value={customQuote.inspirationImageUrl} onChange={(event) => setCustomQuote((value) => ({ ...value, inspirationImageUrl: event.target.value }))} placeholder="https://example.com/cake.jpg" className="rounded-md border border-border bg-background px-3 py-2" /></label>
                   <label className="grid gap-1 text-sm font-medium sm:col-span-2">Design, colours, text on cake, and other details<textarea required minLength={5} rows={4} value={customQuote.notes} onChange={(event) => setCustomQuote((value) => ({ ...value, notes: event.target.value }))} className="rounded-md border border-border bg-background px-3 py-2" /></label>
                 </div>
                 {customQuoteError && <p role="alert" className="mt-4 text-sm text-destructive">{customQuoteError}</p>}

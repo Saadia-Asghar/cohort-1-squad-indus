@@ -93,7 +93,7 @@ export default function DashboardOrders() {
   };
 
   const approveCustomQuote = async (orderId: number) => {
-    const enteredAmount = window.prompt("Enter the agreed total in PKR. The customer will be marked as a confirmed order.");
+    const enteredAmount = window.prompt("Enter the quote total in PKR. The customer must accept it before the order is confirmed.");
     if (enteredAmount === null) return;
     const totalPkr = Number(enteredAmount);
     if (!Number.isInteger(totalPkr) || totalPkr < 100) {
@@ -212,6 +212,8 @@ export default function DashboardOrders() {
                     <td className="px-4 py-4">
                       <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
                         order.status === 'new' ? 'bg-blue-100 text-blue-800' :
+                        order.status === 'quoted' ? 'bg-cyan-100 text-cyan-800' :
+                        order.status === 'quote_rejected' ? 'bg-gray-100 text-gray-700' :
                         order.status === 'confirmed' ? 'bg-yellow-100 text-yellow-800' :
                         order.status === 'in_production' ? 'bg-purple-100 text-purple-800' :
                         order.status === 'out_for_delivery' ? 'bg-orange-100 text-orange-800' :
@@ -241,19 +243,21 @@ export default function DashboardOrders() {
                         </button>
                       )}
                       {operations.refundStatus === "refunded" && <span className="text-xs font-semibold text-green-700">Refund PKR {operations.refundAmountPkr?.toLocaleString() ?? 0}</span>}
-                      <select
+                      {order.status === "quoted" ? <span className="text-xs font-semibold text-cyan-800">Waiting for customer</span> : order.status === "quote_rejected" ? <span className="text-xs text-muted-foreground">Quote closed</span> : <select
                         className="text-sm border border-border rounded-md px-2 py-1 bg-background text-foreground"
                         value={order.status}
                         onChange={(e) => handleStatusUpdate(order.id, e.target.value)}
                         disabled={updateStatus.isPending}
                       >
                         <option value="new">New</option>
+                        <option value="quoted">Quoted</option>
+                        <option value="quote_rejected">Quote Rejected</option>
                         <option value="confirmed">Confirmed</option>
                         <option value="in_production">In Production</option>
                         <option value="out_for_delivery">Out for Delivery</option>
                         <option value="delivered">Delivered</option>
                         <option value="cancelled">Cancelled</option>
-                      </select>
+                      </select>}
                       </div>
                     </td>
                   </tr>

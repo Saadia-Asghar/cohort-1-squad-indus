@@ -7,6 +7,9 @@ export type N8nEvent =
   | "order.refund_recorded"
   | "custom_quote.requested"
   | "custom_quote.approved"
+  | "custom_quote.sent"
+  | "custom_quote.accepted"
+  | "custom_quote.rejected"
   | "payment.advance_reminder"
   | "billing.upgrade_requested"
   | "billing.plan_activated";

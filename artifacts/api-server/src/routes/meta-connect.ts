@@ -1,8 +1,9 @@
 import { Router } from "express";
-import { eq } from "drizzle-orm";
+import { and, desc, eq, gte, sql } from "drizzle-orm";
 import { z } from "zod";
 import {
   db,
+  channelEventsTable,
   metaConnectionsTable,
 } from "@workspace/db";
 import {
@@ -48,11 +49,30 @@ router.get("/meta/connections", requireBakerAuth, async (req, res): Promise<void
     .from(metaConnectionsTable)
     .where(eq(metaConnectionsTable.bakerId, bakerId))
     .limit(1);
+  const [lastWhatsAppEvent] = await db
+    .select({ status: channelEventsTable.status, createdAt: channelEventsTable.createdAt, lastErrorCode: channelEventsTable.lastErrorCode })
+    .from(channelEventsTable)
+    .where(and(eq(channelEventsTable.bakerId, bakerId), eq(channelEventsTable.channel, "whatsapp")))
+    .orderBy(desc(channelEventsTable.createdAt))
+    .limit(1);
+  const [failureSummary] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(channelEventsTable)
+    .where(and(
+      eq(channelEventsTable.bakerId, bakerId),
+      eq(channelEventsTable.channel, "whatsapp"),
+      eq(channelEventsTable.status, "failed"),
+      gte(channelEventsTable.createdAt, new Date(Date.now() - 24 * 60 * 60 * 1000)),
+    ));
   res.json({
     whatsapp: {
       connected: Boolean(connection?.whatsappPhoneNumberId),
       phoneNumberId: connection?.whatsappPhoneNumberId ?? null,
       wabaId: connection?.whatsappBusinessAccountId ?? null,
+      lastEventAt: lastWhatsAppEvent?.createdAt ?? null,
+      lastEventStatus: lastWhatsAppEvent?.status ?? null,
+      lastErrorCode: lastWhatsAppEvent?.lastErrorCode ?? null,
+      failuresLast24Hours: failureSummary?.count ?? 0,
     },
     instagram: {
       connected: Boolean(connection?.instagramAccountId),
