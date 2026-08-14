@@ -30,3 +30,8 @@ export function isMenuScopedMessage(message: string, productNames: string[]): bo
   if (productNames.some((name) => normalized.includes(name.toLowerCase()))) return true;
   return MENU_SCOPE_KEYWORDS.some((keyword) => normalized.includes(keyword));
 }
+
+/** Detects an answer that admits the retrieved bakery facts are insufficient. */
+export function answerNeedsHumanConfirmation(answer: string): boolean {
+  return /(confirm (with|from) (the )?baker|ask (the )?baker|do not have|don't have|not (in|available from) (the )?(context|information)|cannot confirm|can't confirm)/i.test(answer);
+}

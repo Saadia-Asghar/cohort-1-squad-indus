@@ -20,7 +20,7 @@ import { formatRetrievedContext, retrieveKnowledge } from "./rag/retriever.js";
 import { isPlanAccessActive, TRIAL_EXPIRED_BUYER_REPLY } from "./subscription.js";
 import { AI_REPLY_CAP_BUYER_REPLY, isAiReplyCapReached } from "./plan-limits.js";
 import { callLlm } from "./llm.js";
-import { isMenuScopedMessage } from "./agent-safety.js";
+import { answerNeedsHumanConfirmation, isMenuScopedMessage } from "./agent-safety.js";
 
 export type AgentReply = {
   reply: string;
@@ -294,10 +294,19 @@ export async function generateAgentReply(
   // Exact-first policy: the customer-facing answers below come from live
   // bakery records. Unknown questions fail closed to baker confirmation.
 
+  if (/(human|real person|team member|speak (to|with).*(baker|person)|ask (the )?baker|baker.*confirm|person.*confirm)/.test(lowerMsg)) {
+    return {
+      reply: `I have sent your question to ${baker.businessName}'s human team. A person can review the conversation and reply here without you repeating the details.`,
+      action: "escalate",
+      cartItemId: null,
+      escalated: true,
+    };
+  }
+
   // A custom design cannot be priced safely from a generic message. Collect
   // the key order details and explicitly notify the baker rather than inventing
   // a quote, availability, or delivery promise.
-  if (/(custom (cake|order|design)|theme cake|birthday cake|wedding cake|photo cake|fondant)/.test(lowerMsg)) {
+  if (/(custom (cake|order|design)|theme cake|birthday cake|wedding cake|photo cake|logo cake|sculpted cake|3d cake|fondant)/.test(lowerMsg)) {
     return {
       reply: `I can help ${baker.businessName} prepare a custom-order request. Please share the occasion/design, required date and time, number of servings, flavour, eggless/dietary needs, and delivery or pickup area. The baker will confirm the final price and availability.`,
       action: "escalate",
@@ -550,11 +559,14 @@ Customer Preferences (if known):
     ]);
 
     if (llmReply) {
+      const needsHuman = answerNeedsHumanConfirmation(llmReply);
       return {
-        reply: llmReply,
-        action: "llm_generative",
+        reply: needsHuman
+          ? `${llmReply}\n\nI have also sent this to the bakery's human inbox for confirmation.`
+          : llmReply,
+        action: needsHuman ? "escalate" : "llm_generative",
         cartItemId: null,
-        escalated: false,
+        escalated: needsHuman,
       };
     }
 
