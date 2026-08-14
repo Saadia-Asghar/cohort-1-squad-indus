@@ -1,6 +1,7 @@
 import { lazy, Suspense } from "react";
 import { Link } from "wouter";
 import { format } from "date-fns";
+import { useQuery } from "@tanstack/react-query";
 import {
   useGetBaker,
   useGetBakerProducts,
@@ -11,6 +12,7 @@ import {
   getListOrdersQueryKey,
   getListCustomersQueryKey,
   getGetBakerProductsQueryKey,
+  customFetch,
 } from "@workspace/api-client-react";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { liveDashboardQuery, ORDERS_POLL_MS } from "@/lib/dashboard-query";
@@ -89,6 +91,13 @@ export default function DashboardHome() {
     query: { enabled: !!bakerId, queryKey: getGetBakerProductsQueryKey(bakerId) },
   });
 
+  const { data: handoffs = [] } = useQuery({
+    queryKey: ["handoffs", bakerId, "attention"],
+    enabled: Boolean(bakerId),
+    queryFn: () => customFetch<Array<{ status: string }>>(`/api/bakers/${bakerId}/handoffs`, { responseType: "json" }),
+    refetchInterval: 15_000,
+  });
+
   const setupSteps = [
     { label: "Add your delivery areas and contact details", complete: Boolean(baker?.whatsappNumber && baker?.deliveryAreas?.length), href: "/dashboard/settings" },
     { label: "Publish your first menu item", complete: Boolean(products?.length), href: "/dashboard/catalog" },
@@ -102,8 +111,38 @@ export default function DashboardHome() {
   const recentOrders = [...(orders ?? [])]
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     .slice(0, 5);
+  const openHandoffs = handoffs.filter((item) => item.status !== "resolved").length;
+  const receiptsToReview = (orders ?? []).filter((order) => {
+    const payment = order as typeof order & { paymentScreenshotUrl?: string | null; paymentStatus?: string | null };
+    return Boolean(payment.paymentScreenshotUrl) && payment.paymentStatus !== "paid";
+  }).length;
+  const overdueOrders = (orders ?? []).filter((order) => {
+    if (!order.deliveryDate || ["delivered", "cancelled", "quote_rejected"].includes(order.status)) return false;
+    return new Date(order.deliveryDate).getTime() < new Date().setHours(0, 0, 0, 0);
+  }).length;
 
   const attentionItems = [
+    openHandoffs > 0
+      ? {
+          label: `${openHandoffs} customer conversation${openHandoffs === 1 ? "" : "s"} need a person`,
+          href: "/dashboard/human-inbox",
+          tone: "text-red-700 bg-red-50 border-red-200",
+        }
+      : null,
+    receiptsToReview > 0
+      ? {
+          label: `${receiptsToReview} payment receipt${receiptsToReview === 1 ? "" : "s"} waiting for verification`,
+          href: "/dashboard/orders",
+          tone: "text-orange-700 bg-orange-50 border-orange-200",
+        }
+      : null,
+    overdueOrders > 0
+      ? {
+          label: `${overdueOrders} overdue order${overdueOrders === 1 ? "" : "s"} need an update`,
+          href: "/dashboard/orders",
+          tone: "text-red-700 bg-red-50 border-red-200",
+        }
+      : null,
     (stats?.pendingOrders ?? 0) > 0
       ? {
           label: `${stats?.pendingOrders} orders need kitchen action`,
@@ -114,7 +153,7 @@ export default function DashboardHome() {
     (stats?.outstandingPayments ?? 0) > 0
       ? {
           label: `PKR ${stats?.outstandingPayments?.toLocaleString()} awaiting payment confirmation`,
-          href: "/dashboard/payments",
+          href: "/dashboard/orders",
           tone: "text-orange-700 bg-orange-50 border-orange-200",
         }
       : null,
@@ -128,7 +167,7 @@ export default function DashboardHome() {
     !agentConfig?.agentActive
       ? {
           label: "Shop assistant is off — buyers won't get auto-replies",
-          href: "/dashboard/agent-hub",
+          href: "/dashboard/settings",
           tone: "text-red-700 bg-red-50 border-red-200",
         }
       : null,

@@ -135,7 +135,8 @@ function Router() {
       <Route path="/dashboard/onboarding" component={BakerOnboarding} />
       {/* Preserve old shared login links, but keep access baker-only. */}
       <Route path="/login" component={() => <BakerLogin />} />
-      <Route path="/login/buyer" component={() => <BakerLogin />} />
+      {/* Customers never need an account; old buyer-login links return to the public experience. */}
+      <Route path="/login/buyer" component={Home} />
 
       <Route component={NotFound} />
     </Switch>

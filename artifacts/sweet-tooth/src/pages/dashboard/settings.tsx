@@ -1,10 +1,11 @@
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
+import { Link } from "wouter";
 import { PlanBadge } from "@/components/marketing/pricing-section";
 import { useBuyerSession } from "@/hooks/use-session";
 import { useGetBaker, useUpdateBaker, getGetBakerQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
-import { Copy, Facebook, Instagram, QrCode, Share2, Sparkles, ArrowRight } from "lucide-react";
+import { Copy, Facebook, Instagram, QrCode, Share2, Sparkles, ArrowRight, Grid3X3, Bot, ChartNoAxesCombined, WalletCards } from "lucide-react";
 import { getPlanById, FOUNDER_OFFER_ACTIVE, formatExtraReplyPkr, getFounderOfferLines, displayPrice } from "@/lib/pricing-plans";
 import { PlatformBillingPanel } from "@/components/dashboard/platform-billing-panel";
 import { TeamAccessPanel } from "@/components/dashboard/team-access-panel";
@@ -175,6 +176,22 @@ export default function DashboardSettings() {
       <div className="p-8 max-w-2xl">
         <h1 className="text-4xl font-bold mb-2 font-serif text-primary">Your kitchen, your rules.</h1>
         <p className="text-muted-foreground mb-8">Manage your profile, delivery areas, and policies.</p>
+
+        <section aria-labelledby="business-tools-heading" className="mb-8 rounded-xl border border-border bg-card p-5 shadow-sm">
+          <h2 id="business-tools-heading" className="font-serif text-xl font-bold text-primary">Business tools</h2>
+          <p className="mt-1 text-sm text-muted-foreground">Less-used tools live here so your daily navigation stays focused.</p>
+          <div className="mt-4 grid gap-2 sm:grid-cols-2">
+            {[
+              { href: "/dashboard/catalog", label: "Manage menu", icon: Grid3X3 },
+              { href: "/dashboard/agent-hub", label: "Assistant & channels", icon: Bot },
+              { href: "/dashboard/payments", label: "Payments & receipts", icon: WalletCards },
+              { href: "/dashboard/analytics", label: "Reports & growth", icon: ChartNoAxesCombined },
+            ].map((tool) => {
+              const Icon = tool.icon;
+              return <Link key={tool.href} href={tool.href} className="flex min-h-12 items-center gap-3 rounded-lg border border-border px-3 py-2 text-sm font-semibold transition-colors hover:border-primary/30 hover:bg-primary/5"><Icon className="h-4 w-4 text-primary" />{tool.label}<ArrowRight className="ml-auto h-4 w-4 text-muted-foreground" /></Link>;
+            })}
+          </div>
+        </section>
 
         {baker && (
           <div className="mb-8 rounded-xl border border-primary/20 bg-primary/5 p-6 shadow-sm">

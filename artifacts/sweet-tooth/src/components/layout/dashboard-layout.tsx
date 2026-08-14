@@ -15,8 +15,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  LayoutDashboard, ShoppingBag, Grid, DollarSign, Menu, X,
-  BarChart3, Users, Calendar, Settings, LogOut, Bot, Globe, BookOpen, NotebookText, Sparkles, Keyboard, Headphones,
+  LayoutDashboard, ShoppingBag, Menu, X, Users, Calendar, Settings,
+  LogOut, Globe, Sparkles, Keyboard, Headphones,
 } from "lucide-react";
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -42,21 +42,15 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   useEffect(() => setMobileNavOpen(false), [location]);
 
   const navItems = useMemo(() => role === "staff" ? [
-    { href: "/dashboard/human-inbox", label: "Human Inbox", icon: Headphones, shortcut: "i" },
+    { href: "/dashboard/human-inbox", label: "Agent Inbox", icon: Headphones, shortcut: "i" },
     { href: "/dashboard/orders", label: "Orders", icon: ShoppingBag, shortcut: "o" },
     { href: "/dashboard/customers", label: "Customers", icon: Users, shortcut: "u" },
   ] : [
     { href: "/dashboard", label: "Overview", icon: LayoutDashboard, shortcut: "h" },
     { href: "/dashboard/orders", label: "Orders", icon: ShoppingBag, shortcut: "o" },
-    { href: "/dashboard/catalog", label: "Catalog", icon: Grid, shortcut: "c" },
-    ...(role === "owner" ? [{ href: "/dashboard/payments", label: "Payments", icon: DollarSign, shortcut: "p" }] : []),
-    { href: "/dashboard/analytics", label: "Analytics", icon: BarChart3, shortcut: "a" },
-    { href: "/dashboard/customers", label: "Customers", icon: Users, shortcut: "u" },
-    { href: "/dashboard/khata", label: "Khata", icon: NotebookText, shortcut: "k" },
-    { href: "/dashboard/human-inbox", label: "Human Inbox", icon: Headphones, shortcut: "r" },
-    ...(role === "owner" ? [{ href: "/dashboard/agent-hub", label: "Agent Hub", icon: Bot, shortcut: "i" }] : []),
-    { href: "/dashboard/guide", label: "Baker Guide", icon: BookOpen, shortcut: "g" },
     { href: "/dashboard/calendar", label: "Calendar", icon: Calendar, shortcut: "d" },
+    { href: "/dashboard/customers", label: "Customers", icon: Users, shortcut: "u" },
+    { href: "/dashboard/human-inbox", label: "Agent Inbox", icon: Headphones, shortcut: "i" },
     ...(role === "owner" ? [{ href: "/dashboard/settings", label: "Settings", icon: Settings, shortcut: "s" }] : []),
   ], [role]);
 

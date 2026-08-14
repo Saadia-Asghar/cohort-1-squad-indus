@@ -67,7 +67,7 @@ export default function BuyerOrders() {
       <div className="container mx-auto max-w-xl px-4 py-12">
         <h1 className="font-serif text-4xl font-bold text-primary">Order status</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Enter the WhatsApp number used when placing your order. Full payment history stays with the bakery.
+          No account or sign-up is needed. Enter the WhatsApp number used when placing your order.
         </p>
 
         <form onSubmit={lookup} className="mt-8 flex flex-col sm:flex-row gap-2">

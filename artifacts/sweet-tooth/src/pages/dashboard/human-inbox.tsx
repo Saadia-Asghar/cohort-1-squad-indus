@@ -100,7 +100,7 @@ export default function HumanInbox() {
     <DashboardLayout>
       <div className="p-4 sm:p-8">
         <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
-          <div><h1 className="font-serif text-4xl font-bold text-primary">Human inbox</h1><p className="mt-2 text-muted-foreground">Questions the menu assistant could not answer safely appear here.</p></div>
+          <div><h1 className="font-serif text-4xl font-bold text-primary">Agent Inbox</h1><p className="mt-2 text-muted-foreground">Questions the menu assistant could not answer safely appear here for a person.</p></div>
           <button type="button" onClick={() => void loadInbox()} className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm font-semibold"><RefreshCw className="h-4 w-4" /> Refresh</button>
         </div>
         {error && <p role="alert" className="mb-4 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">{error}</p>}

@@ -71,14 +71,14 @@ export function BuyerLayout({
               href="/dashboard/login"
               className="px-3 py-2 text-sm font-bold text-foreground transition-colors hover:text-primary"
             >
-              Sign in
+              Baker sign in
             </Link>
 
             <Link
               href="/dashboard/register"
               className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground shadow-lg shadow-primary/20 transition hover:-translate-y-0.5 hover:bg-primary/90"
             >
-              Get started
+              Start for bakers
               <ChevronRight className="h-4 w-4" />
             </Link>
           </div>
@@ -140,7 +140,7 @@ export function BuyerLayout({
                     onClick={closeMobileMenu}
                     className="inline-flex min-h-12 items-center justify-center rounded-xl border border-border bg-white px-4 text-sm font-bold"
                   >
-                    Sign in
+                    Baker sign in
                   </Link>
 
                   <Link
@@ -148,7 +148,7 @@ export function BuyerLayout({
                     onClick={closeMobileMenu}
                     className="inline-flex min-h-12 items-center justify-center rounded-xl bg-primary px-4 text-sm font-bold text-primary-foreground"
                   >
-                    Get started
+                    Start for bakers
                   </Link>
                 </div>
               </div>

@@ -1,11 +1,12 @@
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
+import { Link } from "wouter";
 import { customFetch, useListOrders, useUpdateOrderStatus, getListOrdersQueryKey } from "@workspace/api-client-react";
 import { useBuyerSession } from "@/hooks/use-session";
 import { liveDashboardQuery, ORDERS_POLL_MS } from "@/lib/dashboard-query";
 import { useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { useState, type FormEvent } from "react";
-import { CheckCircle2, CircleAlert, MessageCircle } from "lucide-react";
+import { CheckCircle2, CircleAlert, MessageCircle, ExternalLink, Settings2 } from "lucide-react";
 
 const emptyManualOrder = {
   buyerName: "", buyerWhatsapp: "", buyerAddress: "", buyerArea: "",
@@ -34,6 +35,7 @@ export default function DashboardOrders() {
   const [savingManualOrder, setSavingManualOrder] = useState(false);
   const [approvingQuoteId, setApprovingQuoteId] = useState<number | null>(null);
   const [checklistOrder, setChecklistOrder] = useState<any>(null);
+  const [activeOrder, setActiveOrder] = useState<any>(null);
 
   const handleStatusUpdate = (orderId: number, status: string) => {
     const cancellationReason = status === "cancelled"
@@ -157,8 +159,8 @@ export default function DashboardOrders() {
     <DashboardLayout>
       <div className="p-8">
         <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div><h1 className="text-4xl font-bold font-serif text-primary">Order Pipeline</h1><p className="mt-2 text-sm text-muted-foreground">Record phone, walk-in, and social orders until channel automation is connected.</p></div>
-          <button onClick={openManualOrder} className="rounded-lg bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground hover:bg-primary/90">Add manual order</button>
+          <div><h1 className="text-4xl font-bold font-serif text-primary">Orders</h1><p className="mt-2 text-sm text-muted-foreground">One place for requests, quotes, payment proof, production and delivery.</p></div>
+          <div className="flex flex-wrap gap-2"><Link href="/dashboard/catalog" className="inline-flex items-center gap-2 rounded-lg border border-border px-4 py-2.5 text-sm font-bold hover:bg-muted"><Settings2 className="h-4 w-4" /> Manage menu</Link><button onClick={openManualOrder} className="rounded-lg bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground hover:bg-primary/90">Add manual order</button></div>
         </div>
         
         {isLoading && !orders ? (
@@ -231,6 +233,9 @@ export default function DashboardOrders() {
                           {approvingQuoteId === order.id ? "Saving…" : "Set quote"}
                         </button>
                       )}
+                      <button type="button" onClick={() => setActiveOrder(order)} className="rounded-md border border-border px-2.5 py-1.5 text-xs font-semibold hover:bg-muted">
+                        Open order
+                      </button>
                       <button type="button" onClick={() => setChecklistOrder(order)} className="rounded-md border border-border px-2.5 py-1.5 text-xs font-semibold hover:bg-muted">
                         Prep checklist
                       </button>
@@ -294,6 +299,39 @@ export default function DashboardOrders() {
             <div className="mt-6 flex justify-end gap-3"><button type="button" onClick={closeManualOrder} className="rounded-lg border border-border px-4 py-2 text-sm font-semibold">Cancel</button><button disabled={savingManualOrder} className="rounded-lg bg-primary px-4 py-2 text-sm font-bold text-primary-foreground disabled:opacity-50">{savingManualOrder ? "Saving…" : "Save pending order"}</button></div>
           </form>
         </dialog>
+        {activeOrder && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4" role="dialog" aria-modal="true" aria-labelledby="order-workspace-title">
+            <div className="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-border bg-card shadow-2xl">
+              <header className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-border bg-card px-5 py-4">
+                <div><p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Complete order workspace</p><h2 id="order-workspace-title" className="font-serif text-2xl font-bold text-primary">Order #{activeOrder.id}</h2><p className="mt-1 text-sm text-muted-foreground">Conversation → quote → deposit → production → delivery → feedback</p></div>
+                <button type="button" onClick={() => setActiveOrder(null)} className="rounded-lg border border-border px-3 py-2 text-sm font-semibold hover:bg-muted">Close</button>
+              </header>
+              <div className="grid gap-5 p-5 md:grid-cols-2">
+                <OrderDetailSection title="Customer & conversation">
+                  <p className="font-semibold">{activeOrder.buyerName}</p><p>{activeOrder.buyerWhatsapp}</p><p>{activeOrder.buyerAddress || activeOrder.buyerArea || "Address not provided"}</p>
+                  {whatsappHref(activeOrder.buyerWhatsapp) && <a href={whatsappHref(activeOrder.buyerWhatsapp)!} target="_blank" rel="noreferrer" className="mt-3 inline-flex items-center gap-2 font-semibold text-green-700 hover:underline"><MessageCircle className="h-4 w-4" /> Continue on WhatsApp <ExternalLink className="h-3 w-3" /></a>}
+                </OrderDetailSection>
+                <OrderDetailSection title="Request & quote">
+                  <p>{activeOrder.items?.map((item: any) => `${item.productName} × ${item.quantity}`).join(", ") || "Custom request"}</p><p>{[activeOrder.flavour, activeOrder.textOnCake, activeOrder.specialInstructions].filter(Boolean).join(" · ") || "No extra instructions"}</p><p className="mt-2 font-mono font-bold">PKR {activeOrder.totalPkr.toLocaleString()}</p><p>Status: {activeOrder.status.replaceAll("_", " ")}</p>
+                </OrderDetailSection>
+                <OrderDetailSection title="Deposit & verification">
+                  <p>{activeOrder.requireAdvance ? `Deposit ${activeOrder.advancePaid ? "verified" : "waiting for verification"}` : "No advance required"}</p><p>Payment: {activeOrder.paymentStatus?.replaceAll("_", " ") || "pending"}</p>
+                  <Link href="/dashboard/payments" className="mt-3 inline-flex items-center gap-2 font-semibold text-primary hover:underline">Review receipt <ExternalLink className="h-3 w-3" /></Link>
+                </OrderDetailSection>
+                <OrderDetailSection title="Production & delivery">
+                  <p>Due: {activeOrder.deliveryDate ? format(new Date(activeOrder.deliveryDate), "PPP") : "Date not set"}</p><p>{activeOrder.fulfillmentType === "pickup" ? "Customer pickup" : `Delivery to ${activeOrder.buyerArea || "customer address"}`}</p>
+                  <button type="button" onClick={() => { setChecklistOrder(activeOrder); setActiveOrder(null); }} className="mt-3 rounded-lg bg-primary px-3 py-2 text-sm font-bold text-primary-foreground">Open production checklist</button>
+                </OrderDetailSection>
+                <OrderDetailSection title="Customer history">
+                  <p>Customer history and repeat-order signals are automatically matched by phone number.</p><Link href="/dashboard/customers" className="mt-3 inline-flex items-center gap-2 font-semibold text-primary hover:underline">Open customer record <ExternalLink className="h-3 w-3" /></Link>
+                </OrderDetailSection>
+                <OrderDetailSection title="Next action">
+                  <p>Update the order status from the table when payment, production, dispatch or delivery changes. Connected channels can then send the customer an update.</p>
+                </OrderDetailSection>
+              </div>
+            </div>
+          </div>
+        )}
         {checklistOrder && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4" role="dialog" aria-modal="true" aria-labelledby="production-checklist-title">
             <div className="max-h-[88vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-border bg-card p-6 shadow-2xl">
@@ -321,4 +359,8 @@ export default function DashboardOrders() {
 function ChecklistItem({ ready, label, value }: { ready: boolean; label: string; value: string }) {
   const Icon = ready ? CheckCircle2 : CircleAlert;
   return <div className="flex gap-3 rounded-xl border border-border p-3"><Icon className={`mt-0.5 h-5 w-5 shrink-0 ${ready ? "text-green-600" : "text-amber-600"}`} /><div><p className="text-sm font-bold text-foreground">{label}</p><p className="mt-1 text-sm leading-relaxed text-muted-foreground">{value}</p></div></div>;
+}
+
+function OrderDetailSection({ title, children }: { title: string; children: React.ReactNode }) {
+  return <section className="rounded-xl border border-border bg-background/60 p-4 text-sm text-muted-foreground"><h3 className="mb-3 font-serif text-lg font-bold text-foreground">{title}</h3><div className="space-y-1.5">{children}</div></section>;
 }
