@@ -5,6 +5,7 @@ export * from "./cart_items";
 export * from "./reviews";
 export * from "./customers";
 export * from "./chat_messages";
+export * from "./chat_handoffs";
 export * from "./notifications";
 export * from "./conversation_memory";
 export * from "./knowledge_chunks";

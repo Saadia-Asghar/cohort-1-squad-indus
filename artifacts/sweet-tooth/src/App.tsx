@@ -42,6 +42,7 @@ const DashboardCalendar = lazy(() => import("@/pages/dashboard/calendar"));
 const DashboardAgentHub = lazy(() => import("@/pages/dashboard/agent-hub"));
 const DashboardGuide = lazy(() => import("@/pages/dashboard/guide"));
 const DashboardKhata = lazy(() => import("@/pages/dashboard/khata"));
+const DashboardHumanInbox = lazy(() => import("@/pages/dashboard/human-inbox"));
 import BakerLogin from "@/pages/auth/baker-login";
 import BakerRegister from "@/pages/auth/baker-register";
 import BakerOnboarding from "@/pages/auth/baker-onboarding";
@@ -87,17 +88,21 @@ function ownerDashboardRoute(Component: ComponentType) {
   };
 }
 
-const DashboardHomeRoute = dashboardRoute(DashboardHome);
+function DashboardHomeRoute() {
+  const managed = useManagedBaker();
+  return <ProtectedDashboard component={managed.role === "staff" ? DashboardHumanInbox : DashboardHome} />;
+}
 const DashboardOrdersRoute = dashboardRoute(DashboardOrders);
-const DashboardCatalogRoute = dashboardRoute(DashboardCatalog);
-const DashboardAnalyticsRoute = dashboardRoute(DashboardAnalytics);
+const DashboardCatalogRoute = ownerDashboardRoute(DashboardCatalog);
+const DashboardAnalyticsRoute = ownerDashboardRoute(DashboardAnalytics);
 const DashboardSettingsRoute = ownerDashboardRoute(DashboardSettings);
 const DashboardPaymentsRoute = ownerDashboardRoute(DashboardPayments);
 const DashboardCustomersRoute = dashboardRoute(DashboardCustomers);
-const DashboardCalendarRoute = dashboardRoute(DashboardCalendar);
+const DashboardCalendarRoute = ownerDashboardRoute(DashboardCalendar);
 const DashboardAgentHubRoute = ownerDashboardRoute(DashboardAgentHub);
-const DashboardKhataRoute = dashboardRoute(DashboardKhata);
-const DashboardGuideRoute = dashboardRoute(DashboardGuide);
+const DashboardKhataRoute = ownerDashboardRoute(DashboardKhata);
+const DashboardGuideRoute = ownerDashboardRoute(DashboardGuide);
+const DashboardHumanInboxRoute = dashboardRoute(DashboardHumanInbox);
 
 function Router() {
   return (
@@ -124,6 +129,7 @@ function Router() {
       <Route path="/dashboard/agent-hub" component={DashboardAgentHubRoute} />
       <Route path="/dashboard/khata" component={DashboardKhataRoute} />
       <Route path="/dashboard/guide" component={DashboardGuideRoute} />
+      <Route path="/dashboard/human-inbox" component={DashboardHumanInboxRoute} />
       <Route path="/dashboard/login" component={() => <BakerLogin />} />
       <Route path="/dashboard/register" component={BakerRegister} />
       <Route path="/dashboard/onboarding" component={BakerOnboarding} />

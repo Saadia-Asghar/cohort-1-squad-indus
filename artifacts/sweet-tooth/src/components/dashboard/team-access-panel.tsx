@@ -121,12 +121,12 @@ export function TeamAccessPanel({ bakerId }: { bakerId: number }) {
       <div className="flex items-start gap-3">
         <Users className="h-5 w-5 text-primary mt-0.5 shrink-0" />
         <div>
-          <h3 className="font-serif text-xl font-bold">Team access</h3>
+          <h3 className="font-serif text-xl font-bold">Human agent access</h3>
           <p className="text-sm text-muted-foreground mt-1">
             {team
               ? `${team.seatsUsed} of ${team.seatLimit} login seat${team.seatLimit === 1 ? "" : "s"} used.`
               : null}{" "}
-            Bakery Team includes a second staff login.
+            Add a support agent who can handle escalated chats, see customer context, and assist with orders. Payment, billing, agent configuration, and account settings remain owner-only.
           </p>
         </div>
       </div>
@@ -159,7 +159,7 @@ export function TeamAccessPanel({ bakerId }: { bakerId: number }) {
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    Staff
+                    Human agent
                   </span>
                   {isOwner && (
                     <button
@@ -180,7 +180,7 @@ export function TeamAccessPanel({ bakerId }: { bakerId: number }) {
       {canInvite && (
         <form onSubmit={(e) => void invite(e)} className="space-y-3 border-t border-border pt-4">
           <p className="text-sm font-medium flex items-center gap-2">
-            <UserPlus className="h-4 w-4" /> Add staff login
+            <UserPlus className="h-4 w-4" /> Add human agent login
           </p>
           <div className="grid gap-3 sm:grid-cols-2">
             <input
@@ -213,7 +213,7 @@ export function TeamAccessPanel({ bakerId }: { bakerId: number }) {
             disabled={saving}
             className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60"
           >
-            {saving ? "Saving…" : "Create login"}
+            {saving ? "Saving…" : "Create human agent login"}
           </button>
         </form>
       )}

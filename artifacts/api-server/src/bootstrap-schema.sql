@@ -179,6 +179,21 @@ CREATE TABLE IF NOT EXISTS sweet_tooth.chat_messages (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS sweet_tooth.chat_handoffs (
+  id SERIAL PRIMARY KEY,
+  baker_id INTEGER NOT NULL,
+  buyer_id INTEGER,
+  session_id TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'open',
+  reason TEXT NOT NULL DEFAULT 'The menu assistant needs human help.',
+  assigned_member_id INTEGER,
+  customer_notified BOOLEAN NOT NULL DEFAULT false,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  resolved_at TIMESTAMPTZ,
+  UNIQUE (baker_id, session_id)
+);
+
 CREATE TABLE IF NOT EXISTS sweet_tooth.order_audit_logs (
   id SERIAL PRIMARY KEY,
   order_id INTEGER NOT NULL,
@@ -423,6 +438,7 @@ CREATE INDEX IF NOT EXISTS products_baker_idx ON sweet_tooth.products (baker_id)
 CREATE INDEX IF NOT EXISTS orders_baker_idx ON sweet_tooth.orders (baker_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS customers_baker_idx ON sweet_tooth.customers (baker_id, whatsapp_number);
 CREATE INDEX IF NOT EXISTS chat_messages_baker_session_idx ON sweet_tooth.chat_messages (baker_id, session_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS chat_handoffs_baker_status_idx ON sweet_tooth.chat_handoffs (baker_id, status, updated_at DESC);
 CREATE INDEX IF NOT EXISTS conversation_memory_baker_idx ON sweet_tooth.conversation_memory (baker_id, last_active_at DESC);
 -- Read paths used by the dashboard, self-service order status lookup, and
 -- custom-cake quoting. All statements are idempotent for the serverless

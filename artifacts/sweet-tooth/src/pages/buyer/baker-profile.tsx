@@ -21,7 +21,7 @@ import { Link } from "wouter";
 
 type PublicChatMessage = {
   id: string;
-  role: "user" | "assistant";
+  role: "user" | "assistant" | "human";
   content: string;
 };
 
@@ -62,6 +62,32 @@ export default function BakerProfile() {
       chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
     }
   }, [publicMessages, isChatOpen]);
+
+  useEffect(() => {
+    if (!isChatOpen || !bakerId || !chatSessionId) return;
+    let stopped = false;
+    const pollHumanReplies = async () => {
+      try {
+        const replies = await customFetch<Array<{ id: number; role: "human"; content: string }>>(
+          `/api/chat/${bakerId}/session/${encodeURIComponent(chatSessionId)}`,
+          { responseType: "json" },
+        );
+        if (stopped) return;
+        setPublicMessages((current) => {
+          const known = new Set(current.map((item) => item.id));
+          const incoming = replies
+            .map((item) => ({ id: `human-${item.id}`, role: "human" as const, content: item.content }))
+            .filter((item) => !known.has(item.id));
+          return incoming.length ? [...current, ...incoming] : current;
+        });
+      } catch {
+        // A temporary polling failure must not interrupt the customer's chat.
+      }
+    };
+    void pollHumanReplies();
+    const timer = window.setInterval(() => void pollHumanReplies(), 4_000);
+    return () => { stopped = true; window.clearInterval(timer); };
+  }, [bakerId, chatSessionId, isChatOpen]);
 
   const sendPublicMessage = (text: string) => {
     const trimmed = text.trim();
@@ -543,6 +569,7 @@ export default function BakerProfile() {
                     ? 'bg-primary text-primary-foreground rounded-tr-sm' 
                     : 'bg-card border border-border rounded-tl-sm'
                 }`}>
+                  {msg.role === "human" && <p className="mb-1 text-[10px] font-bold uppercase tracking-wide opacity-70">Human agent</p>}
                   {msg.content}
                 </div>
               </div>

@@ -114,7 +114,8 @@ export default function BakerLogin({ initialTab = "login" }: { initialTab?: "log
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ identifier: email.trim(), password }),
       });
-      finishAuth(response.token, response.baker.id, "password", response.role ?? "owner");
+      const role = response.role ?? "owner";
+      finishAuth(response.token, response.baker.id, "password", role, role === "staff" ? "/dashboard/human-inbox" : "/dashboard");
     } catch (cause: unknown) {
       const message = cause instanceof Error ? cause.message.replace(/^HTTP \d+\s*[^:]*:\s*/, "") : "Invalid email/number or password";
       setError(message || "Invalid email/number or password");

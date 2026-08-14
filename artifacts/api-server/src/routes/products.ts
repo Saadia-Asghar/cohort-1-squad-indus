@@ -10,7 +10,7 @@ import {
   CreateProductBody,
   ListProductsQueryParams,
 } from "@workspace/api-zod";
-import { requireBakerAuth } from "../middlewares/auth.js";
+import { requireBakerAuth, requireBakerOwner } from "../middlewares/auth.js";
 import { rebuildBakerKnowledgeIndex } from "../lib/rag/pipeline.js";
 import { isProductCapReached } from "../lib/plan-limits.js";
 
@@ -46,7 +46,7 @@ router.get("/products", async (req, res): Promise<void> => {
 });
 
 // POST /products (Secured + Auto-RAG reindex)
-router.post("/products", requireBakerAuth, async (req, res): Promise<void> => {
+router.post("/products", requireBakerAuth, requireBakerOwner, async (req, res): Promise<void> => {
   const parsed = CreateProductBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
@@ -98,7 +98,7 @@ router.get("/products/:productId", async (req, res): Promise<void> => {
 });
 
 // PATCH /products/:productId (Secured + Auto-RAG reindex)
-router.patch("/products/:productId", requireBakerAuth, async (req, res): Promise<void> => {
+router.patch("/products/:productId", requireBakerAuth, requireBakerOwner, async (req, res): Promise<void> => {
   const params = UpdateProductParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
@@ -133,7 +133,7 @@ router.patch("/products/:productId", requireBakerAuth, async (req, res): Promise
 });
 
 // DELETE /products/:productId (Secured + Auto-RAG reindex)
-router.delete("/products/:productId", requireBakerAuth, async (req, res): Promise<void> => {
+router.delete("/products/:productId", requireBakerAuth, requireBakerOwner, async (req, res): Promise<void> => {
   const params = DeleteProductParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
@@ -163,7 +163,7 @@ router.delete("/products/:productId", requireBakerAuth, async (req, res): Promis
 });
 
 // PATCH /products/:productId/toggle-stock (Secured + Auto-RAG reindex)
-router.patch("/products/:productId/toggle-stock", requireBakerAuth, async (req, res): Promise<void> => {
+router.patch("/products/:productId/toggle-stock", requireBakerAuth, requireBakerOwner, async (req, res): Promise<void> => {
   const params = ToggleProductStockParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });

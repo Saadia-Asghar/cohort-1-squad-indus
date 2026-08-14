@@ -1,4 +1,4 @@
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, ne } from "drizzle-orm";
 import {
   db,
   chatMessagesTable,
@@ -8,6 +8,7 @@ import {
   notificationsTable,
   customersTable,
   ordersTable,
+  chatHandoffsTable,
 } from "@workspace/db";
 import { logger } from "./logger.js";
 import { deliveryZoneSummary, findDeliveryZone, normalizeDeliveryZones } from "./delivery-zones.js";
@@ -572,10 +573,10 @@ Customer Preferences (if known):
   }
 
   return {
-    reply: `I do not have a verified answer for that from ${baker.businessName}'s published menu or policies. Please ask the baker to confirm, or ask me about products, prices, dietary labels, delivery, availability, orders, or payment policy.`,
-    action: null,
+    reply: `I do not have a verified answer for that from ${baker.businessName}'s published menu or policies. I have sent this question to a human team member, who can reply here.`,
+    action: "escalate",
     cartItemId: null,
-    escalated: false,
+    escalated: true,
   };
 }
 
@@ -681,13 +682,31 @@ export async function processChatMessage(input: ProcessChatInput): Promise<Proce
     content: message,
   });
 
-  const agentReply = await generateAgentReply(
-    bakerId,
-    buyerId,
-    message,
-    memory,
-    historyPreferences,
-  );
+  const [activeHandoff] = await db.select({ id: chatHandoffsTable.id })
+    .from(chatHandoffsTable)
+    .where(and(
+      eq(chatHandoffsTable.bakerId, bakerId),
+      eq(chatHandoffsTable.sessionId, sid),
+      ne(chatHandoffsTable.status, "resolved"),
+    ))
+    .limit(1);
+
+  // Once a human owns the conversation, do not let the bot compete with or
+  // contradict that person. New buyer messages stay in the same inbox thread.
+  const agentReply = activeHandoff
+    ? {
+        reply: "Your message has been added to the human support conversation. A bakery team member will reply here.",
+        action: "awaiting_human",
+        cartItemId: null,
+        escalated: false,
+      }
+    : await generateAgentReply(
+        bakerId,
+        buyerId,
+        message,
+        memory,
+        historyPreferences,
+      );
 
   const [bakerRow] = await db.select().from(bakersTable).where(eq(bakersTable.id, bakerId));
   const agentLanguage = normalizeAgentLanguage(
@@ -702,6 +721,28 @@ export async function processChatMessage(input: ProcessChatInput): Promise<Proce
     role: "assistant",
     content: agentReply.reply,
   });
+
+  if (agentReply.escalated) {
+    await db
+      .insert(chatHandoffsTable)
+      .values({
+        bakerId,
+        buyerId,
+        sessionId: sid,
+        status: "open",
+        reason: message.slice(0, 500),
+      })
+      .onConflictDoUpdate({
+        target: [chatHandoffsTable.bakerId, chatHandoffsTable.sessionId],
+        set: {
+          buyerId,
+          status: "open",
+          reason: message.slice(0, 500),
+          resolvedAt: null,
+          updatedAt: new Date(),
+        },
+      });
+  }
 
   if (buyerId) {
     const updatedPrefs = extractPreferences(
