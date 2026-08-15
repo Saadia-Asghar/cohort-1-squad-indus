@@ -113,6 +113,7 @@ function Router() {
       <Route path="/menu/:id" component={BakerProfile} />
       <Route path="/bakers/:id" component={BakerProfile} />
       <Route path="/cart" component={Cart} />
+      <Route path="/orders/:orderId" component={BuyerOrders} />
       <Route path="/orders" component={BuyerOrders} />
       <Route path="/feedback/:orderId" component={OrderFeedback} />
       <Route path="/privacy" component={PrivacyPolicy} />

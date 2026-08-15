@@ -15,7 +15,7 @@ const OPTIONS: Array<{ id: FeedbackOption; label: string; icon: typeof Heart }> 
 export default function OrderFeedbackPage() {
   const [, params] = useRoute("/feedback/:orderId");
   const orderId = params?.orderId ? parseInt(params.orderId, 10) : NaN;
-  const [whatsapp, setWhatsapp] = useState("");
+  const token = new URLSearchParams(window.location.hash.replace(/^#/, "")).get("token") ?? "";
   const [selected, setSelected] = useState<FeedbackOption | null>(null);
   const [note, setNote] = useState("");
   const [loading, setLoading] = useState(true);
@@ -29,7 +29,7 @@ export default function OrderFeedbackPage() {
   } | null>(null);
 
   useEffect(() => {
-    if (!orderId || isNaN(orderId)) {
+    if (!orderId || isNaN(orderId) || !token) {
       setLoading(false);
       setError("Invalid order link.");
       return;
@@ -38,17 +38,17 @@ export default function OrderFeedbackPage() {
       bakerName: string;
       buyerName: string;
       alreadySubmitted: boolean;
-    }>(`/api/orders/${orderId}/feedback`)
+    }>(`/api/orders/${orderId}/feedback`, { headers: { "X-Guest-Token": token } })
       .then((data) => {
         setMeta(data);
         if (data.alreadySubmitted) setDone(true);
       })
       .catch(() => setError("This order is not ready for feedback yet."))
       .finally(() => setLoading(false));
-  }, [orderId]);
+  }, [orderId, token]);
 
   const submit = async () => {
-    if (!selected || !whatsapp.trim()) return;
+    if (!selected || !token) return;
     setSubmitting(true);
     setError("");
     try {
@@ -58,12 +58,12 @@ export default function OrderFeedbackPage() {
         body: JSON.stringify({
           feedback: selected,
           note: note.trim() || undefined,
-          buyerWhatsapp: whatsapp.trim(),
+          token,
         }),
       });
       setDone(true);
     } catch {
-      setError("Could not submit feedback. Check your WhatsApp number matches the order.");
+      setError("Could not submit feedback. This secure link may have expired.");
     } finally {
       setSubmitting(false);
     }
@@ -111,15 +111,6 @@ export default function OrderFeedbackPage() {
 
             <div className="mt-6 space-y-4">
               <label className="block text-sm font-medium">
-                WhatsApp number (on the order)
-                <input
-                  value={whatsapp}
-                  onChange={(e) => setWhatsapp(e.target.value)}
-                  placeholder="+92 300 1234567"
-                  className="mt-1 w-full rounded-lg border border-border px-3 py-2 text-sm"
-                />
-              </label>
-              <label className="block text-sm font-medium">
                 Optional note
                 <textarea
                   value={note}
@@ -132,7 +123,7 @@ export default function OrderFeedbackPage() {
               {error && <p className="text-sm text-destructive">{error}</p>}
               <button
                 type="button"
-                disabled={!selected || !whatsapp.trim() || submitting}
+                disabled={!selected || submitting}
                 onClick={submit}
                 className="w-full rounded-xl bg-primary py-3 font-bold text-primary-foreground disabled:opacity-50"
               >

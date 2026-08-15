@@ -56,6 +56,9 @@ app.use(cors({
 // JSON parser so the WhatsApp route can verify the signature safely.
 app.use("/api/webhooks/whatsapp", express.raw({ type: "application/json", limit: "256kb" }));
 app.use("/api/webhooks/instagram", express.raw({ type: "application/json", limit: "256kb" }));
+// Receipt photos are the only public JSON payload allowed above the global
+// limit. The route still validates MIME type, decoded size and a signed token.
+app.use("/api/orders/:orderId/guest-receipt", express.json({ limit: "6mb" }));
 app.use(express.json({ limit: "256kb" }));
 app.use(express.urlencoded({ extended: true, limit: "64kb" }));
 

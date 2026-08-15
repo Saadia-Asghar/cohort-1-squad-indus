@@ -10,6 +10,7 @@ import {
 import { decryptSecret } from "./secret-box.js";
 import { phonesMatch, sendWhatsAppTextMessage } from "./whatsapp.js";
 import { logger } from "./logger.js";
+import { guestOrderUrl, type GuestActionScope } from "./guest-action-token.js";
 
 export type ServiceFeedback = "loved_it" | "okay" | "had_issue";
 
@@ -27,18 +28,17 @@ export function parseFeedbackReply(text: string): ServiceFeedback | null {
   return null;
 }
 
-function frontendBase(): string {
-  return (
-    process.env.FRONTEND_URL?.replace(/\/$/, "") ??
-    "https://cohort-1-squad-indus-sweet-tooth.vercel.app"
-  );
-}
-
 export function buildDeliveryFeedbackMessage(
-  order: { id: number; buyerName: string },
+  order: { id: number; bakerId: number; buyerName: string },
   baker: { businessName: string },
 ): string {
-  const link = `${frontendBase()}/feedback/${order.id}`;
+  const link = guestOrderUrl({
+    orderId: order.id,
+    bakerId: order.bakerId,
+    scopes: ["feedback"],
+    expiresAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
+    action: "feedback",
+  });
   return [
     `Assalam-o-Alaikum ${order.buyerName}!`,
     `Your order #${order.id} from ${baker.businessName} has been delivered.`,
@@ -50,6 +50,32 @@ export function buildDeliveryFeedbackMessage(
     ``,
     `Or tap: ${link}`,
   ].join("\n");
+}
+
+export async function sendGuestActionLink(input: {
+  order: typeof ordersTable.$inferSelect;
+  baker: typeof bakersTable.$inferSelect;
+  scopes: GuestActionScope[];
+  expiresAt: Date;
+  action: string;
+  message: string;
+}): Promise<{ sent: boolean; url: string }> {
+  const url = guestOrderUrl({
+    orderId: input.order.id,
+    bakerId: input.order.bakerId,
+    scopes: input.scopes,
+    expiresAt: input.expiresAt,
+    action: input.action,
+  });
+  const sender = await resolveWhatsAppSender(input.order.bakerId);
+  if (!sender) return { sent: false, url };
+  const sent = await sendWhatsAppTextMessage(
+    sender.phoneNumberId,
+    input.order.buyerWhatsapp,
+    `${input.message}\n\n${url}`,
+    sender.accessToken,
+  );
+  return { sent, url };
 }
 
 const ORDER_STATUS_LABELS: Record<string, string> = {
@@ -112,6 +138,7 @@ export async function sendDeliveryFeedbackRequest(
   baker: typeof bakersTable.$inferSelect,
 ): Promise<boolean> {
   const message = buildDeliveryFeedbackMessage(order, baker);
+  const feedbackUrl = message.split("Or tap: ")[1]?.trim();
   const sender = await resolveWhatsAppSender(baker.id);
   let sent = false;
 
@@ -132,7 +159,7 @@ export async function sendDeliveryFeedbackRequest(
     title: `Order #${order.id} delivered`,
     message: sent
       ? `Feedback request sent to ${order.buyerName} on WhatsApp.`
-      : `Share feedback link: ${frontendBase()}/feedback/${order.id}`,
+      : `Share secure feedback link: ${feedbackUrl ?? "Open the delivered order to resend it."}`,
     relatedId: order.id,
     relatedType: "order",
   });

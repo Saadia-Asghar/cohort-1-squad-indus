@@ -3,6 +3,7 @@ import { db, metaConnectionsTable, notificationsTable } from "@workspace/db";
 import { decryptSecret } from "./secret-box.js";
 import { sendWhatsAppTextMessage } from "./whatsapp.js";
 import { logger } from "./logger.js";
+import { guestOrderUrl } from "./guest-action-token.js";
 
 async function resolveWhatsAppSender(bakerId: number): Promise<{
   phoneNumberId: string;
@@ -35,6 +36,7 @@ async function resolveWhatsAppSender(bakerId: number): Promise<{
 export function buildAdvancePaymentMessage(input: {
   order: { id: number; buyerName: string; totalPkr: number };
   baker: { businessName: string; paymentDetails: string; advancePercentage: number; advanceAmountPkr: number };
+  receiptUrl?: string;
 }): string {
   const { order, baker } = input;
   const lines = [
@@ -48,7 +50,7 @@ export function buildAdvancePaymentMessage(input: {
       ? `Send advance to:\n${baker.paymentDetails.trim()}`
       : `Please contact us for payment details.`,
     ``,
-    `After paying, reply with your payment screenshot or transaction ID.`,
+    input.receiptUrl ? `After paying, upload the screenshot securely here:\n${input.receiptUrl}` : `After paying, reply with your payment screenshot or transaction ID.`,
     `Roman Urdu: Advance bhej dein aur screenshot share karein — order confirm ho jayega.`,
   ];
   return lines.join("\n");
@@ -69,7 +71,14 @@ export async function sendAdvancePaymentReminder(input: {
     advanceAmountPkr: number;
   };
 }): Promise<boolean> {
-  const message = buildAdvancePaymentMessage({ order: input.order, baker: input.baker });
+  const receiptUrl = guestOrderUrl({
+    orderId: input.order.id,
+    bakerId: input.order.bakerId,
+    scopes: ["receipt"],
+    expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+    action: "receipt",
+  });
+  const message = buildAdvancePaymentMessage({ order: input.order, baker: input.baker, receiptUrl });
   const sender = await resolveWhatsAppSender(input.order.bakerId);
   let sent = false;
 

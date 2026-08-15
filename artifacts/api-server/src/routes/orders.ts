@@ -19,6 +19,7 @@ import { normalizePakistanPhone } from "../lib/phone.js";
 import {
   recordOrderFeedback,
   sendDeliveryFeedbackRequest,
+  sendGuestActionLink,
   sendOrderStatusUpdate,
   type ServiceFeedback,
 } from "../lib/order-feedback.js";
@@ -28,6 +29,7 @@ import { sendN8nEvent } from "../lib/n8n.js";
 import { isOrderCapReached } from "../lib/plan-limits.js";
 import { toReceiptDataUrl } from "../lib/receipt-image.js";
 import { findDeliveryZone, normalizeDeliveryZones } from "../lib/delivery-zones.js";
+import { createGuestActionToken, guestOrderUrl, verifyGuestActionToken, type GuestActionScope } from "../lib/guest-action-token.js";
 
 const router = Router();
 
@@ -79,9 +81,30 @@ const QuoteApprovalBody = z.object({
 });
 
 const QuoteResponseBody = z.object({
-  buyerWhatsapp: z.string().trim().min(10).max(24),
+  token: z.string().trim().min(40),
   decision: z.enum(["accept", "reject"]),
 });
+
+function guestTokenFor(order: typeof ordersTable.$inferSelect, scopes: GuestActionScope[], expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)) {
+  return createGuestActionToken({ orderId: order.id, bakerId: order.bakerId, scopes, expiresAt });
+}
+
+function safeGuestOrder(order: typeof ordersTable.$inferSelect) {
+  return {
+    id: order.id,
+    bakerId: order.bakerId,
+    status: order.status,
+    paymentStatus: order.paymentStatus,
+    totalPkr: order.totalPkr,
+    deliveryDate: order.deliveryDate,
+    createdAt: order.createdAt,
+    items: (order.items as unknown[]) ?? [],
+    depositRequiredPkr: order.depositRequiredPkr,
+    quoteExpiresAt: order.quoteExpiresAt,
+    requireAdvance: order.requireAdvance,
+    advancePaid: order.advancePaid,
+  };
+}
 
 function formatOrder(o: typeof ordersTable.$inferSelect) {
   return { ...o, items: (o.items as unknown[]) ?? [] };
@@ -173,36 +196,50 @@ router.get("/orders", requireBakerAuth, async (req, res): Promise<void> => {
 
 // GET /orders/lookup?phone= — buyer self-serve status (no payment details)
 router.get("/orders/lookup", rateLimit(20, 15 * 60 * 1000), async (req, res): Promise<void> => {
-  const phoneRaw = String(req.query.phone ?? "");
-  const normalized = normalizePakistanPhone(phoneRaw);
-  if (!normalized) {
-    res.status(400).json({ error: "Enter a valid Pakistani WhatsApp number." });
+  res.status(410).json({ error: "For privacy, order status now opens only from the secure link sent by the bakery." });
+});
+
+router.get("/orders/:orderId/guest-link", requireBakerAuth, requireBakerOwner, async (req, res): Promise<void> => {
+  const orderId = Number.parseInt(String(req.params.orderId), 10);
+  const action = z.enum(["view", "quote", "receipt", "feedback"]).safeParse(req.query.action ?? "view");
+  if (!Number.isInteger(orderId) || !action.success) {
+    res.status(400).json({ error: "Invalid guest-link request." });
     return;
   }
-  const digits = normalized.replace(/\D/g, "");
-  const variants = Array.from(new Set([
-    normalized,
-    digits,
-    digits.startsWith("92") ? `0${digits.slice(2)}` : digits,
-    `+${digits}`,
-  ]));
-  const orders = await db
-    .select({
-      id: ordersTable.id,
-      bakerId: ordersTable.bakerId,
-      status: ordersTable.status,
-      paymentStatus: ordersTable.paymentStatus,
-      totalPkr: ordersTable.totalPkr,
-      deliveryDate: ordersTable.deliveryDate,
-      createdAt: ordersTable.createdAt,
-      items: ordersTable.items,
-      depositRequiredPkr: ordersTable.depositRequiredPkr,
-      quoteExpiresAt: ordersTable.quoteExpiresAt,
-    })
-    .from(ordersTable)
-    .where(inArray(ordersTable.buyerWhatsapp, variants))
-    .limit(20);
-  res.json(orders.map((o) => ({ ...o, items: (o.items as unknown[]) ?? [] })));
+  const bakerId = (req as AuthenticatedRequest).bakerId!;
+  const [order] = await db.select().from(ordersTable).where(and(eq(ordersTable.id, orderId), eq(ordersTable.bakerId, bakerId))).limit(1);
+  if (!order) {
+    res.status(404).json({ error: "Order not found." });
+    return;
+  }
+  if (action.data === "quote" && order.status !== "quoted") {
+    res.status(409).json({ error: "Only a quoted order can receive a quote-response link." });
+    return;
+  }
+  if (action.data === "feedback" && order.status !== "delivered") {
+    res.status(409).json({ error: "Feedback links are available after delivery." });
+    return;
+  }
+  const scopes: GuestActionScope[] = action.data === "quote" ? ["quote", "receipt"] : action.data === "view" ? [] : [action.data];
+  const expiresAt = new Date(Date.now() + (action.data === "feedback" ? 14 : 30) * 24 * 60 * 60 * 1000);
+  res.setHeader("Cache-Control", "no-store");
+  res.json({ url: guestOrderUrl({ orderId, bakerId, scopes, expiresAt, action: action.data === "view" ? undefined : action.data }), expiresAt });
+});
+
+router.get("/orders/:orderId/guest", rateLimit(40, 15 * 60 * 1000), async (req, res): Promise<void> => {
+  const orderId = Number.parseInt(String(req.params.orderId), 10);
+  const token = String(req.header("x-guest-token") ?? "");
+  if (!Number.isInteger(orderId) || !token) {
+    res.status(400).json({ error: "Invalid secure order link." });
+    return;
+  }
+  const [order] = await db.select().from(ordersTable).where(eq(ordersTable.id, orderId)).limit(1);
+  if (!order || !verifyGuestActionToken(token, { orderId, bakerId: order.bakerId, scope: "view" })) {
+    res.status(404).json({ error: "This secure order link is invalid or has expired." });
+    return;
+  }
+  res.setHeader("Cache-Control", "no-store");
+  res.json(safeGuestOrder(order));
 });
 
 // POST /orders — guest checkout with server-side price verification
@@ -391,7 +428,12 @@ router.post("/orders", rateLimit(15, 15 * 60 * 1000), async (req, res): Promise<
       source: order.source,
       requireAdvance: order.requireAdvance,
     });
-    res.status(201).json(formatOrder(order));
+    const guestToken = guestTokenFor(order, ["receipt"]);
+    res.status(201).json({
+      ...formatOrder(order),
+      guestToken,
+      guestUrl: guestOrderUrl({ orderId: order.id, bakerId: order.bakerId, scopes: ["receipt"], expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) }),
+    });
   } catch (cause) {
     console.error("Guest order create failed", cause);
     res.status(500).json({ error: "Could not place your order right now. Please try again." });
@@ -548,7 +590,12 @@ router.post("/orders/custom-quote", rateLimit(10, 15 * 60 * 1000), async (req, r
     buyerWhatsapp: phone,
     deliveryDate: order.deliveryDate,
   });
-  res.status(201).json(formatOrder(order));
+  const guestToken = guestTokenFor(order, ["quote", "receipt"]);
+  res.status(201).json({
+    ...formatOrder(order),
+    guestToken,
+    guestUrl: guestOrderUrl({ orderId: order.id, bakerId: order.bakerId, scopes: ["quote", "receipt"], expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) }),
+  });
 });
 
 // PATCH /orders/:orderId/quote — baker accepts a custom request and fixes the
@@ -627,6 +674,15 @@ router.patch("/orders/:orderId/quote", requireBakerAuth, async (req, res): Promi
     relatedId: order.id,
     relatedType: "order",
   });
+  const guestAccessExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+  void sendGuestActionLink({
+    order,
+    baker,
+    scopes: ["quote", "receipt"],
+    expiresAt: guestAccessExpiresAt,
+    action: "quote",
+    message: `Your quote from ${baker.businessName} is ready: PKR ${order.totalPkr.toLocaleString()}. Open the secure link to accept or decline.`,
+  });
   void sendN8nEvent("custom_quote.sent", { bakerId, orderId: order.id, totalPkr: order.totalPkr, quoteExpiresAt });
   res.json(formatOrderForRole(order, (req as AuthenticatedRequest).memberRole));
 });
@@ -634,14 +690,13 @@ router.patch("/orders/:orderId/quote", requireBakerAuth, async (req, res): Promi
 router.patch("/orders/:orderId/quote-response", rateLimit(20, 15 * 60 * 1000), async (req, res): Promise<void> => {
   const orderId = Number.parseInt(String(req.params.orderId), 10);
   const parsed = QuoteResponseBody.safeParse(req.body);
-  const phone = parsed.success ? normalizePakistanPhone(parsed.data.buyerWhatsapp) : null;
-  if (!Number.isInteger(orderId) || !parsed.success || !phone) {
-    res.status(400).json({ error: "Enter the WhatsApp number used for this quote." });
+  if (!Number.isInteger(orderId) || !parsed.success) {
+    res.status(400).json({ error: "Invalid secure quote response." });
     return;
   }
   const [existing] = await db.select().from(ordersTable).where(eq(ordersTable.id, orderId)).limit(1);
-  if (!existing || existing.source !== "custom_quote" || normalizePakistanPhone(existing.buyerWhatsapp) !== phone) {
-    res.status(404).json({ error: "Quote not found for that WhatsApp number." });
+  if (!existing || existing.source !== "custom_quote" || !verifyGuestActionToken(parsed.data.token, { orderId, bakerId: existing.bakerId, scope: "quote" })) {
+    res.status(404).json({ error: "This secure quote link is invalid or has expired." });
     return;
   }
   if (existing.status !== "quoted") {
@@ -947,22 +1002,22 @@ router.post("/orders/:orderId/feedback", rateLimit(20, 15 * 60 * 1000), async (r
   const parsed = z.object({
     feedback: z.enum(["loved_it", "okay", "had_issue"]),
     note: z.string().trim().max(500).optional(),
-    buyerWhatsapp: z.string().trim().min(10).max(24),
+    token: z.string().trim().min(40),
   }).safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
-  const phone = normalizePakistanPhone(parsed.data.buyerWhatsapp);
-  if (!phone) {
-    res.status(400).json({ error: "Invalid WhatsApp number." });
+  const [order] = await db.select().from(ordersTable).where(eq(ordersTable.id, orderId)).limit(1);
+  if (!order || !verifyGuestActionToken(parsed.data.token, { orderId, bakerId: order.bakerId, scope: "feedback" })) {
+    res.status(404).json({ error: "This feedback link is invalid or has expired." });
     return;
   }
   const updated = await recordOrderFeedback({
     orderId,
     feedback: parsed.data.feedback as ServiceFeedback,
     note: parsed.data.note,
-    buyerWhatsapp: phone,
+    buyerWhatsapp: order.buyerWhatsapp,
   });
   if (!updated) {
     res.status(404).json({ error: "Order not found or feedback already submitted." });
@@ -972,18 +1027,20 @@ router.post("/orders/:orderId/feedback", rateLimit(20, 15 * 60 * 1000), async (r
 });
 
 // GET /orders/:orderId/feedback — public status for feedback page
-router.get("/orders/:orderId/feedback", async (req, res): Promise<void> => {
+router.get("/orders/:orderId/feedback", rateLimit(40, 15 * 60 * 1000), async (req, res): Promise<void> => {
   const orderId = parseInt(String(req.params.orderId), 10);
   if (isNaN(orderId)) {
     res.status(400).json({ error: "Invalid order ID" });
     return;
   }
   const [order] = await db.select().from(ordersTable).where(eq(ordersTable.id, orderId)).limit(1);
-  if (!order || order.status !== "delivered") {
+  const token = String(req.header("x-guest-token") ?? "");
+  if (!order || order.status !== "delivered" || !verifyGuestActionToken(token, { orderId, bakerId: order.bakerId, scope: "feedback" })) {
     res.status(404).json({ error: "Order not ready for feedback." });
     return;
   }
   const [baker] = await db.select().from(bakersTable).where(eq(bakersTable.id, order.bakerId)).limit(1);
+  res.setHeader("Cache-Control", "no-store");
   res.json({
     orderId: order.id,
     bakerName: baker?.businessName ?? "Bakery",
@@ -994,7 +1051,7 @@ router.get("/orders/:orderId/feedback", async (req, res): Promise<void> => {
 });
 
 /**
- * Guest buyer uploads JazzCash/Easypaisa receipt after checkout (phone must match order).
+ * Guest buyer uploads JazzCash/Easypaisa receipt using an expiring signed link.
  * Does not mark paid — baker reviews in Payments.
  */
 router.post("/orders/:orderId/guest-receipt", rateLimit(20, 15 * 60 * 1000), async (req, res): Promise<void> => {
@@ -1005,7 +1062,7 @@ router.post("/orders/:orderId/guest-receipt", rateLimit(20, 15 * 60 * 1000), asy
   }
   const parsed = z
     .object({
-      buyerWhatsapp: z.string().trim().min(10).max(24),
+      token: z.string().trim().min(40),
       imageBase64: z.string().min(32).max(6_000_000),
       contentType: z.enum(["image/jpeg", "image/png", "image/webp"]).optional(),
     })
@@ -1014,19 +1071,9 @@ router.post("/orders/:orderId/guest-receipt", rateLimit(20, 15 * 60 * 1000), asy
     res.status(400).json({ error: parsed.error.message });
     return;
   }
-  const phone = normalizePakistanPhone(parsed.data.buyerWhatsapp);
-  if (!phone) {
-    res.status(400).json({ error: "Enter a valid Pakistani WhatsApp number." });
-    return;
-  }
   const [order] = await db.select().from(ordersTable).where(eq(ordersTable.id, orderId)).limit(1);
-  if (!order) {
-    res.status(404).json({ error: "Order not found" });
-    return;
-  }
-  const orderPhone = normalizePakistanPhone(order.buyerWhatsapp);
-  if (!orderPhone || orderPhone !== phone) {
-    res.status(403).json({ error: "WhatsApp number does not match this order." });
+  if (!order || !verifyGuestActionToken(parsed.data.token, { orderId, bakerId: order.bakerId, scope: "receipt" })) {
+    res.status(404).json({ error: "This receipt-upload link is invalid or has expired." });
     return;
   }
   if (order.paymentStatus === "paid") {

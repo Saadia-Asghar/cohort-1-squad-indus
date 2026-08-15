@@ -57,6 +57,7 @@ export default function Cart() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [orderId, setOrderId] = useState<number | null>(null);
+  const [guestToken, setGuestToken] = useState("");
   const [placedBakerId, setPlacedBakerId] = useState<number | null>(null);
   const [receiptUploading, setReceiptUploading] = useState(false);
   const [receiptUploaded, setReceiptUploaded] = useState(false);
@@ -144,7 +145,7 @@ export default function Cart() {
         responseType: "json",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          buyerWhatsapp,
+          token: guestToken,
           imageBase64: base64,
           contentType: file.type,
         }),
@@ -163,7 +164,7 @@ export default function Cart() {
     setLoading(true);
     setError(null);
     try {
-      const order = await customFetch<{ id: number }>("/api/orders", {
+      const order = await customFetch<{ id: number; guestToken: string }>("/api/orders", {
         method: "POST",
         responseType: "json",
         body: JSON.stringify({
@@ -185,6 +186,7 @@ export default function Cart() {
       writeCart([]);
       setItems([]);
       setOrderId(order.id);
+      setGuestToken(order.guestToken);
       setReceiptUploaded(false);
       setReceiptError(null);
     } catch (cause) {
@@ -242,7 +244,7 @@ export default function Cart() {
                 Continue on WhatsApp
               </a>
             )}
-            <Link href="/orders" className="inline-flex text-sm font-semibold underline">
+            <Link href={`/orders/${orderId}#token=${encodeURIComponent(guestToken)}`} className="inline-flex text-sm font-semibold underline">
               Check order status
             </Link>
           </div>

@@ -201,7 +201,7 @@ export default function BakerProfile() {
     setSavingCustomQuote(true);
     setCustomQuoteError(null);
     try {
-      await customFetch("/api/orders/custom-quote", {
+      const result = await customFetch<{ guestUrl: string }>("/api/orders/custom-quote", {
         method: "POST", responseType: "json", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           bakerId, buyerName: customQuote.name, buyerWhatsapp: customQuote.whatsapp,
@@ -213,6 +213,7 @@ export default function BakerProfile() {
       });
       (document.getElementById("custom-quote-dialog") as HTMLDialogElement | null)?.close();
       toast({ title: "Request sent", description: "The baker will review your custom cake request and confirm the price." });
+      window.location.assign(result.guestUrl);
     } catch (cause) {
       setCustomQuoteError(cause instanceof Error ? cause.message : "Could not send your request. Please try again.");
     } finally {

@@ -16551,7 +16551,7 @@ var require_sign = __commonJS({
   "D:/hp2/Documents/baker/node_modules/.pnpm/math-intrinsics@1.1.0/node_modules/math-intrinsics/sign.js"(exports, module) {
     "use strict";
     var $isNaN = require_isNaN();
-    module.exports = function sign(number4) {
+    module.exports = function sign2(number4) {
       if ($isNaN(number4) || number4 === 0) {
         return number4;
       }
@@ -16915,7 +16915,7 @@ var require_get_intrinsic = __commonJS({
     var min = require_min();
     var pow = require_pow();
     var round = require_round();
-    var sign = require_sign();
+    var sign2 = require_sign();
     var $Function = Function;
     var getEvalledConstructor = function(expressionSyntax) {
       try {
@@ -17029,7 +17029,7 @@ var require_get_intrinsic = __commonJS({
       "%Math.min%": min,
       "%Math.pow%": pow,
       "%Math.round%": round,
-      "%Math.sign%": sign,
+      "%Math.sign%": sign2,
       "%Reflect.getPrototypeOf%": $ReflectGPO
     };
     if (getProto) {
@@ -18979,14 +18979,14 @@ var require_etag = __commonJS({
   "D:/hp2/Documents/baker/node_modules/.pnpm/etag@1.8.1/node_modules/etag/index.js"(exports, module) {
     "use strict";
     module.exports = etag;
-    var crypto8 = __require("crypto");
+    var crypto9 = __require("crypto");
     var Stats = __require("fs").Stats;
     var toString = Object.prototype.toString;
     function entitytag(entity) {
       if (entity.length === 0) {
         return '"0-2jmj7l5rSw0yVb/vlWAYkK/YBwk"';
       }
-      var hash = crypto8.createHash("sha1").update(entity, "utf8").digest("base64").substring(0, 27);
+      var hash = crypto9.createHash("sha1").update(entity, "utf8").digest("base64").substring(0, 27);
       var len = typeof entity === "string" ? Buffer.byteLength(entity, "utf8") : entity.length;
       return '"' + len.toString(16) + "-" + hash + '"';
     }
@@ -22473,17 +22473,17 @@ var require_content_disposition = __commonJS({
 // D:/hp2/Documents/baker/node_modules/.pnpm/cookie-signature@1.2.2/node_modules/cookie-signature/index.js
 var require_cookie_signature = __commonJS({
   "D:/hp2/Documents/baker/node_modules/.pnpm/cookie-signature@1.2.2/node_modules/cookie-signature/index.js"(exports) {
-    var crypto8 = __require("crypto");
-    exports.sign = function(val, secret) {
+    var crypto9 = __require("crypto");
+    exports.sign = function(val, secret2) {
       if ("string" != typeof val) throw new TypeError("Cookie value must be provided as a string.");
-      if (null == secret) throw new TypeError("Secret key must be provided.");
-      return val + "." + crypto8.createHmac("sha256", secret).update(val).digest("base64").replace(/\=+$/, "");
+      if (null == secret2) throw new TypeError("Secret key must be provided.");
+      return val + "." + crypto9.createHmac("sha256", secret2).update(val).digest("base64").replace(/\=+$/, "");
     };
-    exports.unsign = function(input, secret) {
+    exports.unsign = function(input, secret2) {
       if ("string" != typeof input) throw new TypeError("Signed cookie string must be provided.");
-      if (null == secret) throw new TypeError("Secret key must be provided.");
-      var tentativeValue = input.slice(0, input.lastIndexOf(".")), expectedInput = exports.sign(tentativeValue, secret), expectedBuffer = Buffer.from(expectedInput), inputBuffer = Buffer.from(input);
-      return expectedBuffer.length === inputBuffer.length && crypto8.timingSafeEqual(expectedBuffer, inputBuffer) ? tentativeValue : false;
+      if (null == secret2) throw new TypeError("Secret key must be provided.");
+      var tentativeValue = input.slice(0, input.lastIndexOf(".")), expectedInput = exports.sign(tentativeValue, secret2), expectedBuffer = Buffer.from(expectedInput), inputBuffer = Buffer.from(input);
+      return expectedBuffer.length === inputBuffer.length && crypto9.timingSafeEqual(expectedBuffer, inputBuffer) ? tentativeValue : false;
     };
   }
 });
@@ -23225,7 +23225,7 @@ var require_response = __commonJS({
     var path = __require("node:path");
     var pathIsAbsolute = __require("node:path").isAbsolute;
     var statuses = require_statuses();
-    var sign = require_cookie_signature().sign;
+    var sign2 = require_cookie_signature().sign;
     var normalizeType = require_utils3().normalizeType;
     var normalizeTypes = require_utils3().normalizeTypes;
     var setCharset = require_utils3().setCharset;
@@ -23509,14 +23509,14 @@ var require_response = __commonJS({
     };
     res.cookie = function(name, value, options) {
       var opts = { ...options };
-      var secret = this.req.secret;
+      var secret2 = this.req.secret;
       var signed = opts.signed;
-      if (signed && !secret) {
+      if (signed && !secret2) {
         throw new Error('cookieParser("secret") required for signed cookies');
       }
       var val = typeof value === "object" ? "j:" + JSON.stringify(value) : String(value);
       if (signed) {
-        val = "s:" + sign(val, secret);
+        val = "s:" + sign2(val, secret2);
       }
       if (opts.maxAge != null) {
         var maxAge = opts.maxAge - 0;
@@ -24294,9 +24294,9 @@ var require_postgres_date = __commonJS({
       if (type === "Z") {
         return 0;
       }
-      var sign = type === "-" ? -1 : 1;
+      var sign2 = type === "-" ? -1 : 1;
       var offset = parseInt(zone[2], 10) * 3600 + parseInt(zone[3] || 0, 10) * 60 + parseInt(zone[4] || 0, 10);
-      return offset * sign * 1e3;
+      return offset * sign2 * 1e3;
     }
     function bcYearToNegativeYear(year) {
       return -(year - 1);
@@ -24661,11 +24661,11 @@ var require_pg_int8 = __commonJS({
     function readInt8(buffer) {
       var high = buffer.readInt32BE(0);
       var low = buffer.readUInt32BE(4);
-      var sign = "";
+      var sign2 = "";
       if (high < 0) {
         high = ~high + (low === 0);
         low = ~low + 1 >>> 0;
-        sign = "-";
+        sign2 = "-";
       }
       var result = "";
       var carry;
@@ -24681,7 +24681,7 @@ var require_pg_int8 = __commonJS({
         low = t / BASE >>> 0;
         digits = "" + (t - BASE * low);
         if (low === 0 && high === 0) {
-          return sign + digits + result;
+          return sign2 + digits + result;
         }
         pad2 = "";
         l = 6 - digits.length;
@@ -24697,7 +24697,7 @@ var require_pg_int8 = __commonJS({
         low = t / BASE >>> 0;
         digits = "" + (t - BASE * low);
         if (low === 0 && high === 0) {
-          return sign + digits + result;
+          return sign2 + digits + result;
         }
         pad2 = "";
         l = 6 - digits.length;
@@ -24713,7 +24713,7 @@ var require_pg_int8 = __commonJS({
         low = t / BASE >>> 0;
         digits = "" + (t - BASE * low);
         if (low === 0 && high === 0) {
-          return sign + digits + result;
+          return sign2 + digits + result;
         }
         pad2 = "";
         l = 6 - digits.length;
@@ -24726,7 +24726,7 @@ var require_pg_int8 = __commonJS({
         carry = high % BASE;
         t = 4294967296 * carry + low;
         digits = "" + t % BASE;
-        return sign + digits + result;
+        return sign2 + digits + result;
       }
     }
     module.exports = readInt8;
@@ -24775,7 +24775,7 @@ var require_binaryParsers = __commonJS({
     };
     var parseFloatFromBits = function(data, precisionBits, exponentBits) {
       var bias = Math.pow(2, exponentBits - 1) - 1;
-      var sign = parseBits(data, 1);
+      var sign2 = parseBits(data, 1);
       var exponent = parseBits(data, exponentBits, 1);
       if (exponent === 0) {
         return 0;
@@ -24796,11 +24796,11 @@ var require_binaryParsers = __commonJS({
       var mantissa = parseBits(data, precisionBits, exponentBits + 1, false, parsePrecisionBits);
       if (exponent == Math.pow(2, exponentBits + 1) - 1) {
         if (mantissa === 0) {
-          return sign === 0 ? Infinity : -Infinity;
+          return sign2 === 0 ? Infinity : -Infinity;
         }
         return NaN;
       }
-      return (sign === 0 ? 1 : -1) * Math.pow(2, exponent - bias) * mantissa;
+      return (sign2 === 0 ? 1 : -1) * Math.pow(2, exponent - bias) * mantissa;
     };
     var parseInt16 = function(value) {
       if (parseBits(value, 1) == 1) {
@@ -24821,8 +24821,8 @@ var require_binaryParsers = __commonJS({
       return parseFloatFromBits(value, 52, 11);
     };
     var parseNumeric = function(value) {
-      var sign = parseBits(value, 16, 32);
-      if (sign == 49152) {
+      var sign2 = parseBits(value, 16, 32);
+      if (sign2 == 49152) {
         return NaN;
       }
       var weight = Math.pow(1e4, parseBits(value, 16, 16));
@@ -24834,12 +24834,12 @@ var require_binaryParsers = __commonJS({
         weight /= 1e4;
       }
       var scale = Math.pow(10, parseBits(value, 16, 48));
-      return (sign === 0 ? 1 : -1) * Math.round(result * scale) / scale;
+      return (sign2 === 0 ? 1 : -1) * Math.round(result * scale) / scale;
     };
     var parseDate = function(isUTC, value) {
-      var sign = parseBits(value, 1);
+      var sign2 = parseBits(value, 1);
       var rawValue = parseBits(value, 63, 1);
-      var result = new Date((sign === 0 ? 1 : -1) * rawValue / 1e3 + 9466848e5);
+      var result = new Date((sign2 === 0 ? 1 : -1) * rawValue / 1e3 + 9466848e5);
       if (!isUTC) {
         result.setTime(result.getTime() + result.getTimezoneOffset() * 6e4);
       }
@@ -25427,7 +25427,7 @@ var require_cert_signatures = __commonJS({
 var require_sasl = __commonJS({
   "D:/hp2/Documents/baker/node_modules/.pnpm/pg@8.22.0/node_modules/pg/lib/crypto/sasl.js"(exports, module) {
     "use strict";
-    var crypto8 = require_utils5();
+    var crypto9 = require_utils5();
     var { signatureAlgorithmHashFromCertificate } = require_cert_signatures();
     function saslprep(password) {
       const nonAsciiSpace = /[\u00A0\u1680\u2000-\u200B\u202F\u205F\u3000]/g;
@@ -25445,7 +25445,7 @@ var require_sasl = __commonJS({
       if (mechanism === "SCRAM-SHA-256-PLUS" && typeof stream.getPeerCertificate !== "function") {
         throw new Error("SASL: Mechanism SCRAM-SHA-256-PLUS requires a certificate");
       }
-      const clientNonce = crypto8.randomBytes(18).toString("base64");
+      const clientNonce = crypto9.randomBytes(18).toString("base64");
       const gs2Header = mechanism === "SCRAM-SHA-256-PLUS" ? "p=tls-server-end-point" : stream ? "y" : "n";
       return {
         mechanism,
@@ -25487,20 +25487,20 @@ var require_sasl = __commonJS({
         const peerCert = stream.getPeerCertificate().raw;
         let hashName = signatureAlgorithmHashFromCertificate(peerCert);
         if (hashName === "MD5" || hashName === "SHA-1") hashName = "SHA-256";
-        const certHash = await crypto8.hashByName(hashName, peerCert);
+        const certHash = await crypto9.hashByName(hashName, peerCert);
         const bindingData = Buffer.concat([Buffer.from("p=tls-server-end-point,,"), Buffer.from(certHash)]);
         channelBinding = bindingData.toString("base64");
       }
       const clientFinalMessageWithoutProof = "c=" + channelBinding + ",r=" + sv.nonce;
       const authMessage = clientFirstMessageBare + "," + serverFirstMessage + "," + clientFinalMessageWithoutProof;
       const saltBytes = Buffer.from(sv.salt, "base64");
-      const saltedPassword = await crypto8.deriveKey(saslprep(password), saltBytes, sv.iteration);
-      const clientKey = await crypto8.hmacSha256(saltedPassword, "Client Key");
-      const storedKey = await crypto8.sha256(clientKey);
-      const clientSignature = await crypto8.hmacSha256(storedKey, authMessage);
+      const saltedPassword = await crypto9.deriveKey(saslprep(password), saltBytes, sv.iteration);
+      const clientKey = await crypto9.hmacSha256(saltedPassword, "Client Key");
+      const storedKey = await crypto9.sha256(clientKey);
+      const clientSignature = await crypto9.hmacSha256(storedKey, authMessage);
       const clientProof = xorBuffers(Buffer.from(clientKey), Buffer.from(clientSignature)).toString("base64");
-      const serverKey = await crypto8.hmacSha256(saltedPassword, "Server Key");
-      const serverSignatureBytes = await crypto8.hmacSha256(serverKey, authMessage);
+      const serverKey = await crypto9.hmacSha256(saltedPassword, "Server Key");
+      const serverSignatureBytes = await crypto9.hmacSha256(serverKey, authMessage);
       session.message = "SASLResponse";
       session.serverSignature = Buffer.from(serverSignatureBytes).toString("base64");
       session.response = clientFinalMessageWithoutProof + ",p=" + clientProof;
@@ -27730,7 +27730,7 @@ var require_client = __commonJS({
     var Query2 = require_query();
     var defaults2 = require_defaults();
     var Connection2 = require_connection();
-    var crypto8 = require_utils5();
+    var crypto9 = require_utils5();
     var activeQueryDeprecationNotice = nodeUtils.deprecate(
       () => {
       },
@@ -27981,7 +27981,7 @@ var require_client = __commonJS({
       _handleAuthMD5Password(msg) {
         this._getPassword(async () => {
           try {
-            const hashedPassword = await crypto8.postgresMd5PasswordHash(this.user, this.password, msg.salt);
+            const hashedPassword = await crypto9.postgresMd5PasswordHash(this.user, this.password, msg.salt);
             this.connection.password(hashedPassword);
           } catch (e) {
             this.emit("error", e);
@@ -30025,7 +30025,7 @@ var require_lib6 = __commonJS({
     "use strict";
     var conversions = {};
     module.exports = conversions;
-    function sign(x) {
+    function sign2(x) {
       return x < 0 ? -1 : 1;
     }
     function evenRound(x) {
@@ -30050,7 +30050,7 @@ var require_lib6 = __commonJS({
           if (!Number.isFinite(x)) {
             throw new TypeError("Argument is not a finite number");
           }
-          x = sign(x) * Math.floor(Math.abs(x));
+          x = sign2(x) * Math.floor(Math.abs(x));
           if (x < lowerBound || x > upperBound) {
             throw new TypeError("Argument is not in byte range");
           }
@@ -30065,7 +30065,7 @@ var require_lib6 = __commonJS({
         if (!Number.isFinite(x) || x === 0) {
           return 0;
         }
-        x = sign(x) * Math.floor(Math.abs(x));
+        x = sign2(x) * Math.floor(Math.abs(x));
         x = x % moduloVal;
         if (!typeOpts.unsigned && x >= moduloBound) {
           return x - moduloVal;
@@ -38849,8 +38849,8 @@ var assertIssuedAtClaim = (iat, clockSkewInMs) => {
     });
   }
 };
-function pemToBuffer(secret) {
-  const trimmed = secret.replace(/-----BEGIN.*?-----/g, "").replace(/-----END.*?-----/g, "").replace(/\s/g, "");
+function pemToBuffer(secret2) {
+  const trimmed = secret2.replace(/-----BEGIN.*?-----/g, "").replace(/-----END.*?-----/g, "").replace(/\s/g, "");
   const decoded = isomorphicAtob(trimmed);
   const buffer = new ArrayBuffer(decoded.length);
   const bufView = new Uint8Array(buffer);
@@ -40372,11 +40372,11 @@ var APIKeysAPI = class extends AbstractAPI {
    * @param secret - The secret of the API key to verify.
    * @returns The verified [`APIKey`](https://clerk.com/docs/reference/backend/types/backend-api-key) object.
    */
-  async verify(secret) {
+  async verify(secret2) {
     return this.request({
       method: "POST",
       path: joinPaths(basePath5, "verify"),
-      bodyParams: { secret }
+      bodyParams: { secret: secret2 }
     });
   }
 };
@@ -43156,7 +43156,7 @@ var AllowlistIdentifier = class _AllowlistIdentifier {
   }
 };
 var APIKey = class _APIKey {
-  constructor(id, type, name, subject, scopes, claims, revoked, revocationReason, expired, expiration, createdBy, description, lastUsedAt, createdAt, updatedAt, secret) {
+  constructor(id, type, name, subject, scopes, claims, revoked, revocationReason, expired, expiration, createdBy, description, lastUsedAt, createdAt, updatedAt, secret2) {
     this.id = id;
     this.type = type;
     this.name = name;
@@ -43172,7 +43172,7 @@ var APIKey = class _APIKey {
     this.lastUsedAt = lastUsedAt;
     this.createdAt = createdAt;
     this.updatedAt = updatedAt;
-    this.secret = secret;
+    this.secret = secret2;
   }
   static fromJSON(data) {
     return new _APIKey(
@@ -43988,8 +43988,8 @@ var MachineScope = class _MachineScope {
   }
 };
 var MachineSecretKey = class _MachineSecretKey {
-  constructor(secret) {
-    this.secret = secret;
+  constructor(secret2) {
+    this.secret = secret2;
   }
   static fromJSON(data) {
     return new _MachineSecretKey(data.secret);
@@ -45632,10 +45632,10 @@ async function verifyOAuthToken(accessToken, options) {
     return handleClerkAPIError(TokenType.OAuthToken, err, "OAuth token not found");
   }
 }
-async function verifyAPIKey(secret, options) {
+async function verifyAPIKey(secret2, options) {
   try {
     const client = createBackendApiClient(options);
-    const verifiedToken = await client.apiKeys.verify(secret);
+    const verifiedToken = await client.apiKeys.verify(secret2);
     return { data: verifiedToken, tokenType: TokenType.ApiKey, errors: void 0 };
   } catch (err) {
     return handleClerkAPIError(TokenType.ApiKey, err, "API key not found");
@@ -55544,8 +55544,8 @@ var PgTimestampString = class extends PgColumn {
     const shortened = value.toISOString().slice(0, -1).replace("T", " ");
     if (this.withTimezone) {
       const offset = value.getTimezoneOffset();
-      const sign = offset <= 0 ? "+" : "-";
-      return `${shortened}${sign}${Math.floor(Math.abs(offset) / 60).toString().padStart(2, "0")}`;
+      const sign2 = offset <= 0 ? "+" : "-";
+      return `${shortened}${sign2}${Math.floor(Math.abs(offset) / 60).toString().padStart(2, "0")}`;
     }
     return shortened;
   }
@@ -72176,15 +72176,15 @@ var PASSWORD_ITERATIONS = 31e4;
 var PASSWORD_KEY_LENGTH = 64;
 var LEGACY_PASSWORD_ITERATIONS = 1e3;
 function getJwtSecret() {
-  const secret = process.env.JWT_SECRET;
+  const secret2 = process.env.JWT_SECRET;
   const isProd = process.env.NODE_ENV === "production" || Boolean(process.env.VERCEL);
-  if (!secret || secret.length < 32) {
+  if (!secret2 || secret2.length < 32) {
     if (isProd) {
       throw new Error("JWT_SECRET must be set to at least 32 characters in production.");
     }
     return "placeholder-jwt-secret-sweet-tooth-app-development-key-32-chars";
   }
-  return secret;
+  return secret2;
 }
 function signToken(payload) {
   const header = Buffer.from(JSON.stringify({ alg: "HS256", typ: "JWT" })).toString("base64url");
@@ -74359,6 +74359,55 @@ async function ocrWhatsAppImageHint(imageBytes, expectedAmountPkr, advancePercen
   }
 }
 
+// src/lib/guest-action-token.ts
+import crypto6 from "node:crypto";
+function secret() {
+  const value = process.env.GUEST_ACTION_SECRET?.trim() || process.env.JWT_SECRET?.trim();
+  if (!value || value.length < 32) throw new Error("GUEST_ACTION_SECRET or JWT_SECRET must be at least 32 characters.");
+  return value;
+}
+function sign(encodedPayload) {
+  return crypto6.createHmac("sha256", secret()).update(encodedPayload).digest("base64url");
+}
+function createGuestActionToken(input) {
+  const payload = {
+    v: 1,
+    orderId: input.orderId,
+    bakerId: input.bakerId,
+    scopes: Array.from(/* @__PURE__ */ new Set(["view", ...input.scopes])),
+    exp: Math.floor(input.expiresAt.getTime() / 1e3)
+  };
+  const encoded = Buffer.from(JSON.stringify(payload)).toString("base64url");
+  return `${encoded}.${sign(encoded)}`;
+}
+function verifyGuestActionToken(token, expected) {
+  const [encoded, signature, extra] = token.split(".");
+  if (!encoded || !signature || extra) return null;
+  const expectedSignature = sign(encoded);
+  const actualBytes = Buffer.from(signature);
+  const expectedBytes = Buffer.from(expectedSignature);
+  if (actualBytes.length !== expectedBytes.length || !crypto6.timingSafeEqual(actualBytes, expectedBytes)) return null;
+  try {
+    const payload = JSON.parse(Buffer.from(encoded, "base64url").toString("utf8"));
+    if (payload.v !== 1 || !Number.isInteger(payload.orderId) || !Number.isInteger(payload.bakerId)) return null;
+    if (!Array.isArray(payload.scopes) || !payload.scopes.includes(expected.scope)) return null;
+    if (payload.orderId !== expected.orderId || expected.bakerId && payload.bakerId !== expected.bakerId) return null;
+    if (!Number.isFinite(payload.exp) || payload.exp <= Math.floor(Date.now() / 1e3)) return null;
+    return payload;
+  } catch {
+    return null;
+  }
+}
+function guestOrderUrl(input) {
+  const base = process.env.FRONTEND_URL?.replace(/\/$/, "") || "https://cohort-1-squad-indus-sweet-tooth.vercel.app";
+  const token = createGuestActionToken(input);
+  const query = new URLSearchParams();
+  if (input.action) query.set("action", input.action);
+  const path = input.action === "feedback" ? `/feedback/${input.orderId}` : `/orders/${input.orderId}`;
+  const search = query.size ? `?${query.toString()}` : "";
+  return `${base}${path}${search}#token=${encodeURIComponent(token)}`;
+}
+
 // src/lib/order-feedback.ts
 var FEEDBACK_LABELS = {
   loved_it: "Loved it",
@@ -74372,11 +74421,14 @@ function parseFeedbackReply(text2) {
   if (/^2\b|okay|ok|fine|average|theek/.test(t)) return "okay";
   return null;
 }
-function frontendBase() {
-  return process.env.FRONTEND_URL?.replace(/\/$/, "") ?? "https://cohort-1-squad-indus-sweet-tooth.vercel.app";
-}
 function buildDeliveryFeedbackMessage(order, baker) {
-  const link = `${frontendBase()}/feedback/${order.id}`;
+  const link = guestOrderUrl({
+    orderId: order.id,
+    bakerId: order.bakerId,
+    scopes: ["feedback"],
+    expiresAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1e3),
+    action: "feedback"
+  });
   return [
     `Assalam-o-Alaikum ${order.buyerName}!`,
     `Your order #${order.id} from ${baker.businessName} has been delivered.`,
@@ -74388,6 +74440,26 @@ function buildDeliveryFeedbackMessage(order, baker) {
     ``,
     `Or tap: ${link}`
   ].join("\n");
+}
+async function sendGuestActionLink(input) {
+  const url2 = guestOrderUrl({
+    orderId: input.order.id,
+    bakerId: input.order.bakerId,
+    scopes: input.scopes,
+    expiresAt: input.expiresAt,
+    action: input.action
+  });
+  const sender = await resolveWhatsAppSender(input.order.bakerId);
+  if (!sender) return { sent: false, url: url2 };
+  const sent = await sendWhatsAppTextMessage(
+    sender.phoneNumberId,
+    input.order.buyerWhatsapp,
+    `${input.message}
+
+${url2}`,
+    sender.accessToken
+  );
+  return { sent, url: url2 };
 }
 var ORDER_STATUS_LABELS = {
   new: "received",
@@ -74430,6 +74502,7 @@ async function resolveWhatsAppSender(bakerId) {
 }
 async function sendDeliveryFeedbackRequest(order, baker) {
   const message = buildDeliveryFeedbackMessage(order, baker);
+  const feedbackUrl = message.split("Or tap: ")[1]?.trim();
   const sender = await resolveWhatsAppSender(baker.id);
   let sent = false;
   if (sender) {
@@ -74446,7 +74519,7 @@ async function sendDeliveryFeedbackRequest(order, baker) {
     bakerId: baker.id,
     type: "order_delivered",
     title: `Order #${order.id} delivered`,
-    message: sent ? `Feedback request sent to ${order.buyerName} on WhatsApp.` : `Share feedback link: ${frontendBase()}/feedback/${order.id}`,
+    message: sent ? `Feedback request sent to ${order.buyerName} on WhatsApp.` : `Share secure feedback link: ${feedbackUrl ?? "Open the delivered order to resend it."}`,
     relatedId: order.id,
     relatedType: "order"
   });
@@ -74549,13 +74622,21 @@ function buildAdvancePaymentMessage(input) {
     baker.paymentDetails.trim() ? `Send advance to:
 ${baker.paymentDetails.trim()}` : `Please contact us for payment details.`,
     ``,
-    `After paying, reply with your payment screenshot or transaction ID.`,
+    input.receiptUrl ? `After paying, upload the screenshot securely here:
+${input.receiptUrl}` : `After paying, reply with your payment screenshot or transaction ID.`,
     `Roman Urdu: Advance bhej dein aur screenshot share karein \u2014 order confirm ho jayega.`
   ];
   return lines.join("\n");
 }
 async function sendAdvancePaymentReminder(input) {
-  const message = buildAdvancePaymentMessage({ order: input.order, baker: input.baker });
+  const receiptUrl = guestOrderUrl({
+    orderId: input.order.id,
+    bakerId: input.order.bakerId,
+    scopes: ["receipt"],
+    expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1e3),
+    action: "receipt"
+  });
+  const message = buildAdvancePaymentMessage({ order: input.order, baker: input.baker, receiptUrl });
   const sender = await resolveWhatsAppSender2(input.order.bakerId);
   let sent = false;
   if (sender) {
@@ -74847,9 +74928,28 @@ var QuoteApprovalBody = external_exports.object({
   expiresInDays: external_exports.number().int().min(1).max(30).default(3)
 });
 var QuoteResponseBody = external_exports.object({
-  buyerWhatsapp: external_exports.string().trim().min(10).max(24),
+  token: external_exports.string().trim().min(40),
   decision: external_exports.enum(["accept", "reject"])
 });
+function guestTokenFor(order, scopes, expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1e3)) {
+  return createGuestActionToken({ orderId: order.id, bakerId: order.bakerId, scopes, expiresAt });
+}
+function safeGuestOrder(order) {
+  return {
+    id: order.id,
+    bakerId: order.bakerId,
+    status: order.status,
+    paymentStatus: order.paymentStatus,
+    totalPkr: order.totalPkr,
+    deliveryDate: order.deliveryDate,
+    createdAt: order.createdAt,
+    items: order.items ?? [],
+    depositRequiredPkr: order.depositRequiredPkr,
+    quoteExpiresAt: order.quoteExpiresAt,
+    requireAdvance: order.requireAdvance,
+    advancePaid: order.advancePaid
+  };
+}
 function formatOrder(o) {
   return { ...o, items: o.items ?? [] };
 }
@@ -74914,32 +75014,48 @@ router5.get("/orders", requireBakerAuth, async (req, res) => {
   res.json(orders.map((order) => formatOrderForRole(order, req.memberRole)));
 });
 router5.get("/orders/lookup", rateLimit(20, 15 * 60 * 1e3), async (req, res) => {
-  const phoneRaw = String(req.query.phone ?? "");
-  const normalized = normalizePakistanPhone(phoneRaw);
-  if (!normalized) {
-    res.status(400).json({ error: "Enter a valid Pakistani WhatsApp number." });
+  res.status(410).json({ error: "For privacy, order status now opens only from the secure link sent by the bakery." });
+});
+router5.get("/orders/:orderId/guest-link", requireBakerAuth, requireBakerOwner, async (req, res) => {
+  const orderId = Number.parseInt(String(req.params.orderId), 10);
+  const action = external_exports.enum(["view", "quote", "receipt", "feedback"]).safeParse(req.query.action ?? "view");
+  if (!Number.isInteger(orderId) || !action.success) {
+    res.status(400).json({ error: "Invalid guest-link request." });
     return;
   }
-  const digits = normalized.replace(/\D/g, "");
-  const variants = Array.from(/* @__PURE__ */ new Set([
-    normalized,
-    digits,
-    digits.startsWith("92") ? `0${digits.slice(2)}` : digits,
-    `+${digits}`
-  ]));
-  const orders = await db.select({
-    id: ordersTable.id,
-    bakerId: ordersTable.bakerId,
-    status: ordersTable.status,
-    paymentStatus: ordersTable.paymentStatus,
-    totalPkr: ordersTable.totalPkr,
-    deliveryDate: ordersTable.deliveryDate,
-    createdAt: ordersTable.createdAt,
-    items: ordersTable.items,
-    depositRequiredPkr: ordersTable.depositRequiredPkr,
-    quoteExpiresAt: ordersTable.quoteExpiresAt
-  }).from(ordersTable).where(inArray(ordersTable.buyerWhatsapp, variants)).limit(20);
-  res.json(orders.map((o) => ({ ...o, items: o.items ?? [] })));
+  const bakerId = req.bakerId;
+  const [order] = await db.select().from(ordersTable).where(and(eq(ordersTable.id, orderId), eq(ordersTable.bakerId, bakerId))).limit(1);
+  if (!order) {
+    res.status(404).json({ error: "Order not found." });
+    return;
+  }
+  if (action.data === "quote" && order.status !== "quoted") {
+    res.status(409).json({ error: "Only a quoted order can receive a quote-response link." });
+    return;
+  }
+  if (action.data === "feedback" && order.status !== "delivered") {
+    res.status(409).json({ error: "Feedback links are available after delivery." });
+    return;
+  }
+  const scopes = action.data === "quote" ? ["quote", "receipt"] : action.data === "view" ? [] : [action.data];
+  const expiresAt = new Date(Date.now() + (action.data === "feedback" ? 14 : 30) * 24 * 60 * 60 * 1e3);
+  res.setHeader("Cache-Control", "no-store");
+  res.json({ url: guestOrderUrl({ orderId, bakerId, scopes, expiresAt, action: action.data === "view" ? void 0 : action.data }), expiresAt });
+});
+router5.get("/orders/:orderId/guest", rateLimit(40, 15 * 60 * 1e3), async (req, res) => {
+  const orderId = Number.parseInt(String(req.params.orderId), 10);
+  const token = String(req.header("x-guest-token") ?? "");
+  if (!Number.isInteger(orderId) || !token) {
+    res.status(400).json({ error: "Invalid secure order link." });
+    return;
+  }
+  const [order] = await db.select().from(ordersTable).where(eq(ordersTable.id, orderId)).limit(1);
+  if (!order || !verifyGuestActionToken(token, { orderId, bakerId: order.bakerId, scope: "view" })) {
+    res.status(404).json({ error: "This secure order link is invalid or has expired." });
+    return;
+  }
+  res.setHeader("Cache-Control", "no-store");
+  res.json(safeGuestOrder(order));
 });
 router5.post("/orders", rateLimit(15, 15 * 60 * 1e3), async (req, res) => {
   const parsed = guestOrderSchema.safeParse(req.body);
@@ -75090,7 +75206,12 @@ router5.post("/orders", rateLimit(15, 15 * 60 * 1e3), async (req, res) => {
       source: order.source,
       requireAdvance: order.requireAdvance
     });
-    res.status(201).json(formatOrder(order));
+    const guestToken = guestTokenFor(order, ["receipt"]);
+    res.status(201).json({
+      ...formatOrder(order),
+      guestToken,
+      guestUrl: guestOrderUrl({ orderId: order.id, bakerId: order.bakerId, scopes: ["receipt"], expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1e3) })
+    });
   } catch (cause) {
     console.error("Guest order create failed", cause);
     res.status(500).json({ error: "Could not place your order right now. Please try again." });
@@ -75225,7 +75346,12 @@ router5.post("/orders/custom-quote", rateLimit(10, 15 * 60 * 1e3), async (req, r
     buyerWhatsapp: phone,
     deliveryDate: order.deliveryDate
   });
-  res.status(201).json(formatOrder(order));
+  const guestToken = guestTokenFor(order, ["quote", "receipt"]);
+  res.status(201).json({
+    ...formatOrder(order),
+    guestToken,
+    guestUrl: guestOrderUrl({ orderId: order.id, bakerId: order.bakerId, scopes: ["quote", "receipt"], expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1e3) })
+  });
 });
 router5.patch("/orders/:orderId/quote", requireBakerAuth, async (req, res) => {
   const orderId = Number.parseInt(String(req.params.orderId), 10);
@@ -75295,20 +75421,28 @@ router5.patch("/orders/:orderId/quote", requireBakerAuth, async (req, res) => {
     relatedId: order.id,
     relatedType: "order"
   });
+  const guestAccessExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1e3);
+  void sendGuestActionLink({
+    order,
+    baker,
+    scopes: ["quote", "receipt"],
+    expiresAt: guestAccessExpiresAt,
+    action: "quote",
+    message: `Your quote from ${baker.businessName} is ready: PKR ${order.totalPkr.toLocaleString()}. Open the secure link to accept or decline.`
+  });
   void sendN8nEvent("custom_quote.sent", { bakerId, orderId: order.id, totalPkr: order.totalPkr, quoteExpiresAt });
   res.json(formatOrderForRole(order, req.memberRole));
 });
 router5.patch("/orders/:orderId/quote-response", rateLimit(20, 15 * 60 * 1e3), async (req, res) => {
   const orderId = Number.parseInt(String(req.params.orderId), 10);
   const parsed = QuoteResponseBody.safeParse(req.body);
-  const phone = parsed.success ? normalizePakistanPhone(parsed.data.buyerWhatsapp) : null;
-  if (!Number.isInteger(orderId) || !parsed.success || !phone) {
-    res.status(400).json({ error: "Enter the WhatsApp number used for this quote." });
+  if (!Number.isInteger(orderId) || !parsed.success) {
+    res.status(400).json({ error: "Invalid secure quote response." });
     return;
   }
   const [existing] = await db.select().from(ordersTable).where(eq(ordersTable.id, orderId)).limit(1);
-  if (!existing || existing.source !== "custom_quote" || normalizePakistanPhone(existing.buyerWhatsapp) !== phone) {
-    res.status(404).json({ error: "Quote not found for that WhatsApp number." });
+  if (!existing || existing.source !== "custom_quote" || !verifyGuestActionToken(parsed.data.token, { orderId, bakerId: existing.bakerId, scope: "quote" })) {
+    res.status(404).json({ error: "This secure quote link is invalid or has expired." });
     return;
   }
   if (existing.status !== "quoted") {
@@ -75575,22 +75709,22 @@ router5.post("/orders/:orderId/feedback", rateLimit(20, 15 * 60 * 1e3), async (r
   const parsed = external_exports.object({
     feedback: external_exports.enum(["loved_it", "okay", "had_issue"]),
     note: external_exports.string().trim().max(500).optional(),
-    buyerWhatsapp: external_exports.string().trim().min(10).max(24)
+    token: external_exports.string().trim().min(40)
   }).safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
-  const phone = normalizePakistanPhone(parsed.data.buyerWhatsapp);
-  if (!phone) {
-    res.status(400).json({ error: "Invalid WhatsApp number." });
+  const [order] = await db.select().from(ordersTable).where(eq(ordersTable.id, orderId)).limit(1);
+  if (!order || !verifyGuestActionToken(parsed.data.token, { orderId, bakerId: order.bakerId, scope: "feedback" })) {
+    res.status(404).json({ error: "This feedback link is invalid or has expired." });
     return;
   }
   const updated = await recordOrderFeedback({
     orderId,
     feedback: parsed.data.feedback,
     note: parsed.data.note,
-    buyerWhatsapp: phone
+    buyerWhatsapp: order.buyerWhatsapp
   });
   if (!updated) {
     res.status(404).json({ error: "Order not found or feedback already submitted." });
@@ -75598,18 +75732,20 @@ router5.post("/orders/:orderId/feedback", rateLimit(20, 15 * 60 * 1e3), async (r
   }
   res.json({ ok: true, message: "Thank you for your feedback!" });
 });
-router5.get("/orders/:orderId/feedback", async (req, res) => {
+router5.get("/orders/:orderId/feedback", rateLimit(40, 15 * 60 * 1e3), async (req, res) => {
   const orderId = parseInt(String(req.params.orderId), 10);
   if (isNaN(orderId)) {
     res.status(400).json({ error: "Invalid order ID" });
     return;
   }
   const [order] = await db.select().from(ordersTable).where(eq(ordersTable.id, orderId)).limit(1);
-  if (!order || order.status !== "delivered") {
+  const token = String(req.header("x-guest-token") ?? "");
+  if (!order || order.status !== "delivered" || !verifyGuestActionToken(token, { orderId, bakerId: order.bakerId, scope: "feedback" })) {
     res.status(404).json({ error: "Order not ready for feedback." });
     return;
   }
   const [baker] = await db.select().from(bakersTable).where(eq(bakersTable.id, order.bakerId)).limit(1);
+  res.setHeader("Cache-Control", "no-store");
   res.json({
     orderId: order.id,
     bakerName: baker?.businessName ?? "Bakery",
@@ -75625,7 +75761,7 @@ router5.post("/orders/:orderId/guest-receipt", rateLimit(20, 15 * 60 * 1e3), asy
     return;
   }
   const parsed = external_exports.object({
-    buyerWhatsapp: external_exports.string().trim().min(10).max(24),
+    token: external_exports.string().trim().min(40),
     imageBase64: external_exports.string().min(32).max(6e6),
     contentType: external_exports.enum(["image/jpeg", "image/png", "image/webp"]).optional()
   }).safeParse(req.body);
@@ -75633,19 +75769,9 @@ router5.post("/orders/:orderId/guest-receipt", rateLimit(20, 15 * 60 * 1e3), asy
     res.status(400).json({ error: parsed.error.message });
     return;
   }
-  const phone = normalizePakistanPhone(parsed.data.buyerWhatsapp);
-  if (!phone) {
-    res.status(400).json({ error: "Enter a valid Pakistani WhatsApp number." });
-    return;
-  }
   const [order] = await db.select().from(ordersTable).where(eq(ordersTable.id, orderId)).limit(1);
-  if (!order) {
-    res.status(404).json({ error: "Order not found" });
-    return;
-  }
-  const orderPhone = normalizePakistanPhone(order.buyerWhatsapp);
-  if (!orderPhone || orderPhone !== phone) {
-    res.status(403).json({ error: "WhatsApp number does not match this order." });
+  if (!order || !verifyGuestActionToken(parsed.data.token, { orderId, bakerId: order.bakerId, scope: "receipt" })) {
+    res.status(404).json({ error: "This receipt-upload link is invalid or has expired." });
     return;
   }
   if (order.paymentStatus === "paid") {
@@ -77497,7 +77623,7 @@ var workspace_default = router12;
 
 // src/routes/whatsapp.ts
 var import_express15 = __toESM(require_express2(), 1);
-import crypto6 from "crypto";
+import crypto7 from "crypto";
 init_receipt_image();
 var router13 = (0, import_express15.Router)();
 function resolveVerifyToken(bakerToken) {
@@ -77509,10 +77635,10 @@ function resolveAppSecret() {
 function hasValidMetaSignature(rawBody, signature) {
   const appSecret = resolveAppSecret();
   if (!appSecret || !signature?.startsWith("sha256=")) return false;
-  const expected = `sha256=${crypto6.createHmac("sha256", appSecret).update(rawBody).digest("hex")}`;
+  const expected = `sha256=${crypto7.createHmac("sha256", appSecret).update(rawBody).digest("hex")}`;
   const expectedBytes = Buffer.from(expected);
   const receivedBytes = Buffer.from(signature);
-  return expectedBytes.length === receivedBytes.length && crypto6.timingSafeEqual(expectedBytes, receivedBytes);
+  return expectedBytes.length === receivedBytes.length && crypto7.timingSafeEqual(expectedBytes, receivedBytes);
 }
 router13.get("/webhooks/whatsapp", async (req, res) => {
   const mode = req.query["hub.mode"];
@@ -77595,7 +77721,7 @@ router13.post("/webhooks/whatsapp", async (req, res) => {
   }
   try {
     const parsed = parseWhatsAppWebhook(JSON.parse(rawBody.toString("utf8")));
-    const payloadHash = crypto6.createHash("sha256").update(rawBody).digest("hex");
+    const payloadHash = crypto7.createHash("sha256").update(rawBody).digest("hex");
     for (const rawMsg of parsed) {
       const resolved = await findBakerForInbound(rawMsg.phoneNumberId, rawMsg.displayPhoneNumber);
       if (!resolved) {
@@ -77738,7 +77864,7 @@ var whatsapp_default = router13;
 
 // src/routes/instagram.ts
 var import_express16 = __toESM(require_express2(), 1);
-import crypto7 from "node:crypto";
+import crypto8 from "node:crypto";
 
 // src/lib/instagram.ts
 var GRAPH_API2 = "https://graph.instagram.com/v25.0";
@@ -77810,10 +77936,10 @@ var router14 = (0, import_express16.Router)();
 function hasValidMetaSignature2(rawBody, signature) {
   const appSecret = process.env.META_APP_SECRET;
   if (!appSecret || !signature?.startsWith("sha256=")) return false;
-  const expected = `sha256=${crypto7.createHmac("sha256", appSecret).update(rawBody).digest("hex")}`;
+  const expected = `sha256=${crypto8.createHmac("sha256", appSecret).update(rawBody).digest("hex")}`;
   const expectedBytes = Buffer.from(expected);
   const receivedBytes = Buffer.from(signature);
-  return expectedBytes.length === receivedBytes.length && crypto7.timingSafeEqual(expectedBytes, receivedBytes);
+  return expectedBytes.length === receivedBytes.length && crypto8.timingSafeEqual(expectedBytes, receivedBytes);
 }
 router14.get("/webhooks/instagram", (req, res) => {
   const mode = req.query["hub.mode"];
@@ -77854,7 +77980,7 @@ router14.post("/webhooks/instagram", async (req, res) => {
   }
   try {
     const messages = parseInstagramWebhook(JSON.parse(rawBody.toString("utf8")));
-    const payloadHash = crypto7.createHash("sha256").update(rawBody).digest("hex");
+    const payloadHash = crypto8.createHash("sha256").update(rawBody).digest("hex");
     for (const message of messages) {
       const [connection] = await db.select().from(metaConnectionsTable).where(eq(metaConnectionsTable.instagramAccountId, message.accountId)).limit(1);
       if (!connection?.instagramAccessTokenEncrypted || !connection.instagramPageId) {
@@ -80051,6 +80177,7 @@ app.use((0, import_cors.default)({
 }));
 app.use("/api/webhooks/whatsapp", import_express24.default.raw({ type: "application/json", limit: "256kb" }));
 app.use("/api/webhooks/instagram", import_express24.default.raw({ type: "application/json", limit: "256kb" }));
+app.use("/api/orders/:orderId/guest-receipt", import_express24.default.json({ limit: "6mb" }));
 app.use(import_express24.default.json({ limit: "256kb" }));
 app.use(import_express24.default.urlencoded({ extended: true, limit: "64kb" }));
 app.get("/", (_req, res) => {

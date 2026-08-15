@@ -155,6 +155,17 @@ export default function DashboardOrders() {
     }
   };
 
+  const copyGuestLink = async (order: any) => {
+    const action = order.status === "quoted" ? "quote" : order.status === "delivered" ? "feedback" : order.paymentStatus !== "paid" ? "receipt" : "view";
+    try {
+      const result = await customFetch<{ url: string }>(`/api/orders/${order.id}/guest-link?action=${action}`, { responseType: "json" });
+      await navigator.clipboard.writeText(result.url);
+      window.alert(`Secure ${action} link copied. It contains no customer password and expires automatically.`);
+    } catch (cause) {
+      window.alert(cause instanceof Error ? cause.message : "Could not create the secure customer link.");
+    }
+  };
+
   return (
     <DashboardLayout>
       <div className="p-8">
@@ -327,6 +338,7 @@ export default function DashboardOrders() {
                 </OrderDetailSection>
                 <OrderDetailSection title="Next action">
                   <p>Update the order status from the table when payment, production, dispatch or delivery changes. Connected channels can then send the customer an update.</p>
+                  <button type="button" onClick={() => void copyGuestLink(activeOrder)} className="mt-3 rounded-lg border border-primary px-3 py-2 text-sm font-bold text-primary hover:bg-primary/5">Copy secure customer link</button>
                 </OrderDetailSection>
               </div>
             </div>
