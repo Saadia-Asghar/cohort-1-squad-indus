@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import {
   useGetAgentConfig,
@@ -24,7 +24,7 @@ import {
   Bot, MessageSquare, Instagram, Phone, ChevronRight,
   Plus, X, Save, AlertTriangle, CheckCircle, Zap,
   Settings, Users, ArrowLeft, Database, RefreshCw,
-  ExternalLink, Sparkles,
+  ExternalLink, Sparkles, Clock,
 } from "lucide-react";
 
 type Tab = "built-in" | "whatsapp" | "instagram" | "conversations";
@@ -71,13 +71,58 @@ export default function AgentHub() {
     query: { enabled: !!bakerId, queryKey: ["baker", bakerId] },
   });
 
+  const [waitlistEmail, setWaitlistEmail] = useState("");
+  const [waitlistName, setWaitlistName] = useState("");
+  const [waitlistWhatsapp, setWaitlistWhatsapp] = useState("");
+  const [joiningWaitlist, setJoiningWaitlist] = useState(false);
+  const [waitlistMessage, setWaitlistMessage] = useState("");
+
+  useEffect(() => {
+    if (baker) {
+      setWaitlistEmail(baker.email ?? "");
+      setWaitlistName(baker.businessName ?? "");
+      setWaitlistWhatsapp(baker.whatsappNumber ?? "");
+    }
+  }, [baker]);
+
+  const handleJoinWaitlist = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setJoiningWaitlist(true);
+    setWaitlistMessage("");
+    try {
+      const res = await fetch("/api/waitlist", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          bakerId,
+          bakerName: waitlistName,
+          bakerEmail: waitlistEmail,
+          whatsappNumber: waitlistWhatsapp,
+          note: "Joined waitlist from dashboard Agent Hub.",
+        }),
+      });
+      if (res.ok) {
+        setWaitlistMessage("Successfully joined the early access waitlist!");
+      } else {
+        const data = await res.json();
+        setWaitlistMessage(`Error: ${data.error || "Failed to join"}`);
+      }
+    } catch (err) {
+      setWaitlistMessage("Network error joining the waitlist.");
+    } finally {
+      setJoiningWaitlist(false);
+    }
+  };
+
   const { data: config } = useGetAgentConfig(bakerId, {
     query: { enabled: !!bakerId, queryKey: getGetAgentConfigQueryKey(bakerId) },
   });
 
   const { data: conversations } = useListConversations(bakerId, {
     query: {
-      enabled: !!bakerId && activeTab === "conversations",
+      enabled: !!bakerId,
       queryKey: getListConversationsQueryKey(bakerId),
       ...liveDashboardQuery(ORDERS_POLL_MS),
     },
@@ -212,23 +257,42 @@ export default function AgentHub() {
   }));
 
   const tabs: { id: Tab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
-    { id: "built-in", label: "Built-in Agent", icon: Bot },
-    { id: "whatsapp", label: "WhatsApp Agent", icon: Phone },
-    { id: "instagram", label: "Instagram Agent", icon: Instagram },
-    { id: "conversations", label: "All Conversations", icon: Users },
+    { id: "built-in", label: "Assistant", icon: Bot },
+    { id: "whatsapp", label: "WhatsApp", icon: Phone },
+    { id: "instagram", label: "Instagram", icon: Instagram },
+    { id: "conversations", label: "Conversations", icon: Users },
   ];
 
   return (
     <DashboardLayout>
-      <div className="p-8 max-w-4xl">
-        <div className="mb-6">
-          <h1 className="text-4xl font-bold font-serif text-primary">Agent Hub</h1>
-          <p className="text-muted-foreground mt-1">Control your AI agents, test replies live, and teach the bot your menu + policies.</p>
-        </div>
+      <div className="mx-auto min-h-screen max-w-[1480px] overflow-x-hidden bg-[#fbf6ee] px-4 py-5 text-[#241629] sm:px-6 lg:px-7">
+        <header className="flex flex-col gap-5 border-b border-[#dfd1c4] pb-5 xl:flex-row xl:items-end xl:justify-between">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#c24f7a]">
+              Customer assistant
+            </p>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+            <h1 className="mt-2 font-serif text-[2.8rem] font-semibold leading-none tracking-[-0.045em] sm:text-[3.35rem]">
+              Agent Hub
+            </h1>
+
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-[#746876]">
+              Test your shop assistant, connect customer channels and decide when a conversation needs your attention.
+            </p>
+          </div>
+
+          <Link
+            href={`/bakers/${bakerId}`}
+            className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-[#dfd1c4] bg-[#fffaf6] px-4 text-sm font-semibold text-[#632a73] transition hover:bg-white sm:w-fit"
+          >
+            <ExternalLink className="h-4 w-4" />
+            Preview customer view
+          </Link>
+        </header>
+
+        <div className="grid border-b border-[#dfd1c4] sm:grid-cols-2 xl:grid-cols-4">
           <StatusPill
-            label="Built-in agent"
+            label="Shop assistant"
             value={merged.agentActive !== false ? "On" : "Off"}
             ok={merged.agentActive !== false}
           />
@@ -243,24 +307,24 @@ export default function AgentHub() {
             ok={!!merged.whatsappAgentEnabled}
           />
           <StatusPill
-            label="Custom rules"
+            label="Saved replies"
             value={String((merged.customResponses?.length ?? 0) + (merged.blockedTopics?.length ?? 0))}
             ok={(merged.customResponses?.length ?? 0) > 0}
           />
         </div>
 
         {/* Tab bar */}
-        <div className="flex gap-1 bg-muted/50 p-1 rounded-xl mb-8 overflow-x-auto">
+        <div className="mt-5 flex gap-2 overflow-x-auto rounded-2xl border border-[#dfd1c4] bg-white/45 p-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {tabs.map(t => {
             const Icon = t.icon;
             return (
               <button
                 key={t.id}
                 onClick={() => setActiveTab(t.id)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
+                className={`inline-flex min-h-11 shrink-0 items-center gap-2 rounded-xl px-4 text-xs font-semibold transition whitespace-nowrap ${
                   activeTab === t.id
-                    ? "bg-white shadow-sm text-primary"
-                    : "text-muted-foreground hover:text-foreground"
+                    ? "bg-[#632a73] text-white shadow-sm"
+                    : "text-[#746876] hover:bg-[#fffaf6] hover:text-[#241629]"
                 }`}
               >
                 <Icon className="w-4 h-4" />
@@ -270,9 +334,9 @@ export default function AgentHub() {
           })}
         </div>
 
-        {/* ── BUILT-IN AGENT ── */}
+        {/* ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ BUILT-IN AGENT ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ */}
         {activeTab === "built-in" && (
-          <div className="space-y-6">
+          <div className="mt-5 space-y-4">
             {bakerId && (
               <AgentPlayground bakerId={bakerId} bakeryName={baker?.businessName} />
             )}
@@ -324,7 +388,7 @@ export default function AgentHub() {
                 </div>
                 <div>
                   <p className="font-semibold">Auto-reply</p>
-                  <p className="text-sm text-muted-foreground">Instantly reply to every message — no delay</p>
+                  <p className="text-sm text-muted-foreground">Instantly reply to every message - no delay</p>
                 </div>
               </div>
               <button
@@ -349,7 +413,27 @@ export default function AgentHub() {
                 placeholder={`Assalam-o-Alaikum! Welcome to your baker's shop. How can I help you today?`}
                 className="w-full px-3 py-2 border border-border rounded-lg bg-background text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/30"
               />
+            </div>        <details className="overflow-hidden rounded-2xl border border-[#dfd1c4] bg-white/45">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 [&::-webkit-details-marker]:hidden">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#c24f7a]">
+                Optional controls
+              </p>
+
+              <h2 className="mt-1 font-serif text-xl font-semibold">
+                Advanced settings
+              </h2>
+
+              <p className="mt-1 text-xs text-[#746876]">
+                Languages, delivery areas, saved replies and assistant safety rules.
+              </p>
             </div>
+
+            <Settings className="h-5 w-5 shrink-0 text-[#632a73]" />
+          </summary>
+
+          <div className="space-y-4 border-t border-[#dfd1c4] p-4 sm:p-5">
+
 
             <div className="p-5 rounded-xl border border-border bg-card shadow-sm space-y-3">
               <div className="flex items-center gap-2 mb-1">
@@ -373,9 +457,9 @@ export default function AgentHub() {
 
             <div className="p-5 rounded-xl border border-border bg-card shadow-sm space-y-3">
               <div>
-                <p className="font-semibold">Menu assistant and optional social channels</p>
+                <p className="font-semibold">How buyers talk to you (channel flow)</p>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Your shared menu assistant and checkout always work on the website. WhatsApp and Instagram can be connected later as additional channels; they are not required to receive web orders.
+                  Your shared menu stays a catalogue. Pick the main channel for questions and bookings. Turn WhatsApp and Instagram agents on separately (your package must allow them).
                 </p>
               </div>
               {(config as unknown as { conversationFlow?: { statusNote?: string } } | undefined)?.conversationFlow?.statusNote && (
@@ -390,12 +474,12 @@ export default function AgentHub() {
                   onChange={(e) => setLocalConfig(prev => ({ ...prev, preferredCustomerChannel: e.target.value as "web" | "whatsapp" | "instagram" }))}
                   className="mt-1 w-full px-3 py-2 border border-border rounded-lg bg-background text-sm"
                 >
-                  <option value="web">Built-in menu assistant (recommended)</option>
+                  <option value="web">Built-in web assistant (all packages)</option>
                   <option
                     value="whatsapp"
                     disabled={(config as unknown as { channelEntitlements?: { whatsapp?: boolean } } | undefined)?.channelEntitlements?.whatsapp === false}
                   >
-                    WhatsApp agent {(config as unknown as { channelEntitlements?: { whatsapp?: boolean } } | undefined)?.channelEntitlements?.whatsapp === false ? "(needs Kitchen Standard+)" : "(optional)"}
+                    WhatsApp agent {(config as unknown as { channelEntitlements?: { whatsapp?: boolean } } | undefined)?.channelEntitlements?.whatsapp === false ? "(needs Kitchen Standard+)" : "(recommended)"}
                   </option>
                   <option
                     value="instagram"
@@ -406,9 +490,9 @@ export default function AgentHub() {
                 </select>
               </label>
               <ul className="text-xs text-muted-foreground space-y-1 list-disc pl-4">
-                <li>The menu assistant remains available even when Meta is disconnected.</li>
-                <li>Turn on WhatsApp / Instagram agents in their tabs only when those connections are ready.</li>
-                <li>Launch Free = web only · Kitchen Standard = web + WhatsApp · Kitchen Pro / Bakery Team = web + WhatsApp + Instagram.</li>
+                <li>Turn on WhatsApp / Instagram agents in their tabs ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â both can run at once.</li>
+                <li>If your primary channel is not ready, the menu falls back to the next ready channel.</li>
+                <li>Launch Free = web only ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· Kitchen Standard = web + WhatsApp ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· Kitchen Pro / Bakery Team = web + WhatsApp + Instagram.</li>
               </ul>
             </div>
 
@@ -417,15 +501,15 @@ export default function AgentHub() {
               <p className="text-sm text-muted-foreground">This personalizes your shared menu and gives the agent safe facts to use in every reply.</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <label className="text-sm font-medium">Menu accent colour<input type="color" value={merged.menuAccent ?? "#7c3aed"} onChange={e => setLocalConfig(prev => ({ ...prev, menuAccent: e.target.value }))} className="block mt-1 h-10 w-full rounded border border-border bg-background" /></label>
-                <label className="text-sm font-medium">Order availability<input value={merged.availabilityHours ?? ""} onChange={e => setLocalConfig(prev => ({ ...prev, availabilityHours: e.target.value }))} placeholder="e.g. Mon–Sat, 10am–8pm" className="block mt-1 w-full px-3 py-2 border border-border rounded-lg bg-background text-sm" /></label>
+                <label className="text-sm font-medium">Order availability<input value={merged.availabilityHours ?? ""} onChange={e => setLocalConfig(prev => ({ ...prev, availabilityHours: e.target.value }))} placeholder="e.g. MonÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œSat, 10amÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ8pm" className="block mt-1 w-full px-3 py-2 border border-border rounded-lg bg-background text-sm" /></label>
               </div>
               <label className="block text-sm font-medium">Dietary & allergen policy<textarea rows={3} value={merged.dietaryPolicy ?? ""} onChange={e => setLocalConfig(prev => ({ ...prev, dietaryPolicy: e.target.value }))} placeholder="e.g. Eggless on selected items. We cannot guarantee an allergen-free kitchen; confirm severe allergies before ordering." className="block mt-1 w-full px-3 py-2 border border-border rounded-lg bg-background text-sm resize-none" /></label>
               <div className="rounded-lg border border-border bg-muted/20 p-3">
                 <div className="flex items-start justify-between gap-4"><div><p className="text-sm font-medium">Delivery zones & fees</p><p className="mt-0.5 text-xs text-muted-foreground">Only baker-set areas are quoted. Unknown areas are never guessed.</p></div><span className="text-xs text-muted-foreground">{deliveryZones.length}/30</span></div>
-                {deliveryZones.length > 0 && <div className="mt-3 space-y-2">{deliveryZones.map((zone) => <div key={zone.id} className="flex items-center justify-between gap-3 rounded-md bg-background px-3 py-2 text-sm"><span><strong>{zone.name}</strong> · PKR {zone.feePkr.toLocaleString()}{zone.minimumOrderPkr ? ` · min PKR ${zone.minimumOrderPkr.toLocaleString()}` : ""}</span><button type="button" onClick={() => removeDeliveryZone(zone.id)} className="rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive" aria-label={`Remove ${zone.name}`}><X className="h-4 w-4" /></button></div>)}</div>}
+                {deliveryZones.length > 0 && <div className="mt-3 space-y-2">{deliveryZones.map((zone) => <div key={zone.id} className="flex items-center justify-between gap-3 rounded-md bg-background px-3 py-2 text-sm"><span><strong>{zone.name}</strong> ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· PKR {zone.feePkr.toLocaleString()}{zone.minimumOrderPkr ? ` ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· min PKR ${zone.minimumOrderPkr.toLocaleString()}` : ""}</span><button type="button" onClick={() => removeDeliveryZone(zone.id)} className="rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive" aria-label={`Remove ${zone.name}`}><X className="h-4 w-4" /></button></div>)}</div>}
                 <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_8rem_9rem_auto]"><input value={newZoneName} onChange={(event) => setNewZoneName(event.target.value)} placeholder="Area, e.g. DHA Phase 5" className="rounded-md border border-border bg-background px-3 py-2 text-sm" /><input value={newZoneFee} onChange={(event) => setNewZoneFee(event.target.value)} inputMode="numeric" placeholder="Fee PKR" className="rounded-md border border-border bg-background px-3 py-2 text-sm" /><input value={newZoneMinimum} onChange={(event) => setNewZoneMinimum(event.target.value)} inputMode="numeric" placeholder="Min order (optional)" className="rounded-md border border-border bg-background px-3 py-2 text-sm" /><button type="button" onClick={addDeliveryZone} className="rounded-md bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90">Add</button></div>
               </div>
-              <label className="block text-sm font-medium">Delivery prices<textarea rows={2} value={merged.deliveryPricing ?? ""} onChange={e => setLocalConfig(prev => ({ ...prev, deliveryPricing: e.target.value }))} placeholder="e.g. Gulberg: PKR 200 · DHA: PKR 350 · Free above PKR 5,000" className="block mt-1 w-full px-3 py-2 border border-border rounded-lg bg-background text-sm resize-none" /></label>
+              <label className="block text-sm font-medium">Delivery prices<textarea rows={2} value={merged.deliveryPricing ?? ""} onChange={e => setLocalConfig(prev => ({ ...prev, deliveryPricing: e.target.value }))} placeholder="e.g. Gulberg: PKR 200 ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· DHA: PKR 350 ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· Free above PKR 5,000" className="block mt-1 w-full px-3 py-2 border border-border rounded-lg bg-background text-sm resize-none" /></label>
               <label className="block text-sm font-medium">Current discount offers<textarea rows={2} value={merged.activeOffers ?? ""} onChange={e => setLocalConfig(prev => ({ ...prev, activeOffers: e.target.value }))} placeholder="e.g. 10% off cupcakes with code SWEET10 until 31 July. One offer per line." className="block mt-1 w-full px-3 py-2 border border-border rounded-lg bg-background text-sm resize-none" /></label>
               <p className="text-xs text-muted-foreground">The web and WhatsApp agents use these same delivery prices and offers. Leave a charge blank rather than letting the agent guess.</p>
             </div>
@@ -463,7 +547,7 @@ export default function AgentHub() {
               </div>
             </div>
 
-            {/* Custom trigger → response */}
+            {/* Custom trigger ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ response */}
             <div className="p-5 rounded-xl border border-border bg-card shadow-sm space-y-3">
               <div className="flex items-center gap-2 mb-1">
                 <MessageSquare className="w-4 h-4 text-primary" />
@@ -592,6 +676,9 @@ export default function AgentHub() {
               </p>
             </div>
 
+          </div>
+        </details>
+
             {/* Save button */}
             <div className="flex items-center gap-3">
               <button
@@ -612,9 +699,9 @@ export default function AgentHub() {
           </div>
         )}
 
-        {/* ── WHATSAPP AGENT ── */}
+        {/* ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ WHATSAPP AGENT ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ */}
         {activeTab === "whatsapp" && (
-          <div className="space-y-6">
+          <div className="mt-5 space-y-4">
             {(config as unknown as { channelEntitlements?: { whatsapp?: boolean; whatsappConversationsPerMonth?: number } } | undefined)?.channelEntitlements?.whatsapp === false && (
               <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
                 WhatsApp agent is not on Launch Free. Upgrade to <strong>Kitchen Standard</strong> or higher to auto-reply on WhatsApp.
@@ -630,7 +717,7 @@ export default function AgentHub() {
                   <p className="text-sm text-muted-foreground">
                     Auto-reply on WhatsApp
                     {(config as unknown as { channelEntitlements?: { whatsappConversationsPerMonth?: number } } | undefined)?.channelEntitlements?.whatsappConversationsPerMonth
-                      ? ` · ${(config as unknown as { channelEntitlements: { whatsappConversationsPerMonth: number } }).channelEntitlements.whatsappConversationsPerMonth} chats / month included`
+                      ? ` ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· ${(config as unknown as { channelEntitlements: { whatsappConversationsPerMonth: number } }).channelEntitlements.whatsappConversationsPerMonth} chats / month included`
                       : ""}
                   </p>
                 </div>
@@ -666,6 +753,58 @@ export default function AgentHub() {
               </div>
               <WhatsAppEmbeddedSignup onStatusChange={setWhatsappConnected} />
               <p className="text-xs text-muted-foreground">The shared app webhook is configured once by the platform owner; bakers never paste access tokens into this page.</p>
+            </div>
+
+            {/* Waitlist option */}
+            <div className="p-5 rounded-xl border border-border bg-card shadow-sm space-y-4">
+              <h3 className="font-semibold flex items-center gap-2">
+                <Clock className="w-4 h-4 text-[#c24f7a]" />
+                Join the WhatsApp Agent Waitlist
+              </h3>
+              <p className="text-xs text-muted-foreground">
+                If the WhatsApp integration is not yet completed for your bakery or you require manual setup from the admin, submit your info here to join the early access waitlist.
+              </p>
+
+              <form onSubmit={handleJoinWaitlist} className="space-y-3 max-w-md">
+                <div className="grid grid-cols-2 gap-2">
+                  <input
+                    type="text"
+                    placeholder="Bakery Name"
+                    required
+                    value={waitlistName}
+                    onChange={(e) => setWaitlistName(e.target.value)}
+                    className="min-h-10 rounded-lg border border-input bg-background px-3 text-xs outline-none focus:border-purple-500"
+                  />
+                  <input
+                    type="text"
+                    placeholder="WhatsApp Number"
+                    required
+                    value={waitlistWhatsapp}
+                    onChange={(e) => setWaitlistWhatsapp(e.target.value)}
+                    className="min-h-10 rounded-lg border border-input bg-background px-3 text-xs outline-none focus:border-purple-500"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    type="email"
+                    placeholder="Owner Email"
+                    required
+                    value={waitlistEmail}
+                    onChange={(e) => setWaitlistEmail(e.target.value)}
+                    className="flex-1 min-h-10 rounded-lg border border-input bg-background px-3 text-xs outline-none focus:border-purple-500"
+                  />
+                  <button
+                    type="submit"
+                    disabled={joiningWaitlist}
+                    className="min-h-10 px-4 rounded-lg bg-[#632a73] font-semibold text-white text-xs hover:bg-[#542261] disabled:opacity-50"
+                  >
+                    {joiningWaitlist ? "Joining..." : "Join Waitlist"}
+                  </button>
+                </div>
+              </form>
+              {waitlistMessage && (
+                <p className="text-xs font-semibold text-green-600">{waitlistMessage}</p>
+              )}
             </div>
 
             <div className="p-5 rounded-xl border border-border bg-card shadow-sm space-y-3">
@@ -729,9 +868,9 @@ export default function AgentHub() {
           </div>
         )}
 
-        {/* ── INSTAGRAM AGENT ── */}
+        {/* ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ INSTAGRAM AGENT ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ */}
         {activeTab === "instagram" && (
-          <div className="space-y-6">
+          <div className="mt-5 space-y-4">
             {(config as unknown as { channelEntitlements?: { instagram?: boolean } } | undefined)?.channelEntitlements?.instagram === false && (
               <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
                 Instagram DM agent needs <strong>Kitchen Pro</strong> or <strong>Bakery Team</strong>. Kitchen Standard includes WhatsApp only.
@@ -747,7 +886,7 @@ export default function AgentHub() {
                   <p className="text-sm text-muted-foreground">
                     Auto-reply to Instagram DMs
                     {(config as unknown as { channelEntitlements?: { instagramConversationsPerMonth?: number } } | undefined)?.channelEntitlements?.instagramConversationsPerMonth
-                      ? ` · ${(config as unknown as { channelEntitlements: { instagramConversationsPerMonth: number } }).channelEntitlements.instagramConversationsPerMonth} chats / month included`
+                      ? ` ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· ${(config as unknown as { channelEntitlements: { instagramConversationsPerMonth: number } }).channelEntitlements.instagramConversationsPerMonth} chats / month included`
                       : ""}
                   </p>
                 </div>
@@ -773,7 +912,7 @@ export default function AgentHub() {
                 <ol className="list-decimal list-inside space-y-1 text-pink-700">
                   <li>Connect with Facebook Login / Embedded Signup for the bakery Meta Business account.</li>
                   <li>Select the Facebook Page linked to the Instagram Business account.</li>
-                  <li>Sweet Tooth verifies the Page ↔ Instagram link, encrypts the token, and stores the connection.</li>
+                  <li>Sweet Tooth verifies the Page ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â Instagram link, encrypts the token, and stores the connection.</li>
                   <li>Enable the agent toggle only after the connection shows as successful.</li>
                 </ol>
               </div>
@@ -812,9 +951,9 @@ export default function AgentHub() {
           </div>
         )}
 
-        {/* ── CONVERSATIONS ── */}
+        {/* ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ CONVERSATIONS ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ */}
         {activeTab === "conversations" && (
-          <div>
+          <div className="mt-5">
             {selectedBuyerId !== null ? (
               <div>
                 <button
@@ -908,11 +1047,36 @@ export default function AgentHub() {
   );
 }
 
-function StatusPill({ label, value, ok }: { label: string; value: string; ok: boolean }) {
+function StatusPill({
+  label,
+  value,
+  ok,
+}: {
+  label: string;
+  value: string;
+  ok: boolean;
+}) {
   return (
-    <div className={`rounded-lg border px-3 py-2.5 ${ok ? "border-green-200 bg-green-50/60" : "border-border bg-card"}`}>
-      <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">{label}</p>
-      <p className={`text-sm font-semibold mt-0.5 ${ok ? "text-green-700" : "text-foreground"}`}>{value}</p>
+    <div className="border-[#dfd1c4] px-4 py-5 sm:border-r sm:last:border-r-0 lg:px-5">
+      <div className="flex items-center gap-2">
+        <span
+          className={`h-2.5 w-2.5 rounded-full ${
+            ok ? "bg-[#168a55]" : "bg-[#c9bdc6]"
+          }`}
+        />
+
+        <p className="text-[10px] font-bold uppercase tracking-[0.09em] text-[#746876]">
+          {label}
+        </p>
+      </div>
+
+      <p
+        className={`mt-2 font-mono text-lg font-semibold ${
+          ok ? "text-[#168a55]" : "text-[#241629]"
+        }`}
+      >
+        {value}
+      </p>
     </div>
   );
 }

@@ -47,6 +47,12 @@ export interface Order {
   serviceFeedback?: OrderServiceFeedback;
   /** @nullable */
   feedbackNote?: string | null;
+  /** @nullable */
+  cancellationReason?: string | null;
+  /** @nullable */
+  cancelledBy?: string | null;
+  /** @nullable */
+  cancelledAt?: Date | null;
   createdAt: string;
   updatedAt?: string;
 }

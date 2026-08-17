@@ -1,15 +1,31 @@
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import {
+  customFetch,
+  getListOrdersQueryKey,
   useListOrders,
   useMarkOrderPaid,
-  getListOrdersQueryKey,
-  customFetch,
 } from "@workspace/api-client-react";
 import { useBuyerSession } from "@/hooks/use-session";
 import { useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
-import { useState } from "react";
-import { CheckCircle, Clock, DollarSign, AlertCircle, ScanLine } from "lucide-react";
+import {
+  useMemo,
+  useState,
+  type ComponentType,
+} from "react";
+import {
+  AlertCircle,
+  CheckCircle2,
+  Clock3,
+  DollarSign,
+  FileCheck2,
+  ReceiptText,
+  ScanLine,
+  Search,
+  ShieldCheck,
+  UploadCloud,
+  WalletCards,
+} from "lucide-react";
 
 type OcrResult = {
   verified: boolean;
@@ -18,328 +34,1085 @@ type OcrResult = {
   confidence?: number;
 };
 
+type PaymentView = "outstanding" | "collected";
+
+const inputClass =
+  "min-h-11 w-full rounded-xl border border-[#dfd1c4] bg-[#fffaf6] px-3.5 text-sm text-[#241629] outline-none transition placeholder:text-[#a99ca9] focus:border-[#c24f7a]/60 focus:ring-4 focus:ring-[#c24f7a]/10";
+
+function orderStatusLabel(status: string): string {
+  return status
+    .split("_")
+    .map(
+      (word) =>
+        word.charAt(0).toUpperCase() + word.slice(1),
+    )
+    .join(" ");
+}
+
+function formatOrderDate(
+  value?: string | null,
+  pattern = "dd MMM yyyy",
+): string {
+  if (!value) {
+    return "Date not set";
+  }
+
+  const parsed = new Date(value);
+
+  if (Number.isNaN(parsed.getTime())) {
+    return "Date not set";
+  }
+
+  return format(parsed, pattern);
+}
+
 export default function DashboardPayments() {
   const { bakerId } = useBuyerSession();
   const queryClient = useQueryClient();
 
   const { data: orders, isLoading } = useListOrders(
     { bakerId },
-    { query: { enabled: !!bakerId, queryKey: getListOrdersQueryKey({ bakerId }) } }
+    {
+      query: {
+        enabled: Boolean(bakerId),
+        queryKey: getListOrdersQueryKey({ bakerId }),
+      },
+    },
   );
 
   const markPaid = useMarkOrderPaid();
-  const [screenshotUrls, setScreenshotUrls] = useState<Record<number, string>>({});
-  const [receiptFiles, setReceiptFiles] = useState<
-    Record<number, { base64: string; contentType: "image/jpeg" | "image/png" | "image/webp" }>
-  >({});
-  const [ocrResults, setOcrResults] = useState<Record<number, OcrResult | null>>({});
-  const [ocrErrors, setOcrErrors] = useState<Record<number, string | null>>({});
-  const [verifyingId, setVerifyingId] = useState<number | null>(null);
 
-  const handleMarkPaid = (orderId: number, totalPkr: number) => {
+  const [activeView, setActiveView] =
+    useState<PaymentView>("outstanding");
+
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const [screenshotUrls, setScreenshotUrls] =
+    useState<Record<number, string>>({});
+
+  const [receiptFiles, setReceiptFiles] = useState<
+    Record<
+      number,
+      {
+        base64: string;
+        contentType:
+          | "image/jpeg"
+          | "image/png"
+          | "image/webp";
+      }
+    >
+  >({});
+
+  const [ocrResults, setOcrResults] = useState<
+    Record<number, OcrResult | null>
+  >({});
+
+  const [ocrErrors, setOcrErrors] = useState<
+    Record<number, string | null>
+  >({});
+
+  const [verifyingId, setVerifyingId] = useState<
+    number | null
+  >(null);
+
+  const allOrders = orders ?? [];
+
+  const pendingOrders = useMemo(
+    () =>
+      allOrders.filter(
+        (order) => order.paymentStatus === "pending",
+      ),
+    [allOrders],
+  );
+
+  const paidOrders = useMemo(
+    () =>
+      allOrders.filter(
+        (order) => order.paymentStatus === "paid",
+      ),
+    [allOrders],
+  );
+
+  const filteredPendingOrders = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+
+    if (!query) {
+      return pendingOrders;
+    }
+
+    return pendingOrders.filter((order) =>
+      [
+        order.id,
+        order.buyerName,
+        order.buyerWhatsapp,
+        order.buyerArea,
+        order.buyerAddress,
+        order.status,
+        order.totalPkr,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase()
+        .includes(query),
+    );
+  }, [pendingOrders, searchQuery]);
+
+  const filteredPaidOrders = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+
+    if (!query) {
+      return paidOrders;
+    }
+
+    return paidOrders.filter((order) =>
+      [
+        order.id,
+        order.buyerName,
+        order.buyerWhatsapp,
+        order.buyerArea,
+        order.buyerAddress,
+        order.totalPkr,
+        order.paymentAmountReceived,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase()
+        .includes(query),
+    );
+  }, [paidOrders, searchQuery]);
+
+  const totalOutstanding = pendingOrders.reduce(
+    (total, order) => total + order.totalPkr,
+    0,
+  );
+
+  const totalCollected = paidOrders.reduce(
+    (total, order) =>
+      total +
+      (order.paymentAmountReceived ?? order.totalPkr),
+    0,
+  );
+
+  const receiptsOnFile = allOrders.filter(
+    (order) => Boolean(order.paymentScreenshotUrl),
+  ).length;
+
+  const handleMarkPaid = (
+    orderId: number,
+    totalPkr: number,
+  ) => {
     markPaid.mutate(
-      { orderId, data: { amountReceived: totalPkr } },
+      {
+        orderId,
+        data: {
+          amountReceived: totalPkr,
+        },
+      },
       {
         onSuccess: () => {
-          queryClient.invalidateQueries({ queryKey: getListOrdersQueryKey({ bakerId }) });
+          queryClient.invalidateQueries({
+            queryKey: getListOrdersQueryKey({
+              bakerId,
+            }),
+          });
         },
-      }
+      },
     );
   };
 
-  const handleCheckReceipt = async (orderId: number, existingUrl?: string | null) => {
-    const url = (screenshotUrls[orderId] ?? existingUrl ?? "").trim();
+  const handleCheckReceipt = async (
+    orderId: number,
+    existingUrl?: string | null,
+  ) => {
+    const url = (
+      screenshotUrls[orderId] ??
+      existingUrl ??
+      ""
+    ).trim();
+
     const fileData = receiptFiles[orderId];
+
     if (!url && !fileData) {
-      setOcrErrors((prev) => ({
-        ...prev,
-        [orderId]: "Upload a receipt photo or paste an HTTPS image URL first.",
+      setOcrErrors((current) => ({
+        ...current,
+        [orderId]:
+          "Upload a receipt photo or paste an HTTPS image URL first.",
       }));
+
       return;
     }
+
     setVerifyingId(orderId);
-    setOcrErrors((prev) => ({ ...prev, [orderId]: null }));
-    setOcrResults((prev) => ({ ...prev, [orderId]: null }));
+
+    setOcrErrors((current) => ({
+      ...current,
+      [orderId]: null,
+    }));
+
+    setOcrResults((current) => ({
+      ...current,
+      [orderId]: null,
+    }));
+
     try {
       if (fileData) {
-        const result = await customFetch<OcrResult>(`/api/orders/${orderId}/verify-payment`, {
-          method: "POST",
-          responseType: "json",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            imageBase64: fileData.base64,
-            contentType: fileData.contentType,
-          }),
-        });
-        setOcrResults((prev) => ({ ...prev, [orderId]: result }));
+        const result = await customFetch<OcrResult>(
+          `/api/orders/${orderId}/verify-payment`,
+          {
+            method: "POST",
+            responseType: "json",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              imageBase64: fileData.base64,
+              contentType: fileData.contentType,
+            }),
+          },
+        );
+
+        setOcrResults((current) => ({
+          ...current,
+          [orderId]: result,
+        }));
       } else {
         if (url !== existingUrl) {
-          await customFetch(`/api/orders/${orderId}/payment-screenshot`, {
-            method: "PATCH",
-            responseType: "json",
-            body: JSON.stringify({ paymentScreenshotUrl: url }),
-          });
+          await customFetch(
+            `/api/orders/${orderId}/payment-screenshot`,
+            {
+              method: "PATCH",
+              responseType: "json",
+              body: JSON.stringify({
+                paymentScreenshotUrl: url,
+              }),
+            },
+          );
         }
-        const result = await customFetch<OcrResult>(`/api/orders/${orderId}/verify-payment`, {
-          method: "POST",
-          responseType: "json",
-        });
-        setOcrResults((prev) => ({ ...prev, [orderId]: result }));
+
+        const result = await customFetch<OcrResult>(
+          `/api/orders/${orderId}/verify-payment`,
+          {
+            method: "POST",
+            responseType: "json",
+          },
+        );
+
+        setOcrResults((current) => ({
+          ...current,
+          [orderId]: result,
+        }));
       }
-      queryClient.invalidateQueries({ queryKey: getListOrdersQueryKey({ bakerId }) });
+
+      queryClient.invalidateQueries({
+        queryKey: getListOrdersQueryKey({
+          bakerId,
+        }),
+      });
     } catch (cause) {
-      setOcrErrors((prev) => ({
-        ...prev,
-        [orderId]: cause instanceof Error ? cause.message : "Receipt check failed.",
+      setOcrErrors((current) => ({
+        ...current,
+        [orderId]:
+          cause instanceof Error
+            ? cause.message
+            : "Receipt check failed.",
       }));
     } finally {
       setVerifyingId(null);
     }
   };
 
-  const onReceiptFile = (orderId: number, file: File | null) => {
+  const onReceiptFile = (
+    orderId: number,
+    file: File | null,
+  ) => {
     if (!file) {
-      setReceiptFiles((prev) => {
-        const next = { ...prev };
+      setReceiptFiles((current) => {
+        const next = { ...current };
         delete next[orderId];
         return next;
       });
+
       return;
     }
-    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
-      setOcrErrors((prev) => ({ ...prev, [orderId]: "Use a JPEG, PNG, or WebP receipt photo." }));
+
+    if (
+      ![
+        "image/jpeg",
+        "image/png",
+        "image/webp",
+      ].includes(file.type)
+    ) {
+      setOcrErrors((current) => ({
+        ...current,
+        [orderId]:
+          "Use a JPEG, PNG or WebP receipt photo.",
+      }));
+
       return;
     }
+
     if (file.size > 4 * 1024 * 1024) {
-      setOcrErrors((prev) => ({ ...prev, [orderId]: "Receipt must be under 4 MB." }));
+      setOcrErrors((current) => ({
+        ...current,
+        [orderId]:
+          "The receipt photo must be under 4 MB.",
+      }));
+
       return;
     }
+
     const reader = new FileReader();
+
     reader.onload = () => {
       const dataUrl = String(reader.result ?? "");
-      const base64 = dataUrl.replace(/^data:image\/\w+;base64,/, "");
-      setReceiptFiles((prev) => ({
-        ...prev,
-        [orderId]: { base64, contentType: file.type as "image/jpeg" | "image/png" | "image/webp" },
+
+      const base64 = dataUrl.replace(
+        /^data:image\/\w+;base64,/,
+        "",
+      );
+
+      setReceiptFiles((current) => ({
+        ...current,
+        [orderId]: {
+          base64,
+          contentType: file.type as
+            | "image/jpeg"
+            | "image/png"
+            | "image/webp",
+        },
       }));
-      setOcrErrors((prev) => ({ ...prev, [orderId]: null }));
+
+      setOcrErrors((current) => ({
+        ...current,
+        [orderId]: null,
+      }));
     };
+
     reader.readAsDataURL(file);
   };
 
-  // Pending payments: delivered COD plus any other pending order that can attach a screenshot
-  const pendingOrders = orders?.filter((o) => o.paymentStatus === "pending") ?? [];
-
-  const paidOrders = orders?.filter((o) => o.paymentStatus === "paid") ?? [];
-
-  const totalOutstanding = pendingOrders.reduce((s, o) => s + o.totalPkr, 0);
-  const totalCollected = paidOrders.reduce((s, o) => s + (o.paymentAmountReceived ?? o.totalPkr), 0);
-
   return (
     <DashboardLayout>
-      <div className="p-8 max-w-4xl">
-        <h1 className="text-4xl font-bold mb-2 font-serif text-primary">Payments & receipts</h1>
-        <p className="text-muted-foreground mb-8">
-          Track outstanding and paid orders. Upload a JazzCash / Easypaisa screenshot for advisory OCR — it never marks
-          paid automatically.
-        </p>
-        <div role="note" className="mb-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
-          OCR is a review aid, not proof of payment. Verify the amount and reference in your Easypaisa, JazzCash or bank account before you confirm payment.
-        </div>
+      <div className="min-h-screen bg-[#fbf6ee] px-4 py-5 text-[#241629] sm:px-6 lg:px-7">
+        <div className="mx-auto max-w-[1480px]">
+          <header className="flex flex-col gap-5 border-b border-[#dfd1c4] pb-5 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#c24f7a]">
+                Financial operations
+              </p>
 
-        {/* Summary cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-10">
-          <div className="p-6 rounded-xl border border-orange-200 bg-orange-50">
-            <div className="flex items-center gap-2 text-orange-700 mb-2">
-              <AlertCircle className="w-5 h-5" />
-              <span className="text-sm font-medium uppercase tracking-wider">Outstanding</span>
+              <h1 className="mt-2 font-serif text-[2.8rem] font-semibold leading-none tracking-[-0.045em] sm:text-[3.35rem]">
+                Payments
+              </h1>
+
+              <p className="mt-3 max-w-2xl text-sm leading-6 text-[#746876]">
+                Review outstanding balances, inspect
+                customer receipts and confirm collected
+                payments without giving automation control
+                over your financial records.
+              </p>
             </div>
-            <p className="text-3xl font-bold tabular-nums text-orange-800">
-              PKR {totalOutstanding.toLocaleString()}
-            </p>
-            <p className="text-sm text-orange-600 mt-1">{pendingOrders.length} orders awaiting payment</p>
-          </div>
-          <div className="p-6 rounded-xl border border-green-200 bg-green-50">
-            <div className="flex items-center gap-2 text-green-700 mb-2">
-              <CheckCircle className="w-5 h-5" />
-              <span className="text-sm font-medium uppercase tracking-wider">Collected</span>
+
+            <div className="flex rounded-xl border border-[#dfd1c4] bg-[#f4eae1] p-1">
+              <button
+                type="button"
+                onClick={() =>
+                  setActiveView("outstanding")
+                }
+                className={`min-h-10 rounded-lg px-4 text-xs font-semibold transition ${
+                  activeView === "outstanding"
+                    ? "bg-white text-[#632a73] shadow-sm"
+                    : "text-[#746876]"
+                }`}
+              >
+                Outstanding
+              </button>
+
+              <button
+                type="button"
+                onClick={() =>
+                  setActiveView("collected")
+                }
+                className={`min-h-10 rounded-lg px-4 text-xs font-semibold transition ${
+                  activeView === "collected"
+                    ? "bg-white text-[#632a73] shadow-sm"
+                    : "text-[#746876]"
+                }`}
+              >
+                Collected
+              </button>
             </div>
-            <p className="text-3xl font-bold tabular-nums text-green-800">
-              PKR {totalCollected.toLocaleString()}
-            </p>
-            <p className="text-sm text-green-600 mt-1">{paidOrders.length} orders paid</p>
-          </div>
-        </div>
+          </header>
 
-        {/* Outstanding payments */}
-        {isLoading && !orders ? (
-          <div className="space-y-3">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="h-20 bg-muted rounded-xl animate-pulse" />
-            ))}
-          </div>
-        ) : (
-          <>
-            {pendingOrders.length > 0 && (
-              <div className="mb-10">
-                <h2 className="text-lg font-bold font-serif mb-4 flex items-center gap-2">
-                  <Clock className="w-5 h-5 text-orange-500" />
-                  Awaiting Collection
-                </h2>
-                <div className="space-y-3">
-                  {pendingOrders.map((order) => {
-                    const existingUrl = order.paymentScreenshotUrl ?? null;
-                    const inputValue = screenshotUrls[order.id] ?? existingUrl ?? "";
-                    const ocr = ocrResults[order.id];
-                    const ocrError = ocrErrors[order.id];
+          <section className="grid border-b border-[#dfd1c4] sm:grid-cols-2 xl:grid-cols-4">
+            <PaymentMetric
+              icon={AlertCircle}
+              label="Outstanding"
+              value={`PKR ${totalOutstanding.toLocaleString()}`}
+              valueClass="text-[#b86a24]"
+            />
 
-                    return (
+            <PaymentMetric
+              icon={Clock3}
+              label="Awaiting payment"
+              value={pendingOrders.length
+                .toString()
+                .padStart(2, "0")}
+            />
+
+            <PaymentMetric
+              icon={CheckCircle2}
+              label="Collected"
+              value={`PKR ${totalCollected.toLocaleString()}`}
+              valueClass="text-[#168a55]"
+            />
+
+            <PaymentMetric
+              icon={ReceiptText}
+              label="Receipts on file"
+              value={receiptsOnFile
+                .toString()
+                .padStart(2, "0")}
+            />
+          </section>
+
+          <div
+            role="note"
+            className="mt-5 flex gap-3 rounded-2xl border border-[#e7c98e] bg-[#fff8e9] px-4 py-4"
+          >
+            <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-[#b86a24]" />
+
+            <div>
+              <p className="text-sm font-semibold text-[#754813]">
+                Receipt scanning is advisory only
+              </p>
+
+              <p className="mt-1 text-xs leading-5 text-[#8f672f]">
+                Always verify the amount and transaction
+                reference inside Easypaisa, JazzCash or
+                your bank account before confirming that a
+                payment was received.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-5 grid gap-4 xl:grid-cols-[minmax(0,1fr)_260px]">
+            <main className="min-w-0">
+              <section className="overflow-hidden rounded-2xl border border-[#dfd1c4] bg-white/45">
+                <div className="border-b border-[#dfd1c4] p-4">
+                  <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                    <div className="relative min-w-0 flex-1 lg:max-w-md">
+                      <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9b8d9c]" />
+
+                      <input
+                        value={searchQuery}
+                        onChange={(event) =>
+                          setSearchQuery(
+                            event.target.value,
+                          )
+                        }
+                        placeholder="Search orders or customers"
+                        className={`${inputClass} pl-10`}
+                      />
+                    </div>
+
+                    <p className="text-xs text-[#746876]">
+                      {activeView === "outstanding"
+                        ? `${filteredPendingOrders.length} payments awaiting review`
+                        : `${filteredPaidOrders.length} collected payments`}
+                    </p>
+                  </div>
+                </div>
+
+                {isLoading && !orders ? (
+                  <div className="space-y-3 p-4">
+                    {[1, 2, 3].map((item) => (
                       <div
-                        key={order.id}
-                        data-testid={`row-payment-${order.id}`}
-                        className="flex flex-col gap-3 p-4 rounded-xl border border-orange-200 bg-card shadow-sm"
-                      >
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="font-mono text-sm text-muted-foreground">#{order.id}</span>
-                              <span className="font-bold text-foreground">{order.buyerName}</span>
-                              <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground capitalize">
-                                {order.status.replace(/_/g, " ")}
+                        key={item}
+                        className="h-40 animate-pulse rounded-2xl bg-[#f1e9e2]"
+                      />
+                    ))}
+                  </div>
+                ) : activeView === "outstanding" ? (
+                  filteredPendingOrders.length > 0 ? (
+                    <div className="divide-y divide-[#eadfd5]">
+                      {filteredPendingOrders.map(
+                        (order) => {
+                          const existingUrl =
+                            order.paymentScreenshotUrl ??
+                            null;
+
+                          const inputValue =
+                            screenshotUrls[order.id] ??
+                            existingUrl ??
+                            "";
+
+                          const receiptReady = Boolean(
+                            receiptFiles[order.id],
+                          );
+
+                          const ocr =
+                            ocrResults[order.id];
+
+                          const ocrError =
+                            ocrErrors[order.id];
+
+                          return (
+                            <article
+                              key={order.id}
+                              data-testid={`row-payment-${order.id}`}
+                              className="p-4 transition hover:bg-[#fff8f3] sm:p-5"
+                            >
+                              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                                <div className="min-w-0">
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <span className="font-mono text-xs font-semibold text-[#c24f7a]">
+                                      #{order.id}
+                                    </span>
+
+                                    <span className="rounded-lg bg-[#f1dde5] px-2 py-1 text-[9px] font-semibold text-[#8e345c]">
+                                      {orderStatusLabel(
+                                        order.status,
+                                      )}
+                                    </span>
+                                  </div>
+
+                                  <h2 className="mt-2 font-serif text-2xl font-semibold">
+                                    {order.buyerName}
+                                  </h2>
+
+                                  <p className="mt-2 text-xs leading-5 text-[#746876]">
+                                    {order.buyerArea ??
+                                      order.buyerAddress ??
+                                      "Location not recorded"}
+
+                                    {" · "}
+
+                                    {formatOrderDate(
+                                      order.deliveryDate,
+                                      "dd MMM",
+                                    )}
+                                  </p>
+                                </div>
+
+                                <div className="shrink-0 lg:text-right">
+                                  <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#746876]">
+                                    Amount due
+                                  </p>
+
+                                  <p className="mt-1 font-mono text-2xl font-semibold">
+                                    PKR{" "}
+                                    {order.totalPkr.toLocaleString()}
+                                  </p>
+
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      handleMarkPaid(
+                                        order.id,
+                                        order.totalPkr,
+                                      )
+                                    }
+                                    disabled={
+                                      markPaid.isPending
+                                    }
+                                    data-testid={`button-mark-paid-${order.id}`}
+                                    className="mt-3 inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-[#168a55] px-4 text-xs font-semibold text-white transition hover:bg-[#117347] disabled:opacity-50"
+                                  >
+                                    <CheckCircle2 className="h-4 w-4" />
+
+                                    {markPaid.isPending
+                                      ? "Confirming…"
+                                      : "Confirm received"}
+                                  </button>
+                                </div>
+                              </div>
+
+                              <div className="mt-5 rounded-2xl border border-[#dfd1c4] bg-[#fffaf6] p-4">
+                                <div className="flex items-start gap-3">
+                                  <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#f1dde5] text-[#c24f7a]">
+                                    <UploadCloud className="h-5 w-5" />
+                                  </span>
+
+                                  <div>
+                                    <p className="text-sm font-semibold">
+                                      Customer receipt
+                                    </p>
+
+                                    <p className="mt-1 text-xs leading-5 text-[#746876]">
+                                      Upload a JPEG, PNG or
+                                      WebP screenshot under
+                                      4 MB.
+                                    </p>
+                                  </div>
+                                </div>
+
+                                <div className="mt-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
+                                  <label className="flex min-h-11 cursor-pointer items-center gap-3 rounded-xl border border-dashed border-[#dcb8c8] bg-white/65 px-3 text-xs font-semibold text-[#632a73] transition hover:bg-white">
+                                    <UploadCloud className="h-4 w-4 shrink-0" />
+
+                                    <span className="min-w-0 truncate">
+                                      {receiptReady
+                                        ? "Receipt ready for review"
+                                        : "Choose receipt photo"}
+                                    </span>
+
+                                    <input
+                                      type="file"
+                                      accept="image/jpeg,image/png,image/webp"
+                                      onChange={(event) =>
+                                        onReceiptFile(
+                                          order.id,
+                                          event.target
+                                            .files?.[0] ??
+                                            null,
+                                        )
+                                      }
+                                      className="sr-only"
+                                    />
+                                  </label>
+
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      handleCheckReceipt(
+                                        order.id,
+                                        existingUrl,
+                                      )
+                                    }
+                                    disabled={
+                                      verifyingId ===
+                                      order.id
+                                    }
+                                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-[#dfd1c4] bg-white px-4 text-xs font-semibold text-[#632a73] transition hover:bg-[#f4eae1] disabled:opacity-50"
+                                  >
+                                    <ScanLine className="h-4 w-4" />
+
+                                    {verifyingId === order.id
+                                      ? "Checking receipt…"
+                                      : "Check receipt"}
+                                  </button>
+                                </div>
+
+                                <details className="mt-3">
+                                  <summary className="cursor-pointer text-xs font-semibold text-[#c24f7a]">
+                                    Use an HTTPS image URL instead
+                                  </summary>
+
+                                  <input
+                                    type="url"
+                                    value={inputValue}
+                                    onChange={(event) =>
+                                      setScreenshotUrls(
+                                        (current) => ({
+                                          ...current,
+                                          [order.id]:
+                                            event.target
+                                              .value,
+                                        }),
+                                      )
+                                    }
+                                    placeholder="https://example.com/receipt.png"
+                                    className={`${inputClass} mt-3`}
+                                  />
+                                </details>
+
+                                {existingUrl &&
+                                !screenshotUrls[order.id] &&
+                                !receiptReady ? (
+                                  <p className="mt-3 flex items-center gap-2 text-xs text-[#746876]">
+                                    <FileCheck2 className="h-4 w-4 text-[#168a55]" />
+                                    A saved receipt is already
+                                    attached to this order.
+                                  </p>
+                                ) : null}
+
+                                {ocrError ? (
+                                  <p
+                                    role="alert"
+                                    className="mt-3 rounded-xl bg-[#f8dddd] px-4 py-3 text-sm font-semibold text-[#a7313b]"
+                                  >
+                                    {ocrError}
+                                  </p>
+                                ) : null}
+
+                                {ocr ? (
+                                  <div
+                                    className={`mt-3 rounded-xl border px-4 py-3 ${
+                                      ocr.verified
+                                        ? "border-[#e7c98e] bg-[#fff8e9]"
+                                        : "border-[#dfd1c4] bg-[#f1e9e2]"
+                                    }`}
+                                  >
+                                    <div className="flex items-center gap-2">
+                                      <ScanLine
+                                        className={`h-4 w-4 ${
+                                          ocr.verified
+                                            ? "text-[#b86a24]"
+                                            : "text-[#746876]"
+                                        }`}
+                                      />
+
+                                      <p className="text-xs font-semibold">
+                                        OCR review
+                                      </p>
+                                    </div>
+
+                                    <p className="mt-2 text-xs leading-5 text-[#746876]">
+                                      {ocr.message}
+                                    </p>
+
+                                    <p className="mt-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-[#b86a24]">
+                                      Advisory only — payment
+                                      remains unconfirmed
+                                    </p>
+                                  </div>
+                                ) : null}
+                              </div>
+                            </article>
+                          );
+                        },
+                      )}
+                    </div>
+                  ) : (
+                    <PaymentEmptyState
+                      icon={WalletCards}
+                      title={
+                        pendingOrders.length === 0
+                          ? "No outstanding payments"
+                          : "No matching payments"
+                      }
+                      description={
+                        pendingOrders.length === 0
+                          ? "Orders waiting for payment confirmation will appear here."
+                          : "Try a different customer name, order number or search term."
+                      }
+                    />
+                  )
+                ) : filteredPaidOrders.length > 0 ? (
+                  <>
+                    <div className="hidden overflow-x-auto md:block">
+                      <table className="w-full min-w-[720px] text-left text-xs">
+                        <thead className="border-b border-[#eadfd5] text-[10px] uppercase tracking-[0.08em] text-[#746876]">
+                          <tr>
+                            <th className="px-4 py-3">
+                              Order
+                            </th>
+
+                            <th className="px-4 py-3">
+                              Customer
+                            </th>
+
+                            <th className="px-4 py-3">
+                              Delivery date
+                            </th>
+
+                            <th className="px-4 py-3">
+                              Status
+                            </th>
+
+                            <th className="px-4 py-3 text-right">
+                              Amount received
+                            </th>
+                          </tr>
+                        </thead>
+
+                        <tbody className="divide-y divide-[#eadfd5]">
+                          {filteredPaidOrders.map(
+                            (order) => (
+                              <tr
+                                key={order.id}
+                                className="transition hover:bg-[#fff8f3]"
+                              >
+                                <td className="px-4 py-4 font-mono font-semibold text-[#c24f7a]">
+                                  #{order.id}
+                                </td>
+
+                                <td className="px-4 py-4">
+                                  <p className="text-sm font-semibold">
+                                    {order.buyerName}
+                                  </p>
+
+                                  <p className="mt-1 text-[10px] text-[#746876]">
+                                    {order.buyerWhatsapp}
+                                  </p>
+                                </td>
+
+                                <td className="px-4 py-4 text-[#746876]">
+                                  {formatOrderDate(
+                                    order.deliveryDate,
+                                  )}
+                                </td>
+
+                                <td className="px-4 py-4">
+                                  <span className="rounded-lg bg-[#e4f3e8] px-2.5 py-1 text-[10px] font-semibold text-[#168a55]">
+                                    Paid
+                                  </span>
+                                </td>
+
+                                <td className="px-4 py-4 text-right font-mono text-sm font-semibold text-[#168a55]">
+                                  PKR{" "}
+                                  {(
+                                    order.paymentAmountReceived ??
+                                    order.totalPkr
+                                  ).toLocaleString()}
+                                </td>
+                              </tr>
+                            ),
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    <div className="divide-y divide-[#eadfd5] md:hidden">
+                      {filteredPaidOrders.map(
+                        (order) => (
+                          <article
+                            key={order.id}
+                            className="p-4"
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div>
+                                <p className="font-mono text-xs font-semibold text-[#c24f7a]">
+                                  #{order.id}
+                                </p>
+
+                                <h2 className="mt-1 text-base font-semibold">
+                                  {order.buyerName}
+                                </h2>
+
+                                <p className="mt-1 text-xs text-[#746876]">
+                                  {formatOrderDate(
+                                    order.deliveryDate,
+                                  )}
+                                </p>
+                              </div>
+
+                              <span className="rounded-lg bg-[#e4f3e8] px-2.5 py-1 text-[10px] font-semibold text-[#168a55]">
+                                Paid
                               </span>
                             </div>
-                            <div className="text-sm text-muted-foreground">
-                              {order.buyerArea ?? order.buyerAddress}
-                              {order.deliveryDate
-                                ? ` · ${format(new Date(order.deliveryDate), "MMM d")}`
-                                : ""}
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-4">
-                            <span className="font-mono font-bold text-lg tabular-nums text-foreground">
-                              PKR {order.totalPkr.toLocaleString()}
-                            </span>
-                            <button
-                              onClick={() => handleMarkPaid(order.id, order.totalPkr)}
-                              disabled={markPaid.isPending}
-                              data-testid={`button-mark-paid-${order.id}`}
-                              className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-green-600 text-white text-sm font-medium hover:bg-green-700 transition-colors disabled:opacity-50"
-                            >
-                              <CheckCircle className="w-4 h-4" />
-                              Confirm received
-                            </button>
-                          </div>
-                        </div>
 
-                        <div className="border-t border-orange-100 pt-3 space-y-2">
-                          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                            Receipt photo
-                          </label>
-                          <div className="flex flex-col sm:flex-row gap-2">
-                            <input
-                              type="file"
-                              accept="image/jpeg,image/png,image/webp"
-                              onChange={(e) => onReceiptFile(order.id, e.target.files?.[0] ?? null)}
-                              className="flex-1 text-sm file:mr-3 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-primary-foreground"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => handleCheckReceipt(order.id, existingUrl)}
-                              disabled={verifyingId === order.id}
-                              className="flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg border border-border bg-background text-sm font-medium hover:bg-muted/50 transition-colors disabled:opacity-50"
-                            >
-                              <ScanLine className="w-4 h-4" />
-                              {verifyingId === order.id ? "Checking…" : "Check receipt"}
-                            </button>
-                          </div>
-                          {receiptFiles[order.id] && (
-                            <p className="text-xs text-muted-foreground">Photo ready — tap Check receipt.</p>
-                          )}
-                          <details className="text-xs text-muted-foreground">
-                            <summary className="cursor-pointer font-medium">Or paste HTTPS image URL</summary>
-                            <input
-                              type="url"
-                              value={inputValue}
-                              onChange={(e) =>
-                                setScreenshotUrls((prev) => ({ ...prev, [order.id]: e.target.value }))
-                              }
-                              placeholder="https://…"
-                              className="mt-2 w-full px-3 py-2 border border-border rounded-lg bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-                            />
-                          </details>
-                          {existingUrl && !screenshotUrls[order.id] && !receiptFiles[order.id] && (
-                            <p className="text-xs text-muted-foreground truncate">
-                              Saved screenshot on file — you can re-check without uploading again.
-                            </p>
-                          )}
-                          {ocrError && (
-                            <p role="alert" className="text-sm text-destructive">{ocrError}</p>
-                          )}
-                          {ocr && (
-                            <div
-                              className={`rounded-lg border px-3 py-2 text-sm ${
-                                ocr.verified
-                                  ? "border-amber-200 bg-amber-50 text-amber-900"
-                                  : "border-border bg-muted/40 text-muted-foreground"
-                              }`}
-                            >
-                              <p className="font-medium">OCR review (advisory — does not mark paid)</p>
-                              <p className="mt-0.5">{ocr.message}</p>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
+                            <div className="mt-4 rounded-xl bg-[#fffaf6] p-3">
+                              <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-[#9b8d9c]">
+                                Amount received
+                              </p>
 
-            {/* Paid orders log */}
-            {paidOrders.length > 0 && (
-              <div>
-                <h2 className="text-lg font-bold font-serif mb-4 flex items-center gap-2">
-                  <DollarSign className="w-5 h-5 text-green-600" />
-                  Collected
+                              <p className="mt-1 font-mono text-lg font-semibold text-[#168a55]">
+                                PKR{" "}
+                                {(
+                                  order.paymentAmountReceived ??
+                                  order.totalPkr
+                                ).toLocaleString()}
+                              </p>
+                            </div>
+                          </article>
+                        ),
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <PaymentEmptyState
+                    icon={CheckCircle2}
+                    title={
+                      paidOrders.length === 0
+                        ? "No collected payments yet"
+                        : "No matching collected payments"
+                    }
+                    description={
+                      paidOrders.length === 0
+                        ? "Confirmed payments will appear here as a permanent financial record."
+                        : "Try a different customer name or order number."
+                    }
+                  />
+                )}
+              </section>
+            </main>
+
+            <aside className="space-y-4">
+              <section className="rounded-2xl border border-[#dfd1c4] bg-white/45 p-4">
+                <ShieldCheck className="h-5 w-5 text-[#c24f7a]" />
+
+                <h2 className="mt-3 font-serif text-xl font-semibold">
+                  Confirmation checklist
                 </h2>
-                <div className="rounded-xl border border-border overflow-hidden">
-                  <table className="w-full text-sm">
-                    <thead className="bg-muted/50 text-xs uppercase text-muted-foreground">
-                      <tr>
-                        <th className="px-4 py-3 text-left">Order</th>
-                        <th className="px-4 py-3 text-left">Customer</th>
-                        <th className="px-4 py-3 text-left">Date</th>
-                        <th className="px-4 py-3 text-right">Amount</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {paidOrders.map((order) => (
-                        <tr key={order.id} className="border-t border-border hover:bg-muted/20">
-                          <td className="px-4 py-3 font-mono text-muted-foreground">#{order.id}</td>
-                          <td className="px-4 py-3 font-medium">{order.buyerName}</td>
-                          <td className="px-4 py-3 text-muted-foreground">
-                            {order.deliveryDate ? format(new Date(order.deliveryDate), "MMM d, yyyy") : "—"}
-                          </td>
-                          <td className="px-4 py-3 text-right font-mono font-bold text-green-700">
-                            PKR {(order.paymentAmountReceived ?? order.totalPkr).toLocaleString()}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
 
-            {orders?.length === 0 && (
-              <div className="text-center py-16 text-muted-foreground">
-                <DollarSign className="w-10 h-10 mx-auto mb-3 opacity-30" />
-                <p className="font-serif text-lg">No orders yet</p>
-              </div>
-            )}
-          </>
-        )}
+                <p className="mt-2 text-xs leading-5 text-[#746876]">
+                  Check these details before confirming
+                  any payment as received.
+                </p>
+
+                <div className="mt-5 space-y-4">
+                  <SafetyItem
+                    number="01"
+                    title="Open your payment account"
+                    description="Check Easypaisa, JazzCash or your bank directly."
+                  />
+
+                  <SafetyItem
+                    number="02"
+                    title="Match the amount"
+                    description="Confirm that the received amount matches the order."
+                  />
+
+                  <SafetyItem
+                    number="03"
+                    title="Match the reference"
+                    description="Compare the transaction reference and customer details."
+                  />
+
+                  <SafetyItem
+                    number="04"
+                    title="Confirm received"
+                    description="Only then mark the order payment as collected."
+                  />
+                </div>
+              </section>
+
+              <section className="rounded-2xl border border-[#e5cfd9] bg-[#fff0f5] p-4">
+                <ScanLine className="h-5 w-5 text-[#c24f7a]" />
+
+                <h2 className="mt-3 font-serif text-xl font-semibold">
+                  About receipt OCR
+                </h2>
+
+                <p className="mt-2 text-xs leading-5 text-[#746876]">
+                  OCR can help identify visible text, but
+                  screenshots can be edited or reused. It
+                  will never confirm payment automatically.
+                </p>
+              </section>
+
+              <section className="rounded-2xl border border-[#dfd1c4] bg-white/45 p-4">
+                <h2 className="font-serif text-xl font-semibold">
+                  Payment activity
+                </h2>
+
+                <div className="mt-4 space-y-4">
+                  <ActivityRow
+                    label="Orders awaiting payment"
+                    value={pendingOrders.length}
+                  />
+
+                  <ActivityRow
+                    label="Orders paid"
+                    value={paidOrders.length}
+                  />
+
+                  <ActivityRow
+                    label="Receipts stored"
+                    value={receiptsOnFile}
+                  />
+                </div>
+              </section>
+            </aside>
+          </div>
+        </div>
       </div>
     </DashboardLayout>
+  );
+}
+
+function PaymentMetric({
+  icon: Icon,
+  label,
+  value,
+  valueClass = "",
+}: {
+  icon: ComponentType<{ className?: string }>;
+  label: string;
+  value: string;
+  valueClass?: string;
+}) {
+  return (
+    <div className="border-[#dfd1c4] px-4 py-5 sm:border-r sm:last:border-r-0 lg:px-5">
+      <div className="flex items-center gap-2 text-[#746876]">
+        <Icon className="h-5 w-5 text-[#c24f7a]" />
+
+        <span className="text-[11px] font-medium">
+          {label}
+        </span>
+      </div>
+
+      <p
+        className={`mt-2 whitespace-nowrap font-mono text-2xl font-semibold tracking-[-0.03em] ${valueClass}`}
+      >
+        {value}
+      </p>
+    </div>
+  );
+}
+
+function PaymentEmptyState({
+  icon: Icon,
+  title,
+  description,
+}: {
+  icon: ComponentType<{ className?: string }>;
+  title: string;
+  description: string;
+}) {
+  return (
+    <div className="grid min-h-[390px] place-items-center p-6 text-center">
+      <div>
+        <span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-[#f1dde5] text-[#c24f7a]">
+          <Icon className="h-6 w-6" />
+        </span>
+
+        <h2 className="mt-4 font-serif text-2xl font-semibold">
+          {title}
+        </h2>
+
+        <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-[#746876]">
+          {description}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function SafetyItem({
+  number,
+  title,
+  description,
+}: {
+  number: string;
+  title: string;
+  description: string;
+}) {
+  return (
+    <div className="flex gap-3 border-b border-[#eadfd5] pb-4 last:border-0 last:pb-0">
+      <span className="font-mono text-[10px] font-semibold text-[#c24f7a]">
+        {number}
+      </span>
+
+      <div>
+        <p className="text-xs font-semibold">{title}</p>
+
+        <p className="mt-1 text-[11px] leading-5 text-[#746876]">
+          {description}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function ActivityRow({
+  label,
+  value,
+}: {
+  label: string;
+  value: number;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <span className="text-xs text-[#746876]">
+        {label}
+      </span>
+
+      <span className="rounded-lg bg-[#f1e9e2] px-2.5 py-1 font-mono text-[10px] font-semibold text-[#632a73]">
+        {value.toString().padStart(2, "0")}
+      </span>
+    </div>
   );
 }

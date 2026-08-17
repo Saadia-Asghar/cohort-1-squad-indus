@@ -15,4 +15,5 @@ export * from "./meta_connections";
 export * from "./channel_events";
 export * from "./baker_members";
 export * from "./order_audit_logs";
+export * from "./whatsapp_waitlist";
 

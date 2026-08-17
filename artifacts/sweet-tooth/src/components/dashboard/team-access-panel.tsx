@@ -42,6 +42,10 @@ export function TeamAccessPanel({ bakerId }: { bakerId: number }) {
     try {
       const headers = await authHeaders(getToken);
       const res = await fetch(`/api/bakers/${bakerId}/team`, { headers });
+      const contentType = res.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        throw new Error("Local backend dev server is not running or returned an invalid response.");
+      }
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         throw new Error(body.error || `Failed to load team (${res.status})`);

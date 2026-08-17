@@ -776,6 +776,9 @@ export const ListOrdersResponseItem = zod.object({
   "deliveredAt": zod.coerce.date().nullish(),
   "serviceFeedback": zod.enum(['loved_it', 'okay', 'had_issue']).nullish(),
   "feedbackNote": zod.string().nullish(),
+  "cancellationReason": zod.string().nullish(),
+  "cancelledBy": zod.string().nullish(),
+  "cancelledAt": zod.coerce.date().nullish(),
   "createdAt": zod.string(),
   "updatedAt": zod.string().optional()
 })
@@ -846,6 +849,9 @@ export const CreateOrderResponse = zod.object({
   "deliveredAt": zod.coerce.date().nullish(),
   "serviceFeedback": zod.enum(['loved_it', 'okay', 'had_issue']).nullish(),
   "feedbackNote": zod.string().nullish(),
+  "cancellationReason": zod.string().nullish(),
+  "cancelledBy": zod.string().nullish(),
+  "cancelledAt": zod.coerce.date().nullish(),
   "createdAt": zod.string(),
   "updatedAt": zod.string().optional()
 })
@@ -891,6 +897,9 @@ export const GetOrderResponse = zod.object({
   "deliveredAt": zod.coerce.date().nullish(),
   "serviceFeedback": zod.enum(['loved_it', 'okay', 'had_issue']).nullish(),
   "feedbackNote": zod.string().nullish(),
+  "cancellationReason": zod.string().nullish(),
+  "cancelledBy": zod.string().nullish(),
+  "cancelledAt": zod.coerce.date().nullish(),
   "createdAt": zod.string(),
   "updatedAt": zod.string().optional()
 })
@@ -942,6 +951,9 @@ export const UpdateOrderStatusResponse = zod.object({
   "deliveredAt": zod.coerce.date().nullish(),
   "serviceFeedback": zod.enum(['loved_it', 'okay', 'had_issue']).nullish(),
   "feedbackNote": zod.string().nullish(),
+  "cancellationReason": zod.string().nullish(),
+  "cancelledBy": zod.string().nullish(),
+  "cancelledAt": zod.coerce.date().nullish(),
   "createdAt": zod.string(),
   "updatedAt": zod.string().optional()
 })
@@ -991,6 +1003,9 @@ export const MarkOrderPaidResponse = zod.object({
   "deliveredAt": zod.coerce.date().nullish(),
   "serviceFeedback": zod.enum(['loved_it', 'okay', 'had_issue']).nullish(),
   "feedbackNote": zod.string().nullish(),
+  "cancellationReason": zod.string().nullish(),
+  "cancelledBy": zod.string().nullish(),
+  "cancelledAt": zod.coerce.date().nullish(),
   "createdAt": zod.string(),
   "updatedAt": zod.string().optional()
 })
@@ -1060,6 +1075,9 @@ export const SetOrderPaymentScreenshotResponse = zod.object({
   "deliveredAt": zod.coerce.date().nullish(),
   "serviceFeedback": zod.enum(['loved_it', 'okay', 'had_issue']).nullish(),
   "feedbackNote": zod.string().nullish(),
+  "cancellationReason": zod.string().nullish(),
+  "cancelledBy": zod.string().nullish(),
+  "cancelledAt": zod.coerce.date().nullish(),
   "createdAt": zod.string(),
   "updatedAt": zod.string().optional()
 })

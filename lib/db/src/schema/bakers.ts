@@ -65,6 +65,8 @@ export const bakersTable = sweetTooth.table("bakers", {
   totalOrders: integer("total_orders").notNull().default(0),
   slug: text("slug").notNull().unique(),
   photoUrl: text("photo_url"),
+  resetPasswordToken: text("reset_password_token"),
+  resetPasswordExpires: timestamp("reset_password_expires", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });

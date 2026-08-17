@@ -1,11 +1,10 @@
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
-import { Link } from "wouter";
 import { PlanBadge } from "@/components/marketing/pricing-section";
 import { useBuyerSession } from "@/hooks/use-session";
 import { useGetBaker, useUpdateBaker, getGetBakerQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
-import { Copy, Facebook, Instagram, QrCode, Share2, Sparkles, ArrowRight, Grid3X3, Bot, ChartNoAxesCombined, WalletCards } from "lucide-react";
+import { Copy, Facebook, Instagram, QrCode, Share2, Sparkles, ArrowRight, Store, CreditCard, Calendar, Users, Zap } from "lucide-react";
 import { getPlanById, FOUNDER_OFFER_ACTIVE, formatExtraReplyPkr, getFounderOfferLines, displayPrice } from "@/lib/pricing-plans";
 import { PlatformBillingPanel } from "@/components/dashboard/platform-billing-panel";
 import { TeamAccessPanel } from "@/components/dashboard/team-access-panel";
@@ -22,6 +21,7 @@ export default function DashboardSettings() {
   const { data: baker, isLoading } = useGetBaker(bakerId);
   const updateBaker = useUpdateBaker();
 
+  const [activeTab, setActiveTab] = useState<"profile" | "payments" | "occasions" | "team" | "billing">("profile");
   const [businessName, setBusinessName] = useState("");
   const [tagline, setTagline] = useState("");
   const [whatsappNumber, setWhatsappNumber] = useState("");
@@ -163,7 +163,7 @@ export default function DashboardSettings() {
   if (isLoading && !baker) {
     return (
       <DashboardLayout>
-        <div className="p-8 max-w-2xl animate-pulse space-y-4">
+        <div className="mx-auto min-h-screen max-w-[1480px] animate-pulse space-y-4 bg-[#fbf6ee] px-4 py-5 sm:px-6 lg:px-7">
           <div className="h-10 w-64 bg-muted rounded-lg" />
           <div className="h-40 bg-muted rounded-xl" />
         </div>
@@ -171,422 +171,480 @@ export default function DashboardSettings() {
     );
   }
 
+  const tabs = [
+    { id: "profile", label: "Bakery Profile", icon: Store, desc: "Manage name, description, WhatsApp, and shop links" },
+    { id: "payments", label: "Payments & Policies", icon: CreditCard, desc: "Configure COD, advance payments, and cancellation rules" },
+    { id: "occasions", label: "Occasions & Capacity", icon: Calendar, desc: "Eid orders, maximum daily orders, and vacation dates" },
+    { id: "team", label: "Staff & Team", icon: Users, desc: "Manage logins for your kitchen assistants and helpers" },
+    { id: "billing", label: "Subscription & Billing", icon: Zap, desc: "View plan limits, invoices, and upgrade packages" },
+  ] as const;
+
   return (
     <DashboardLayout>
-      <div className="p-8 max-w-2xl">
-        <h1 className="text-4xl font-bold mb-2 font-serif text-primary">Your kitchen, your rules.</h1>
-        <p className="text-muted-foreground mb-8">Manage your profile, delivery areas, and policies.</p>
+      <div className="mx-auto min-h-screen max-w-[1480px] bg-[#fbf6ee] px-4 py-5 text-[#241629] sm:px-6 lg:px-7">
+        <header className="mb-6">
+          <h1 className="text-4xl font-bold font-serif text-primary">Your kitchen, your rules.</h1>
+          <p className="text-muted-foreground mt-1">Manage your profile, delivery areas, and policies.</p>
+        </header>
 
-        <section aria-labelledby="business-tools-heading" className="mb-8 rounded-xl border border-border bg-card p-5 shadow-sm">
-          <h2 id="business-tools-heading" className="font-serif text-xl font-bold text-primary">Business tools</h2>
-          <p className="mt-1 text-sm text-muted-foreground">Less-used tools live here so your daily navigation stays focused.</p>
-          <div className="mt-4 grid gap-2 sm:grid-cols-2">
-            {[
-              { href: "/dashboard/catalog", label: "Manage menu", icon: Grid3X3 },
-              { href: "/dashboard/agent-hub", label: "Assistant & channels", icon: Bot },
-              { href: "/dashboard/payments", label: "Payments & receipts", icon: WalletCards },
-              { href: "/dashboard/analytics", label: "Reports & growth", icon: ChartNoAxesCombined },
-            ].map((tool) => {
-              const Icon = tool.icon;
-              return <Link key={tool.href} href={tool.href} className="flex min-h-12 items-center gap-3 rounded-lg border border-border px-3 py-2 text-sm font-semibold transition-colors hover:border-primary/30 hover:bg-primary/5"><Icon className="h-4 w-4 text-primary" />{tool.label}<ArrowRight className="ml-auto h-4 w-4 text-muted-foreground" /></Link>;
-            })}
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-4">
+          {/* Tab Navigation Sidebar */}
+          <div className="lg:col-span-1 space-y-3">
+            <div className="rounded-2xl border border-[#dfd1c4] bg-white/70 p-4 shadow-sm space-y-1">
+              {tabs.map((tab) => {
+                const Icon = tab.icon;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left text-sm font-semibold transition ${
+                      activeTab === tab.id
+                        ? "bg-[#632a73] text-white shadow-md"
+                        : "text-[#544359] hover:bg-[#fffaf6] hover:text-[#241629]"
+                    }`}
+                  >
+                    <Icon className={`w-5 h-5 flex-shrink-0 ${activeTab === tab.id ? "text-white" : "text-[#746876]"}`} />
+                    <div className="min-w-0">
+                      <p className="truncate">{tab.label}</p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+            
+            {/* Quick stats / Save info card */}
+            <div className="rounded-2xl border border-[#dfd1c4] bg-white/45 p-4 shadow-sm space-y-3">
+              <p className="text-xs text-muted-foreground">
+                Make sure to save your settings after editing any fields.
+              </p>
+              <button
+                onClick={handleSave}
+                disabled={updateBaker.isPending}
+                className="w-full min-h-11 rounded-xl bg-[#632a73] px-4 text-xs font-bold text-white transition hover:bg-[#542261] disabled:opacity-50 flex items-center justify-center gap-2 shadow-sm cursor-pointer"
+              >
+                {updateBaker.isPending ? "Saving..." : "Save All Changes"}
+              </button>
+            </div>
           </div>
-        </section>
 
-        {baker && (
-          <div className="mb-8 rounded-xl border border-primary/20 bg-primary/5 p-6 shadow-sm">
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Your package</p>
-                <div className="mt-2 flex items-center gap-2">
-                  <PlanBadge planId={baker.subscriptionPlan} />
-                  <span className="text-sm text-muted-foreground">
-                    {getPlanById(baker.subscriptionPlan)?.tagline}
-                  </span>
+          {/* Active Tab Content Panel */}
+          <div className="lg:col-span-3 space-y-4">
+            {activeTab === "profile" && (
+              <div className="space-y-6">
+                {/* Kitchen Details */}
+                <div className="space-y-4 rounded-2xl border border-[#dfd1c4] bg-white/70 p-5 shadow-sm">
+                  <h3 className="font-serif text-2xl font-semibold tracking-[-0.02em] text-[#241629] border-b border-border/50 pb-2">Kitchen Details</h3>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <label className="text-xs font-semibold text-[#746876] uppercase tracking-wider">Business Name</label>
+                      <input 
+                        type="text" 
+                        className="min-h-11 w-full rounded-xl border border-[#dfd1c4] bg-[#fffaf6] px-3.5 text-sm text-[#241629] outline-none transition focus:border-[#c24f7a]/60 focus:ring-4 focus:ring-[#c24f7a]/10" 
+                        value={businessName}
+                        onChange={e => setBusinessName(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-semibold text-[#746876] uppercase tracking-wider">WhatsApp Number</label>
+                      <input 
+                        type="text" 
+                        className="min-h-11 w-full rounded-xl border border-[#dfd1c4] bg-[#fffaf6] px-3.5 text-sm text-[#241629] outline-none transition focus:border-[#c24f7a]/60 focus:ring-4 focus:ring-[#c24f7a]/10" 
+                        value={whatsappNumber}
+                        onChange={e => setWhatsappNumber(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold text-[#746876] uppercase tracking-wider">Tagline</label>
+                    <input 
+                      type="text" 
+                      className="min-h-11 w-full rounded-xl border border-[#dfd1c4] bg-[#fffaf6] px-3.5 text-sm text-[#241629] outline-none transition focus:border-[#c24f7a]/60 focus:ring-4 focus:ring-[#c24f7a]/10" 
+                      value={tagline}
+                      onChange={e => setTagline(e.target.value)}
+                    />
+                  </div>
                 </div>
-                {(baker as { trial?: { isFree?: boolean; expired?: boolean; daysLeft?: number | null } }).trial?.isFree && (
-                  <p className={`mt-2 text-sm ${(baker as { trial?: { expired?: boolean } }).trial?.expired ? "text-destructive font-medium" : "text-muted-foreground"}`}>
-                    {(baker as { trial?: { expired?: boolean; daysLeft?: number | null } }).trial?.expired
-                      ? "3-day trial ended — upgrade to restore the agent and broadcasts."
-                      : `Trial: ${(baker as { trial?: { daysLeft?: number | null } }).trial?.daysLeft ?? 0} day(s) left.`}
+
+                {/* Share Menu */}
+                <div className="space-y-4 rounded-2xl border border-[#dfd1c4] bg-white/70 p-5 shadow-sm">
+                  <div className="flex items-center gap-2 border-b border-border/50 pb-2">
+                    <QrCode className="w-5 h-5 text-primary" />
+                    <h3 className="font-serif text-2xl font-semibold tracking-[-0.02em] text-[#241629]">Share your menu</h3>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold text-[#746876] uppercase tracking-wider">Delivery sectors / areas</label>
+                    <input
+                      type="text"
+                      className="min-h-11 w-full rounded-xl border border-[#dfd1c4] bg-[#fffaf6] px-3.5 text-sm text-[#241629] outline-none transition focus:border-[#c24f7a]/60 focus:ring-4 focus:ring-[#c24f7a]/10"
+                      placeholder="e.g. Gulberg, DHA Phase 5, Model Town"
+                      value={deliveryAreasText}
+                      onChange={e => setDeliveryAreasText(e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">Separate sectors with commas. Your menu assistant uses these areas when answering delivery questions.</p>
+                  </div>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <label className="space-y-2 text-xs font-semibold text-[#746876] uppercase tracking-wider block">
+                      <span className="flex items-center gap-2"><Instagram className="h-4 w-4" /> Instagram profile link</span>
+                      <input type="url" className="min-h-11 w-full rounded-xl border border-[#dfd1c4] bg-[#fffaf6] px-3.5 text-sm text-[#241629] normal-case outline-none transition focus:border-[#c24f7a]/60 focus:ring-4 focus:ring-[#c24f7a]/10" placeholder="https://instagram.com/yourbakery" value={instagramUrl} onChange={(e) => setInstagramUrl(e.target.value)} />
+                    </label>
+                    <label className="space-y-2 text-xs font-semibold text-[#746876] uppercase tracking-wider block">
+                      <span className="flex items-center gap-2"><Facebook className="h-4 w-4" /> Facebook page link</span>
+                      <input type="url" className="min-h-11 w-full rounded-xl border border-[#dfd1c4] bg-[#fffaf6] px-3.5 text-sm text-[#241629] normal-case outline-none transition focus:border-[#c24f7a]/60 focus:ring-4 focus:ring-[#c24f7a]/10" placeholder="https://facebook.com/yourbakery" value={facebookUrl} onChange={(e) => setFacebookUrl(e.target.value)} />
+                    </label>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">Customers scan this QR code to open your live menu, talk to your assistant, and place an order.</p>
+                  <div className="flex flex-col sm:flex-row gap-5 items-start pt-2">
+                    {qrCodeUrl && <img src={qrCodeUrl} alt={`QR code for ${baker?.businessName ?? "your shop"}`} className="w-40 h-40 rounded-lg border border-border bg-white p-2" />}
+                    <div className="space-y-3 flex-1 min-w-0">
+                      <input readOnly value={shopUrl} className="w-full px-3 py-2 border border-border rounded-md bg-muted text-sm" aria-label="Your menu link" />
+                      <div className="flex flex-wrap gap-2">
+                        <button onClick={copyShopLink} className="inline-flex items-center gap-2 px-3 py-2 rounded-md border border-border text-sm font-medium hover:bg-muted cursor-pointer"><Copy className="w-4 h-4" /> Copy link</button>
+                        <button onClick={shareShop} className="inline-flex items-center gap-2 px-3 py-2 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 cursor-pointer"><Share2 className="w-4 h-4" /> Share shop</button>
+                      </div>
+                      <p className="text-xs text-muted-foreground">Print this QR code on packaging, business cards, or Instagram stories.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === "payments" && (
+              <div className="space-y-6">
+                {/* Payment Options */}
+                <div className="space-y-4 rounded-2xl border border-[#dfd1c4] bg-white/70 p-5 shadow-sm">
+                  <h3 className="font-serif text-2xl font-semibold tracking-[-0.02em] text-[#241629] border-b border-border/50 pb-2">Payment options for customers</h3>
+                  <p className="text-sm text-muted-foreground">Select how buyers pay. This appears on your menu and at checkout.</p>
+                  <div className="space-y-3">
+                    {PAYMENT_MODE_OPTIONS.map((opt) => (
+                      <label key={opt.value} className={`flex gap-3 rounded-lg border p-4 cursor-pointer transition ${paymentMode === opt.value ? "border-primary bg-primary/5" : "border-border hover:bg-muted/10"}`}>
+                        <input
+                          type="radio"
+                          name="paymentMode"
+                          value={opt.value}
+                          checked={paymentMode === opt.value}
+                          onChange={() => setPaymentMode(opt.value)}
+                          className="mt-1"
+                        />
+                        <span>
+                          <span className="block text-sm font-semibold">{opt.label}</span>
+                          <span className="block text-xs text-muted-foreground mt-0.5">{opt.hint}</span>
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+
+                  {paymentMode === "partial_advance" && (
+                    <div className="grid grid-cols-2 gap-4 pt-2 border-t border-border/50">
+                      <div className="space-y-2">
+                        <label className="text-xs font-semibold text-[#746876] uppercase tracking-wider">Minimum order (PKR) for advance</label>
+                        <input
+                          type="number"
+                          className="min-h-11 w-full rounded-xl border border-[#dfd1c4] bg-[#fffaf6] px-3.5 text-sm text-[#241629] outline-none transition focus:border-[#c24f7a]/60 focus:ring-4 focus:ring-[#c24f7a]/10"
+                          value={advanceThresholdPkr}
+                          onChange={(e) => setAdvanceThresholdPkr(Number(e.target.value))}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-semibold text-[#746876] uppercase tracking-wider">Advance percentage (%)</label>
+                        <input
+                          type="number"
+                          min={1}
+                          max={99}
+                          className="min-h-11 w-full rounded-xl border border-[#dfd1c4] bg-[#fffaf6] px-3.5 text-sm text-[#241629] outline-none transition focus:border-[#c24f7a]/60 focus:ring-4 focus:ring-[#c24f7a]/10"
+                          value={advancePercentage}
+                          onChange={(e) => setAdvancePercentage(Number(e.target.value))}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {paymentMode !== "cod" && (
+                    <div className="space-y-2">
+                      <label className="text-xs font-semibold text-[#746876] uppercase tracking-wider">Payment account details</label>
+                      <textarea
+                        className="w-full px-3 py-2 border border-border rounded-md bg-background min-h-[80px]"
+                        placeholder="e.g. Easypaisa: 0300-1234567 (Sana Asghar) · Bank: HBL ..."
+                        value={paymentDetails}
+                        onChange={(e) => setPaymentDetails(e.target.value)}
+                      />
+                      <p className="text-xs text-muted-foreground">Shown to buyers when advance payment is required.</p>
+                    </div>
+                  )}
+
+                  {paymentMode === "cod" && (
+                    <div className="space-y-2 pt-2 border-t border-border/50">
+                      <label className="text-xs font-semibold text-[#746876] uppercase tracking-wider">Cash on delivery policy (shown on menu)</label>
+                      <textarea
+                        className="w-full px-3 py-2 border border-border rounded-md bg-background min-h-[80px]"
+                        value={codPolicy}
+                        onChange={(e) => setCodPolicy(e.target.value)}
+                        placeholder="e.g. Full payment in cash when your order is delivered."
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* Kitchen Policies */}
+                <div className="space-y-4 rounded-2xl border border-[#dfd1c4] bg-white/70 p-5 shadow-sm">
+                  <h3 className="font-serif text-2xl font-semibold tracking-[-0.02em] text-[#241629] border-b border-border/50 pb-2">Kitchen policies (agent uses these)</h3>
+                  <p className="text-xs text-muted-foreground">Delivery, pickup, and cancellation rules are shared with buyers via your AI assistant.</p>
+                  
+                  <div className="space-y-3">
+                    <label className="flex items-center gap-2 text-sm font-semibold cursor-pointer">
+                      <input type="checkbox" checked={allowDelivery} onChange={(e) => setAllowDelivery(e.target.checked)} className="rounded text-primary" />
+                      Offer home delivery
+                    </label>
+                    <label className="flex items-center gap-2 text-sm font-semibold cursor-pointer">
+                      <input type="checkbox" checked={allowPickup} onChange={(e) => setAllowPickup(e.target.checked)} className="rounded text-primary" />
+                      Offer pickup from my kitchen
+                    </label>
+                  </div>
+
+                  {allowPickup && (
+                    <label className="block text-xs font-semibold text-[#746876] uppercase tracking-wider">
+                      Pickup address (shown to buyers)
+                      <input
+                        value={pickupAddress}
+                        onChange={(e) => setPickupAddress(e.target.value)}
+                        placeholder="e.g. House 12, Street 5, Gulberg III, Lahore"
+                        className="mt-1.5 w-full min-h-11 rounded-xl border border-[#dfd1c4] bg-[#fffaf6] px-3.5 text-sm text-[#241629] normal-case outline-none transition focus:border-[#c24f7a]/60 focus:ring-4 focus:ring-[#c24f7a]/10"
+                      />
+                    </label>
+                  )}
+
+                  <div className="pt-2 border-t border-[#dfd1c4]/50">
+                    <label className="flex items-center gap-2 text-sm font-semibold cursor-pointer">
+                      <input type="checkbox" checked={cancellationAllowed} onChange={(e) => setCancellationAllowed(e.target.checked)} className="rounded text-primary" />
+                      Allow order cancellations
+                    </label>
+                  </div>
+
+                  {cancellationAllowed && (
+                    <label className="block text-xs font-semibold text-[#746876] uppercase tracking-wider max-w-xs">
+                      Cancel at least how many hours before delivery?
+                      <input
+                        type="number"
+                        min={0}
+                        value={cancellationHoursBefore}
+                        onChange={(e) => setCancellationHoursBefore(e.target.value)}
+                        className="mt-1.5 w-full min-h-11 rounded-xl border border-[#dfd1c4] bg-[#fffaf6] px-3.5 text-sm text-[#241629] normal-case outline-none transition focus:border-[#c24f7a]/60 focus:ring-4 focus:ring-[#c24f7a]/10"
+                      />
+                    </label>
+                  )}
+
+                  <label className="block text-xs font-semibold text-[#746876] uppercase tracking-wider">
+                    Cancellation policy (plain language)
+                    <textarea
+                      rows={3}
+                      value={cancellationPolicy}
+                      onChange={(e) => setCancellationPolicy(e.target.value)}
+                      placeholder="e.g. Free cancellation up to 24 hours before delivery. Custom cakes are non-refundable after production starts."
+                      className="mt-1.5 w-full px-3 py-2 border border-border rounded-md bg-background text-sm normal-case resize-none"
+                    />
+                  </label>
+                </div>
+              </div>
+            )}
+
+            {activeTab === "occasions" && (
+              <div className="space-y-6">
+                {/* Occasion Orders */}
+                <div className="space-y-4 rounded-2xl border border-[#dfd1c4] bg-white/70 p-5 shadow-sm">
+                  <h3 className="font-serif text-2xl font-semibold tracking-[-0.02em] text-[#241629] border-b border-border/50 pb-2">Occasion orders (Eid & special dates)</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Choose how your menu behaves during Eid or a custom rush. Shown as a banner on your shared menu link.
                   </p>
-                )}
-                {(() => {
-                  const plan = getPlanById(baker.subscriptionPlan) ?? getPlanById("free")!;
-                  const price = displayPrice(plan, FOUNDER_OFFER_ACTIVE ? "quarterly" : "monthly");
-                  return (
-                    <>
-                      {plan.monthlyPkr > 0 && (
-                        <p className="mt-2 text-sm font-semibold text-foreground">
-                          {price.primary} <span className="font-normal text-muted-foreground">{price.suffix}</span>
-                          {price.sub && <span className="block text-xs text-muted-foreground mt-0.5">{price.sub}</span>}
-                        </p>
-                      )}
-                      <p className="mt-2 text-sm text-muted-foreground">
-                        {plan.commissionPercent > 0
-                          ? `${plan.commissionPercent}% commission on checkout orders (max ${plan.commissionCapPkr.toLocaleString()} PKR/mo) · `
-                          : "0% commission · "}
-                        Extra agent replies {formatExtraReplyPkr(plan.extraReplyPkr)} each
-                      </p>
-                      <p className="mt-1 text-xs text-muted-foreground">{plan.limits.aiReplies} included · {plan.limits.whatsappChats}</p>
-                    </>
-                  );
-                })()}
-              </div>
-              <a
-                href="#platform-billing"
-                className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
-              >
-                <Sparkles className="h-4 w-4" />
-                {baker.subscriptionPlan === "free" || baker.subscriptionPlan === "starter" ? "Upgrade" : "Change plan"}
-                <ArrowRight className="h-3.5 w-3.5" />
-              </a>
-            </div>
-            {FOUNDER_OFFER_ACTIVE && baker.subscriptionPlan === "free" && (
-              <div className="mt-4 rounded-lg border border-primary/20 bg-background/80 p-3">
-                <p className="text-xs font-bold text-primary">Founder rate — lock in for 3 months</p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {getFounderOfferLines().join(" · ")}
-                </p>
-                <p className="mt-1 text-xs text-muted-foreground">First month 0% commission on checkout orders.</p>
-              </div>
-            )}
-          </div>
-        )}
-
-        {bakerId > 0 && (
-          <div id="platform-billing" className="mb-8 scroll-mt-6">
-            <PlatformBillingPanel bakerId={bakerId} currentPlanId={baker?.subscriptionPlan} />
-          </div>
-        )}
-
-        {bakerId > 0 && (
-          <div id="team-access" className="mb-8 scroll-mt-6">
-            <TeamAccessPanel bakerId={bakerId} />
-          </div>
-        )}
-        
-        <div className="space-y-6">
-          <div className="p-6 rounded-xl border border-border bg-card shadow-sm space-y-4">
-            <h3 className="font-serif text-xl font-bold">Kitchen Details</h3>
-            
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">Business Name</label>
-              <input 
-                type="text" 
-                className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary" 
-                value={businessName}
-                onChange={e => setBusinessName(e.target.value)}
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">Tagline</label>
-              <input 
-                type="text" 
-                className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary" 
-                value={tagline}
-                onChange={e => setTagline(e.target.value)}
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">WhatsApp Number</label>
-              <input 
-                type="text" 
-                className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary" 
-                value={whatsappNumber}
-                onChange={e => setWhatsappNumber(e.target.value)}
-              />
-            </div>
-          </div>
-
-          <div className="p-6 rounded-xl border border-border bg-card shadow-sm space-y-4">
-            <div className="flex items-center gap-2">
-              <QrCode className="w-5 h-5 text-primary" />
-              <h3 className="font-serif text-xl font-bold">Share your menu</h3>
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">Delivery sectors / areas</label>
-              <input
-                type="text"
-                className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-                placeholder="e.g. Gulberg, DHA Phase 5, Model Town"
-                value={deliveryAreasText}
-                onChange={e => setDeliveryAreasText(e.target.value)}
-              />
-              <p className="text-xs text-muted-foreground">Separate sectors with commas. Your menu assistant uses these areas when answering delivery questions.</p>
-            </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <label className="space-y-2 text-sm font-medium text-foreground"><span className="flex items-center gap-2"><Instagram className="h-4 w-4" /> Instagram profile link</span><input type="url" className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary" placeholder="https://instagram.com/yourbakery" value={instagramUrl} onChange={(e) => setInstagramUrl(e.target.value)} /></label>
-              <label className="space-y-2 text-sm font-medium text-foreground"><span className="flex items-center gap-2"><Facebook className="h-4 w-4" /> Facebook page link</span><input type="url" className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary" placeholder="https://facebook.com/yourbakery" value={facebookUrl} onChange={(e) => setFacebookUrl(e.target.value)} /></label>
-            </div>
-            <p className="text-sm text-muted-foreground">Customers scan this QR code to open your live menu, talk to your assistant, and place an order.</p>
-            <div className="flex flex-col sm:flex-row gap-5 items-start">
-              {qrCodeUrl && <img src={qrCodeUrl} alt={`QR code for ${baker?.businessName ?? "your shop"}`} className="w-40 h-40 rounded-lg border border-border bg-white p-2" />}
-              <div className="space-y-3 flex-1 min-w-0">
-                <input readOnly value={shopUrl} className="w-full px-3 py-2 border border-border rounded-md bg-muted text-sm" aria-label="Your menu link" />
-                <div className="flex flex-wrap gap-2">
-                  <button onClick={copyShopLink} className="inline-flex items-center gap-2 px-3 py-2 rounded-md border border-border text-sm font-medium hover:bg-muted"><Copy className="w-4 h-4" /> Copy link</button>
-                  <button onClick={shareShop} className="inline-flex items-center gap-2 px-3 py-2 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90"><Share2 className="w-4 h-4" /> Share shop</button>
-                </div>
-                <p className="text-xs text-muted-foreground">Print this QR code on packaging, business cards, or Instagram stories.</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="p-6 rounded-xl border border-border bg-card shadow-sm space-y-4">
-            <h3 className="font-serif text-xl font-bold">Occasion orders (Eid & special dates)</h3>
-            <p className="text-sm text-muted-foreground">
-              Choose how your menu behaves during Eid or a custom rush. Shown as a banner on your shared menu link.
-            </p>
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">Occasion mode</label>
-              <select
-                value={occasionPreset}
-                onChange={(e) => setOccasionPreset(e.target.value as OccasionPreset)}
-                className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground"
-              >
-                {OCCASION_PRESET_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
-                ))}
-              </select>
-            </div>
-            {occasionPreset === "custom" && (
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">Custom occasion name</label>
-                <input
-                  type="text"
-                  className="w-full px-3 py-2 border border-border rounded-md bg-background"
-                  placeholder="e.g. Ramadan pre-orders, Wedding season"
-                  value={occasionCustomLabel}
-                  onChange={(e) => setOccasionCustomLabel(e.target.value)}
-                />
-              </div>
-            )}
-            {occasionPreset !== "normal" && (
-              <>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-foreground">Last date to accept orders</label>
-                    <input
-                      type="date"
-                      className="w-full px-3 py-2 border border-border rounded-md bg-background"
-                      value={occasionOrderDeadline}
-                      onChange={(e) => setOccasionOrderDeadline(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-foreground">Baked fresh (days before delivery)</label>
-                    <input
-                      type="number"
-                      min={0}
-                      max={14}
-                      className="w-full px-3 py-2 border border-border rounded-md bg-background"
-                      value={occasionFreshDays}
-                      onChange={(e) => setOccasionFreshDays(e.target.value)}
-                    />
-                    <p className="text-xs text-muted-foreground">How many days before the event you start baking fresh.</p>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground">Note for customers (optional)</label>
-                  <textarea
-                    className="w-full px-3 py-2 border border-border rounded-md bg-background min-h-[72px]"
-                    placeholder="e.g. Eid boxes available for pickup only. Order early — slots fill fast."
-                    value={occasionNote}
-                    onChange={(e) => setOccasionNote(e.target.value)}
-                  />
-                </div>
-              </>
-            )}
-          </div>
-
-          <div className="p-6 rounded-xl border border-border bg-card shadow-sm space-y-4">
-            <h3 className="font-serif text-xl font-bold">Payment options for customers</h3>
-            <p className="text-sm text-muted-foreground">Select how buyers pay. This appears on your menu and at checkout.</p>
-            <div className="space-y-3">
-              {PAYMENT_MODE_OPTIONS.map((opt) => (
-                <label key={opt.value} className={`flex gap-3 rounded-lg border p-4 cursor-pointer ${paymentMode === opt.value ? "border-primary bg-primary/5" : "border-border"}`}>
-                  <input
-                    type="radio"
-                    name="paymentMode"
-                    value={opt.value}
-                    checked={paymentMode === opt.value}
-                    onChange={() => setPaymentMode(opt.value)}
-                    className="mt-1"
-                  />
-                  <span>
-                    <span className="block text-sm font-semibold">{opt.label}</span>
-                    <span className="block text-xs text-muted-foreground mt-0.5">{opt.hint}</span>
-                  </span>
-                </label>
-              ))}
-            </div>
-
-            {paymentMode === "partial_advance" && (
-              <div className="grid grid-cols-2 gap-4 pt-2 border-t border-border/50">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground">Minimum order (PKR) for advance</label>
-                  <input
-                    type="number"
-                    className="w-full px-3 py-2 border border-border rounded-md bg-background"
-                    value={advanceThresholdPkr}
-                    onChange={(e) => setAdvanceThresholdPkr(Number(e.target.value))}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground">Advance percentage (%)</label>
-                  <input
-                    type="number"
-                    min={1}
-                    max={99}
-                    className="w-full px-3 py-2 border border-border rounded-md bg-background"
-                    value={advancePercentage}
-                    onChange={(e) => setAdvancePercentage(Number(e.target.value))}
-                  />
-                </div>
-              </div>
-            )}
-
-            {paymentMode !== "cod" && (
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">Payment account details</label>
-                <textarea
-                  className="w-full px-3 py-2 border border-border rounded-md bg-background min-h-[80px]"
-                  placeholder="e.g. Easypaisa: 0300-1234567 (Sana Asghar) · Bank: HBL ..."
-                  value={paymentDetails}
-                  onChange={(e) => setPaymentDetails(e.target.value)}
-                />
-                <p className="text-xs text-muted-foreground">Shown to buyers when advance payment is required.</p>
-              </div>
-            )}
-
-            {paymentMode === "cod" && (
-              <div className="space-y-2 pt-2 border-t border-border/50">
-                <label className="text-sm font-medium text-foreground">Cash on delivery policy (shown on menu)</label>
-                <textarea
-                  className="w-full px-3 py-2 border border-border rounded-md bg-background min-h-[80px]"
-                  value={codPolicy}
-                  onChange={(e) => setCodPolicy(e.target.value)}
-                  placeholder="e.g. Full payment in cash when your order is delivered."
-                />
-              </div>
-            )}
-          </div>
-
-          <div className="p-6 rounded-xl border border-border bg-card shadow-sm space-y-4">
-            <h3 className="font-serif text-xl font-bold">📅 Calendar Capacity & Date Blocking</h3>
-            
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">Maximum orders per day</label>
-              <input 
-                type="number"
-                min="1"
-                className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary" 
-                value={maxOrdersPerDay}
-                onChange={e => setMaxOrdersPerDay(Number(e.target.value))}
-              />
-              <p className="text-xs text-muted-foreground">The calendar will display alerts when this limit is reached for a specific day.</p>
-            </div>
-
-            <div className="space-y-3 pt-4 border-t border-border/50">
-              <label className="text-sm font-medium text-foreground block">Block custom dates (e.g. Vacations or Holidays)</label>
-              <div className="flex gap-2">
-                <input 
-                  type="date"
-                  className="flex-1 px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary" 
-                  value={newBlockDate}
-                  onChange={e => setNewBlockDate(e.target.value)}
-                />
-                <button
-                  type="button"
-                  onClick={addBlockedDate}
-                  className="px-4 py-2 bg-secondary text-primary hover:bg-secondary/90 font-medium rounded-md transition-colors cursor-pointer"
-                >
-                  Block Date
-                </button>
-              </div>
-
-              {blockedDates.length > 0 ? (
-                <div className="flex flex-wrap gap-2 pt-2">
-                  {blockedDates.map((date) => (
-                    <span 
-                      key={date} 
-                      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-destructive/10 text-destructive text-xs font-semibold border border-destructive/20 animate-in fade-in duration-100"
+                    <label className="text-xs font-semibold text-[#746876] uppercase tracking-wider">Occasion mode</label>
+                    <select
+                      value={occasionPreset}
+                      onChange={(e) => setOccasionPreset(e.target.value as OccasionPreset)}
+                      className="min-h-11 w-full rounded-xl border border-[#dfd1c4] bg-[#fffaf6] px-3.5 text-sm text-[#241629] outline-none transition focus:border-[#c24f7a]/60 focus:ring-4 focus:ring-[#c24f7a]/10"
                     >
-                      {date}
-                      <button 
-                        type="button" 
-                        onClick={() => removeBlockedDate(date)}
-                        className="hover:text-destructive/80 font-bold focus:outline-none cursor-pointer"
-                      >
-                        ×
-                      </button>
-                    </span>
-                  ))}
+                      {OCCASION_PRESET_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  {occasionPreset === "custom" && (
+                    <div className="space-y-2">
+                      <label className="text-xs font-semibold text-[#746876] uppercase tracking-wider">Custom occasion name</label>
+                      <input
+                        type="text"
+                        className="min-h-11 w-full rounded-xl border border-[#dfd1c4] bg-[#fffaf6] px-3.5 text-sm text-[#241629] outline-none transition focus:border-[#c24f7a]/60 focus:ring-4 focus:ring-[#c24f7a]/10"
+                        placeholder="e.g. Ramadan pre-orders, Wedding season"
+                        value={occasionCustomLabel}
+                        onChange={(e) => setOccasionCustomLabel(e.target.value)}
+                      />
+                    </div>
+                  )}
+                  {occasionPreset !== "normal" && (
+                    <>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <label className="text-xs font-semibold text-[#746876] uppercase tracking-wider">Last date to accept orders</label>
+                          <input
+                            type="date"
+                            className="min-h-11 w-full rounded-xl border border-[#dfd1c4] bg-[#fffaf6] px-3.5 text-sm text-[#241629] outline-none transition focus:border-[#c24f7a]/60 focus:ring-4 focus:ring-[#c24f7a]/10"
+                            value={occasionOrderDeadline}
+                            onChange={(e) => setOccasionOrderDeadline(e.target.value)}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-xs font-semibold text-[#746876] uppercase tracking-wider">Baked fresh (days before delivery)</label>
+                          <input
+                            type="number"
+                            min={0}
+                            max={14}
+                            className="min-h-11 w-full rounded-xl border border-[#dfd1c4] bg-[#fffaf6] px-3.5 text-sm text-[#241629] outline-none transition focus:border-[#c24f7a]/60 focus:ring-4 focus:ring-[#c24f7a]/10"
+                            value={occasionFreshDays}
+                            onChange={(e) => setOccasionFreshDays(e.target.value)}
+                          />
+                          <p className="text-xs text-muted-foreground">How many days before the event you start baking fresh.</p>
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-semibold text-[#746876] uppercase tracking-wider">Note for customers (optional)</label>
+                        <textarea
+                          className="w-full px-3 py-2 border border-border rounded-md bg-background min-h-[72px]"
+                          placeholder="e.g. Eid boxes available for pickup only. Order early — slots fill fast."
+                          value={occasionNote}
+                          onChange={(e) => setOccasionNote(e.target.value)}
+                        />
+                      </div>
+                    </>
+                  )}
                 </div>
-              ) : (
-                <p className="text-xs text-muted-foreground italic">No dates currently blocked.</p>
-              )}
-            </div>
-          </div>
 
-          <div className="p-6 rounded-xl border border-border bg-card shadow-sm space-y-4">
-            <h3 className="font-serif text-xl font-bold">Kitchen policies (agent uses these)</h3>
-            <p className="text-xs text-muted-foreground">Delivery, pickup, and cancellation rules are shared with buyers via your AI assistant.</p>
-            <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" checked={allowDelivery} onChange={(e) => setAllowDelivery(e.target.checked)} />
-              Offer home delivery
-            </label>
-            <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" checked={allowPickup} onChange={(e) => setAllowPickup(e.target.checked)} />
-              Offer pickup from my kitchen
-            </label>
-            <label className="block text-sm font-medium">
-              Pickup address (shown to buyers)
-              <input
-                value={pickupAddress}
-                onChange={(e) => setPickupAddress(e.target.value)}
-                placeholder="e.g. House 12, Street 5, Gulberg III, Lahore"
-                className="mt-1 w-full px-3 py-2 border border-border rounded-md bg-background text-sm"
-              />
-            </label>
-            <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" checked={cancellationAllowed} onChange={(e) => setCancellationAllowed(e.target.checked)} />
-              Allow order cancellations
-            </label>
-            {cancellationAllowed && (
-              <label className="block text-sm font-medium">
-                Cancel at least how many hours before delivery?
-                <input
-                  type="number"
-                  min={0}
-                  value={cancellationHoursBefore}
-                  onChange={(e) => setCancellationHoursBefore(e.target.value)}
-                  className="mt-1 w-32 px-3 py-2 border border-border rounded-md bg-background text-sm"
-                />
-              </label>
+                {/* Capacity & Blocking */}
+                <div className="space-y-4 rounded-2xl border border-[#dfd1c4] bg-white/70 p-5 shadow-sm">
+                  <h3 className="font-serif text-2xl font-semibold tracking-[-0.02em] text-[#241629] border-b border-border/50 pb-2">📅 Calendar Capacity & Date Blocking</h3>
+                  
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold text-[#746876] uppercase tracking-wider">Maximum orders per day</label>
+                    <input 
+                      type="number"
+                      min="1"
+                      className="min-h-11 w-full rounded-xl border border-[#dfd1c4] bg-[#fffaf6] px-3.5 text-sm text-[#241629] outline-none transition focus:border-[#c24f7a]/60 focus:ring-4 focus:ring-[#c24f7a]/10" 
+                      value={maxOrdersPerDay}
+                      onChange={e => setMaxOrdersPerDay(Number(e.target.value))}
+                    />
+                    <p className="text-xs text-muted-foreground">The calendar will display alerts when this limit is reached for a specific day.</p>
+                  </div>
+
+                  <div className="space-y-3 pt-4 border-t border-border/50">
+                    <label className="text-xs font-semibold text-[#746876] uppercase tracking-wider block">Block custom dates (e.g. Vacations or Holidays)</label>
+                    <div className="flex gap-2">
+                      <input 
+                        type="date"
+                        className="flex-1 px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary" 
+                        value={newBlockDate}
+                        onChange={e => setNewBlockDate(e.target.value)}
+                      />
+                      <button
+                        type="button"
+                        onClick={addBlockedDate}
+                        className="px-4 py-2 bg-secondary text-primary hover:bg-secondary/90 font-bold rounded-md transition-colors cursor-pointer text-xs"
+                      >
+                        Block Date
+                      </button>
+                    </div>
+
+                    {blockedDates.length > 0 ? (
+                      <div className="flex flex-wrap gap-2 pt-2">
+                        {blockedDates.map((date) => (
+                          <span 
+                            key={date} 
+                            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-destructive/10 text-destructive text-xs font-semibold border border-destructive/20"
+                          >
+                            {date}
+                            <button 
+                              type="button" 
+                              onClick={() => removeBlockedDate(date)}
+                              className="hover:text-destructive/80 font-bold focus:outline-none cursor-pointer"
+                            >
+                              ×
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-muted-foreground italic">No dates currently blocked.</p>
+                    )}
+                  </div>
+                </div>
+              </div>
             )}
-            <label className="block text-sm font-medium">
-              Cancellation policy (plain language)
-              <textarea
-                rows={3}
-                value={cancellationPolicy}
-                onChange={(e) => setCancellationPolicy(e.target.value)}
-                placeholder="e.g. Free cancellation up to 24 hours before delivery. Custom cakes are non-refundable after production starts."
-                className="mt-1 w-full px-3 py-2 border border-border rounded-md bg-background text-sm resize-none"
-              />
-            </label>
+
+            {activeTab === "team" && bakerId > 0 && (
+              <div className="space-y-4">
+                <TeamAccessPanel bakerId={bakerId} />
+              </div>
+            )}
+
+            {activeTab === "billing" && (
+              <div className="space-y-6">
+                {/* Subscription info */}
+                {baker && (
+                  <div className="rounded-2xl border border-[#dfd1c4] bg-white/70 p-5 shadow-sm">
+                    <div className="flex flex-wrap items-start justify-between gap-4">
+                      <div>
+                        <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Your package</p>
+                        <div className="mt-2 flex items-center gap-2">
+                          <PlanBadge planId={baker.subscriptionPlan} />
+                          <span className="text-sm text-[#241629] font-semibold">
+                            {getPlanById(baker.subscriptionPlan)?.tagline}
+                          </span>
+                        </div>
+                        {(baker as { trial?: { isFree?: boolean; expired?: boolean; daysLeft?: number | null } }).trial?.isFree && (
+                          <p className={`mt-2 text-sm ${(baker as { trial?: { expired?: boolean } }).trial?.expired ? "text-destructive font-semibold" : "text-muted-foreground"}`}>
+                            {(baker as { trial?: { expired?: boolean; daysLeft?: number | null } }).trial?.expired
+                              ? "3-day trial ended — upgrade to restore the agent and broadcasts."
+                              : `Trial: ${(baker as { trial?: { daysLeft?: number | null } }).trial?.daysLeft ?? 0} day(s) left.`}
+                          </p>
+                        )}
+                        {(() => {
+                          const plan = getPlanById(baker.subscriptionPlan) ?? getPlanById("free")!;
+                          const price = displayPrice(plan, FOUNDER_OFFER_ACTIVE ? "quarterly" : "monthly");
+                          return (
+                            <>
+                              {plan.monthlyPkr > 0 && (
+                                <p className="mt-2 text-sm font-semibold text-foreground">
+                                  {price.primary} <span className="font-normal text-muted-foreground">{price.suffix}</span>
+                                  {price.sub && <span className="block text-xs text-muted-foreground mt-0.5">{price.sub}</span>}
+                                </p>
+                              )}
+                              <p className="mt-2 text-sm text-muted-foreground">
+                                {plan.commissionPercent > 0
+                                  ? `${plan.commissionPercent}% commission on checkout orders (max ${plan.commissionCapPkr.toLocaleString()} PKR/mo) · `
+                                  : "0% commission · "}
+                                Extra agent replies {formatExtraReplyPkr(plan.extraReplyPkr)} each
+                              </p>
+                              <p className="mt-1 text-xs text-[#746876] font-semibold">{plan.limits.aiReplies} replies/mo included · {plan.limits.whatsappChats}</p>
+                            </>
+                          );
+                        })()}
+                      </div>
+                    </div>
+                    {FOUNDER_OFFER_ACTIVE && baker.subscriptionPlan === "free" && (
+                      <div className="mt-4 rounded-lg border border-primary/20 bg-background/80 p-3">
+                        <p className="text-xs font-bold text-[#632a73]">Founder rate — lock in for 3 months</p>
+                        <p className="mt-1 text-xs text-muted-foreground font-medium">
+                          {getFounderOfferLines().join(" · ")}
+                        </p>
+                        <p className="mt-1 text-xs text-muted-foreground">First month 0% commission on checkout orders.</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Billing Panel */}
+                {bakerId > 0 && (
+                  <PlatformBillingPanel bakerId={bakerId} currentPlanId={baker?.subscriptionPlan} />
+                )}
+              </div>
+            )}
           </div>
-          
-          <button 
-            onClick={handleSave}
-            disabled={updateBaker.isPending}
-            className="bg-primary text-primary-foreground px-6 py-2 rounded-md font-medium hover:bg-primary/90 transition-colors w-full sm:w-auto disabled:opacity-50"
-          >
-            {updateBaker.isPending ? "Saving..." : "Save Changes"}
-          </button>
         </div>
       </div>
     </DashboardLayout>
