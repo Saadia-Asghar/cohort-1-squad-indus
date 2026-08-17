@@ -4,6 +4,10 @@
     {
       "source": "/api/(.*)",
       "destination": "artifacts/api-server/dist/index.mjs"
+    },
+    {
+      "source": "/((?!api/).*)",
+      "destination": "/index.html"
     }
   ]
 }
