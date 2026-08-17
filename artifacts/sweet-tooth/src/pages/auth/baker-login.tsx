@@ -113,6 +113,23 @@ export default function BakerLogin({ initialTab = "login" }: { initialTab?: "log
     setLoading(true);
     setError("");
     try {
+      // Admin shortcut: if the user enters admin credentials, redirect to the admin portal
+      if (email.trim().toLowerCase() === "admin@sweettooth.pk") {
+        const adminRes = await fetch("/api/admin/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: email.trim(), password }),
+        });
+        const adminData = await adminRes.json();
+        if (adminRes.ok && adminData.token) {
+          localStorage.setItem("admin_bearer_token", adminData.token);
+          setLocation("/admin");
+          return;
+        }
+        setError("Invalid admin credentials.");
+        return;
+      }
+
       const response = await customFetch<{ token: string; baker: { id: number }; role?: "owner" | "staff" }>("/api/bakers/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -187,6 +204,11 @@ export default function BakerLogin({ initialTab = "login" }: { initialTab?: "log
               <button type="button" onClick={() => void continueWithGoogle(false)} disabled={loading} className="mt-4 h-12 w-full rounded-xl border border-[#ded6ca] bg-white px-4 text-sm font-bold text-[#382b43] transition-colors hover:border-primary/40 hover:bg-primary/5 disabled:opacity-50">Continue with Google</button>
             </div>
           )}
+          <div className="pt-1 text-center">
+            <Link href="/admin" className="text-xs text-muted-foreground hover:text-primary transition-colors">
+              Platform admin? <span className="font-semibold text-primary">Sign in to Admin Portal →</span>
+            </Link>
+          </div>
         </TabsContent>
 
         <TabsContent value="register" className="mt-7 space-y-5 focus-visible:outline-none">
