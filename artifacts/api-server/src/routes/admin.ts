@@ -287,4 +287,91 @@ router.patch("/admin/waitlist/:id", async (req, res): Promise<void> => {
   }
 });
 
+/**
+ * Admin: directly set WhatsApp / Instagram credentials for any baker by ID.
+ * Bypasses Meta Embedded Signup — useful for unverified business portfolios.
+ * Tokens are AES-256-GCM encrypted at rest using TOKEN_ENCRYPTION_KEY.
+ * POST /api/admin/set-baker-meta
+ * Authorization: Bearer <JWT_SECRET>
+ */
+router.post("/admin/set-baker-meta", async (req, res): Promise<void> => {
+  if (!requireAdminBearer(req, res)) return;
+
+  const parsed = z
+    .object({
+      bakerId: z.number().int().positive(),
+      whatsappPhoneNumberId: z.string().trim().min(1).max(64).optional(),
+      whatsappAccessToken: z.string().trim().min(1).max(512).optional(),
+      whatsappWabaId: z.string().trim().min(1).max(64).optional(),
+      metaAppSecret: z.string().trim().min(1).max(128).optional(),
+      instagramPageId: z.string().trim().min(1).max(64).optional(),
+      instagramAccessToken: z.string().trim().min(1).max(512).optional(),
+    })
+    .safeParse(req.body);
+
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+
+  // Verify baker exists
+  const [baker] = await db
+    .select({ id: bakersTable.id, businessName: bakersTable.businessName })
+    .from(bakersTable)
+    .where(eq(bakersTable.id, parsed.data.bakerId))
+    .limit(1);
+
+  if (!baker) {
+    res.status(404).json({ error: `Baker #${parsed.data.bakerId} not found.` });
+    return;
+  }
+
+  const encryptionKey = process.env.TOKEN_ENCRYPTION_KEY;
+  const { encryptSecret } = await import("../lib/secret-box.js");
+
+  const d = parsed.data;
+  const upsertValues: Record<string, unknown> = {
+    bakerId: d.bakerId,
+    status: "active",
+  };
+
+  if (d.whatsappPhoneNumberId) upsertValues.whatsappPhoneNumberId = d.whatsappPhoneNumberId;
+  if (d.whatsappWabaId) upsertValues.whatsappBusinessAccountId = d.whatsappWabaId;
+  if (d.metaAppSecret) upsertValues.metaAppSecret = d.metaAppSecret;
+  if (d.instagramPageId) upsertValues.instagramPageId = d.instagramPageId;
+
+  if (d.whatsappAccessToken) {
+    upsertValues.whatsappAccessTokenEncrypted = encryptionKey
+      ? encryptSecret(d.whatsappAccessToken, encryptionKey)
+      : d.whatsappAccessToken;
+  }
+
+  if (d.instagramAccessToken) {
+    upsertValues.instagramAccessTokenEncrypted = encryptionKey
+      ? encryptSecret(d.instagramAccessToken, encryptionKey)
+      : d.instagramAccessToken;
+  }
+
+  try {
+    await db
+      .insert(metaConnectionsTable)
+      .values(upsertValues as typeof metaConnectionsTable.$inferInsert)
+      .onConflictDoUpdate({
+        target: metaConnectionsTable.bakerId,
+        set: upsertValues as Partial<typeof metaConnectionsTable.$inferInsert>,
+      });
+
+    res.json({
+      ok: true,
+      bakerId: d.bakerId,
+      businessName: baker.businessName,
+      fieldsSet: Object.keys(d).filter((k) => k !== "bakerId"),
+      message: `Meta credentials saved for ${baker.businessName ?? `baker #${d.bakerId}`}.`,
+    });
+  } catch (err) {
+    console.error("admin set-baker-meta failed", err);
+    res.status(500).json({ error: "Failed to save credentials." });
+  }
+});
+
 export default router;

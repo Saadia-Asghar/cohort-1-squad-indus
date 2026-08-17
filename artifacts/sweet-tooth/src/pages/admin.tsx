@@ -14,6 +14,8 @@ import {
   Search,
   Eye,
   Key,
+  Phone,
+  Instagram,
 } from "lucide-react";
 import { customFetch } from "@workspace/api-client-react";
 
@@ -60,6 +62,17 @@ export default function AdminPortal() {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [waitlist, setWaitlist] = useState<any[]>([]);
+
+  // Meta credentials (WhatsApp / Instagram direct setup)
+  const [metaBakerId, setMetaBakerId] = useState("");
+  const [metaPhoneNumberId, setMetaPhoneNumberId] = useState("");
+  const [metaAccessToken, setMetaAccessToken] = useState("");
+  const [metaWabaId, setMetaWabaId] = useState("");
+  const [metaAppSecret, setMetaAppSecret] = useState("");
+  const [metaIgPageId, setMetaIgPageId] = useState("");
+  const [metaIgToken, setMetaIgToken] = useState("");
+  const [savingMeta, setSavingMeta] = useState(false);
+  const [metaMessage, setMetaMessage] = useState("");
 
   // Auto-login from saved session
   useEffect(() => {
@@ -249,6 +262,44 @@ export default function AdminPortal() {
       setEnrichMessage("Network error during demo enrichment.");
     } finally {
       setEnriching(false);
+    }
+  };
+
+  const handleSetBakerMeta = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!metaBakerId) { setMetaMessage("Baker ID is required."); return; }
+    setSavingMeta(true);
+    setMetaMessage("");
+    try {
+      const body: Record<string, unknown> = { bakerId: parseInt(metaBakerId, 10) };
+      if (metaPhoneNumberId) body.whatsappPhoneNumberId = metaPhoneNumberId;
+      if (metaAccessToken) body.whatsappAccessToken = metaAccessToken;
+      if (metaWabaId) body.whatsappWabaId = metaWabaId;
+      if (metaAppSecret) body.metaAppSecret = metaAppSecret;
+      if (metaIgPageId) body.instagramPageId = metaIgPageId;
+      if (metaIgToken) body.instagramAccessToken = metaIgToken;
+
+      const res = await fetch("/api/admin/set-baker-meta", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token.trim()}`,
+        },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setMetaMessage(`✅ ${data.message}`);
+        setMetaAccessToken(""); // clear token from UI after save
+        setMetaIgToken("");
+        setMetaAppSecret("");
+      } else {
+        setMetaMessage(`❌ ${data.error || "Failed to save credentials"}`);
+      }
+    } catch {
+      setMetaMessage("❌ Network error.");
+    } finally {
+      setSavingMeta(false);
     }
   };
 
@@ -539,6 +590,122 @@ export default function AdminPortal() {
               </button>
             </div>
           </div>
+        </div>
+
+        {/* WhatsApp / Instagram Direct Credentials */}
+        <div className="mt-8 rounded-xl border border-[#2e1d32] bg-[#1e1420] p-6 shadow-md">
+          <div className="flex items-center gap-2 mb-1">
+            <Phone className="h-5 w-5 text-green-400" />
+            <h2 className="text-base font-semibold">WhatsApp / Instagram Direct Setup</h2>
+          </div>
+          <p className="text-xs text-purple-200/60 mb-5">
+            Connect any baker's WhatsApp Business number directly — no Meta business portfolio verification required.
+            Credentials are encrypted at rest using AES-256-GCM.
+          </p>
+
+          <form onSubmit={handleSetBakerMeta} className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {/* Baker ID */}
+            <div className="space-y-1 sm:col-span-2 lg:col-span-1">
+              <label className="text-xs font-semibold text-purple-200/70 uppercase tracking-wider">Baker ID *</label>
+              <input
+                type="number"
+                required
+                placeholder="e.g. 3"
+                value={metaBakerId}
+                onChange={(e) => setMetaBakerId(e.target.value)}
+                className="w-full min-h-10 rounded-lg border border-[#3c2542] bg-[#130b14] px-3 text-sm text-white outline-none focus:border-[#c24f7a]"
+              />
+              <p className="text-[10px] text-purple-200/40">Find Baker ID in the registry table below</p>
+            </div>
+
+            {/* WhatsApp Phone Number ID */}
+            <div className="space-y-1">
+              <label className="text-xs font-semibold text-purple-200/70 uppercase tracking-wider">Phone Number ID</label>
+              <input
+                type="text"
+                placeholder="e.g. 123456789012345"
+                value={metaPhoneNumberId}
+                onChange={(e) => setMetaPhoneNumberId(e.target.value)}
+                className="w-full min-h-10 rounded-lg border border-[#3c2542] bg-[#130b14] px-3 text-sm text-white outline-none focus:border-[#c24f7a]"
+              />
+              <p className="text-[10px] text-purple-200/40">Meta → WA Manager → Phone Numbers → ID</p>
+            </div>
+
+            {/* WABA ID */}
+            <div className="space-y-1">
+              <label className="text-xs font-semibold text-purple-200/70 uppercase tracking-wider">WABA ID</label>
+              <input
+                type="text"
+                placeholder="WhatsApp Business Account ID"
+                value={metaWabaId}
+                onChange={(e) => setMetaWabaId(e.target.value)}
+                className="w-full min-h-10 rounded-lg border border-[#3c2542] bg-[#130b14] px-3 text-sm text-white outline-none focus:border-[#c24f7a]"
+              />
+            </div>
+
+            {/* Access Token */}
+            <div className="space-y-1 sm:col-span-2">
+              <label className="text-xs font-semibold text-purple-200/70 uppercase tracking-wider">WA Access Token</label>
+              <input
+                type="password"
+                placeholder="EAA... (encrypted before storing)"
+                value={metaAccessToken}
+                onChange={(e) => setMetaAccessToken(e.target.value)}
+                className="w-full min-h-10 rounded-lg border border-[#3c2542] bg-[#130b14] px-3 text-sm text-white outline-none focus:border-[#c24f7a] font-mono"
+              />
+              <p className="text-[10px] text-purple-200/40">Meta Developers → App → Generate Token (System User or Permanent Token)</p>
+            </div>
+
+            {/* Meta App Secret */}
+            <div className="space-y-1">
+              <label className="text-xs font-semibold text-purple-200/70 uppercase tracking-wider">Meta App Secret <span className="normal-case font-normal">(optional)</span></label>
+              <input
+                type="password"
+                placeholder="App Secret for webhook verification"
+                value={metaAppSecret}
+                onChange={(e) => setMetaAppSecret(e.target.value)}
+                className="w-full min-h-10 rounded-lg border border-[#3c2542] bg-[#130b14] px-3 text-sm text-white outline-none focus:border-[#c24f7a] font-mono"
+              />
+            </div>
+
+            {/* Instagram */}
+            <div className="space-y-1">
+              <label className="text-xs font-semibold text-purple-200/70 uppercase tracking-wider flex items-center gap-1"><Instagram className="h-3.5 w-3.5" /> Instagram Page ID</label>
+              <input
+                type="text"
+                placeholder="e.g. 987654321"
+                value={metaIgPageId}
+                onChange={(e) => setMetaIgPageId(e.target.value)}
+                className="w-full min-h-10 rounded-lg border border-[#3c2542] bg-[#130b14] px-3 text-sm text-white outline-none focus:border-[#c24f7a]"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-xs font-semibold text-purple-200/70 uppercase tracking-wider flex items-center gap-1"><Instagram className="h-3.5 w-3.5" /> Instagram Access Token</label>
+              <input
+                type="password"
+                placeholder="EAA... (encrypted before storing)"
+                value={metaIgToken}
+                onChange={(e) => setMetaIgToken(e.target.value)}
+                className="w-full min-h-10 rounded-lg border border-[#3c2542] bg-[#130b14] px-3 text-sm text-white outline-none focus:border-[#c24f7a] font-mono"
+              />
+            </div>
+
+            {/* Submit */}
+            <div className="sm:col-span-2 lg:col-span-3">
+              {metaMessage && (
+                <p className={`mb-3 text-xs font-medium ${metaMessage.startsWith("✅") ? "text-green-400" : "text-red-400"}`}>{metaMessage}</p>
+              )}
+              <button
+                type="submit"
+                disabled={savingMeta}
+                className="min-h-10 rounded-lg bg-green-700 px-6 text-xs font-bold text-white transition hover:bg-green-600 disabled:opacity-50 flex items-center gap-2"
+              >
+                <Key className="h-4 w-4" />
+                {savingMeta ? "Encrypting & Saving..." : "Save Meta Credentials"}
+              </button>
+            </div>
+          </form>
         </div>
 
         {/* Bakers Directory Table */}

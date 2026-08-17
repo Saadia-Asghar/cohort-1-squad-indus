@@ -1093,4 +1093,83 @@ router.get("/bakers/:bakerId/delivery-quote", async (req, res): Promise<void> =>
   });
 });
 
+/**
+ * Baker self-service: save WhatsApp / Instagram credentials directly without
+ * going through Meta Embedded Signup (for unverified business accounts).
+ * Tokens are encrypted at rest using TOKEN_ENCRYPTION_KEY.
+ * PATCH /api/bakers/:bakerId/meta-credentials
+ * Authorization: Bearer <baker JWT>  (owner only)
+ */
+router.patch(
+  "/bakers/:bakerId/meta-credentials",
+  requireBakerAuth,
+  requireBakerOwnership,
+  async (req, res): Promise<void> => {
+    const bakerId = Number(req.params.bakerId);
+    if (!Number.isInteger(bakerId) || bakerId <= 0) {
+      res.status(400).json({ error: "Invalid bakerId" });
+      return;
+    }
+
+    const parsed = z
+      .object({
+        whatsappPhoneNumberId: z.string().trim().min(1).max(64).optional(),
+        whatsappAccessToken: z.string().trim().min(1).max(512).optional(),
+        whatsappWabaId: z.string().trim().min(1).max(64).optional(),
+        metaAppSecret: z.string().trim().min(1).max(128).optional(),
+        instagramPageId: z.string().trim().min(1).max(64).optional(),
+        instagramAccessToken: z.string().trim().min(1).max(512).optional(),
+      })
+      .safeParse(req.body);
+
+    if (!parsed.success) {
+      res.status(400).json({ error: parsed.error.message });
+      return;
+    }
+
+    const encryptionKey = process.env.TOKEN_ENCRYPTION_KEY;
+    const { encryptSecret } = await import("../lib/secret-box.js");
+
+    const data = parsed.data;
+
+    // Build upsert payload — encrypt tokens if encryption key is set
+    const upsertValues: Record<string, unknown> = {
+      bakerId,
+      status: "active",
+    };
+
+    if (data.whatsappPhoneNumberId) upsertValues.whatsappPhoneNumberId = data.whatsappPhoneNumberId;
+    if (data.whatsappWabaId) upsertValues.whatsappBusinessAccountId = data.whatsappWabaId;
+    if (data.metaAppSecret) upsertValues.metaAppSecret = data.metaAppSecret;
+    if (data.instagramPageId) upsertValues.instagramPageId = data.instagramPageId;
+
+    if (data.whatsappAccessToken) {
+      upsertValues.whatsappAccessTokenEncrypted = encryptionKey
+        ? encryptSecret(data.whatsappAccessToken, encryptionKey)
+        : data.whatsappAccessToken; // store plain-text if no key (dev only)
+    }
+
+    if (data.instagramAccessToken) {
+      upsertValues.instagramAccessTokenEncrypted = encryptionKey
+        ? encryptSecret(data.instagramAccessToken, encryptionKey)
+        : data.instagramAccessToken;
+    }
+
+    try {
+      await db
+        .insert(metaConnectionsTable)
+        .values(upsertValues as typeof metaConnectionsTable.$inferInsert)
+        .onConflictDoUpdate({
+          target: metaConnectionsTable.bakerId,
+          set: upsertValues as Partial<typeof metaConnectionsTable.$inferInsert>,
+        });
+
+      res.json({ ok: true, bakerId, message: "Meta credentials saved successfully." });
+    } catch (err) {
+      console.error("meta-credentials upsert failed", err);
+      res.status(500).json({ error: "Failed to save credentials." });
+    }
+  },
+);
+
 export default router;
