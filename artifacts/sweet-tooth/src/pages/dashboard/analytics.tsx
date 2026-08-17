@@ -25,6 +25,7 @@ import {
   getGetOrderSourcesQueryKey,
   getGetWeeklySuccessReportQueryKey,
   getListCustomersQueryKey,
+  useGetBaker,
   useGetBakerAnalytics,
   useGetOrderSources,
   useGetWeeklySuccessReport,
@@ -36,6 +37,7 @@ import {
   CheckCircle2,
   CircleDollarSign,
   Clock3,
+  Download,
   Heart,
   Megaphone,
   PackageCheck,
@@ -54,6 +56,7 @@ import {
   ANALYTICS_POLL_MS,
   liveDashboardQuery,
 } from "@/lib/dashboard-query";
+import { exportAnalyticsPDF } from "@/lib/pdf-export";
 
 type Period = "daily" | "weekly" | "monthly";
 type Tab = "sales" | "marketing";
@@ -165,6 +168,7 @@ function buildCampaignSegments(
 
 export default function DashboardAnalytics() {
   const { bakerId } = useBuyerSession();
+  const { data: baker } = useGetBaker(bakerId);
 
   const [period, setPeriod] =
     useState<Period>("monthly");
@@ -566,6 +570,25 @@ export default function DashboardAnalytics() {
                   ))}
                 </div>
               ) : null}
+
+              <button
+                type="button"
+                onClick={() =>
+                  exportAnalyticsPDF(
+                    analytics,
+                    weeklyReport,
+                    feedbackStats,
+                    chartData,
+                    sourceData,
+                    period,
+                    baker?.businessName ?? "My Bakery"
+                  )
+                }
+                disabled={isLoading || !analytics}
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-[#dfd1c4] bg-[#632a73] px-4 text-xs font-bold text-white transition hover:bg-[#c24f7a] disabled:opacity-50"
+              >
+                <Download className="h-4 w-4" /> Download PDF
+              </button>
             </div>
           </header>
 

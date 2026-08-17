@@ -28,6 +28,7 @@ import {
 } from "../middlewares/auth.js";
 import { rebuildBakerKnowledgeIndex } from "../lib/rag/pipeline.js";
 import { rateLimit } from "../middlewares/rate-limiter.js";
+import { sendEmail } from "../lib/email.js";
 import { normalizePakistanPhone, phoneLookupVariants } from "../lib/phone.js";
 import {
   buildOccasionBanner,
@@ -570,6 +571,111 @@ router.post("/bakers/login", rateLimit(10, 15 * 60 * 1000), async (req, res): Pr
     baker: { ...toAuthenticatedBaker(staffBaker), deliveryAreas: staffBaker.deliveryAreas ?? [] },
     role: member.role,
   });
+});
+
+// POST /bakers/forgot-password
+router.post("/bakers/forgot-password", rateLimit(5, 15 * 60 * 1000), async (req, res): Promise<void> => {
+  const schema = z.object({
+    email: z.string().email(),
+  });
+  const parsed = schema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+
+  const emailLookup = parsed.data.email.trim().toLowerCase();
+  const [baker] = await db
+    .select()
+    .from(bakersTable)
+    .where(eq(bakersTable.email, emailLookup))
+    .limit(1);
+
+  if (!baker) {
+    // Return success to avoid email enumeration
+    res.json({ message: "If an account exists with that email, a password reset link has been sent." });
+    return;
+  }
+
+  const token = crypto.randomBytes(32).toString("hex");
+  const expires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+  await db
+    .update(bakersTable)
+    .set({
+      resetPasswordToken: token,
+      resetPasswordExpires: expires,
+    })
+    .where(eq(bakersTable.id, baker.id));
+
+  const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+  const resetLink = `${frontendUrl}/reset-password?token=${token}`;
+
+  try {
+    await sendEmail({
+      to: baker.email as string,
+      subject: "Reset your Sweet Tooth password",
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #f0e6d6; border-radius: 12px; background-color: #faf9f6;">
+          <h2 style="color: #7c3aed; margin-bottom: 20px;">Password Reset Request</h2>
+          <p>Hello ${baker.ownerName || "Baker"},</p>
+          <p>We received a request to reset the password for your Sweet Tooth baker account.</p>
+          <p>Click the button below to choose a new password. This link is valid for 1 hour:</p>
+          <div style="margin: 30px 0; text-align: center;">
+            <a href="${resetLink}" style="background-color: #7c3aed; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">Reset Password</a>
+          </div>
+          <p style="color: #6b7280; font-size: 14px;">If you cannot click the button, copy and paste the following URL into your browser:</p>
+          <p style="word-break: break-all; color: #7c3aed; font-size: 14px;"><a href="${resetLink}">${resetLink}</a></p>
+          <p style="margin-top: 30px; border-top: 1px solid #e5e7eb; padding-top: 20px; color: #9ca3af; font-size: 12px;">If you did not request this, you can safely ignore this email.</p>
+        </div>
+      `,
+      text: `Hello ${baker.ownerName || "Baker"},\n\nWe received a request to reset the password for your Sweet Tooth baker account. Please use the following link to reset your password:\n\n${resetLink}\n\nThis link is valid for 1 hour. If you did not request this, you can safely ignore this email.`,
+    });
+
+    res.json({ message: "If an account exists with that email, a password reset link has been sent." });
+  } catch (error) {
+    console.error("Failed to send reset email:", error);
+    res.status(500).json({ error: "Failed to send password reset email. Please try again later." });
+  }
+});
+
+// POST /bakers/reset-password
+router.post("/bakers/reset-password", rateLimit(5, 15 * 60 * 1000), async (req, res): Promise<void> => {
+  const schema = z.object({
+    token: z.string(),
+    newPassword: z.string().min(12).max(128),
+  });
+  const parsed = schema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+
+  const { token, newPassword } = parsed.data;
+
+  const [baker] = await db
+    .select()
+    .from(bakersTable)
+    .where(eq(bakersTable.resetPasswordToken, token))
+    .limit(1);
+
+  if (!baker || !baker.resetPasswordExpires || baker.resetPasswordExpires < new Date()) {
+    res.status(400).json({ error: "This password reset link is invalid or has expired." });
+    return;
+  }
+
+  const passwordHash = hashPassword(newPassword);
+
+  await db
+    .update(bakersTable)
+    .set({
+      passwordHash,
+      resetPasswordToken: null,
+      resetPasswordExpires: null,
+    })
+    .where(eq(bakersTable.id, baker.id));
+
+  res.json({ message: "Your password has been successfully reset. You can now sign in with your new password." });
 });
 
 // GET /bakers/:bakerId

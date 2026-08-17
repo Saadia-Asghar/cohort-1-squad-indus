@@ -14,12 +14,16 @@ import { customFetch } from "@workspace/api-client-react";
 function AuthField({
   id,
   label,
+  labelRight,
   icon: Icon,
   ...props
-}: React.ComponentProps<typeof Input> & { id: string; label: string; icon?: LucideIcon }) {
+}: React.ComponentProps<typeof Input> & { id: string; label: string; labelRight?: React.ReactNode; icon?: LucideIcon }) {
   return (
     <div>
-      <label htmlFor={id} className="mb-2 block text-sm font-bold text-[#382b43]">{label}</label>
+      <div className="flex items-center justify-between">
+        <label htmlFor={id} className="mb-2 block text-sm font-bold text-[#382b43]">{label}</label>
+        {labelRight && <div className="mb-2">{labelRight}</div>}
+      </div>
       <div className="relative">
         {Icon && <Icon className="absolute left-3.5 top-4 h-4 w-4 text-muted-foreground" />}
         <Input
@@ -165,7 +169,7 @@ export default function BakerLogin({ initialTab = "login" }: { initialTab?: "log
           <AuthError message={error} />
           <form onSubmit={handleLogin} className="space-y-5">
             <AuthField id="login-identifier" label="Email or WhatsApp number" icon={Mail} type="text" placeholder="baker@example.com or +92 300 1234567" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="username" required />
-            <AuthField id="login-password" label="Password" icon={Lock} type="password" placeholder="Enter your password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" required />
+            <AuthField id="login-password" label="Password" labelRight={<Link href="/dashboard/forgot-password" className="text-xs font-semibold text-primary hover:underline">Forgot password?</Link>} icon={Lock} type="password" placeholder="Enter your password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" required />
             <Button type="submit" className="h-12 w-full rounded-xl bg-primary text-sm font-bold text-white shadow-lg shadow-primary/15 hover:bg-primary/90" disabled={loading}>
               {loading ? "Signing in…" : "Sign in to dashboard"}
             </Button>

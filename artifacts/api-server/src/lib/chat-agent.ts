@@ -20,6 +20,7 @@ import { isPlanAccessActive, TRIAL_EXPIRED_BUYER_REPLY } from "./subscription.js
 import { AI_REPLY_CAP_BUYER_REPLY, isAiReplyCapReached } from "./plan-limits.js";
 import { callLlm } from "./llm.js";
 import { isMenuScopedMessage } from "./agent-safety.js";
+import { logOrderActivity } from "./audit.js";
 
 export type AgentReply = {
   reply: string;
@@ -528,6 +529,21 @@ Strict Guidelines:
 2. If the user's question cannot be answered by the context, explain politely that you don't have that information and ask them to confirm with the baker directly.
 3. Keep replies helpful and bilingual (in a natural blend of English and Urdu, e.g. using "Assalam-o-Alaikum", "PKR", etc. where appropriate).
 4. Do NOT make up products, prices, or delivery areas.
+5. AUTOMATED ORDERING:
+   If the customer explicitly requests to place an order, AND has specified: (a) what items they want, (b) the quantity, (c) the delivery address (or pickup), and (d) the delivery date, you MUST append a structured order JSON command block at the very end of your response.
+   If any of these details are missing, politely ask the customer for the missing details first and do NOT output the block.
+   Format the block exactly as:
+   [CREATE_ORDER_START]
+   {
+     "buyerName": "Customer Name",
+     "buyerAddress": "Customer Address (or 'Pickup' if fulfillment is pickup)",
+     "deliveryDate": "YYYY-MM-DD (parsed target date)",
+     "fulfillmentType": "delivery" or "pickup",
+     "items": [
+       { "productName": "Matching Product Name", "quantity": 1 }
+     ]
+   }
+   [CREATE_ORDER_END]
 
 Bakery Branding:
 - Name: ${baker.businessName}
@@ -694,6 +710,111 @@ export async function processChatMessage(input: ProcessChatInput): Promise<Proce
     (bakerRow?.agentConfig as { agentLanguage?: string } | null)?.agentLanguage,
   );
   agentReply.reply = applyAgentLanguage(agentReply.reply, agentLanguage, bakerRow?.businessName ?? "Bakery");
+
+  // Check for automated order commands in the reply
+  const orderMatch = agentReply.reply.match(/\[CREATE_ORDER_START\]\s*([\s\S]*?)\s*\[CREATE_ORDER_END\]/);
+  if (orderMatch) {
+    try {
+      const orderData = JSON.parse(orderMatch[1]);
+      const products = await db.select().from(productsTable).where(eq(productsTable.bakerId, bakerId));
+
+      const lineItems: any[] = [];
+      let totalPkr = 0;
+
+      for (const item of orderData.items || []) {
+        const p = products.find(
+          (product) => product.name.toLowerCase() === item.productName.toLowerCase()
+        ) || products.find(
+          (product) => product.name.toLowerCase().includes(item.productName.toLowerCase())
+        );
+
+        if (p) {
+          const qty = parseInt(item.quantity, 10) || 1;
+          const price = p.basePricePkr;
+          lineItems.push({
+            productId: p.id,
+            productName: p.name,
+            quantity: qty,
+            unitPricePkr: price,
+            sizeLabel: "Standard",
+          });
+          totalPkr += price * qty;
+        }
+      }
+
+      if (lineItems.length > 0) {
+        // Resolve delivery fee if fulfillment is delivery
+        let deliveryFee = 0;
+        if (orderData.fulfillmentType === "delivery" && orderData.buyerAddress) {
+          const zones = normalizeDeliveryZones((bakerRow?.agentConfig as Record<string, unknown> | null)?.deliveryZones);
+          const zone = findDeliveryZone(zones, orderData.buyerAddress);
+          if (zone) {
+            deliveryFee = zone.feePkr;
+          }
+        }
+        totalPkr += deliveryFee;
+
+        let customerName = orderData.buyerName || "Guest Buyer";
+        let customerAddress = orderData.buyerAddress || "Delivery Address";
+        let customerWhatsapp = input.buyerWhatsapp || "";
+
+        if (buyerId) {
+          const [cust] = await db.select().from(customersTable).where(eq(customersTable.id, buyerId)).limit(1);
+          if (cust) {
+            if (cust.name) customerName = cust.name;
+            if (cust.whatsappNumber) customerWhatsapp = cust.whatsappNumber;
+          }
+        }
+
+        const [order] = await db.insert(ordersTable).values({
+          bakerId,
+          buyerId,
+          buyerName: customerName,
+          buyerWhatsapp: customerWhatsapp,
+          buyerAddress: customerAddress,
+          buyerArea: orderData.buyerArea || null,
+          items: lineItems,
+          totalPkr,
+          deliveryDate: orderData.deliveryDate || null,
+          fulfillmentType: orderData.fulfillmentType || "delivery",
+          source: input.channel || "whatsapp",
+          status: "new",
+          paymentStatus: "pending",
+          requireAdvance: Boolean(bakerRow?.requireAdvance),
+        }).returning();
+
+        // Log order activity
+        await logOrderActivity({
+          orderId: order.id,
+          bakerId: order.bakerId,
+          actor: { actorType: "system" },
+          action: "status_change",
+          fromStatus: null,
+          toStatus: "new",
+          metadata: { source: order.source },
+        });
+
+        // Notify baker
+        await notify(
+          bakerId,
+          "new_order",
+          "New Chat Order",
+          `Order #${order.id} for PKR ${totalPkr.toLocaleString()} was placed by ${customerName} via ${input.channel || "chat"}.`,
+          order.id,
+          "order"
+        );
+
+        // Strip order commands block from output text
+        agentReply.reply = agentReply.reply.replace(/\[CREATE_ORDER_START\][\s\S]*?\[CREATE_ORDER_END\]/, "").trim();
+        
+        // Append confirmation text
+        const confirmMsg = `\n\n*(Note: I have recorded your order request for ${order.fulfillmentType} on ${order.deliveryDate || "selected date"}. Order ID: #${order.id}. The baker will confirm your order details shortly!)*`;
+        agentReply.reply = agentReply.reply + confirmMsg;
+      }
+    } catch (err) {
+      logger.error({ err }, "Failed to automatically parse and record chat order");
+    }
+  }
 
   await db.insert(chatMessagesTable).values({
     bakerId,

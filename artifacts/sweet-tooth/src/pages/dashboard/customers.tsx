@@ -8,6 +8,7 @@ import {
   customFetch,
   getListCustomersQueryKey,
   getListOrdersQueryKey,
+  useGetBaker,
   useListCustomers,
   useListOrders,
 } from "@workspace/api-client-react";
@@ -16,6 +17,7 @@ import {
   CalendarDays,
   Check,
   CircleDollarSign,
+  Download,
   Heart,
   MapPin,
   Search,
@@ -31,6 +33,7 @@ import {
   liveDashboardQuery,
   ORDERS_POLL_MS,
 } from "@/lib/dashboard-query";
+import { exportCustomersPDF } from "@/lib/pdf-export";
 
 type CustomerFilter =
   | "all"
@@ -68,6 +71,7 @@ function initials(name: string): string {
 
 export default function DashboardCustomers() {
   const { bakerId } = useBuyerSession();
+  const { data: baker } = useGetBaker(bakerId);
 
   const { data: customers, isLoading } =
     useListCustomers(
@@ -329,19 +333,35 @@ export default function DashboardCustomers() {
               </p>
             </div>
 
-            <button
-              type="button"
-              onClick={openComposer}
-              disabled={selectedIds.length === 0}
-              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[#632a73] px-5 text-sm font-semibold text-white shadow-[0_10px_25px_rgba(47,24,55,0.12)] transition hover:bg-[#542261] disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              <Send className="h-4 w-4" />
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <button
+                type="button"
+                onClick={() =>
+                  exportCustomersPDF(
+                    visibleCustomers,
+                    baker?.businessName ?? "My Bakery"
+                  )
+                }
+                disabled={isLoading || !customers || customers.length === 0}
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-[#dfd1c4] bg-white px-5 text-sm font-semibold text-[#632a73] transition hover:bg-[#fbf6ee] disabled:opacity-50"
+              >
+                <Download className="h-4 w-4" /> Export PDF
+              </button>
 
-              Message selected
-              {selectedIds.length > 0
-                ? ` (${selectedIds.length})`
-                : ""}
-            </button>
+              <button
+                type="button"
+                onClick={openComposer}
+                disabled={selectedIds.length === 0}
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[#632a73] px-5 text-sm font-semibold text-white shadow-[0_10px_25px_rgba(47,24,55,0.12)] transition hover:bg-[#542261] disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                <Send className="h-4 w-4" />
+
+                Message selected
+                {selectedIds.length > 0
+                  ? ` (${selectedIds.length})`
+                  : ""}
+              </button>
+            </div>
           </header>
 
           <section className="grid border-b border-[#dfd1c4] sm:grid-cols-2 xl:grid-cols-4">

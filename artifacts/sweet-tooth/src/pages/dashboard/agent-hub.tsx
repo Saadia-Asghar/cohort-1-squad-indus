@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import {
   useGetAgentConfig,
@@ -24,7 +24,7 @@ import {
   Bot, MessageSquare, Instagram, Phone, ChevronRight,
   Plus, X, Save, AlertTriangle, CheckCircle, Zap,
   Settings, Users, ArrowLeft, Database, RefreshCw,
-  ExternalLink, Sparkles,
+  ExternalLink, Sparkles, Clock,
 } from "lucide-react";
 
 type Tab = "built-in" | "whatsapp" | "instagram" | "conversations";
@@ -70,6 +70,51 @@ export default function AgentHub() {
   const { data: baker } = useGetBaker(bakerId, {
     query: { enabled: !!bakerId, queryKey: ["baker", bakerId] },
   });
+
+  const [waitlistEmail, setWaitlistEmail] = useState("");
+  const [waitlistName, setWaitlistName] = useState("");
+  const [waitlistWhatsapp, setWaitlistWhatsapp] = useState("");
+  const [joiningWaitlist, setJoiningWaitlist] = useState(false);
+  const [waitlistMessage, setWaitlistMessage] = useState("");
+
+  useEffect(() => {
+    if (baker) {
+      setWaitlistEmail(baker.email ?? "");
+      setWaitlistName(baker.businessName ?? "");
+      setWaitlistWhatsapp(baker.whatsappNumber ?? "");
+    }
+  }, [baker]);
+
+  const handleJoinWaitlist = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setJoiningWaitlist(true);
+    setWaitlistMessage("");
+    try {
+      const res = await fetch("/api/waitlist", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          bakerId,
+          bakerName: waitlistName,
+          bakerEmail: waitlistEmail,
+          whatsappNumber: waitlistWhatsapp,
+          note: "Joined waitlist from dashboard Agent Hub.",
+        }),
+      });
+      if (res.ok) {
+        setWaitlistMessage("Successfully joined the early access waitlist!");
+      } else {
+        const data = await res.json();
+        setWaitlistMessage(`Error: ${data.error || "Failed to join"}`);
+      }
+    } catch (err) {
+      setWaitlistMessage("Network error joining the waitlist.");
+    } finally {
+      setJoiningWaitlist(false);
+    }
+  };
 
   const { data: config } = useGetAgentConfig(bakerId, {
     query: { enabled: !!bakerId, queryKey: getGetAgentConfigQueryKey(bakerId) },
@@ -708,6 +753,58 @@ export default function AgentHub() {
               </div>
               <WhatsAppEmbeddedSignup onStatusChange={setWhatsappConnected} />
               <p className="text-xs text-muted-foreground">The shared app webhook is configured once by the platform owner; bakers never paste access tokens into this page.</p>
+            </div>
+
+            {/* Waitlist option */}
+            <div className="p-5 rounded-xl border border-border bg-card shadow-sm space-y-4">
+              <h3 className="font-semibold flex items-center gap-2">
+                <Clock className="w-4 h-4 text-[#c24f7a]" />
+                Join the WhatsApp Agent Waitlist
+              </h3>
+              <p className="text-xs text-muted-foreground">
+                If the WhatsApp integration is not yet completed for your bakery or you require manual setup from the admin, submit your info here to join the early access waitlist.
+              </p>
+
+              <form onSubmit={handleJoinWaitlist} className="space-y-3 max-w-md">
+                <div className="grid grid-cols-2 gap-2">
+                  <input
+                    type="text"
+                    placeholder="Bakery Name"
+                    required
+                    value={waitlistName}
+                    onChange={(e) => setWaitlistName(e.target.value)}
+                    className="min-h-10 rounded-lg border border-input bg-background px-3 text-xs outline-none focus:border-purple-500"
+                  />
+                  <input
+                    type="text"
+                    placeholder="WhatsApp Number"
+                    required
+                    value={waitlistWhatsapp}
+                    onChange={(e) => setWaitlistWhatsapp(e.target.value)}
+                    className="min-h-10 rounded-lg border border-input bg-background px-3 text-xs outline-none focus:border-purple-500"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    type="email"
+                    placeholder="Owner Email"
+                    required
+                    value={waitlistEmail}
+                    onChange={(e) => setWaitlistEmail(e.target.value)}
+                    className="flex-1 min-h-10 rounded-lg border border-input bg-background px-3 text-xs outline-none focus:border-purple-500"
+                  />
+                  <button
+                    type="submit"
+                    disabled={joiningWaitlist}
+                    className="min-h-10 px-4 rounded-lg bg-[#632a73] font-semibold text-white text-xs hover:bg-[#542261] disabled:opacity-50"
+                  >
+                    {joiningWaitlist ? "Joining..." : "Join Waitlist"}
+                  </button>
+                </div>
+              </form>
+              {waitlistMessage && (
+                <p className="text-xs font-semibold text-green-600">{waitlistMessage}</p>
+              )}
             </div>
 
             <div className="p-5 rounded-xl border border-border bg-card shadow-sm space-y-3">

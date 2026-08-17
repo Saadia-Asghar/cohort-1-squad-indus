@@ -10,12 +10,13 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
-import { customFetch } from "@workspace/api-client-react";
+import { customFetch, useGetBaker } from "@workspace/api-client-react";
 import {
   AlertTriangle,
   Boxes,
   CalendarDays,
   CircleDollarSign,
+  Download,
   PackagePlus,
   Plus,
   ReceiptText,
@@ -27,6 +28,7 @@ import {
 } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { useBuyerSession } from "@/hooks/use-session";
+import { exportKhataLedgerPDF } from "@/lib/pdf-export";
 
 type KhataPeriod =
   | "daily"
@@ -166,6 +168,7 @@ function ledgerTypeLabel(
 
 export default function DashboardKhata() {
   const { bakerId } = useBuyerSession();
+  const { data: baker } = useGetBaker(bakerId);
   const queryClient = useQueryClient();
 
   const [period, setPeriod] =
@@ -516,6 +519,21 @@ export default function DashboardKhata() {
                   )}
                 </select>
               </label>
+
+              <button
+                type="button"
+                onClick={() =>
+                  exportKhataLedgerPDF(
+                    khataQuery.data,
+                    ledgerQuery.data || [],
+                    baker?.businessName ?? "My Bakery"
+                  )
+                }
+                disabled={khataQuery.isLoading || !khataQuery.data}
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-[#dfd1c4] bg-[#632a73] px-4 text-xs font-bold text-white transition hover:bg-[#c24f7a] disabled:opacity-50"
+              >
+                <Download className="h-4 w-4" /> Download PDF
+              </button>
             </div>
           </header>
 

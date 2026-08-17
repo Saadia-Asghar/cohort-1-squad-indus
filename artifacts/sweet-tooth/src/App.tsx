@@ -45,6 +45,9 @@ const DashboardKhata = lazy(() => import("@/pages/dashboard/khata"));
 import BakerLogin from "@/pages/auth/baker-login";
 import BakerRegister from "@/pages/auth/baker-register";
 import BakerOnboarding from "@/pages/auth/baker-onboarding";
+import BakerForgotPassword from "@/pages/auth/baker-forgot-password";
+import BakerResetPassword from "@/pages/auth/baker-reset-password";
+import AdminPortal from "@/pages/admin";
 
 import NotFound from "@/pages/not-found";
 
@@ -127,9 +130,14 @@ function Router() {
       <Route path="/dashboard/login" component={() => <BakerLogin />} />
       <Route path="/dashboard/register" component={BakerRegister} />
       <Route path="/dashboard/onboarding" component={BakerOnboarding} />
+      <Route path="/dashboard/forgot-password" component={BakerForgotPassword} />
+      <Route path="/dashboard/reset-password" component={BakerResetPassword} />
       {/* Preserve old shared login links, but keep access baker-only. */}
       <Route path="/login" component={() => <BakerLogin />} />
       <Route path="/login/buyer" component={() => <BakerLogin />} />
+      <Route path="/forgot-password" component={BakerForgotPassword} />
+      <Route path="/reset-password" component={BakerResetPassword} />
+      <Route path="/admin" component={AdminPortal} />
 
       <Route component={NotFound} />
     </Switch>

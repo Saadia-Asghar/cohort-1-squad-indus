@@ -2,6 +2,7 @@ import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import {
   customFetch,
   getListOrdersQueryKey,
+  useGetBaker,
   useListOrders,
   useUpdateOrderStatus,
 } from "@workspace/api-client-react";
@@ -19,6 +20,7 @@ import {
   CheckCircle2,
   CircleAlert,
   Clock3,
+  Download,
   MessageCircle,
   PackageCheck,
   Plus,
@@ -27,6 +29,7 @@ import {
   Truck,
   X,
 } from "lucide-react";
+import { exportOrdersPDF } from "@/lib/pdf-export";
 
 const emptyManualOrder = {
   buyerName: "",
@@ -131,6 +134,7 @@ function dateIsToday(value?: string | null): boolean {
 
 export default function DashboardOrders() {
   const { bakerId } = useBuyerSession();
+  const { data: baker } = useGetBaker(bakerId);
   const queryClient = useQueryClient();
 
   const { data: orders, isLoading } = useListOrders(
@@ -505,6 +509,20 @@ export default function DashboardOrders() {
                 <CalendarDays className="h-4 w-4 text-[#c24f7a]" />
                 Order schedule
               </Link>
+
+              <button
+                type="button"
+                onClick={() =>
+                  exportOrdersPDF(
+                    filteredOrders,
+                    baker?.businessName ?? "My Bakery"
+                  )
+                }
+                disabled={isLoading || filteredOrders.length === 0}
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-[#dfd1c4] bg-white px-4 text-sm font-semibold text-[#632a73] transition hover:bg-[#f4eae1] disabled:opacity-50"
+              >
+                <Download className="h-4 w-4" /> Download Log
+              </button>
 
               <button
                 type="button"

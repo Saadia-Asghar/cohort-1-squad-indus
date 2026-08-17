@@ -165,7 +165,7 @@ export function ApprovedHomePreview() {
               </div>
               <div className="flex shrink-0 items-center gap-2">
                 <Link
-                  href="/bakers"
+                  href={`/menu/${bakerId}`}
                   className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-[#dfd1c4] bg-white/65 px-4 text-sm font-semibold shadow-[0_8px_24px_rgba(47,24,55,0.05)] transition hover:-translate-y-0.5"
                 >
                   Preview storefront
@@ -443,8 +443,8 @@ export function ApprovedHomePreview() {
                 />
 
                 <QuickAction
-                  href="/bakers"
-                  label="Storefront"
+                  href={`/menu/${bakerId}`}
+                  label="Menu"
                   icon={Store}
                 />
               </div>
