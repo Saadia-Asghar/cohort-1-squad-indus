@@ -37,6 +37,12 @@ export default function AdminPortal() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Login form
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [loginLoading, setLoginLoading] = useState(false);
+
   // Form states
   const [activateBakerId, setActivateBakerId] = useState("");
   const [activatePlanId, setActivatePlanId] = useState("starter");
@@ -55,7 +61,7 @@ export default function AdminPortal() {
   const [searchQuery, setSearchQuery] = useState("");
   const [waitlist, setWaitlist] = useState<any[]>([]);
 
-  // Load token from localStorage
+  // Auto-login from saved session
   useEffect(() => {
     const saved = localStorage.getItem("admin_bearer_token");
     if (saved) {
@@ -125,16 +131,36 @@ export default function AdminPortal() {
     }
   };
 
-  const handleAuthorize = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (token) {
-      verifyToken(token);
+    if (!loginEmail || !loginPassword) return;
+    setLoginLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/admin/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: loginEmail, password: loginPassword }),
+      });
+      const data = await res.json();
+      if (res.ok && data.token) {
+        setToken(data.token);
+        verifyToken(data.token);
+      } else {
+        setError(data.error || "Invalid credentials.");
+      }
+    } catch {
+      setError("Network error. Please try again.");
+    } finally {
+      setLoginLoading(false);
     }
   };
 
   const handleResetAuth = () => {
     localStorage.removeItem("admin_bearer_token");
     setToken("");
+    setLoginEmail("");
+    setLoginPassword("");
     setIsAuthorized(false);
     setBakers([]);
     setError(null);
@@ -238,47 +264,87 @@ export default function AdminPortal() {
 
   if (!isAuthorized) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#1e1420] text-white px-4">
-        <div className="w-full max-w-md rounded-2xl bg-[#2a1d2e] border border-[#443149] p-8 shadow-2xl">
-          <div className="flex flex-col items-center text-center">
-            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[#632a73] text-purple-200">
-              <ShieldAlert className="h-8 w-8" />
+      <div className="flex min-h-screen items-center justify-center bg-[#1e1420] text-white px-4" style={{ backgroundImage: "radial-gradient(ellipse at 60% 0%, #4a1060 0%, #1e1420 60%)" }}>
+        <div className="w-full max-w-md">
+          {/* Logo / Brand */}
+          <div className="mb-8 flex flex-col items-center text-center">
+            <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-[#c24f7a] to-[#632a73] shadow-lg shadow-[#c24f7a]/30">
+              <ShieldAlert className="h-10 w-10 text-white" />
             </div>
-            <h1 className="font-serif text-2xl font-semibold tracking-tight">Platform Administration</h1>
-            <p className="mt-2 text-sm text-purple-200/60">
-              Authorization required to access the Sweet Tooth system controls.
-            </p>
+            <h1 className="font-serif text-3xl font-bold tracking-tight">Sweet Tooth Admin</h1>
+            <p className="mt-2 text-sm text-purple-200/60">Platform Management Portal</p>
           </div>
 
-          <form onSubmit={handleAuthorize} className="mt-8 space-y-4">
-            <div className="space-y-1">
-              <label className="text-xs font-semibold text-purple-200/80">Admin Bearer Token</label>
-              <div className="relative">
-                <Key className="absolute left-3.5 top-3.5 h-4.5 w-4.5 text-purple-200/40" />
+          {/* Login Card */}
+          <div className="rounded-2xl border border-[#443149] bg-[#2a1d2e]/80 p-8 shadow-2xl backdrop-blur">
+            <h2 className="text-lg font-semibold tracking-tight">Sign in to Admin</h2>
+            <p className="mt-1 text-xs text-purple-200/50">Enter your admin credentials to continue</p>
+
+            <form onSubmit={handleLogin} className="mt-6 space-y-4">
+              {/* Email */}
+              <div className="space-y-1.5">
+                <label htmlFor="admin-email" className="text-xs font-semibold text-purple-200/70 uppercase tracking-wider">Email address</label>
                 <input
-                  type="password"
-                  placeholder="Enter JWT_SECRET or admin token"
-                  value={token}
-                  onChange={(e) => setToken(e.target.value)}
-                  className="w-full min-h-12 rounded-xl border border-[#443149] bg-[#1e1420] pl-10 pr-4 text-sm text-white outline-none focus:border-[#c24f7a] focus:ring-2 focus:ring-[#c24f7a]/20"
+                  id="admin-email"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  placeholder="admin@sweettooth.pk"
+                  value={loginEmail}
+                  onChange={(e) => setLoginEmail(e.target.value)}
+                  className="w-full min-h-12 rounded-xl border border-[#443149] bg-[#1e1420] px-4 text-sm text-white placeholder-purple-200/30 outline-none transition focus:border-[#c24f7a] focus:ring-2 focus:ring-[#c24f7a]/20"
                 />
               </div>
-            </div>
 
-            {error && <p className="text-xs font-medium text-red-400">{error}</p>}
+              {/* Password */}
+              <div className="space-y-1.5">
+                <label htmlFor="admin-password" className="text-xs font-semibold text-purple-200/70 uppercase tracking-wider">Password</label>
+                <div className="relative">
+                  <input
+                    id="admin-password"
+                    type={showPassword ? "text" : "password"}
+                    autoComplete="current-password"
+                    required
+                    placeholder="••••••••••••"
+                    value={loginPassword}
+                    onChange={(e) => setLoginPassword(e.target.value)}
+                    className="w-full min-h-12 rounded-xl border border-[#443149] bg-[#1e1420] px-4 pr-12 text-sm text-white placeholder-purple-200/30 outline-none transition focus:border-[#c24f7a] focus:ring-2 focus:ring-[#c24f7a]/20"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((v) => !v)}
+                    className="absolute right-3.5 top-3.5 text-purple-200/40 hover:text-purple-200/80 transition"
+                    tabIndex={-1}
+                  >
+                    <Eye className="h-5 w-5" />
+                  </button>
+                </div>
+              </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full min-h-12 rounded-xl bg-[#c24f7a] font-semibold text-white shadow-lg transition hover:bg-[#b0406b] disabled:opacity-50"
-            >
-              {loading ? "Verifying..." : "Authorize Session"}
-            </button>
-          </form>
+              {error && (
+                <div className="flex items-center gap-2 rounded-lg bg-red-500/10 border border-red-500/30 px-3 py-2">
+                  <ShieldAlert className="h-4 w-4 text-red-400 flex-shrink-0" />
+                  <p className="text-xs font-medium text-red-400">{error}</p>
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={loginLoading || loading}
+                className="w-full min-h-12 rounded-xl bg-gradient-to-r from-[#c24f7a] to-[#a0336a] font-semibold text-white shadow-lg shadow-[#c24f7a]/20 transition hover:shadow-[#c24f7a]/40 hover:brightness-110 disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {loginLoading || loading ? (
+                  <><RefreshCw className="h-4 w-4 animate-spin" /> Signing in...</>
+                ) : (
+                  <>Sign in to Admin Panel</>
+                )}
+              </button>
+            </form>
+          </div>
 
           <div className="mt-6 text-center">
-            <Link to="/dashboard" className="inline-flex items-center gap-1.5 text-xs text-purple-200/60 hover:text-white">
-              <ArrowLeft className="h-3.5 w-3.5" /> Back to Dashboard
+            <Link to="/dashboard" className="inline-flex items-center gap-1.5 text-xs text-purple-200/40 hover:text-purple-200/80 transition">
+              <ArrowLeft className="h-3.5 w-3.5" /> Back to Baker Dashboard
             </Link>
           </div>
         </div>

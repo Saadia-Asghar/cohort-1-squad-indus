@@ -22,6 +22,37 @@ function requireAdminBearer(req: { headers: { authorization?: string } }, res: {
   return true;
 }
 
+/**
+ * Admin login with email + password.
+ * Credentials are read from ADMIN_EMAIL / ADMIN_PASSWORD env vars.
+ * Defaults: admin@sweettooth.pk / SweetTooth@Admin2024
+ * Returns { token } on success — this token is then used as the Bearer for all admin API calls.
+ */
+router.post("/admin/login", async (req, res): Promise<void> => {
+  const { email, password } = req.body as { email?: string; password?: string };
+  const adminEmail = (process.env.ADMIN_EMAIL?.trim() || "admin@sweettooth.pk").toLowerCase();
+  const adminPassword = process.env.ADMIN_PASSWORD?.trim() || "SweetTooth@Admin2024";
+  const jwtSecret = process.env.JWT_SECRET?.trim();
+
+  if (!jwtSecret) {
+    res.status(500).json({ error: "Server misconfiguration: JWT_SECRET not set." });
+    return;
+  }
+
+  if (!email || !password) {
+    res.status(400).json({ error: "Email and password are required." });
+    return;
+  }
+
+  if (email.toLowerCase() !== adminEmail || password !== adminPassword) {
+    res.status(401).json({ error: "Invalid email or password." });
+    return;
+  }
+
+  res.json({ token: jwtSecret });
+});
+
+
 /** One-time pitch data enrich. Requires Authorization: Bearer <JWT_SECRET or ENRICH_DEMO_SECRET>. */
 router.post("/admin/enrich-demo", async (req, res): Promise<void> => {
   if (!requireAdminBearer(req, res)) return;
