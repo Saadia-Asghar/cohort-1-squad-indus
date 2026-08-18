@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { APP_REVIEW_ROLES, APP_REVIEW_USED_HOW } from "@/lib/app-review";
+import { apiUrl } from "@/lib/api-url";
 
 type BakerAdmin = {
   id: number;
@@ -151,7 +152,7 @@ export default function AdminPortal() {
     setLoading(true);
     setError(null);
     try {
-      const bakersRes = await fetch("/api/admin/bakers", { headers: adminHeaders(bearerToken) });
+      const bakersRes = await fetch(apiUrl("/api/admin/bakers"), { headers: adminHeaders(bearerToken) });
       if (!bakersRes.ok) {
         setError("Session expired. Sign in again.");
         setIsAuthorized(false);
@@ -162,9 +163,9 @@ export default function AdminPortal() {
       localStorage.setItem("admin_bearer_token", bearerToken);
 
       const [waitlistRes, billingRes, reviewsRes] = await Promise.all([
-        fetch("/api/admin/waitlist", { headers: adminHeaders(bearerToken) }),
-        fetch("/api/admin/platform-billing", { headers: adminHeaders(bearerToken) }),
-        fetch("/api/admin/app-reviews", { headers: adminHeaders(bearerToken) }),
+        fetch(apiUrl("/api/admin/waitlist"), { headers: adminHeaders(bearerToken) }),
+        fetch(apiUrl("/api/admin/platform-billing"), { headers: adminHeaders(bearerToken) }),
+        fetch(apiUrl("/api/admin/app-reviews"), { headers: adminHeaders(bearerToken) }),
       ]);
       if (waitlistRes.ok) setWaitlist(await waitlistRes.json());
       if (reviewsRes.ok) setAppReviews(await reviewsRes.json());
@@ -188,7 +189,7 @@ export default function AdminPortal() {
     setLoginLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/admin/login", {
+      const res = await fetch(apiUrl("/api/admin/login"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: loginEmail, password: loginPassword }),
@@ -210,7 +211,7 @@ export default function AdminPortal() {
   const patchBaker = async (id: number, body: Record<string, unknown>) => {
     setRowBusy(id);
     try {
-      const res = await fetch(`/api/admin/bakers/${id}`, {
+      const res = await fetch(apiUrl(`/api/admin/bakers/${id}`), {
         method: "PATCH",
         headers: adminHeaders(token, true),
         body: JSON.stringify(body),
@@ -232,7 +233,7 @@ export default function AdminPortal() {
     setActivatingId(bakerId);
     setError(null);
     try {
-      const res = await fetch("/api/admin/activate-plan", {
+      const res = await fetch(apiUrl("/api/admin/activate-plan"), {
         method: "POST",
         headers: adminHeaders(token, true),
         body: JSON.stringify({ bakerId, planId, note }),
@@ -255,7 +256,7 @@ export default function AdminPortal() {
     setUpdatingSettings(true);
     setSettingsMessage("");
     try {
-      const res = await fetch("/api/admin/platform-billing", {
+      const res = await fetch(apiUrl("/api/admin/platform-billing"), {
         method: "POST",
         headers: adminHeaders(token, true),
         body: JSON.stringify({
@@ -278,7 +279,7 @@ export default function AdminPortal() {
     setEnriching(true);
     setEnrichMessage("");
     try {
-      const res = await fetch("/api/admin/enrich-demo", { method: "POST", headers: adminHeaders(token) });
+      const res = await fetch(apiUrl("/api/admin/enrich-demo"), { method: "POST", headers: adminHeaders(token) });
       const data = await res.json();
       setEnrichMessage(res.ok ? "Demo data updated." : `Error: ${data.error || "Enrich failed"}`);
       if (res.ok) await loadAdmin(token);
@@ -305,7 +306,7 @@ export default function AdminPortal() {
       if (metaAppSecret) body.metaAppSecret = metaAppSecret;
       if (metaIgPageId) body.instagramPageId = metaIgPageId;
       if (metaIgToken) body.instagramAccessToken = metaIgToken;
-      const res = await fetch("/api/admin/set-baker-meta", {
+      const res = await fetch(apiUrl("/api/admin/set-baker-meta"), {
         method: "POST",
         headers: adminHeaders(token, true),
         body: JSON.stringify(body),
@@ -325,7 +326,7 @@ export default function AdminPortal() {
   };
 
   const handleUpdateWaitlistStatus = async (id: number, status: string) => {
-    const res = await fetch(`/api/admin/waitlist/${id}`, {
+    const res = await fetch(apiUrl(`/api/admin/waitlist/${id}`), {
       method: "PATCH",
       headers: adminHeaders(token, true),
       body: JSON.stringify({ status }),

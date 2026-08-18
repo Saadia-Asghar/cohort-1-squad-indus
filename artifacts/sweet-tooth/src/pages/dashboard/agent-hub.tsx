@@ -16,6 +16,7 @@ import { Link } from "wouter";
 import type { KnowledgeReindexResult } from "@workspace/api-client-react";
 import { useBuyerSession } from "@/hooks/use-session";
 import { liveDashboardQuery, ORDERS_POLL_MS } from "@/lib/dashboard-query";
+import { apiUrl } from "@/lib/api-url";
 import { WhatsAppEmbeddedSignup } from "@/components/whatsapp-embedded-signup";
 import { InstagramMetaConnect } from "@/components/instagram-meta-connect";
 import { useQueryClient } from "@tanstack/react-query";
@@ -90,7 +91,7 @@ export default function AgentHub() {
     setJoiningWaitlist(true);
     setWaitlistMessage("");
     try {
-      const res = await fetch("/api/waitlist", {
+      const res = await fetch(apiUrl("/api/waitlist"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

@@ -11,13 +11,10 @@ import {
   useManagedBaker,
 } from "@/lib/managed-auth";
 import { initializeProductAnalytics } from "@/lib/product-analytics";
+import { API_BASE } from "@/lib/api-url";
 
-// Local Vite proxies /api to the API server. Production falls back to the live API alias.
-const apiUrl = import.meta.env.DEV
-  ? import.meta.env.VITE_API_URL || ""
-  : import.meta.env.VITE_API_URL || "https://cohort-1-squad-indus-api-server-z3b.vercel.app";
-if (apiUrl) {
-  setBaseUrl(apiUrl);
+if (API_BASE) {
+  setBaseUrl(API_BASE);
 }
 
 // Public pages: customers reach a baker's menu through a direct shared link.

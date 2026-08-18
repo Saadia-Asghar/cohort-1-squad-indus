@@ -3,6 +3,7 @@ import { Link } from "wouter";
 import { ArrowRight, Check } from "lucide-react";
 import { BuyerLayout } from "@/components/layout/buyer-layout";
 import { APP_REVIEW_ROLES, APP_REVIEW_USED_HOW, type AppReviewRoleId, type AppReviewUsedHowId } from "@/lib/app-review";
+import { apiUrl } from "@/lib/api-url";
 
 export default function AppReviewPage() {
   const [reviewerName, setReviewerName] = useState("");
@@ -21,7 +22,7 @@ export default function AppReviewPage() {
     setSubmitting(true);
     setError("");
     try {
-      const res = await fetch("/api/app-reviews", {
+      const res = await fetch(apiUrl("/api/app-reviews"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

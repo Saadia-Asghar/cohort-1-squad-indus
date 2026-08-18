@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { Link } from "wouter";
 import { ArrowRight, Check } from "lucide-react";
 import { BuyerLayout } from "@/components/layout/buyer-layout";
+import { apiUrl } from "@/lib/api-url";
 
 const faces = [
   { initials: "S", name: "Sana", color: "bg-primary" },
@@ -23,7 +24,7 @@ export default function Waitlist() {
   const [count, setCount] = useState<number | null>(null);
 
   useEffect(() => {
-    void fetch("/api/waitlist/count")
+    void fetch(apiUrl("/api/waitlist/count"))
       .then((res) => (res.ok ? res.json() : null))
       .then((body: { count?: number } | null) => {
         if (typeof body?.count === "number") setCount(body.count);
@@ -36,7 +37,7 @@ export default function Waitlist() {
     setSubmitting(true);
     setError("");
     try {
-      const res = await fetch("/api/waitlist", {
+      const res = await fetch(apiUrl("/api/waitlist"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

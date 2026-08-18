@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Link, useParams } from "wouter";
 import { ArrowLeft, CreditCard, MessageCircle, RefreshCw, Store } from "lucide-react";
+import { apiUrl } from "@/lib/api-url";
 
 type UsageMeter = { used: number; limit: number | null };
 type TabId = "conversations" | "orders" | "customers" | "menu" | "memory";
@@ -190,7 +191,7 @@ export default function AdminBakerMonitor() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/admin/bakers/${bakerId}`, { headers: adminHeaders(bearer) });
+      const res = await fetch(apiUrl(`/api/admin/bakers/${bakerId}`), { headers: adminHeaders(bearer) });
       if (res.status === 401) {
         setError("Session expired. Sign in again.");
         return;
@@ -246,7 +247,7 @@ export default function AdminBakerMonitor() {
     setSavingPlan(true);
     setPlanMessage("");
     try {
-      const res = await fetch("/api/admin/activate-plan", {
+      const res = await fetch(apiUrl("/api/admin/activate-plan"), {
         method: "POST",
         headers: adminHeaders(token, true),
         body: JSON.stringify({

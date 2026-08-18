@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useAppAuth } from "@/lib/app-auth";
 import { Users, UserPlus, Trash2 } from "lucide-react";
+import { apiUrl } from "@/lib/api-url";
 
 type TeamResponse = {
   seatLimit: number;
@@ -41,7 +42,7 @@ export function TeamAccessPanel({ bakerId }: { bakerId: number }) {
     setError(null);
     try {
       const headers = await authHeaders(getToken);
-      const res = await fetch(`/api/bakers/${bakerId}/team`, { headers });
+      const res = await fetch(apiUrl(`/api/bakers/${bakerId}/team`), { headers });
       const contentType = res.headers.get("content-type");
       if (!contentType || !contentType.includes("application/json")) {
         throw new Error("Local backend dev server is not running or returned an invalid response.");
@@ -72,7 +73,7 @@ export function TeamAccessPanel({ bakerId }: { bakerId: number }) {
         "Content-Type": "application/json",
         ...(await authHeaders(getToken)),
       };
-      const res = await fetch(`/api/bakers/${bakerId}/team`, {
+      const res = await fetch(apiUrl(`/api/bakers/${bakerId}/team`), {
         method: "POST",
         headers,
         body: JSON.stringify({ email, password, displayName: displayName || undefined }),
@@ -95,7 +96,7 @@ export function TeamAccessPanel({ bakerId }: { bakerId: number }) {
     setError(null);
     try {
       const headers = await authHeaders(getToken);
-      const res = await fetch(`/api/bakers/${bakerId}/team/${memberId}`, {
+      const res = await fetch(apiUrl(`/api/bakers/${bakerId}/team/${memberId}`), {
         method: "DELETE",
         headers,
       });
