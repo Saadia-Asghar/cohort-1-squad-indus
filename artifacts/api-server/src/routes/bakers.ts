@@ -482,7 +482,7 @@ router.post("/bakers", rateLimit(10, 15 * 60 * 1000), async (req, res): Promise<
         allowPickup: true,
         allowDelivery: true,
         preferredCustomerChannel: "web",
-      },
+      } as never,
     }).returning();
     
     const token = signToken({ bakerId: baker.id, email: baker.email, role: "owner" });

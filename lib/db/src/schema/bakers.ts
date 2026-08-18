@@ -30,6 +30,7 @@ export const bakersTable = sweetTooth.table("bakers", {
     blockedTopics?: string[];
     escalateKeywords?: string[];
     autoReplyEnabled?: boolean;
+    preferredCustomerChannel?: "web" | "whatsapp" | "instagram";
     customResponses?: Array<{ trigger: string; response: string }>;
     socialLinks?: { instagram?: string; facebook?: string };
     menuAccent?: string;
