@@ -31,8 +31,11 @@ export default function Contact() {
           <aside className="rounded-3xl border border-border bg-card p-7 shadow-sm">
             <Mail className="h-9 w-9 text-primary" />
             <h2 className="mt-5 font-serif text-2xl font-bold">Need a hand?</h2>
-            <p className="mt-3 text-sm leading-relaxed text-muted-foreground">For account, menu, agent, or order-workflow support, contact the Sweet Tooth team directly.</p>
-            <a href={`mailto:${SUPPORT_EMAIL}`} className="mt-6 inline-flex w-full items-center justify-center rounded-xl bg-primary px-5 py-3 font-bold text-primary-foreground hover:bg-primary/90">Email support</a>
+            <p className="mt-3 text-sm leading-relaxed text-muted-foreground">For account, menu, agent, or order-workflow support, email us directly.</p>
+            <a href={`mailto:${SUPPORT_EMAIL}`} className="mt-4 block text-lg font-bold text-primary hover:underline">
+              {SUPPORT_EMAIL}
+            </a>
+            <a href={`mailto:${SUPPORT_EMAIL}`} className="mt-6 inline-flex w-full items-center justify-center rounded-xl bg-primary px-5 py-3 font-bold text-primary-foreground hover:bg-primary/90">Email {SUPPORT_EMAIL}</a>
             <a href={whatsappSupportLink("Assalam-o-Alaikum! I need help with my Sweet Tooth bakery account.")} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex w-full items-center justify-center rounded-xl border border-green-200 bg-green-50 px-5 py-3 font-bold text-green-800 hover:bg-green-100">WhatsApp support</a>
             <Link href="/review" className="mt-3 inline-flex w-full items-center justify-center rounded-xl border border-border px-5 py-3 font-bold hover:bg-muted">Review the app</Link>
             <Link href="/waitlist" className="mt-3 inline-flex w-full items-center justify-center rounded-xl border border-border px-5 py-3 font-bold hover:bg-muted">Join the waitlist</Link>
