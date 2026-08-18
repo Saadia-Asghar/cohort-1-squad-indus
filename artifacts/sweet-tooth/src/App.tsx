@@ -30,6 +30,7 @@ import BuyerOrders from "@/pages/buyer/orders";
 import OrderFeedback from "@/pages/buyer/feedback";
 import { PrivacyPolicy, TermsOfService } from "@/pages/legal";
 import Waitlist from "@/pages/waitlist";
+import AppReviewPage from "@/pages/app-review";
 
 // Dashboard pages — lazy-loaded so each tab opens fast without loading the whole app.
 const DashboardHome = lazy(() => import("@/pages/dashboard/home"));
@@ -42,6 +43,7 @@ const DashboardCustomers = lazy(() => import("@/pages/dashboard/customers"));
 const DashboardCalendar = lazy(() => import("@/pages/dashboard/calendar"));
 const DashboardAgentHub = lazy(() => import("@/pages/dashboard/agent-hub"));
 const DashboardGuide = lazy(() => import("@/pages/dashboard/guide"));
+const DashboardWelcomeFeatures = lazy(() => import("@/pages/dashboard/welcome-features"));
 const DashboardKhata = lazy(() => import("@/pages/dashboard/khata"));
 const DashboardHumanInbox = lazy(() => import("@/pages/dashboard/human-inbox"));
 import BakerLogin from "@/pages/auth/baker-login";
@@ -107,6 +109,7 @@ const DashboardCalendarRoute = ownerDashboardRoute(DashboardCalendar);
 const DashboardAgentHubRoute = ownerDashboardRoute(DashboardAgentHub);
 const DashboardKhataRoute = ownerDashboardRoute(DashboardKhata);
 const DashboardGuideRoute = ownerDashboardRoute(DashboardGuide);
+const DashboardWelcomeFeaturesRoute = ownerDashboardRoute(DashboardWelcomeFeatures);
 const DashboardHumanInboxRoute = dashboardRoute(DashboardHumanInbox);
 
 function Router() {
@@ -114,6 +117,7 @@ function Router() {
     <Switch>
       <Route path="/" component={Home} />
       <Route path="/waitlist" component={Waitlist} />
+      <Route path="/review" component={AppReviewPage} />
       <Route path="/contact" component={Contact} />
       <Route path="/bakers" component={Bakers} />
       <Route path="/menu/:id" component={BakerProfile} />
@@ -136,6 +140,7 @@ function Router() {
       <Route path="/dashboard/agent-hub" component={DashboardAgentHubRoute} />
       <Route path="/dashboard/khata" component={DashboardKhataRoute} />
       <Route path="/dashboard/guide" component={DashboardGuideRoute} />
+      <Route path="/dashboard/welcome-features" component={DashboardWelcomeFeaturesRoute} />
       <Route path="/dashboard/human-inbox" component={DashboardHumanInboxRoute} />
       <Route path="/dashboard/login" component={() => <BakerLogin />} />
       <Route path="/dashboard/register" component={BakerRegister} />

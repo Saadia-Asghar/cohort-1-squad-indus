@@ -28,6 +28,7 @@ import {
   requireClerkUser,
 } from "../middlewares/auth.js";
 import { rebuildBakerKnowledgeIndex } from "../lib/rag/pipeline.js";
+import { parseSignupFeatureFeedback } from "../lib/signup-feature-feedback.js";
 import { rateLimit } from "../middlewares/rate-limiter.js";
 import { sendEmail } from "../lib/email.js";
 import { normalizePakistanPhone, phoneLookupVariants } from "../lib/phone.js";
@@ -1165,5 +1166,39 @@ router.patch(
     }
   },
 );
+
+router.post("/bakers/:bakerId/signup-feedback", requireBakerAuth, requireBakerOwner, requireBakerOwnership, async (req, res): Promise<void> => {
+  const bakerId = parseInt(String(req.params.bakerId), 10);
+  if (!Number.isInteger(bakerId) || bakerId <= 0) {
+    res.status(400).json({ error: "Invalid bakerId" });
+    return;
+  }
+
+  const parsed = parseSignupFeatureFeedback(req.body);
+  if (!parsed) {
+    res.status(400).json({ error: "Select at least one workspace tool, add a note, or skip." });
+    return;
+  }
+
+  const [existing] = await db.select().from(bakersTable).where(eq(bakersTable.id, bakerId)).limit(1);
+  if (!existing) {
+    res.status(404).json({ error: "Baker not found" });
+    return;
+  }
+
+  const mergedAgentConfig = {
+    ...((existing.agentConfig ?? {}) as Record<string, unknown>),
+    signupFeatureIds: parsed.featureIds,
+    signupFeedbackNote: parsed.note,
+    signupFeedbackSkipped: parsed.skipped,
+    signupFeedbackAt: new Date().toISOString(),
+  };
+
+  await db
+    .update(bakersTable)
+    .set({ agentConfig: mergedAgentConfig } as Record<string, unknown>)
+    .where(eq(bakersTable.id, bakerId));
+  res.json({ ok: true, featureIds: parsed.featureIds, skipped: parsed.skipped });
+});
 
 export default router;

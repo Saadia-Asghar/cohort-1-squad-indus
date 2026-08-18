@@ -16,6 +16,7 @@ import {
   Users,
 } from "lucide-react";
 import { AuthShell } from "@/components/auth/auth-shell";
+import { APP_REVIEW_ROLES, APP_REVIEW_USED_HOW } from "@/lib/app-review";
 
 type BakerAdmin = {
   id: number;
@@ -48,6 +49,17 @@ type WaitlistEntry = {
   note: string | null;
   source: string;
   status: string;
+  createdAt: string;
+};
+
+type AppReviewEntry = {
+  id: number;
+  reviewerName: string;
+  email: string | null;
+  role: string;
+  rating: number;
+  reviewText: string;
+  usedHow: string | null;
   createdAt: string;
 };
 
@@ -96,6 +108,7 @@ export default function AdminPortal() {
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [bakers, setBakers] = useState<BakerAdmin[]>([]);
   const [waitlist, setWaitlist] = useState<WaitlistEntry[]>([]);
+  const [appReviews, setAppReviews] = useState<AppReviewEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loginEmail, setLoginEmail] = useState("");
@@ -147,11 +160,13 @@ export default function AdminPortal() {
       setIsAuthorized(true);
       localStorage.setItem("admin_bearer_token", bearerToken);
 
-      const [waitlistRes, billingRes] = await Promise.all([
+      const [waitlistRes, billingRes, reviewsRes] = await Promise.all([
         fetch("/api/admin/waitlist", { headers: adminHeaders(bearerToken) }),
         fetch("/api/admin/platform-billing", { headers: adminHeaders(bearerToken) }),
+        fetch("/api/admin/app-reviews", { headers: adminHeaders(bearerToken) }),
       ]);
       if (waitlistRes.ok) setWaitlist(await waitlistRes.json());
+      if (reviewsRes.ok) setAppReviews(await reviewsRes.json());
       if (billingRes.ok) {
         const data = await billingRes.json();
         const platform = data.platform ?? {};
@@ -430,11 +445,11 @@ export default function AdminPortal() {
               <Database className="h-5 w-5 text-[#c99855]" />
               <h2 className="font-serif text-xl font-bold">Demo data</h2>
             </div>
-            <p className="mt-1 text-sm text-muted-foreground">Adds sample orders and customers for bakeries that already exist.</p>
+            <p className="mt-1 text-sm text-muted-foreground">Creates Sana, Fatima, and Amna if they are missing, then adds sample menus, orders, and customers.</p>
             {enrichMessage && <p className="mt-3 text-sm font-medium text-primary">{enrichMessage}</p>}
             <button type="button" onClick={() => void handleEnrichDemo()} disabled={enriching} className={`${ghostBtn} mt-5`}>
               <Sparkles className="h-4 w-4" />
-              {enriching ? "Updating…" : "Refresh demo records"}
+              {enriching ? "Updating…" : "Create / refresh demo bakeries"}
             </button>
           </div>
         </section>
@@ -618,6 +633,51 @@ export default function AdminPortal() {
                 {waitlist.length === 0 && (
                   <tr>
                     <td colSpan={4} className="px-4 py-10 text-center text-muted-foreground">No waitlist entries yet.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section className={`${cardClass} mt-8 overflow-hidden p-0`}>
+          <div className="border-b border-border p-5">
+            <h2 className="font-serif text-xl font-bold">App reviews</h2>
+            <p className="mt-1 text-sm text-muted-foreground">Anyone can submit these — bakers, students, developers, and others. No bakery account required.</p>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[900px] text-left text-sm">
+              <thead className="bg-background text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                <tr>
+                  <th className="px-4 py-3">Who</th>
+                  <th className="px-4 py-3">Role</th>
+                  <th className="px-4 py-3">Rating</th>
+                  <th className="px-4 py-3">Review</th>
+                </tr>
+              </thead>
+              <tbody>
+                {appReviews.map((entry) => (
+                  <tr key={entry.id} className="border-t border-border align-top">
+                    <td className="px-4 py-4 font-semibold">
+                      {entry.reviewerName}
+                      {entry.email ? <p className="text-xs font-normal text-muted-foreground">{entry.email}</p> : null}
+                      <p className="text-xs font-normal text-muted-foreground">{new Date(entry.createdAt).toLocaleString()}</p>
+                    </td>
+                    <td className="px-4 py-4">
+                      {APP_REVIEW_ROLES.find((role) => role.id === entry.role)?.label || entry.role}
+                      {entry.usedHow ? (
+                        <p className="text-xs text-muted-foreground">
+                          {APP_REVIEW_USED_HOW.find((item) => item.id === entry.usedHow)?.label || entry.usedHow}
+                        </p>
+                      ) : null}
+                    </td>
+                    <td className="px-4 py-4 font-bold">{entry.rating}/5</td>
+                    <td className="px-4 py-4 text-muted-foreground">{entry.reviewText}</td>
+                  </tr>
+                ))}
+                {appReviews.length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="px-4 py-10 text-center text-muted-foreground">No app reviews yet.</td>
                   </tr>
                 )}
               </tbody>

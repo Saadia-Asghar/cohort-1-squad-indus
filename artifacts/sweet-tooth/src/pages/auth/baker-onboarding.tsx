@@ -38,7 +38,7 @@ export default function BakerOnboarding() {
         body: JSON.stringify({ ...form, idToken }),
       });
       managed.loginNatively(response.token, response.baker.id);
-      navigate("/dashboard/guide?welcome=1");
+      navigate("/dashboard/welcome-features");
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Could not create your bakery.");
     } finally {

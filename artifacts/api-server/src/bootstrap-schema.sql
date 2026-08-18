@@ -612,3 +612,14 @@ CREATE TABLE IF NOT EXISTS sweet_tooth.whatsapp_waitlist (
 );
 ALTER TABLE sweet_tooth.whatsapp_waitlist ADD COLUMN IF NOT EXISTS source TEXT NOT NULL DEFAULT 'whatsapp';
 ALTER TABLE sweet_tooth.whatsapp_waitlist ADD COLUMN IF NOT EXISTS city TEXT;
+
+CREATE TABLE IF NOT EXISTS sweet_tooth.app_reviews (
+  id SERIAL PRIMARY KEY,
+  reviewer_name TEXT NOT NULL,
+  email TEXT,
+  role TEXT NOT NULL,
+  rating INTEGER NOT NULL,
+  review_text TEXT NOT NULL,
+  used_how TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);

@@ -176,6 +176,11 @@ export default function Waitlist() {
                   <Link href="/dashboard/login" className="font-semibold text-primary hover:underline">
                     Baker sign in
                   </Link>
+                  {" · "}
+                  Not a baker?{" "}
+                  <Link href="/review" className="font-semibold text-primary hover:underline">
+                    Review the app
+                  </Link>
                 </p>
               </form>
             )}

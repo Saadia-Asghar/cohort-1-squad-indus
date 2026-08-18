@@ -103,3 +103,21 @@ $env:PORT='5180'; pnpm --filter @workspace/sweet-tooth run dev
 * Admin: `http://localhost:5180/admin`
 * Shared menu example: `http://localhost:5180/menu/1`
 * API health: `http://localhost:8080/api/healthz`
+
+---
+
+## Live (Vercel)
+
+* App: https://cohort-1-squad-indus-sweet-tooth.vercel.app/
+* Baker login: https://cohort-1-squad-indus-sweet-tooth.vercel.app/login
+* Admin: https://cohort-1-squad-indus-sweet-tooth.vercel.app/admin
+* Waitlist: https://cohort-1-squad-indus-sweet-tooth.vercel.app/waitlist
+* API health: https://cohort-1-squad-indus-api-server-z3b.vercel.app/api/healthz
+
+Admin sign-in uses `ADMIN_EMAIL` / `ADMIN_PASSWORD` on the **API** Vercel project. Those values are not committed. Demo bakeries (created from Admin → Create / refresh demo bakeries, or `POST /api/admin/enrich-demo`):
+
+| Email | Password | Plan |
+| --- | --- | --- |
+| `sana@studio.com` | `SanaSweet2026!` | Bakery Plus |
+| `fatima@cakery.com` | `FatimaCake2026!` | Kitchen Standard |
+| `amna@bakes.com` | `AmnaBakes2026!` | Launch Free |

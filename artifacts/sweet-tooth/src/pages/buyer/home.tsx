@@ -23,6 +23,7 @@ import {
 
 import { BuyerLayout } from "@/components/layout/buyer-layout";
 import { PricingSection } from "@/components/marketing/pricing-section";
+import { WORKSPACE_CAPABILITIES } from "@/lib/workspace-capabilities";
 import { whatsappSupportLink } from "@/lib/support";
 
 const heroSlides = [
@@ -87,32 +88,7 @@ const workflow = [
   },
 ];
 
-const capabilities = [
-  {
-    icon: Bot,
-    title: "AI bakery assistant",
-    description:
-      "Answers common customer questions using your menu, prices, policies and delivery areas.",
-  },
-  {
-    icon: PackageCheck,
-    title: "Order management",
-    description:
-      "Keeps products, cake notes, customer information and delivery requirements together.",
-  },
-  {
-    icon: WalletCards,
-    title: "Payment review",
-    description:
-      "Connects customer payment evidence, advance amounts and remaining balances to each order.",
-  },
-  {
-    icon: CalendarDays,
-    title: "Production calendar",
-    description:
-      "Shows what must be prepared, decorated, completed and delivered next.",
-  },
-];
+const capabilities = WORKSPACE_CAPABILITIES;
 
 export default function Home() {
   return (
@@ -1918,6 +1894,12 @@ function FinalSection() {
               <MessageCircle className="h-4 w-4" />
               Book a demonstration
             </a>
+            <Link
+              href="/review"
+              className="inline-flex min-h-12 w-full items-center justify-center rounded-xl px-5 py-3 text-sm font-bold text-muted-foreground transition hover:text-primary sm:min-h-14 sm:px-8 lg:w-auto"
+            >
+              Review the app — bakers, students, developers
+            </Link>
           </div>
         </motion.div>
       </div>

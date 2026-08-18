@@ -13,6 +13,7 @@ import {
   platformSettingsTable,
   productsTable,
   reviewsTable,
+  appReviewsTable,
   whatsappWaitlistTable,
 } from "@workspace/db";
 import { sendN8nEvent } from "../lib/n8n.js";
@@ -44,6 +45,7 @@ import {
 } from "../lib/plan-limits.js";
 import { rateLimit } from "../middlewares/rate-limiter.js";
 import { normalizeWaitlistSource } from "../lib/waitlist-join.js";
+import { parseAppReview } from "../lib/app-review.js";
 
 const router = Router();
 
@@ -88,7 +90,7 @@ router.post("/admin/enrich-demo", async (req, res): Promise<void> => {
 
   try {
     await enrichPitchData();
-    res.json({ ok: true, message: "Demo bakers enriched with orders, customers, and reviews." });
+    res.json({ ok: true, message: "Demo bakeries are ready with menus, orders, and customers." });
   } catch (error) {
     console.error("enrich-demo failed", error);
     res.status(500).json({ error: "Enrich failed" });
@@ -269,6 +271,11 @@ router.get("/admin/bakers/:id", async (req, res): Promise<void> => {
         billingNote: pending.billingNote,
         lastPlanActivatedAt: typeof conf.lastPlanActivatedAt === "string" ? conf.lastPlanActivatedAt : null,
         lastPlanActivationNote: typeof conf.lastPlanActivationNote === "string" ? conf.lastPlanActivationNote : null,
+        signupFeatureIds: Array.isArray(conf.signupFeatureIds)
+          ? conf.signupFeatureIds.filter((id): id is string => typeof id === "string")
+          : [],
+        signupFeedbackNote: typeof conf.signupFeedbackNote === "string" ? conf.signupFeedbackNote : null,
+        signupFeedbackSkipped: conf.signupFeedbackSkipped === true,
       },
       usage: {
         aiReplies: { used: aiRepliesUsed, limit: limits.aiRepliesPerMonth },
@@ -617,6 +624,40 @@ router.get("/waitlist/count", rateLimit(40, 60 * 1000), async (_req, res): Promi
   } catch (error) {
     console.error("Failed to count waitlist:", error);
     res.status(500).json({ error: "Failed to count waitlist" });
+  }
+});
+
+/** Public: anyone can review the product without a bakery account. */
+router.post("/app-reviews", rateLimit(8, 15 * 60 * 1000), async (req, res): Promise<void> => {
+  const parsed = parseAppReview(req.body);
+  if (!parsed) {
+    res.status(400).json({ error: "Name, who you are, a 1–5 rating, and a short review are required." });
+    return;
+  }
+
+  try {
+    const [entry] = await db.insert(appReviewsTable).values(parsed).returning();
+    void sendN8nEvent("app.review.submitted", {
+      id: entry.id,
+      role: entry.role,
+      rating: entry.rating,
+    });
+    res.status(201).json({ ok: true, id: entry.id });
+  } catch (error) {
+    console.error("Failed to save app review:", error);
+    res.status(500).json({ error: "Failed to save review" });
+  }
+});
+
+router.get("/admin/app-reviews", async (req, res): Promise<void> => {
+  if (!requireAdminBearer(req, res)) return;
+
+  try {
+    const entries = await db.select().from(appReviewsTable).orderBy(desc(appReviewsTable.id));
+    res.json(entries);
+  } catch (error) {
+    console.error("Failed to fetch app reviews:", error);
+    res.status(500).json({ error: "Failed to fetch reviews" });
   }
 });
 

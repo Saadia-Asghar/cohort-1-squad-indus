@@ -1,6 +1,6 @@
-/**
- * Adds customers, orders, and reviews for demo bakers without wiping existing data.
- * Safe to run on production when pitch data is missing.
+﻿/**
+ * Ensures demo bakers exist, then adds customers, orders, and reviews
+ * without wiping existing data. Safe to run on production.
  *
  * Usage: DATABASE_URL=... pnpm --filter @workspace/api-server run seed:enrich
  */
@@ -16,48 +16,121 @@ import { seedBakerDemoData, syncBakerStats } from "./lib/seed-baker-demo.js";
 import { seedFullFeaturePack } from "./lib/seed-feature-packs.js";
 import { reindexBakerKnowledge } from "./lib/rag/indexer.js";
 import { hashPassword } from "./lib/auth.js";
+import {
+  DEMO_BAKER_PROFILES,
+  DEMO_PASSWORDS,
+  DEMO_SLUGS,
+  type DemoProductSeed,
+  type DemoSlug,
+} from "./lib/demo-bakers.js";
 
-const DEMO_PASSWORDS: Record<string, string> = {
-  "sana-sweet-studio": "SanaSweet2026!",
-  "fatima-cakery": "FatimaCake2026!",
-  "amna-bakes": "AmnaBakes2026!",
-};
+export { DEMO_BAKER_PROFILES, DEMO_PASSWORDS, DEMO_SLUGS };
+export type { DemoSlug };
 
-const DEMO_SLUGS = ["sana-sweet-studio", "fatima-cakery", "amna-bakes"] as const;
+async function ensureStarterProducts(bakerId: number, products: DemoProductSeed[]): Promise<void> {
+  const [{ count }] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(productsTable)
+    .where(eq(productsTable.bakerId, bakerId));
+  if (count > 0) return;
 
-const PHONE_BASE: Record<string, string> = {
-  "sana-sweet-studio": "+92300123",
-  "fatima-cakery": "+92321876",
-  "amna-bakes": "+92311555",
-};
+  await db.insert(productsTable).values(
+    products.map((product) => ({
+      bakerId,
+      name: product.name,
+      description: product.description,
+      basePricePkr: product.basePricePkr,
+      recipeCostPkr: product.recipeCostPkr,
+      sizes: product.sizes,
+      variants: [],
+      isEgglessAvailable: product.isEgglessAvailable,
+      isAvailable: true,
+      leadTimeDays: product.leadTimeDays,
+      category: product.category,
+      occasionTags: product.occasionTags,
+      dietaryTags: product.dietaryTags,
+      ingredients: product.ingredients,
+      allergens: product.allergens,
+      photoUrl: product.photoUrl,
+      isBestSeller: product.isBestSeller,
+      isTopRated: product.isTopRated,
+      displayOrder: product.displayOrder,
+    })),
+  );
+}
 
-const AREAS: Record<string, string[]> = {
-  "sana-sweet-studio": ["Gulberg", "Model Town", "DHA Phase 1", "Johar Town"],
-  "fatima-cakery": ["Clifton", "Defence", "Bahadurabad", "Gulshan-e-Iqbal"],
-  "amna-bakes": ["F-7", "F-8", "G-9", "Blue Area"],
-};
+export async function ensureDemoBaker(slug: DemoSlug) {
+  const profile = DEMO_BAKER_PROFILES[slug];
+  const passwordHash = hashPassword(DEMO_PASSWORDS[slug]);
+  const [existing] = await db.select().from(bakersTable).where(eq(bakersTable.slug, slug)).limit(1);
 
-const CHANNELS: Record<string, { wa: boolean; ig: boolean }> = {
-  "sana-sweet-studio": { wa: true, ig: true },
-  "fatima-cakery": { wa: true, ig: false },
-  "amna-bakes": { wa: false, ig: false },
-};
+  if (existing) {
+    await db
+      .update(bakersTable)
+      .set({
+        passwordHash,
+        marketplaceVisible: true,
+        email: profile.email,
+        businessName: profile.businessName,
+        ownerName: profile.ownerName,
+      })
+      .where(eq(bakersTable.id, existing.id));
+    await ensureStarterProducts(existing.id, profile.products);
+    console.log(`Demo baker ready: ${profile.businessName} (#${existing.id})`);
+    return existing;
+  }
+
+  try {
+    const [created] = await db
+      .insert(bakersTable)
+      .values({
+        businessName: profile.businessName,
+        ownerName: profile.ownerName,
+        tagline: profile.tagline,
+        bio: profile.bio,
+        city: profile.city,
+        area: profile.area,
+        whatsappNumber: profile.whatsappNumber,
+        email: profile.email,
+        passwordHash,
+        deliveryAreas: profile.deliveryAreas,
+        marketplaceVisible: true,
+        subscriptionPlan: profile.subscriptionPlan,
+        agentActive: profile.agentActive,
+        whatsappAgentEnabled: profile.whatsappAgentEnabled,
+        instagramAgentEnabled: profile.instagramAgentEnabled,
+        trialEndsAt: profile.trialDays ? new Date(Date.now() + profile.trialDays * 86400000) : null,
+        slug,
+        photoUrl: profile.photoUrl,
+        agentConfig: {
+          customGreeting: profile.greeting,
+          autoReplyEnabled: profile.agentActive,
+          allowPickup: true,
+          allowDelivery: true,
+        },
+      })
+      .returning();
+
+    await ensureStarterProducts(created.id, profile.products);
+    console.log(`Created demo baker: ${profile.businessName} (#${created.id})`);
+    return created;
+  } catch (error) {
+    const [byEmail] = await db.select().from(bakersTable).where(eq(bakersTable.email, profile.email)).limit(1);
+    if (!byEmail) throw error;
+    await db
+      .update(bakersTable)
+      .set({ passwordHash, marketplaceVisible: true, slug, businessName: profile.businessName, ownerName: profile.ownerName })
+      .where(eq(bakersTable.id, byEmail.id));
+    await ensureStarterProducts(byEmail.id, profile.products);
+    console.log(`Reused existing baker email for demo: ${profile.businessName} (#${byEmail.id})`);
+    return byEmail;
+  }
+}
 
 export async function enrichPitchData(): Promise<void> {
   for (const slug of DEMO_SLUGS) {
-    const [baker] = await db.select().from(bakersTable).where(eq(bakersTable.slug, slug)).limit(1);
-    if (!baker) {
-      console.log(`Skip ${slug}: baker not found`);
-      continue;
-    }
-
-    const demoPassword = DEMO_PASSWORDS[slug];
-    if (demoPassword) {
-      await db
-        .update(bakersTable)
-        .set({ passwordHash: hashPassword(demoPassword) })
-        .where(eq(bakersTable.id, baker.id));
-    }
+    const baker = await ensureDemoBaker(slug);
+    const profile = DEMO_BAKER_PROFILES[slug];
 
     const [{ count }] = await db
       .select({ count: sql<number>`count(*)::int` })
@@ -76,15 +149,15 @@ export async function enrichPitchData(): Promise<void> {
         continue;
       }
 
-      console.log(`Enriching ${baker.businessName} (${count} orders → adding demo pack)`);
+      console.log(`Enriching ${baker.businessName} (${count} orders â†’ adding demo pack)`);
       await seedBakerDemoData({
         id: baker.id,
         businessName: baker.businessName,
         ownerName: baker.ownerName,
         city: baker.city,
-        areas: AREAS[slug],
+        areas: profile.deliveryAreas,
         products,
-        phoneBase: PHONE_BASE[slug],
+        phoneBase: profile.phoneBase,
       });
     } else {
       console.log(`${baker.businessName}: already has ${count} orders`);
@@ -96,15 +169,14 @@ export async function enrichPitchData(): Promise<void> {
       .where(eq(inventoryItemsTable.bakerId, baker.id));
 
     if (invCount === 0) {
-      const ch = CHANNELS[slug];
-      console.log(`  Adding feature pack (Khata, notifications, chats…) for ${baker.businessName}`);
+      console.log(`  Adding feature pack (Khata, notifications, chatsâ€¦) for ${baker.businessName}`);
       await seedFullFeaturePack({
         id: baker.id,
         businessName: baker.businessName,
         ownerName: baker.ownerName,
-        phoneBase: PHONE_BASE[slug],
-        includeWhatsAppChats: ch.wa,
-        includeInstagramChats: ch.ig,
+        phoneBase: profile.phoneBase,
+        includeWhatsAppChats: profile.channels.wa,
+        includeInstagramChats: profile.channels.ig,
       });
     } else {
       console.log(`  Feature pack already present (${invCount} inventory rows)`);

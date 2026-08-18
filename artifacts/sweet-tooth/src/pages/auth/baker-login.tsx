@@ -161,7 +161,7 @@ export default function BakerLogin({ initialTab = "login" }: { initialTab?: "log
       });
       identifyBakerForAnalytics(response.baker.id);
       captureProductEvent("baker_registration_completed");
-      finishAuth(response.token, response.baker.id, "password", "owner", "/dashboard/guide?welcome=1");
+      finishAuth(response.token, response.baker.id, "password", "owner", "/dashboard/welcome-features");
     } catch (cause: unknown) {
       const message = cause instanceof Error ? cause.message.replace(/^HTTP \d+\s*[^:]*:\s*/, "") : "Could not create your bakery account";
       setError(message || "Could not create your bakery account");
@@ -188,6 +188,30 @@ export default function BakerLogin({ initialTab = "login" }: { initialTab?: "log
           <form onSubmit={handleLogin} className="space-y-5">
             <AuthField id="login-identifier" label="Email or WhatsApp number" icon={Mail} type="text" placeholder="baker@example.com or +92 300 1234567" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="username" required />
             <AuthField id="login-password" label="Password" labelRight={<Link href="/dashboard/forgot-password" className="text-xs font-semibold text-primary hover:underline">Forgot password?</Link>} icon={Lock} type="password" placeholder="Enter your password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" required />
+            <div className="rounded-xl border border-border bg-[#f7f1e8] px-3 py-3">
+              <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-primary/70">Demo bakeries</p>
+              <div className="mt-2 grid gap-2">
+                {[
+                  { email: "sana@studio.com", password: "SanaSweet2026!", label: "Sana · Bakery Plus" },
+                  { email: "fatima@cakery.com", password: "FatimaCake2026!", label: "Fatima · Kitchen Standard" },
+                  { email: "amna@bakes.com", password: "AmnaBakes2026!", label: "Amna · Launch Free" },
+                ].map((demo) => (
+                  <button
+                    key={demo.email}
+                    type="button"
+                    onClick={() => {
+                      setEmail(demo.email);
+                      setPassword(demo.password);
+                      setError("");
+                    }}
+                    className="flex items-center justify-between rounded-lg bg-white px-3 py-2 text-left text-xs font-semibold text-foreground transition hover:border-primary/30 hover:bg-primary/5"
+                  >
+                    <span>{demo.label}</span>
+                    <span className="font-mono text-[10px] text-muted-foreground">{demo.email}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
             <Button type="submit" className="h-12 w-full rounded-xl bg-primary text-sm font-bold text-white shadow-lg shadow-primary/15 hover:bg-primary/90" disabled={loading}>
               {loading ? "Signing in…" : "Sign in to dashboard"}
             </Button>

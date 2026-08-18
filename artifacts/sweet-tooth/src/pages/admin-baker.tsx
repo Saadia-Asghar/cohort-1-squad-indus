@@ -34,6 +34,9 @@ type MonitorPayload = {
     billingNote: string | null;
     lastPlanActivatedAt: string | null;
     lastPlanActivationNote: string | null;
+    signupFeatureIds?: string[];
+    signupFeedbackNote?: string | null;
+    signupFeedbackSkipped?: boolean;
   };
   usage: {
     aiReplies: UsageMeter;
@@ -114,6 +117,13 @@ const PLAN_LABELS: Record<string, string> = {
   starter: "Kitchen Standard",
   pro: "Kitchen Pro",
   bakery_plus: "Bakery Team",
+};
+
+const FEATURE_LABELS: Record<string, string> = {
+  assistant: "AI bakery assistant",
+  orders: "Order management",
+  payments: "Payment review",
+  calendar: "Production calendar",
 };
 
 const inputClass =
@@ -286,6 +296,15 @@ export default function AdminBakerMonitor() {
                 {baker.ownerName} · {baker.city}{baker.area ? `, ${baker.area}` : ""} · {baker.whatsappNumber} · #{baker.id}
               </p>
             )}
+            {baker && (baker.signupFeatureIds?.length || baker.signupFeedbackNote || baker.signupFeedbackSkipped) ? (
+              <p className="mt-3 text-sm text-foreground">
+                <span className="font-bold">Asked for at signup: </span>
+                {baker.signupFeedbackSkipped && !baker.signupFeatureIds?.length
+                  ? "Skipped"
+                  : (baker.signupFeatureIds ?? []).map((id) => FEATURE_LABELS[id] || id).join(" · ") || "Note only"}
+                {baker.signupFeedbackNote ? ` — ${baker.signupFeedbackNote}` : ""}
+              </p>
+            ) : null}
           </div>
           <button type="button" className={ghostBtn} disabled={loading} onClick={() => void load(token)}>
             <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} /> Reload from database

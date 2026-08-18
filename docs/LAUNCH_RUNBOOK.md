@@ -6,7 +6,7 @@ Use this checklist before inviting any paying baker. Every item should have an o
 
 - [ ] Public baker waitlist at `/waitlist` is live; review new rows in `/admin`.
 - [ ] Confirm native baker login works in production (`AUTH_MODE=legacy` unless you intentionally enable Clerk).
-- [ ] Set production `ADMIN_EMAIL` and `ADMIN_PASSWORD` (12+ characters). There are no default admin credentials.
+- [x] Set production `ADMIN_EMAIL` and `ADMIN_PASSWORD` (12+ characters). There are no default admin credentials in code; they live on the API Vercel project.
 - [ ] Confirm API production values: `DATABASE_URL`, a 32+ character `JWT_SECRET`, `FRONTEND_URL`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`, and `TOKEN_ENCRYPTION_KEY` when Meta accounts are connected.
 - [ ] Optional: deploy Clerk only if you want Google SSO. Replace `VITE_CLERK_PUBLISHABLE_KEY` and `CLERK_SECRET_KEY` with live keys and add the frontend domain.
 - [ ] Configure a Neon backup/restore policy and perform one restore drill on a non-production database.

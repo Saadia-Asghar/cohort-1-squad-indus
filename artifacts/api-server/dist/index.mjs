@@ -54304,6 +54304,28 @@ var init_whatsapp_waitlist = __esm({
   }
 });
 
+// ../../lib/db/src/schema/app_reviews.ts
+var appReviewsTable, insertAppReviewSchema;
+var init_app_reviews = __esm({
+  "../../lib/db/src/schema/app_reviews.ts"() {
+    "use strict";
+    init_pg_core();
+    init_drizzle_zod();
+    init_pg();
+    appReviewsTable = sweetTooth.table("app_reviews", {
+      id: serial("id").primaryKey(),
+      reviewerName: text("reviewer_name").notNull(),
+      email: text("email"),
+      role: text("role").notNull(),
+      rating: integer("rating").notNull(),
+      reviewText: text("review_text").notNull(),
+      usedHow: text("used_how"),
+      createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow()
+    });
+    insertAppReviewSchema = createInsertSchema(appReviewsTable).omit({ id: true, createdAt: true });
+  }
+});
+
 // ../../lib/db/src/schema/platform_settings.ts
 var platformSettingsTable;
 var init_platform_settings = __esm({
@@ -54322,6 +54344,7 @@ var init_platform_settings = __esm({
 // ../../lib/db/src/schema/index.ts
 var schema_exports = {};
 __export(schema_exports, {
+  appReviewsTable: () => appReviewsTable,
   bakerGoalsTable: () => bakerGoalsTable,
   bakerMembersTable: () => bakerMembersTable,
   bakerNotesTable: () => bakerNotesTable,
@@ -54333,6 +54356,7 @@ __export(schema_exports, {
   chatMessagesTable: () => chatMessagesTable,
   conversationMemoryTable: () => conversationMemoryTable,
   customersTable: () => customersTable,
+  insertAppReviewSchema: () => insertAppReviewSchema,
   insertBakerGoalSchema: () => insertBakerGoalSchema,
   insertBakerMemberSchema: () => insertBakerMemberSchema,
   insertBakerNoteSchema: () => insertBakerNoteSchema,
@@ -54381,6 +54405,7 @@ var init_schema2 = __esm({
     init_baker_members();
     init_order_audit_logs();
     init_whatsapp_waitlist();
+    init_app_reviews();
     init_platform_settings();
   }
 });
@@ -64370,18 +64395,298 @@ var init_seed_feature_packs = __esm({
   }
 });
 
+// src/lib/demo-bakers.ts
+var DEMO_PASSWORDS, DEMO_SLUGS, DEMO_BAKER_PROFILES;
+var init_demo_bakers = __esm({
+  "src/lib/demo-bakers.ts"() {
+    "use strict";
+    DEMO_PASSWORDS = {
+      "sana-sweet-studio": "SanaSweet2026!",
+      "fatima-cakery": "FatimaCake2026!",
+      "amna-bakes": "AmnaBakes2026!"
+    };
+    DEMO_SLUGS = ["sana-sweet-studio", "fatima-cakery", "amna-bakes"];
+    DEMO_BAKER_PROFILES = {
+      "sana-sweet-studio": {
+        businessName: "Sana's Sweet Studio",
+        ownerName: "Sana Malik",
+        tagline: "Ghar ka meetha, dil se banaya",
+        bio: "Home baker from Gulberg, Lahore. Specialising in custom cakes, cupcakes, and Pakistani mithai-inspired fusion desserts.",
+        city: "Lahore",
+        area: "Gulberg",
+        whatsappNumber: "+923001234567",
+        email: "sana@studio.com",
+        deliveryAreas: ["Gulberg", "Model Town", "DHA Phase 1", "Johar Town"],
+        phoneBase: "+92300123",
+        channels: { wa: true, ig: true },
+        subscriptionPlan: "bakery_plus",
+        agentActive: true,
+        whatsappAgentEnabled: true,
+        instagramAgentEnabled: true,
+        trialDays: null,
+        photoUrl: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=800&auto=format&fit=crop",
+        greeting: "Assalam-o-Alaikum! Sana's Sweet Studio \xE2\u20AC\u201D cakes, cupcakes aur fusion mithai. Kya chahiye?",
+        products: [
+          {
+            name: "Classic Black Forest Cake",
+            description: "Moist chocolate sponge, fresh cream, and cherries.",
+            basePricePkr: 2800,
+            recipeCostPkr: 950,
+            sizes: [
+              { label: "Half Kg", pricePkr: 2800 },
+              { label: "1 Kg", pricePkr: 5200 }
+            ],
+            isEgglessAvailable: true,
+            leadTimeDays: 1,
+            category: "Cakes",
+            occasionTags: ["Birthday", "Anniversary"],
+            dietaryTags: [],
+            ingredients: ["chocolate sponge", "fresh cream", "cherries"],
+            allergens: ["dairy", "gluten", "eggs"],
+            photoUrl: "https://images.unsplash.com/photo-1571115764595-644a1f56a55c?w=600&auto=format&fit=crop",
+            isBestSeller: true,
+            isTopRated: true,
+            displayOrder: 1
+          },
+          {
+            name: "Red Velvet Cupcakes",
+            description: "Velvety cupcakes with cream-cheese frosting.",
+            basePricePkr: 1200,
+            recipeCostPkr: 380,
+            sizes: [
+              { label: "Box of 6", pricePkr: 1200 },
+              { label: "Box of 12", pricePkr: 2200 }
+            ],
+            isEgglessAvailable: false,
+            leadTimeDays: 1,
+            category: "Cupcakes",
+            occasionTags: ["Birthday", "Party"],
+            dietaryTags: [],
+            ingredients: ["cocoa", "cream cheese", "flour"],
+            allergens: ["dairy", "gluten", "eggs"],
+            photoUrl: "https://images.unsplash.com/photo-1614707267537-b85aaf00c4b7?w=600&auto=format&fit=crop",
+            isBestSeller: true,
+            isTopRated: false,
+            displayOrder: 2
+          }
+        ]
+      },
+      "fatima-cakery": {
+        businessName: "Fatima's Cakery",
+        ownerName: "Fatima Zahra",
+        tagline: "Every bite tells a story",
+        bio: "Premium custom cakes for your most special moments. Based in Karachi's Clifton.",
+        city: "Karachi",
+        area: "Clifton",
+        whatsappNumber: "+923219876543",
+        email: "fatima@cakery.com",
+        deliveryAreas: ["Clifton", "Defence", "Bahadurabad", "Gulshan-e-Iqbal"],
+        phoneBase: "+92321876",
+        channels: { wa: true, ig: false },
+        subscriptionPlan: "starter",
+        agentActive: true,
+        whatsappAgentEnabled: true,
+        instagramAgentEnabled: false,
+        trialDays: null,
+        photoUrl: "https://images.unsplash.com/photo-1464349095431-e9a21285b5f3?w=800&auto=format&fit=crop",
+        greeting: "Welcome to Fatima's Cakery \xE2\u20AC\u201D wedding & celebration cakes in Clifton.",
+        products: [
+          {
+            name: "Fondant Wedding Cake",
+            description: "Elegant multi-tier custom wedding cakes with hand-crafted sugar flowers.",
+            basePricePkr: 15e3,
+            recipeCostPkr: 6200,
+            sizes: [
+              { label: "2 Tier (2 Kg)", pricePkr: 15e3 },
+              { label: "3 Tier (4 Kg)", pricePkr: 28e3 }
+            ],
+            isEgglessAvailable: true,
+            leadTimeDays: 7,
+            category: "Wedding Cakes",
+            occasionTags: ["Wedding", "Nikah"],
+            dietaryTags: [],
+            ingredients: ["vanilla sponge", "fondant", "sugar flowers"],
+            allergens: ["dairy", "gluten", "eggs"],
+            photoUrl: "https://images.unsplash.com/photo-1549298651-0e5b3a0e9ca3?w=600&auto=format&fit=crop",
+            isBestSeller: true,
+            isTopRated: true,
+            displayOrder: 1
+          },
+          {
+            name: "Strawberry Shortcake",
+            description: "Light vanilla sponge with fresh strawberries and whipped cream.",
+            basePricePkr: 2500,
+            recipeCostPkr: 780,
+            sizes: [
+              { label: "Half Kg", pricePkr: 2500 },
+              { label: "1 Kg", pricePkr: 4500 }
+            ],
+            isEgglessAvailable: false,
+            leadTimeDays: 1,
+            category: "Cakes",
+            occasionTags: ["Birthday", "Casual"],
+            dietaryTags: [],
+            ingredients: ["vanilla sponge", "strawberries", "cream"],
+            allergens: ["dairy", "gluten", "eggs"],
+            photoUrl: "https://images.unsplash.com/photo-1488477304112-4944851de03d?w=600&auto=format&fit=crop",
+            isBestSeller: true,
+            isTopRated: false,
+            displayOrder: 2
+          }
+        ]
+      },
+      "amna-bakes": {
+        businessName: "Amna Bakes",
+        ownerName: "Amna Sheikh",
+        tagline: "Simple ingredients, extraordinary taste",
+        bio: "Home baker specialising in brownies, cookies, and classic Pakistani sweets. Available in F-7 and F-8, Islamabad.",
+        city: "Islamabad",
+        area: "F-7",
+        whatsappNumber: "+923115554321",
+        email: "amna@bakes.com",
+        deliveryAreas: ["F-7", "F-8", "G-9", "Blue Area"],
+        phoneBase: "+92311555",
+        channels: { wa: false, ig: false },
+        subscriptionPlan: "free",
+        agentActive: false,
+        whatsappAgentEnabled: false,
+        instagramAgentEnabled: false,
+        trialDays: 3,
+        photoUrl: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&auto=format&fit=crop",
+        greeting: "Hi! Browse Amna Bakes menu \xE2\u20AC\u201D cookies, banana bread, and more.",
+        products: [
+          {
+            name: "Chocolate Chip Cookies",
+            description: "Classic chocolate chip cookies. Crispy edges, chewy centre.",
+            basePricePkr: 700,
+            recipeCostPkr: 220,
+            sizes: [
+              { label: "Box of 12", pricePkr: 700 },
+              { label: "Box of 24", pricePkr: 1300 }
+            ],
+            isEgglessAvailable: false,
+            leadTimeDays: 1,
+            category: "Cookies",
+            occasionTags: ["Casual", "Gift"],
+            dietaryTags: [],
+            ingredients: ["flour", "butter", "chocolate chips"],
+            allergens: ["gluten", "dairy", "eggs"],
+            photoUrl: "https://images.unsplash.com/photo-1499636136210-6f4ee915583e?w=600&auto=format&fit=crop",
+            isBestSeller: true,
+            isTopRated: true,
+            displayOrder: 1
+          },
+          {
+            name: "Eggless Banana Bread",
+            description: "Moist banana bread \xE2\u20AC\u201D fully eggless.",
+            basePricePkr: 850,
+            recipeCostPkr: 260,
+            sizes: [{ label: "Loaf (500g)", pricePkr: 850 }],
+            isEgglessAvailable: true,
+            leadTimeDays: 1,
+            category: "Breads",
+            occasionTags: ["Casual", "Breakfast"],
+            dietaryTags: ["Eggless", "Vegetarian"],
+            ingredients: ["banana", "flour", "oil"],
+            allergens: ["gluten"],
+            photoUrl: "https://images.unsplash.com/photo-1585478259715-1c195ae2b568?w=600&auto=format&fit=crop",
+            isBestSeller: false,
+            isTopRated: true,
+            displayOrder: 2
+          }
+        ]
+      }
+    };
+  }
+});
+
 // src/seed-enrich.ts
+async function ensureStarterProducts(bakerId, products) {
+  const [{ count: count2 }] = await db.select({ count: sql`count(*)::int` }).from(productsTable).where(eq(productsTable.bakerId, bakerId));
+  if (count2 > 0) return;
+  await db.insert(productsTable).values(
+    products.map((product) => ({
+      bakerId,
+      name: product.name,
+      description: product.description,
+      basePricePkr: product.basePricePkr,
+      recipeCostPkr: product.recipeCostPkr,
+      sizes: product.sizes,
+      variants: [],
+      isEgglessAvailable: product.isEgglessAvailable,
+      isAvailable: true,
+      leadTimeDays: product.leadTimeDays,
+      category: product.category,
+      occasionTags: product.occasionTags,
+      dietaryTags: product.dietaryTags,
+      ingredients: product.ingredients,
+      allergens: product.allergens,
+      photoUrl: product.photoUrl,
+      isBestSeller: product.isBestSeller,
+      isTopRated: product.isTopRated,
+      displayOrder: product.displayOrder
+    }))
+  );
+}
+async function ensureDemoBaker(slug) {
+  const profile = DEMO_BAKER_PROFILES[slug];
+  const passwordHash = hashPassword(DEMO_PASSWORDS[slug]);
+  const [existing] = await db.select().from(bakersTable).where(eq(bakersTable.slug, slug)).limit(1);
+  if (existing) {
+    await db.update(bakersTable).set({
+      passwordHash,
+      marketplaceVisible: true,
+      email: profile.email,
+      businessName: profile.businessName,
+      ownerName: profile.ownerName
+    }).where(eq(bakersTable.id, existing.id));
+    await ensureStarterProducts(existing.id, profile.products);
+    console.log(`Demo baker ready: ${profile.businessName} (#${existing.id})`);
+    return existing;
+  }
+  try {
+    const [created] = await db.insert(bakersTable).values({
+      businessName: profile.businessName,
+      ownerName: profile.ownerName,
+      tagline: profile.tagline,
+      bio: profile.bio,
+      city: profile.city,
+      area: profile.area,
+      whatsappNumber: profile.whatsappNumber,
+      email: profile.email,
+      passwordHash,
+      deliveryAreas: profile.deliveryAreas,
+      marketplaceVisible: true,
+      subscriptionPlan: profile.subscriptionPlan,
+      agentActive: profile.agentActive,
+      whatsappAgentEnabled: profile.whatsappAgentEnabled,
+      instagramAgentEnabled: profile.instagramAgentEnabled,
+      trialEndsAt: profile.trialDays ? new Date(Date.now() + profile.trialDays * 864e5) : null,
+      slug,
+      photoUrl: profile.photoUrl,
+      agentConfig: {
+        customGreeting: profile.greeting,
+        autoReplyEnabled: profile.agentActive,
+        allowPickup: true,
+        allowDelivery: true
+      }
+    }).returning();
+    await ensureStarterProducts(created.id, profile.products);
+    console.log(`Created demo baker: ${profile.businessName} (#${created.id})`);
+    return created;
+  } catch (error40) {
+    const [byEmail] = await db.select().from(bakersTable).where(eq(bakersTable.email, profile.email)).limit(1);
+    if (!byEmail) throw error40;
+    await db.update(bakersTable).set({ passwordHash, marketplaceVisible: true, slug, businessName: profile.businessName, ownerName: profile.ownerName }).where(eq(bakersTable.id, byEmail.id));
+    await ensureStarterProducts(byEmail.id, profile.products);
+    console.log(`Reused existing baker email for demo: ${profile.businessName} (#${byEmail.id})`);
+    return byEmail;
+  }
+}
 async function enrichPitchData() {
   for (const slug of DEMO_SLUGS) {
-    const [baker] = await db.select().from(bakersTable).where(eq(bakersTable.slug, slug)).limit(1);
-    if (!baker) {
-      console.log(`Skip ${slug}: baker not found`);
-      continue;
-    }
-    const demoPassword = DEMO_PASSWORDS[slug];
-    if (demoPassword) {
-      await db.update(bakersTable).set({ passwordHash: hashPassword(demoPassword) }).where(eq(bakersTable.id, baker.id));
-    }
+    const baker = await ensureDemoBaker(slug);
+    const profile = DEMO_BAKER_PROFILES[slug];
     const [{ count: count2 }] = await db.select({ count: sql`count(*)::int` }).from(ordersTable).where(eq(ordersTable.bakerId, baker.id));
     if (count2 < 8) {
       const products = await db.select({ id: productsTable.id, name: productsTable.name, basePricePkr: productsTable.basePricePkr }).from(productsTable).where(eq(productsTable.bakerId, baker.id)).limit(2);
@@ -64389,30 +64694,29 @@ async function enrichPitchData() {
         console.log(`Skip ${baker.businessName}: no products`);
         continue;
       }
-      console.log(`Enriching ${baker.businessName} (${count2} orders \u2192 adding demo pack)`);
+      console.log(`Enriching ${baker.businessName} (${count2} orders \xE2\u2020\u2019 adding demo pack)`);
       await seedBakerDemoData({
         id: baker.id,
         businessName: baker.businessName,
         ownerName: baker.ownerName,
         city: baker.city,
-        areas: AREAS[slug],
+        areas: profile.deliveryAreas,
         products,
-        phoneBase: PHONE_BASE[slug]
+        phoneBase: profile.phoneBase
       });
     } else {
       console.log(`${baker.businessName}: already has ${count2} orders`);
     }
     const [{ invCount }] = await db.select({ invCount: sql`count(*)::int` }).from(inventoryItemsTable).where(eq(inventoryItemsTable.bakerId, baker.id));
     if (invCount === 0) {
-      const ch = CHANNELS[slug];
-      console.log(`  Adding feature pack (Khata, notifications, chats\u2026) for ${baker.businessName}`);
+      console.log(`  Adding feature pack (Khata, notifications, chats\xE2\u20AC\xA6) for ${baker.businessName}`);
       await seedFullFeaturePack({
         id: baker.id,
         businessName: baker.businessName,
         ownerName: baker.ownerName,
-        phoneBase: PHONE_BASE[slug],
-        includeWhatsAppChats: ch.wa,
-        includeInstagramChats: ch.ig
+        phoneBase: profile.phoneBase,
+        includeWhatsAppChats: profile.channels.wa,
+        includeInstagramChats: profile.channels.ig
       });
     } else {
       console.log(`  Feature pack already present (${invCount} inventory rows)`);
@@ -64423,7 +64727,7 @@ async function enrichPitchData() {
   }
   console.log("Pitch enrich complete.");
 }
-var DEMO_PASSWORDS, DEMO_SLUGS, PHONE_BASE, AREAS, CHANNELS, isDirectRun;
+var isDirectRun;
 var init_seed_enrich = __esm({
   "src/seed-enrich.ts"() {
     "use strict";
@@ -64434,27 +64738,7 @@ var init_seed_enrich = __esm({
     init_seed_feature_packs();
     init_indexer();
     init_auth();
-    DEMO_PASSWORDS = {
-      "sana-sweet-studio": "SanaSweet2026!",
-      "fatima-cakery": "FatimaCake2026!",
-      "amna-bakes": "AmnaBakes2026!"
-    };
-    DEMO_SLUGS = ["sana-sweet-studio", "fatima-cakery", "amna-bakes"];
-    PHONE_BASE = {
-      "sana-sweet-studio": "+92300123",
-      "fatima-cakery": "+92321876",
-      "amna-bakes": "+92311555"
-    };
-    AREAS = {
-      "sana-sweet-studio": ["Gulberg", "Model Town", "DHA Phase 1", "Johar Town"],
-      "fatima-cakery": ["Clifton", "Defence", "Bahadurabad", "Gulshan-e-Iqbal"],
-      "amna-bakes": ["F-7", "F-8", "G-9", "Blue Area"]
-    };
-    CHANNELS = {
-      "sana-sweet-studio": { wa: true, ig: true },
-      "fatima-cakery": { wa: true, ig: false },
-      "amna-bakes": { wa: false, ig: false }
-    };
+    init_demo_bakers();
     isDirectRun = /(?:^|[\\/])seed-enrich\.(?:ts|js|mjs)$/.test(process.argv[1] ?? "");
     if (isDirectRun) {
       enrichPitchData().then(() => process.exit(0)).catch((err) => {
@@ -64619,6 +64903,54 @@ var init_waitlist_join = __esm({
   }
 });
 
+// src/lib/app-review.ts
+function parseAppReview(body) {
+  if (!body || typeof body !== "object") return null;
+  const record2 = body;
+  const reviewerName = typeof record2.reviewerName === "string" ? record2.reviewerName.trim().slice(0, 80) : "";
+  const emailRaw = typeof record2.email === "string" ? record2.email.trim().toLowerCase().slice(0, 120) : "";
+  const role = typeof record2.role === "string" && ROLE_IDS.has(record2.role) ? record2.role : null;
+  const rating = typeof record2.rating === "number" ? record2.rating : Number(record2.rating);
+  const reviewText = typeof record2.reviewText === "string" ? record2.reviewText.trim().slice(0, 2e3) : "";
+  const usedHow = typeof record2.usedHow === "string" && USED_HOW_IDS.has(record2.usedHow) ? record2.usedHow : null;
+  if (reviewerName.length < 2 || !role || !Number.isInteger(rating) || rating < 1 || rating > 5 || reviewText.length < 20) {
+    return null;
+  }
+  if (emailRaw && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailRaw)) return null;
+  return {
+    reviewerName,
+    email: emailRaw || null,
+    role,
+    rating,
+    reviewText,
+    usedHow
+  };
+}
+var APP_REVIEW_ROLES, APP_REVIEW_USED_HOW, ROLE_IDS, USED_HOW_IDS;
+var init_app_review = __esm({
+  "src/lib/app-review.ts"() {
+    "use strict";
+    APP_REVIEW_ROLES = [
+      { id: "home_baker", label: "Home baker" },
+      { id: "student", label: "Student" },
+      { id: "developer", label: "Developer" },
+      { id: "designer", label: "Designer" },
+      { id: "founder", label: "Founder or teammate" },
+      { id: "investor", label: "Investor or mentor" },
+      { id: "other", label: "Other" }
+    ];
+    APP_REVIEW_USED_HOW = [
+      { id: "browsed", label: "I browsed the website" },
+      { id: "demo", label: "I tried a demo bakery login" },
+      { id: "account", label: "I created an account" },
+      { id: "menu", label: "I opened a shared menu" },
+      { id: "other", label: "Something else" }
+    ];
+    ROLE_IDS = new Set(APP_REVIEW_ROLES.map((role) => role.id));
+    USED_HOW_IDS = new Set(APP_REVIEW_USED_HOW.map((item) => item.id));
+  }
+});
+
 // src/routes/admin.ts
 var admin_exports = {};
 __export(admin_exports, {
@@ -64680,6 +65012,7 @@ var init_admin = __esm({
     init_plan_limits();
     init_rate_limiter();
     init_waitlist_join();
+    init_app_review();
     router17 = (0, import_express19.Router)();
     router17.post("/admin/login", async (req, res) => {
       const { email: email3, password } = req.body;
@@ -64694,7 +65027,7 @@ var init_admin = __esm({
       if (!requireEnrichOrAdminBearer(req, res)) return;
       try {
         await enrichPitchData();
-        res.json({ ok: true, message: "Demo bakers enriched with orders, customers, and reviews." });
+        res.json({ ok: true, message: "Demo bakeries are ready with menus, orders, and customers." });
       } catch (error40) {
         console.error("enrich-demo failed", error40);
         res.status(500).json({ error: "Enrich failed" });
@@ -64833,7 +65166,10 @@ var init_admin = __esm({
             billingRequestedAt: pending.billingRequestedAt,
             billingNote: pending.billingNote,
             lastPlanActivatedAt: typeof conf.lastPlanActivatedAt === "string" ? conf.lastPlanActivatedAt : null,
-            lastPlanActivationNote: typeof conf.lastPlanActivationNote === "string" ? conf.lastPlanActivationNote : null
+            lastPlanActivationNote: typeof conf.lastPlanActivationNote === "string" ? conf.lastPlanActivationNote : null,
+            signupFeatureIds: Array.isArray(conf.signupFeatureIds) ? conf.signupFeatureIds.filter((id) => typeof id === "string") : [],
+            signupFeedbackNote: typeof conf.signupFeedbackNote === "string" ? conf.signupFeedbackNote : null,
+            signupFeedbackSkipped: conf.signupFeedbackSkipped === true
           },
           usage: {
             aiReplies: { used: aiRepliesUsed, limit: limits.aiRepliesPerMonth },
@@ -65075,6 +65411,35 @@ var init_admin = __esm({
       } catch (error40) {
         console.error("Failed to count waitlist:", error40);
         res.status(500).json({ error: "Failed to count waitlist" });
+      }
+    });
+    router17.post("/app-reviews", rateLimit(8, 15 * 60 * 1e3), async (req, res) => {
+      const parsed = parseAppReview(req.body);
+      if (!parsed) {
+        res.status(400).json({ error: "Name, who you are, a 1\u20135 rating, and a short review are required." });
+        return;
+      }
+      try {
+        const [entry] = await db.insert(appReviewsTable).values(parsed).returning();
+        void sendN8nEvent("app.review.submitted", {
+          id: entry.id,
+          role: entry.role,
+          rating: entry.rating
+        });
+        res.status(201).json({ ok: true, id: entry.id });
+      } catch (error40) {
+        console.error("Failed to save app review:", error40);
+        res.status(500).json({ error: "Failed to save review" });
+      }
+    });
+    router17.get("/admin/app-reviews", async (req, res) => {
+      if (!requireAdminBearer(req, res)) return;
+      try {
+        const entries = await db.select().from(appReviewsTable).orderBy(desc(appReviewsTable.id));
+        res.json(entries);
+      } catch (error40) {
+        console.error("Failed to fetch app reviews:", error40);
+        res.status(500).json({ error: "Failed to fetch reviews" });
       }
     });
     router17.get("/admin/waitlist", async (req, res) => {
@@ -76246,6 +76611,23 @@ async function rebuildBakerKnowledgeIndex(bakerId) {
   return reindexBakerKnowledge(bakerId);
 }
 
+// src/lib/signup-feature-feedback.ts
+var SIGNUP_FEATURE_IDS = ["assistant", "orders", "payments", "calendar"];
+var ALLOWED = new Set(SIGNUP_FEATURE_IDS);
+function parseSignupFeatureFeedback(body) {
+  if (!body || typeof body !== "object") return null;
+  const record2 = body;
+  const skipped = record2.skipped === true;
+  const noteRaw = typeof record2.note === "string" ? record2.note.trim().slice(0, 400) : "";
+  const ids = Array.isArray(record2.featureIds) ? [...new Set(record2.featureIds.filter((id) => typeof id === "string" && ALLOWED.has(id)))] : [];
+  if (!skipped && ids.length === 0 && !noteRaw) return null;
+  return {
+    featureIds: ids,
+    note: noteRaw || null,
+    skipped
+  };
+}
+
 // src/routes/bakers.ts
 init_rate_limiter();
 
@@ -77434,6 +77816,32 @@ router2.patch(
     }
   }
 );
+router2.post("/bakers/:bakerId/signup-feedback", requireBakerAuth, requireBakerOwner, requireBakerOwnership, async (req, res) => {
+  const bakerId = parseInt(String(req.params.bakerId), 10);
+  if (!Number.isInteger(bakerId) || bakerId <= 0) {
+    res.status(400).json({ error: "Invalid bakerId" });
+    return;
+  }
+  const parsed = parseSignupFeatureFeedback(req.body);
+  if (!parsed) {
+    res.status(400).json({ error: "Select at least one workspace tool, add a note, or skip." });
+    return;
+  }
+  const [existing] = await db.select().from(bakersTable).where(eq(bakersTable.id, bakerId)).limit(1);
+  if (!existing) {
+    res.status(404).json({ error: "Baker not found" });
+    return;
+  }
+  const mergedAgentConfig = {
+    ...existing.agentConfig ?? {},
+    signupFeatureIds: parsed.featureIds,
+    signupFeedbackNote: parsed.note,
+    signupFeedbackSkipped: parsed.skipped,
+    signupFeedbackAt: (/* @__PURE__ */ new Date()).toISOString()
+  };
+  await db.update(bakersTable).set({ agentConfig: mergedAgentConfig }).where(eq(bakersTable.id, bakerId));
+  res.json({ ok: true, featureIds: parsed.featureIds, skipped: parsed.skipped });
+});
 var bakers_default = router2;
 
 // src/routes/notifications.ts
@@ -83419,6 +83827,17 @@ CREATE TABLE IF NOT EXISTS sweet_tooth.whatsapp_waitlist (\r
 );\r
 ALTER TABLE sweet_tooth.whatsapp_waitlist ADD COLUMN IF NOT EXISTS source TEXT NOT NULL DEFAULT 'whatsapp';\r
 ALTER TABLE sweet_tooth.whatsapp_waitlist ADD COLUMN IF NOT EXISTS city TEXT;\r
+\r
+CREATE TABLE IF NOT EXISTS sweet_tooth.app_reviews (\r
+  id SERIAL PRIMARY KEY,\r
+  reviewer_name TEXT NOT NULL,\r
+  email TEXT,\r
+  role TEXT NOT NULL,\r
+  rating INTEGER NOT NULL,\r
+  review_text TEXT NOT NULL,\r
+  used_how TEXT,\r
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()\r
+);\r
 `;
 
 // src/bootstrap-db.ts
