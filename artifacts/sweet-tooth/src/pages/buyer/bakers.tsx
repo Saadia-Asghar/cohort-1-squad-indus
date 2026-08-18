@@ -44,9 +44,13 @@ export default function OpenSharedMenu() {
         <p className="mt-8 text-sm text-muted-foreground">
           Are you a baker?{" "}
           <Link href="/waitlist" className="font-semibold text-primary">
-            Join the waitlist and we will onboard you
+            Join the waitlist
           </Link>
-          .
+          {" "}or{" "}
+          <Link href="/dashboard/register" className="font-semibold text-primary">
+            create a free account
+          </Link>
+          {" "}with the menu agent.
         </p>
       </div>
     </BuyerLayout>

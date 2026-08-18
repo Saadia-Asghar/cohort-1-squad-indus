@@ -79,7 +79,9 @@ export default function Waitlist() {
               Join the Sweet Tooth waitlist
             </h1>
             <p className="mt-5 max-w-lg text-base leading-7 text-muted-foreground">
-              Want a bakery workspace? Leave your details here. Do not create an account yet — we will WhatsApp you and onboard you ourselves.
+              Leave your details and we will WhatsApp you to onboard. You can also{" "}
+              <Link href="/dashboard/register" className="font-semibold text-primary hover:underline">create a free account</Link>
+              {" "}yourself — you get the dashboard and the menu agent from day one.
             </p>
 
             <div className="mt-8 flex items-center gap-3">
@@ -112,7 +114,9 @@ export default function Waitlist() {
                   {alreadyJoined ? "You are already on the list" : "You are on the list"}
                 </h2>
                 <p className="text-sm leading-6 text-muted-foreground">
-                  We will contact you on WhatsApp to set up your bakery account. No need to sign up yourself.
+                  We will contact you on WhatsApp to set up your bakery account. If you want to start now, you can also{" "}
+                  <Link href="/dashboard/register" className="font-semibold text-primary hover:underline">create a free account</Link>
+                  {" "}— the menu agent is included.
                 </p>
                 <Link href="/" className="inline-flex min-h-11 items-center justify-center gap-2 text-sm font-bold text-primary">
                   Back to Sweet Tooth <ArrowRight className="h-4 w-4" />

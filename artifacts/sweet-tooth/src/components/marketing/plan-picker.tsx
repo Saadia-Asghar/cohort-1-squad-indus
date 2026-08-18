@@ -12,7 +12,7 @@ import {
   type ChannelBundle,
 } from "@/lib/pricing-plans";
 
-export function PlanPicker({ registerHref = "/waitlist" }: { registerHref?: string }) {
+export function PlanPicker({ registerHref = "/dashboard/register" }: { registerHref?: string }) {
   const [ordersPerMonth, setOrdersPerMonth] = useState("80");
   const [needsWhatsApp, setNeedsWhatsApp] = useState(true);
   const [needsInstagram, setNeedsInstagram] = useState(false);
@@ -120,13 +120,21 @@ export function PlanPicker({ registerHref = "/waitlist" }: { registerHref?: stri
             </>
           )}
         </div>
-        <Link
-          href={`${registerHref}?plan=${suggestion.planId}&size=${suggestion.size}&channel=${suggestion.channelBundle}`}
-          className="mt-4 inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground hover:bg-primary/90"
-        >
-          Join waitlist for {offer?.name ?? plan.name}
-          <ArrowRight className="h-4 w-4" />
-        </Link>
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          <Link
+            href="/waitlist"
+            className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground hover:bg-primary/90"
+          >
+            Join waitlist for {offer?.name ?? plan.name}
+            <ArrowRight className="h-4 w-4" />
+          </Link>
+          <Link
+            href={`${registerHref}?plan=${suggestion.planId}&size=${suggestion.size}&channel=${suggestion.channelBundle}`}
+            className="text-sm font-semibold text-primary hover:underline"
+          >
+            Or create a free account with the menu agent
+          </Link>
+        </div>
       </div>
     </div>
   );

@@ -205,6 +205,13 @@ function HeroSection() {
               </Link>
 
               <Link
+                href="/dashboard/register"
+                className="inline-flex min-h-12 w-full items-center justify-center rounded-xl border border-primary-foreground/25 px-5 py-3 text-sm font-bold text-primary-foreground transition hover:border-secondary hover:text-secondary sm:min-h-14 sm:w-auto sm:px-8"
+              >
+                Create a free account
+              </Link>
+
+              <Link
                 href="/review"
                 className="inline-flex min-h-12 w-full items-center justify-center rounded-xl border border-primary-foreground/25 px-5 py-3 text-sm font-bold text-primary-foreground transition hover:border-secondary hover:text-secondary sm:min-h-14 sm:w-auto sm:px-8"
               >
@@ -1881,6 +1888,12 @@ function FinalSection() {
             >
               Join the waitlist
               <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+            </Link>
+            <Link
+              href="/dashboard/register"
+              className="inline-flex min-h-12 w-full items-center justify-center rounded-xl border border-primary/25 px-5 py-3 text-sm font-bold text-primary transition hover:border-secondary hover:text-secondary sm:min-h-14 sm:px-8 lg:w-auto"
+            >
+              Create a free account
             </Link>
 
             <a

@@ -160,7 +160,7 @@ export function BuyerLayout({
                   onClick={closeMobileMenu}
                   className="inline-flex min-h-12 w-full items-center justify-center rounded-xl px-4 text-sm font-semibold text-muted-foreground"
                 >
-                  Already invited? Baker sign in
+                  Sign in or create a free account
                 </Link>
               </div>
             </motion.div>
@@ -223,11 +223,15 @@ export function BuyerLayout({
               title="For bakers"
               links={[
                 {
-                  label: "Join the waitlist",
+                  label: "Join waitlist",
                   href: "/waitlist",
                 },
                 {
-                  label: "Already invited? Sign in",
+                  label: "Create free account",
+                  href: "/dashboard/register",
+                },
+                {
+                  label: "Baker sign in",
                   href: "/dashboard/login",
                 },
                 {

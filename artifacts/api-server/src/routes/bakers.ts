@@ -463,15 +463,29 @@ router.post("/bakers", rateLimit(10, 15 * 60 * 1000), async (req, res): Promise<
   }
 
   try {
+    const email = rest.email.trim().toLowerCase();
+    const slugBase = rest.slug.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40) || "bakery";
+    const slug = `${slugBase}-${crypto.randomBytes(4).toString("hex")}`;
     const [baker] = await db.insert(bakersTable).values({
       ...rest,
+      email,
+      slug,
       whatsappNumber: normalizedPhone,
       passwordHash,
       subscriptionPlan: "free",
       trialEndsAt: freeTrialEndsAtFrom(new Date()),
+      agentActive: true,
+      marketplaceVisible: true,
+      agentConfig: {
+        customGreeting: `Assalam-o-Alaikum! Welcome to ${rest.businessName}. I can help with the menu, delivery, and orders.`,
+        autoReplyEnabled: true,
+        allowPickup: true,
+        allowDelivery: true,
+        preferredCustomerChannel: "web",
+      },
     }).returning();
     
-    const token = signToken({ bakerId: baker.id, email: baker.email });
+    const token = signToken({ bakerId: baker.id, email: baker.email, role: "owner" });
     res.status(201).json({ token, baker: { ...toAuthenticatedBaker(baker), deliveryAreas: baker.deliveryAreas ?? [] } });
   } catch (error) {
     if (databaseErrorCode(error) === "23505") {

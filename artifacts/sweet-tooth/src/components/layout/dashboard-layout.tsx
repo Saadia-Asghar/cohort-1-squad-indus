@@ -7,6 +7,7 @@ import {
   type ReactNode,
 } from "react";
 import { useGetBaker } from "@workspace/api-client-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useBuyerSession } from "@/hooks/use-session";
 import { NotificationBell } from "@/components/notification-bell";
 import { BakeryQuest } from "@/components/dashboard/bakery-quest";
@@ -161,6 +162,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
   const { logoutNatively, role } = useManagedBaker();
   const { signOut } = useAppAuth();
   const { bakerId } = useBuyerSession();
+  const queryClient = useQueryClient();
 
   const feedbackUrl = import.meta.env.VITE_TALLY_FEEDBACK_URL?.trim();
 
@@ -233,6 +235,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
 
   const finishLogout = () => {
     resetProductAnalytics();
+    queryClient.clear();
     logoutNatively();
     navigate("/dashboard/login");
     setIsLoggingOut(false);

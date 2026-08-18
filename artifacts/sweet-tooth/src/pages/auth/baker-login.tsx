@@ -10,6 +10,7 @@ import { getPlanById } from "@/lib/pricing-plans";
 import { useManagedBaker } from "@/lib/managed-auth";
 import { captureProductEvent, identifyBakerForAnalytics } from "@/lib/product-analytics";
 import { customFetch } from "@workspace/api-client-react";
+import { useQueryClient } from "@tanstack/react-query";
 
 function AuthField({
   id,
@@ -62,6 +63,7 @@ export default function BakerLogin({ initialTab = "login" }: { initialTab?: "log
   const selectedPlan = getPlanById(selectedPlanId);
   const { loginNatively } = useManagedBaker();
   const { signInWithGoogle } = useAppAuth();
+  const queryClient = useQueryClient();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [ownerName, setOwnerName] = useState("");
@@ -78,6 +80,7 @@ export default function BakerLogin({ initialTab = "login" }: { initialTab?: "log
     role: "owner" | "staff" = "owner",
     destination = "/dashboard",
   ) => {
+    queryClient.clear();
     loginNatively(token, bakerId, role);
     identifyBakerForAnalytics(bakerId);
     captureProductEvent("baker_login_completed", { method });
@@ -161,7 +164,7 @@ export default function BakerLogin({ initialTab = "login" }: { initialTab?: "log
       });
       identifyBakerForAnalytics(response.baker.id);
       captureProductEvent("baker_registration_completed");
-      finishAuth(response.token, response.baker.id, "password", "owner", "/dashboard/welcome-features");
+      finishAuth(response.token, response.baker.id, "password", "owner", "/dashboard");
     } catch (cause: unknown) {
       const message = cause instanceof Error ? cause.message.replace(/^HTTP \d+\s*[^:]*:\s*/, "") : "Could not create your bakery account";
       setError(message || "Could not create your bakery account");
@@ -174,8 +177,8 @@ export default function BakerLogin({ initialTab = "login" }: { initialTab?: "log
 
   return (
     <AuthShell
-      title={isRegistering ? "Create your bakery workspace" : "Welcome back"}
-      description={isRegistering ? "Set up the private workspace behind your menu, orders and customer conversations." : "Sign in to continue managing your bakery conversations, orders and production."}
+      title={isRegistering ? "Create your free bakery workspace" : "Welcome back"}
+      description={isRegistering ? "A free account includes the dashboard and the menu agent from day one. You can also join the waitlist if you would rather we onboard you." : "Sign in to continue managing your bakery conversations, orders and production. You can also create a free account with the menu agent."}
     >
       <Tabs value={activeTab} onValueChange={(value) => { setActiveTab(value as "login" | "register"); setError(""); }} className="w-full">
         <TabsList className="grid h-12 w-full grid-cols-2 rounded-xl bg-[#ece6dc] p-1">
@@ -216,22 +219,30 @@ export default function BakerLogin({ initialTab = "login" }: { initialTab?: "log
               {loading ? "Signing in…" : "Sign in to dashboard"}
             </Button>
           </form>
+          <div className="rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-muted-foreground">
+            No account yet? You can{" "}
+            <button
+              type="button"
+              onClick={() => { setActiveTab("register"); setError(""); }}
+              className="font-semibold text-primary hover:underline"
+            >
+              create a free account
+            </button>
+            {" "}— the menu agent is included from day one. Prefer we set it up with you?{" "}
+            <Link href="/waitlist" className="font-semibold text-primary hover:underline">Join the waitlist</Link>.
+          </div>
           {isFirebaseConfigured() && (
             <div>
               <GoogleDivider />
               <button type="button" onClick={() => void continueWithGoogle(false)} disabled={loading} className="mt-4 h-12 w-full rounded-xl border border-border bg-white px-4 text-sm font-bold text-foreground transition-colors hover:border-primary/40 hover:bg-primary/5 disabled:opacity-50">Continue with Google</button>
             </div>
           )}
-          <div className="pt-1 text-center">
-            <Link href="/admin" className="text-xs text-muted-foreground hover:text-primary transition-colors">
-              Platform admin? <span className="font-semibold text-primary">Sign in to Admin Portal →</span>
-            </Link>
-          </div>
         </TabsContent>
 
         <TabsContent value="register" className="mt-7 space-y-5 focus-visible:outline-none">
           <div className="rounded-xl border border-border bg-background px-4 py-3 text-sm text-muted-foreground">
-            New bakeries join through the waitlist. We WhatsApp you and onboard you — do not create an account unless we invited you.{" "}
+            Create a free bakery workspace. The menu assistant is on from day one. WhatsApp and Instagram agents can be added later.{" "}
+            Prefer we WhatsApp you and onboard you?{" "}
             <Link href="/waitlist" className="font-semibold text-primary hover:underline">Join the waitlist</Link>
             {" · "}
             <Link href="/review" className="font-semibold text-primary hover:underline">Review the app</Link>
@@ -250,7 +261,7 @@ export default function BakerLogin({ initialTab = "login" }: { initialTab?: "log
             <AuthField id="whatsapp-number" label="WhatsApp number" icon={Phone} type="tel" placeholder="+92 300 1234567" value={whatsappNumber} onChange={(event) => setWhatsappNumber(event.target.value)} autoComplete="tel" required />
             <div className="sm:col-span-2"><AuthField id="register-password" label="Password" icon={Lock} type="password" placeholder="At least 12 characters" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="new-password" minLength={12} required /></div>
             <Button type="submit" className="h-12 w-full rounded-xl bg-primary text-sm font-bold text-white shadow-lg shadow-primary/15 hover:bg-primary/90 sm:col-span-2" disabled={loading}>
-              {loading ? "Creating workspace…" : "Create bakery workspace"}
+              {loading ? "Creating workspace…" : "Create free account"}
             </Button>
           </form>
           {isFirebaseConfigured() && (
