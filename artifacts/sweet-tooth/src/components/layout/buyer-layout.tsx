@@ -2,15 +2,14 @@ import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Link } from "wouter";
 import {
-
   ChevronRight,
-  Instagram,
+  Mail,
   Menu,
   MessageCircle,
   X,
 } from "lucide-react";
 
-import { whatsappSupportLink } from "@/lib/support";
+import { SUPPORT_EMAIL, whatsappSupportLink } from "@/lib/support";
 
 const navigation = [
   { label: "How it works", href: "/#how-it-works" },
@@ -200,13 +199,13 @@ export function BuyerLayout({
                 >
                   <MessageCircle className="h-4 w-4" />
                 </a>
-
-                <span
-                  aria-label="Instagram"
-                  className="flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-background text-pink-700"
+                <a
+                  href={`mailto:${SUPPORT_EMAIL}`}
+                  aria-label={`Email ${SUPPORT_EMAIL}`}
+                  className="flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-background text-primary transition hover:-translate-y-0.5 hover:bg-primary/5"
                 >
-                  <Instagram className="h-4 w-4" />
-                </span>
+                  <Mail className="h-4 w-4" />
+                </a>
               </div>
             </div>
 
