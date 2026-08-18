@@ -28,6 +28,7 @@ import {
   X,
 } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
+import { MAX_BAKER_NOTE_CHARS } from "@/lib/catalog-product";
 import { useBuyerSession } from "@/hooks/use-session";
 import {
   liveDashboardQuery,
@@ -996,9 +997,11 @@ function CustomerRecord({
             <input
               className="h-10 w-full rounded-lg border border-border bg-white px-3 text-xs"
               placeholder="Baker note the agent must honour"
+              maxLength={MAX_BAKER_NOTE_CHARS}
               value={note}
-              onChange={(e) => setNote(e.target.value)}
+              onChange={(e) => setNote(e.target.value.slice(0, MAX_BAKER_NOTE_CHARS))}
             />
+            <p className="text-[10px] text-muted-foreground">{note.length}/{MAX_BAKER_NOTE_CHARS}</p>
             <button type="button" disabled={saving} onClick={() => void saveMemory()} className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50">
               {saving ? "Saving…" : "Save memory"}
             </button>

@@ -11,9 +11,11 @@ import {
   X,
 } from "lucide-react";
 import { useLocation } from "wouter";
-
-const STORAGE_KEY =
-  "sweet-tooth:bakery-quest:v1";
+import { useBuyerSession } from "@/hooks/use-session";
+import {
+  bakeryQuestStorageKey,
+  consumeBakeryQuestStartFlag,
+} from "@/lib/bakery-quest";
 
 const PRODUCT_CREATED_EVENT =
   "sweet-tooth:quest-product-created";
@@ -37,11 +39,11 @@ const defaultQuest: StoredQuest = {
   dismissed: false,
 };
 
-function readQuest(): StoredQuest {
+function readQuest(bakerId: number): StoredQuest {
   try {
     const raw =
       window.localStorage.getItem(
-        STORAGE_KEY,
+        bakeryQuestStorageKey(bakerId),
       );
 
     if (!raw) {
@@ -65,10 +67,11 @@ function readQuest(): StoredQuest {
 }
 
 function writeQuest(
+  bakerId: number,
   quest: StoredQuest,
 ) {
   window.localStorage.setItem(
-    STORAGE_KEY,
+    bakeryQuestStorageKey(bakerId),
     JSON.stringify(quest),
   );
 }
@@ -119,6 +122,7 @@ function findTarget(
 }
 
 export function BakeryQuest() {
+  const { bakerId } = useBuyerSession();
   const [location, navigate] =
     useLocation();
 
@@ -148,13 +152,31 @@ export function BakeryQuest() {
     location === "/dashboard/catalog";
 
   useEffect(() => {
-    const stored = readQuest();
+    if (!bakerId) {
+      return;
+    }
 
-    setActive(stored.active);
-    setCompleted(stored.completed);
-    setDismissed(stored.dismissed);
+    const stored = readQuest(bakerId);
+    const startForSignup = consumeBakeryQuestStartFlag();
+
+    if (startForSignup && stored.completed !== 1 && !stored.dismissed) {
+      const nextQuest: StoredQuest = {
+        active: true,
+        completed: 0,
+        dismissed: false,
+      };
+      writeQuest(bakerId, nextQuest);
+      setActive(true);
+      setCompleted(0);
+      setDismissed(false);
+    } else {
+      setActive(stored.active);
+      setCompleted(stored.completed);
+      setDismissed(stored.dismissed);
+    }
+
     setHydrated(true);
-  }, []);
+  }, [bakerId]);
 
   useEffect(() => {
     const handleProductCreated = () => {
@@ -175,7 +197,9 @@ export function BakeryQuest() {
       setCompleted(1);
       setTarget(null);
       setRewardOpen(true);
-      writeQuest(nextQuest);
+      if (bakerId) {
+        writeQuest(bakerId, nextQuest);
+      }
 
       window.setTimeout(() => {
         setRewardOpen(false);
@@ -195,6 +219,7 @@ export function BakeryQuest() {
     };
   }, [
     active,
+    bakerId,
     completed,
   ]);
 
@@ -306,7 +331,9 @@ export function BakeryQuest() {
     setActive(true);
     setCompleted(0);
     setDismissed(false);
-    writeQuest(nextQuest);
+    if (bakerId) {
+      writeQuest(bakerId, nextQuest);
+    }
 
     if (!onCatalog) {
       navigate(
@@ -338,7 +365,9 @@ export function BakeryQuest() {
     setActive(false);
     setDismissed(true);
     setTarget(null);
-    writeQuest(nextQuest);
+    if (bakerId) {
+      writeQuest(bakerId, nextQuest);
+    }
   };
 
   if (

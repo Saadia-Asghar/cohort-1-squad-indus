@@ -52,5 +52,5 @@ if (!process.env.DATABASE_URL?.trim() && process.env.VITEST) {
 }
 
 if (!process.env.FRONTEND_URL?.trim() && process.env.NODE_ENV !== "production" && !process.env.VERCEL) {
-  process.env.FRONTEND_URL = "http://localhost:5173";
+  process.env.FRONTEND_URL = "http://localhost:5180";
 }

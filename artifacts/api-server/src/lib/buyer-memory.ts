@@ -77,6 +77,14 @@ export function extractPreferences(
       break;
     }
   }
+  const areaPhrase = lowerMsg.match(/(?:deliver(?:y|ing)?|drop|send|live|location|area)\s+(?:to|in|at|near)?\s*([a-z0-9 .'-]{3,40})/);
+  if (!prefs.preferredArea && areaPhrase?.[1]) {
+    const spoken = areaPhrase[1].replace(/\b(please|thanks|karachi|lahore|islamabad)\b/g, "").trim();
+    if (spoken.length >= 3) prefs.preferredArea = spoken;
+  }
+
+  const lastItem = lowerMsg.match(/(?:order(?:ed|ing)?|want|need)\s+(?:a |an |the )?([a-z0-9 ]{3,40}(?:cake|cupcake|brownie|cookie|dessert))/);
+  if (lastItem?.[1]) prefs.lastItem = lastItem[1].trim();
 
   const allergyMatch =
     lowerMsg.match(/allerg(?:ic|y)(?:\s+hai)?(?:\s+to)\s+([a-z]{2,40})/) ??
@@ -121,6 +129,9 @@ function slotLine(preferences: Record<string, unknown>): string {
   }
   if (typeof preferences.servings === "string" && preferences.servings.trim()) {
     parts.push(preferences.servings.trim());
+  }
+  if (typeof preferences.lastItem === "string" && preferences.lastItem.trim()) {
+    parts.push(`Last asked for ${preferences.lastItem.trim()}`);
   }
   const allergies = Array.isArray(preferences.allergies)
     ? preferences.allergies.filter((item): item is string => typeof item === "string" && item.trim().length > 0)

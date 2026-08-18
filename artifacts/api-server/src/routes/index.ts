@@ -20,6 +20,7 @@ import marketplaceRouter from "./marketplace.js";
 import khataRouter from "./khata.js";
 import billingRouter from "./billing.js";
 import staffRouter from "./staff.js";
+import uploadsRouter from "./uploads.js";
 
 const router = Router();
 
@@ -27,6 +28,7 @@ router.use(healthRouter);
 router.use(marketplaceRouter);
 router.use(bakersRouter);
 router.use(staffRouter);
+router.use(uploadsRouter);
 router.use(notificationsRouter);
 router.use(productsRouter);
 router.use(ordersRouter);

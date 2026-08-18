@@ -26,6 +26,9 @@ describe("clerk middleware gating", () => {
 
   it("never runs Clerk handshake on demo baker login", () => {
     expect(isPublicApiWithoutClerk("/api/bakers/login")).toBe(true);
+    expect(isPublicApiWithoutClerk("/api/bakers/register")).toBe(true);
+    expect(isPublicApiWithoutClerk("/api/bakers/forgot-password")).toBe(true);
+    expect(isPublicApiWithoutClerk("/api/bakers/reset-password")).toBe(true);
     expect(isPublicApiWithoutClerk("/api/admin/login")).toBe(true);
     expect(isPublicApiWithoutClerk("/api/bakers/1")).toBe(false);
   });

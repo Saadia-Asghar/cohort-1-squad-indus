@@ -81,6 +81,8 @@ export default function DashboardPayments() {
   );
 
   const markPaid = useMarkOrderPaid();
+  const [markingId, setMarkingId] = useState<number | null>(null);
+  const [unmarkingId, setUnmarkingId] = useState<number | null>(null);
 
   const [activeView, setActiveView] =
     useState<PaymentView>("outstanding");
@@ -120,7 +122,9 @@ export default function DashboardPayments() {
   const pendingOrders = useMemo(
     () =>
       allOrders.filter(
-        (order) => order.paymentStatus === "pending",
+        (order) =>
+          order.paymentStatus === "pending" &&
+          order.status !== "cancelled",
       ),
     [allOrders],
   );
@@ -201,6 +205,7 @@ export default function DashboardPayments() {
     orderId: number,
     totalPkr: number,
   ) => {
+    setMarkingId(orderId);
     markPaid.mutate(
       {
         orderId,
@@ -216,8 +221,42 @@ export default function DashboardPayments() {
             }),
           });
         },
+        onError: (cause) => {
+          window.alert(
+            (cause instanceof Error ? cause.message : "Could not confirm this payment.").replace(
+              /^HTTP \d+\s*[^:]*:\s*/,
+              "",
+            ),
+          );
+        },
+        onSettled: () => setMarkingId(null),
       },
     );
+  };
+
+  const handleUnmarkPaid = async (orderId: number) => {
+    if (!window.confirm("Move this payment back to outstanding? Use this if you confirmed by mistake.")) {
+      return;
+    }
+    setUnmarkingId(orderId);
+    try {
+      await customFetch(`/api/orders/${orderId}/unmark-paid`, {
+        method: "PATCH",
+        responseType: "json",
+      });
+      await queryClient.invalidateQueries({
+        queryKey: getListOrdersQueryKey({ bakerId }),
+      });
+    } catch (cause) {
+      window.alert(
+        (cause instanceof Error ? cause.message : "Could not undo this payment.").replace(
+          /^HTTP \d+\s*[^:]*:\s*/,
+          "",
+        ),
+      );
+    } finally {
+      setUnmarkingId(null);
+    }
   };
 
   const handleCheckReceipt = async (
@@ -614,14 +653,14 @@ export default function DashboardPayments() {
                                       )
                                     }
                                     disabled={
-                                      markPaid.isPending
+                                      markingId === order.id
                                     }
                                     data-testid={`button-mark-paid-${order.id}`}
                                     className="mt-3 inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-[#168a55] px-4 text-xs font-semibold text-white transition hover:bg-[#117347] disabled:opacity-50"
                                   >
                                     <CheckCircle2 className="h-4 w-4" />
 
-                                    {markPaid.isPending
+                                    {markingId === order.id
                                       ? "Confirming…"
                                       : "Confirm received"}
                                   </button>
@@ -814,6 +853,9 @@ export default function DashboardPayments() {
                             <th className="px-4 py-3 text-right">
                               Amount received
                             </th>
+                            <th className="px-4 py-3 text-right">
+                              Undo
+                            </th>
                           </tr>
                         </thead>
 
@@ -856,6 +898,16 @@ export default function DashboardPayments() {
                                     order.paymentAmountReceived ??
                                     order.totalPkr
                                   ).toLocaleString()}
+                                </td>
+                                <td className="px-4 py-4 text-right">
+                                  <button
+                                    type="button"
+                                    onClick={() => void handleUnmarkPaid(order.id)}
+                                    disabled={unmarkingId === order.id}
+                                    className="min-h-9 rounded-lg border border-border bg-white px-3 text-[10px] font-semibold text-primary disabled:opacity-50"
+                                  >
+                                    {unmarkingId === order.id ? "Undoing…" : "Undo"}
+                                  </button>
                                 </td>
                               </tr>
                             ),
@@ -905,6 +957,14 @@ export default function DashboardPayments() {
                                   order.totalPkr
                                 ).toLocaleString()}
                               </p>
+                              <button
+                                type="button"
+                                onClick={() => void handleUnmarkPaid(order.id)}
+                                disabled={unmarkingId === order.id}
+                                className="mt-3 min-h-9 w-full rounded-lg border border-border bg-white text-xs font-semibold text-primary disabled:opacity-50"
+                              >
+                                {unmarkingId === order.id ? "Undoing…" : "Undo confirmation"}
+                              </button>
                             </div>
                           </article>
                         ),

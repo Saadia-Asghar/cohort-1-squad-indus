@@ -9,9 +9,17 @@ import {
   useGetBakerProducts,
   useToggleProductStock,
   useUpdateBaker,
-  useUpdateProduct,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
+import { SafeImage } from "@/components/ui/safe-image";
+import {
+  MAX_PRODUCT_DESCRIPTION_CHARS,
+  MAX_PRODUCT_PRICE_PKR,
+  PRODUCT_CATEGORIES,
+  parseMoneyPkr,
+  toTitleCase,
+} from "@/lib/catalog-product";
+import { isPublicImageUrl, uploadBakerImage } from "@/lib/image-upload";
 import {
   AlertCircle,
   ArrowUpDown,
@@ -22,7 +30,6 @@ import {
   Package,
   Plus,
   Search,
-  Settings2,
   Sparkles,
   Tag,
   Trash2,
@@ -35,23 +42,6 @@ import {
   type FormEvent,
   type ReactNode,
 } from "react";
-
-const DIETARY_AND_ALLERGEN_LABELS = [
-  "Egg-free",
-  "Vegan",
-  "Vegetarian",
-  "Gluten-free",
-  "Dairy-free",
-  "Nut-free",
-  "Sugar-free",
-  "Halal",
-  "Contains eggs",
-  "Contains dairy",
-  "Contains gluten",
-  "Contains nuts",
-  "Contains soy",
-  "Contains sesame",
-];
 
 const inputClass =
   "min-h-11 w-full rounded-xl border border-border bg-card px-3.5 text-sm text-foreground outline-none transition placeholder:text-muted-foreground focus:border-secondary/60 focus:ring-4 focus:ring-secondary/10";
@@ -83,17 +73,12 @@ export default function DashboardCatalog() {
   });
 
   const toggleStock = useToggleProductStock();
-  const updateProduct = useUpdateProduct();
   const createProduct = useCreateProduct();
   const updateBaker = useUpdateBaker();
 
   const [activeTab, setActiveTab] = useState<
     "items" | "drops"
   >("items");
-
-  const [editingLabelsFor, setEditingLabelsFor] = useState<
-    number | null
-  >(null);
 
   const [managingProduct, setManagingProduct] = useState<
     NonNullable<typeof products>[number] | null
@@ -110,7 +95,9 @@ export default function DashboardCatalog() {
     category: "Cakes",
     basePricePkr: "",
     description: "",
+    photoUrl: "",
   });
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   const [createError, setCreateError] = useState<
     string | null
@@ -210,6 +197,7 @@ export default function DashboardCatalog() {
       category: "Cakes",
       basePricePkr: "",
       description: "",
+      photoUrl: "",
     });
   };
 
@@ -217,20 +205,25 @@ export default function DashboardCatalog() {
     event.preventDefault();
     setCreateError(null);
 
-    const price = Number.parseInt(
-      createForm.basePricePkr,
-      10,
-    );
+    const name = toTitleCase(createForm.name);
+    const price = parseMoneyPkr(createForm.basePricePkr);
+    const description = createForm.description.trim();
+    const photoUrl = createForm.photoUrl.trim();
 
-    if (
-      !createForm.name.trim() ||
-      !createForm.category.trim() ||
-      !Number.isFinite(price) ||
-      price < 1
-    ) {
+    if (!name || !createForm.category.trim() || price == null || price < 1) {
       setCreateError(
-        "Name, category and a valid price are required.",
+        `Name, category and a whole-number price from PKR 1 to PKR ${MAX_PRODUCT_PRICE_PKR.toLocaleString()} are required.`,
       );
+      return;
+    }
+
+    if (description.length > MAX_PRODUCT_DESCRIPTION_CHARS) {
+      setCreateError(`Description must be ${MAX_PRODUCT_DESCRIPTION_CHARS} characters or fewer.`);
+      return;
+    }
+
+    if (photoUrl && !isPublicImageUrl(photoUrl) && !photoUrl.startsWith("data:image/")) {
+      setCreateError("Paste a public image URL or upload a photo.");
       return;
     }
 
@@ -238,11 +231,11 @@ export default function DashboardCatalog() {
       {
         data: {
           bakerId,
-          name: createForm.name.trim(),
+          name,
           category: createForm.category.trim(),
           basePricePkr: price,
-          description:
-            createForm.description.trim() || undefined,
+          description: description || undefined,
+          photoUrl: photoUrl || undefined,
           isAvailable: true,
           sizes: [
             {
@@ -269,8 +262,10 @@ export default function DashboardCatalog() {
         },
         onError: (error) => {
           setCreateError(
-            (error as Error)?.message ||
-              "Could not create product.",
+            ((error as Error)?.message || "Could not create product.").replace(
+              /^HTTP \d+\s*[^:]*:\s*/,
+              "",
+            ),
           );
         },
       },
@@ -287,34 +282,6 @@ export default function DashboardCatalog() {
               getGetBakerProductsQueryKey(bakerId),
           });
         },
-      },
-    );
-  };
-
-  const toggleLabel = (
-    productId: number,
-    labels: string[],
-    label: string,
-  ) => {
-    const dietaryTags = labels.includes(label)
-      ? labels.filter((item) => item !== label)
-      : [...labels, label];
-
-    updateProduct.mutate(
-      {
-        productId,
-        data: {
-          dietaryTags,
-          isEgglessAvailable:
-            dietaryTags.includes("Egg-free"),
-        },
-      },
-      {
-        onSuccess: () =>
-          queryClient.invalidateQueries({
-            queryKey:
-              getGetBakerProductsQueryKey(bakerId),
-          }),
       },
     );
   };
@@ -620,105 +587,88 @@ export default function DashboardCatalog() {
                             const labels =
                               product.dietaryTags ?? [];
 
-                            const labelEditorOpen =
-                              editingLabelsFor ===
-                              product.id;
-
                             return (
                               <article
                                 key={product.id}
                                 className="group flex min-w-0 flex-col overflow-hidden rounded-2xl border border-border bg-card transition hover:-translate-y-0.5 hover:shadow-[0_16px_36px_rgba(47,24,55,0.08)]"
                               >
-                                <div className="relative h-44 overflow-hidden bg-accent">
-                                  {product.photoUrl ? (
-                                    <img
-                                      src={product.photoUrl}
-                                      alt={product.name}
-                                      className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]"
-                                    />
-                                  ) : (
-                                    <div className="grid h-full place-items-center bg-[radial-gradient(circle_at_top_left,#fff7fa_0,#f1dde5_55%,#ead0dc_100%)]">
-                                      <div className="text-center">
-                                        <span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl border border-white/70 bg-white/45 text-secondary shadow-sm">
-                                          <ImageIcon className="h-6 w-6" />
-                                        </span>
-
-                                        <p className="mt-3 text-[10px] font-bold uppercase tracking-[0.12em] text-[#9b5572]">
-                                          Product photo
-                                        </p>
+                                <div className="relative h-40 overflow-hidden bg-accent">
+                                  <SafeImage
+                                    src={product.photoUrl}
+                                    alt={product.name}
+                                    className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]"
+                                    fallback={
+                                      <div className="grid h-full place-items-center bg-[radial-gradient(circle_at_top_left,#fff7fa_0,#f1dde5_55%,#ead0dc_100%)]">
+                                        <ImageIcon className="h-7 w-7 text-[#9b5572]" />
                                       </div>
-                                    </div>
-                                  )}
+                                    }
+                                  />
 
                                   <span className="absolute left-3 top-3 rounded-lg border border-white/60 bg-white/85 px-2.5 py-1 text-[10px] font-semibold text-primary backdrop-blur">
                                     {product.category ||
                                       "Uncategorised"}
                                   </span>
-
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      handleToggle(
-                                        product.id,
-                                      )
-                                    }
-                                    disabled={
-                                      toggleStock.isPending
-                                    }
-                                    aria-pressed={
-                                      product.isAvailable
-                                    }
-                                    className={`absolute right-3 top-3 rounded-lg px-2.5 py-1 text-[10px] font-semibold shadow-sm backdrop-blur transition disabled:opacity-50 ${
-                                      product.isAvailable
-                                        ? "bg-[#e4f3e8]/95 text-[#168a55]"
-                                        : "bg-[#f8dddd]/95 text-[#b83a42]"
-                                    }`}
-                                  >
-                                    {product.isAvailable
-                                      ? "Available"
-                                      : "Sold out"}
-                                  </button>
                                 </div>
 
                                 <div className="flex flex-1 flex-col p-4">
-                                  <div className="flex items-start justify-between gap-3">
-                                    <div className="min-w-0">
-                                      <h2 className="truncate font-serif text-xl font-semibold">
-                                        {product.name}
-                                      </h2>
+                                  <h2 className="truncate font-serif text-xl font-semibold">
+                                    {product.name}
+                                  </h2>
 
-                                      <p className="mt-1 font-mono text-sm font-semibold text-primary">
-                                        PKR{" "}
-                                        {product.basePricePkr.toLocaleString()}
-                                      </p>
-                                    </div>
+                                  <p className="mt-1 font-mono text-sm font-semibold text-primary">
+                                    PKR{" "}
+                                    {product.basePricePkr.toLocaleString()}
+                                  </p>
 
+                                  {product.description ? (
+                                    <p className="mt-2 line-clamp-2 text-xs leading-5 text-muted-foreground">
+                                      {product.description}
+                                    </p>
+                                  ) : null}
+
+                                  <div className="mt-4 flex min-h-10 items-center justify-between gap-3 rounded-xl border border-border bg-white px-3 text-xs font-semibold">
+                                    <span>
+                                      {product.isAvailable
+                                        ? "Available to order"
+                                        : "Sold out"}
+                                    </span>
                                     <button
                                       type="button"
                                       onClick={() =>
-                                        setManagingProduct(
-                                          product,
+                                        handleToggle(
+                                          product.id,
                                         )
                                       }
-                                      aria-label={`Manage ${product.name}`}
-                                      className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-border bg-white text-primary transition hover:bg-muted"
+                                      disabled={
+                                        toggleStock.isPending
+                                      }
+                                      aria-pressed={
+                                        product.isAvailable
+                                      }
+                                      aria-label={
+                                        product.isAvailable
+                                          ? "Mark sold out"
+                                          : "Mark available"
+                                      }
+                                      className={`relative h-6 w-11 rounded-full transition disabled:opacity-50 ${
+                                        product.isAvailable
+                                          ? "bg-[#168a55]"
+                                          : "bg-muted-foreground/30"
+                                      }`}
                                     >
-                                      <Settings2 className="h-4 w-4" />
+                                      <span
+                                        className={`absolute top-1 h-4 w-4 rounded-full bg-white shadow transition ${
+                                          product.isAvailable
+                                            ? "left-6"
+                                            : "left-1"
+                                        }`}
+                                      />
                                     </button>
                                   </div>
 
-                                  <p className="mt-3 line-clamp-2 min-h-10 text-xs leading-5 text-muted-foreground">
-                                    {product.description ||
-                                      "Add a short product description so customers and your assistant understand this item."}
-                                  </p>
-
-                                  <div
-                                    className="mt-4 flex min-h-8 flex-wrap gap-1.5"
-                                    aria-label={`Dietary labels for ${product.name}`}
-                                  >
-                                    {labels
-                                      .slice(0, 4)
-                                      .map((label) => (
+                                  {labels.length > 0 ? (
+                                    <div className="mt-3 flex flex-wrap gap-1.5">
+                                      {labels.slice(0, 3).map((label) => (
                                         <span
                                           key={label}
                                           className="rounded-lg bg-accent px-2 py-1 text-[9px] font-semibold text-[#8e345c]"
@@ -726,92 +676,13 @@ export default function DashboardCatalog() {
                                           {label}
                                         </span>
                                       ))}
-
-                                    {labels.length > 4 ? (
-                                      <span className="rounded-lg bg-[#eee8ee] px-2 py-1 text-[9px] font-semibold text-muted-foreground">
-                                        +{labels.length - 4}
-                                      </span>
-                                    ) : null}
-
-                                    {labels.length === 0 ? (
-                                      <span className="text-[10px] text-[#9b8d9c]">
-                                        No dietary labels
-                                      </span>
-                                    ) : null}
-                                  </div>
-
-                                  <div className="mt-4 border-t border-border pt-4">
-                                    <button
-                                      type="button"
-                                      onClick={() =>
-                                        setEditingLabelsFor(
-                                          labelEditorOpen
-                                            ? null
-                                            : product.id,
-                                        )
-                                      }
-                                      aria-expanded={
-                                        labelEditorOpen
-                                      }
-                                      className="inline-flex min-h-9 items-center gap-2 text-[11px] font-semibold text-secondary"
-                                    >
-                                      <Tag className="h-3.5 w-3.5" />
-
-                                      {labelEditorOpen
-                                        ? "Close label editor"
-                                        : "Edit dietary labels"}
-                                    </button>
-
-                                    {labelEditorOpen ? (
-                                      <fieldset className="mt-3 rounded-xl border border-border bg-white/60 p-3">
-                                        <legend className="px-1 text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
-                                          Dietary and allergen labels
-                                        </legend>
-
-                                        <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                                          {DIETARY_AND_ALLERGEN_LABELS.map(
-                                            (label) => {
-                                              const checked =
-                                                labels.includes(
-                                                  label,
-                                                );
-
-                                              return (
-                                                <label
-                                                  key={label}
-                                                  className={`flex min-h-9 cursor-pointer items-center gap-2 rounded-lg border px-2.5 text-[10px] font-medium transition ${
-                                                    checked
-                                                      ? "border-[#c24f7a]/40 bg-accent text-primary"
-                                                      : "border-border bg-card text-muted-foreground"
-                                                  }`}
-                                                >
-                                                  <input
-                                                    type="checkbox"
-                                                    checked={
-                                                      checked
-                                                    }
-                                                    disabled={
-                                                      updateProduct.isPending
-                                                    }
-                                                    onChange={() =>
-                                                      toggleLabel(
-                                                        product.id,
-                                                        labels,
-                                                        label,
-                                                      )
-                                                    }
-                                                    className="accent-[#632a73]"
-                                                  />
-
-                                                  {label}
-                                                </label>
-                                              );
-                                            },
-                                          )}
-                                        </div>
-                                      </fieldset>
-                                    ) : null}
-                                  </div>
+                                      {labels.length > 3 ? (
+                                        <span className="rounded-lg bg-[#eee8ee] px-2 py-1 text-[9px] font-semibold text-muted-foreground">
+                                          +{labels.length - 3}
+                                        </span>
+                                      ) : null}
+                                    </div>
+                                  ) : null}
 
                                   <button
                                     type="button"
@@ -822,7 +693,7 @@ export default function DashboardCatalog() {
                                     }
                                     className="mt-4 min-h-10 w-full rounded-xl border border-border bg-white text-xs font-semibold text-primary transition hover:bg-muted"
                                   >
-                                    Manage product
+                                    Edit product
                                   </button>
                                 </div>
                               </article>
@@ -1016,17 +887,9 @@ export default function DashboardCatalog() {
                   <p className="mt-2 text-xs leading-5 text-muted-foreground">
                     Catalog edits update the product
                     information available to customer
-                    conversations.
+                    conversations. Use Add product above to
+                    add a menu item.
                   </p>
-
-                  <button
-                    type="button"
-                    onClick={() => setShowCreate(true)}
-                    className="mt-4 inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-xl border border-accent bg-white/55 text-xs font-semibold text-primary"
-                  >
-                    <Plus className="h-4 w-4" />
-                    Add menu item
-                  </button>
                 </section>
               </aside>
             </div>
@@ -1269,11 +1132,18 @@ export default function DashboardCatalog() {
               <FormField label="Product name">
                 <input
                   required
+                  maxLength={80}
                   value={createForm.name}
                   onChange={(event) =>
                     setCreateForm((current) => ({
                       ...current,
                       name: event.target.value,
+                    }))
+                  }
+                  onBlur={() =>
+                    setCreateForm((current) => ({
+                      ...current,
+                      name: toTitleCase(current.name),
                     }))
                   }
                   placeholder="Red velvet cake"
@@ -1283,7 +1153,7 @@ export default function DashboardCatalog() {
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <FormField label="Category">
-                  <input
+                  <select
                     required
                     value={createForm.category}
                     onChange={(event) =>
@@ -1292,23 +1162,28 @@ export default function DashboardCatalog() {
                         category: event.target.value,
                       }))
                     }
-                    placeholder="Cakes"
                     className={inputClass}
-                  />
+                  >
+                    {PRODUCT_CATEGORIES.map((category) => (
+                      <option key={category} value={category}>
+                        {category}
+                      </option>
+                    ))}
+                  </select>
                 </FormField>
 
                 <FormField label="Base price in PKR">
                   <input
                     required
-                    type="number"
-                    min="1"
+                    type="text"
                     inputMode="numeric"
+                    pattern="[0-9]*"
+                    maxLength={6}
                     value={createForm.basePricePkr}
                     onChange={(event) =>
                       setCreateForm((current) => ({
                         ...current,
-                        basePricePkr:
-                          event.target.value,
+                        basePricePkr: event.target.value.replace(/\D/g, "").slice(0, 6),
                       }))
                     }
                     placeholder="2500"
@@ -1317,15 +1192,56 @@ export default function DashboardCatalog() {
                 </FormField>
               </div>
 
-              <FormField label="Short description">
+              <FormField label="Photo URL or upload">
+                <input
+                  type="url"
+                  value={createForm.photoUrl}
+                  onChange={(event) =>
+                    setCreateForm((current) => ({
+                      ...current,
+                      photoUrl: event.target.value,
+                    }))
+                  }
+                  placeholder="https://…"
+                  className={inputClass}
+                />
+                <label className="mt-2 inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-xl border border-border bg-white px-3 text-xs font-semibold">
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    className="sr-only"
+                    onChange={async (event) => {
+                      const file = event.target.files?.[0];
+                      event.target.value = "";
+                      if (!file) return;
+                      setCreateError(null);
+                      setUploadingPhoto(true);
+                      try {
+                        const url = await uploadBakerImage(file);
+                        setCreateForm((current) => ({ ...current, photoUrl: url }));
+                      } catch (cause) {
+                        setCreateError(
+                          cause instanceof Error ? cause.message.replace(/^HTTP \d+\s*[^:]*:\s*/, "") : "Could not upload image.",
+                        );
+                      } finally {
+                        setUploadingPhoto(false);
+                      }
+                    }}
+                  />
+                  {uploadingPhoto ? "Uploading photo…" : "Upload image"}
+                </label>
+              </FormField>
+
+              <FormField label={`Short description (${createForm.description.length}/${MAX_PRODUCT_DESCRIPTION_CHARS})`}>
                 <textarea
                   rows={4}
+                  maxLength={MAX_PRODUCT_DESCRIPTION_CHARS}
                   value={createForm.description}
                   onChange={(event) =>
                     setCreateForm((current) => ({
                       ...current,
                       description:
-                        event.target.value,
+                        event.target.value.slice(0, MAX_PRODUCT_DESCRIPTION_CHARS),
                     }))
                   }
                   placeholder="Describe the flavour, size or occasion this product is suited for."

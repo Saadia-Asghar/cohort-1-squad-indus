@@ -17,6 +17,7 @@ import { resolveConversationFlow, type ResolvedConversationFlow } from "@/lib/co
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { addGuestCartItem } from "@/pages/buyer/cart";
+import { SafeImage } from "@/components/ui/safe-image";
 
 type PublicChatMessage = {
   id: string;
@@ -238,13 +239,16 @@ export default function BakerProfile() {
 
             <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden mb-12">
               <div className="h-48 relative" style={{ backgroundColor: `${menuAccent}1a` }}>
-                {baker.photoUrl ? (
-                   <img src={baker.photoUrl} alt={baker.businessName} className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-primary/20">
-                     <span className="font-serif text-6xl">{baker.businessName[0]}</span>
-                  </div>
-                )}
+                <SafeImage
+                  src={baker.photoUrl}
+                  alt={baker.businessName}
+                  className="w-full h-full object-cover"
+                  fallback={
+                    <div className="w-full h-full flex items-center justify-center text-primary/20">
+                       <span className="font-serif text-6xl">{baker.businessName[0]}</span>
+                    </div>
+                  }
+                />
               </div>
               <div className="p-8 relative">
                 <div className="flex flex-col md:flex-row justify-between items-start gap-4">
@@ -374,13 +378,16 @@ export default function BakerProfile() {
                   return (
                     <div key={product.id} className="flex gap-4 p-4 border border-border bg-card rounded-xl shadow-sm hover:shadow-md transition-shadow">
                       <div className="w-32 h-32 bg-muted rounded-md shrink-0 overflow-hidden">
-                        {product.photoUrl ? (
-                          <img src={product.photoUrl} alt={product.name} className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full flex justify-center items-center bg-primary/5 text-primary text-2xl font-serif">
-                            {product.name[0]}
-                          </div>
-                        )}
+                        <SafeImage
+                          src={product.photoUrl}
+                          alt={product.name}
+                          className="w-full h-full object-cover"
+                          fallback={
+                            <div className="w-full h-full flex justify-center items-center bg-primary/5 text-primary text-2xl font-serif">
+                              {product.name[0]}
+                            </div>
+                          }
+                        />
                       </div>
                       <div className="flex-1 flex flex-col justify-between">
                         <div>

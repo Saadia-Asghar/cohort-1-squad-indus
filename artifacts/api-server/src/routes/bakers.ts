@@ -32,6 +32,13 @@ import { rebuildBakerKnowledgeIndex } from "../lib/rag/pipeline.js";
 import { parseSignupFeatureFeedback } from "../lib/signup-feature-feedback.js";
 import { rateLimit } from "../middlewares/rate-limiter.js";
 import { sendEmail } from "../lib/email.js";
+import {
+  createPasswordResetToken,
+  hashResetToken,
+  isLocalDev,
+  isMailerConfigured,
+  passwordResetUrl,
+} from "../lib/password-reset.js";
 import { normalizePakistanPhone, phoneLookupVariants } from "../lib/phone.js";
 import {
   buildOccasionBanner,
@@ -626,7 +633,7 @@ router.post("/bakers/forgot-password", rateLimit(5, 15 * 60 * 1000), async (req,
   });
   const parsed = schema.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.message });
+    res.status(400).json({ error: "Enter a valid email address." });
     return;
   }
 
@@ -637,25 +644,25 @@ router.post("/bakers/forgot-password", rateLimit(5, 15 * 60 * 1000), async (req,
     .where(eq(bakersTable.email, emailLookup))
     .limit(1);
 
+  const genericMessage = "If an account exists with that email, a password reset link has been sent.";
+
   if (!baker) {
     // Return success to avoid email enumeration
-    res.json({ message: "If an account exists with that email, a password reset link has been sent." });
+    res.json({ message: genericMessage });
     return;
   }
 
-  const token = crypto.randomBytes(32).toString("hex");
-  const expires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+  const { token, tokenHash, expires } = createPasswordResetToken();
 
   await db
     .update(bakersTable)
     .set({
-      resetPasswordToken: token,
+      resetPasswordToken: tokenHash,
       resetPasswordExpires: expires,
     })
     .where(eq(bakersTable.id, baker.id));
 
-  const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
-  const resetLink = `${frontendUrl}/reset-password?token=${token}`;
+  const resetLink = passwordResetUrl(token);
 
   try {
     await sendEmail({
@@ -677,12 +684,18 @@ router.post("/bakers/forgot-password", rateLimit(5, 15 * 60 * 1000), async (req,
       `,
       text: `Hello ${baker.ownerName || "Baker"},\n\nWe received a request to reset the password for your Sweet Tooth baker account. Please use the following link to reset your password:\n\n${resetLink}\n\nThis link is valid for 1 hour. If you did not request this, you can safely ignore this email.`,
     });
-
-    res.json({ message: "If an account exists with that email, a password reset link has been sent." });
   } catch (error) {
     console.error("Failed to send reset email:", error);
-    res.status(500).json({ error: "Failed to send password reset email. Please try again later." });
+    if (!isLocalDev() && isMailerConfigured()) {
+      res.status(500).json({ error: "Failed to send password reset email. Please try again later." });
+      return;
+    }
   }
+
+  res.json({
+    message: genericMessage,
+    ...(isLocalDev() ? { resetUrl: resetLink } : {}),
+  });
 });
 
 // POST /bakers/reset-password
@@ -693,16 +706,17 @@ router.post("/bakers/reset-password", rateLimit(5, 15 * 60 * 1000), async (req, 
   });
   const parsed = schema.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.message });
+    res.status(400).json({ error: "Enter a valid reset token and a password of at least 12 characters." });
     return;
   }
 
   const { token, newPassword } = parsed.data;
+  const tokenHash = hashResetToken(token);
 
   const [baker] = await db
     .select()
     .from(bakersTable)
-    .where(eq(bakersTable.resetPasswordToken, token))
+    .where(eq(bakersTable.resetPasswordToken, tokenHash))
     .limit(1);
 
   if (!baker || !baker.resetPasswordExpires || baker.resetPasswordExpires < new Date()) {
@@ -753,10 +767,43 @@ router.patch("/bakers/:bakerId", requireBakerAuth, requireBakerOwner, async (req
     return;
   }
 
+  if (req.body && typeof req.body === "object" && "maxOrdersPerDay" in req.body) {
+    const raw = (req.body as { maxOrdersPerDay?: unknown }).maxOrdersPerDay;
+    const n = typeof raw === "number" ? raw : Number(raw);
+    if (!Number.isInteger(n) || n < 1 || n > 200) {
+      res.status(400).json({ error: "Maximum orders per day must be a whole number from 1 to 200." });
+      return;
+    }
+    (req.body as { maxOrdersPerDay: number }).maxOrdersPerDay = n;
+  }
+
   const parsed = UpdateBakerBody.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.message });
+    res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Please check the settings form and try again." });
     return;
+  }
+
+  const extras = z.object({
+    whatsappNumber: z.string().trim().optional(),
+    maxOrdersPerDay: z.coerce.number().int().min(1).max(200).optional(),
+    photoUrl: z.string().trim().max(2000).optional(),
+  }).safeParse(req.body);
+  if (!extras.success) {
+    res.status(400).json({ error: extras.error.issues[0]?.message ?? "Please check the settings form and try again." });
+    return;
+  }
+  if (extras.data.maxOrdersPerDay !== undefined && !Number.isInteger(extras.data.maxOrdersPerDay)) {
+    res.status(400).json({ error: "Maximum orders per day must be a whole number." });
+    return;
+  }
+  let normalizedWhatsapp: string | undefined;
+  if (extras.data.whatsappNumber !== undefined) {
+    const phone = normalizePakistanPhone(extras.data.whatsappNumber);
+    if (!phone) {
+      res.status(400).json({ error: "Enter a valid Pakistani WhatsApp number, for example +92 300 1234567." });
+      return;
+    }
+    normalizedWhatsapp = phone;
   }
   
   const { socialLinks, blockedDates, drops, pickupAddress, allowPickup, allowDelivery, cancellationAllowed, cancellationHoursBefore, cancellationPolicy, paymentMode, occasionPreset, occasionCustomLabel, occasionOrderDeadline, occasionFreshDays, occasionNote, ...profileUpdates } = parsed.data as typeof parsed.data & {
@@ -786,6 +833,9 @@ router.patch("/bakers/:bakerId", requireBakerAuth, requireBakerOwner, async (req
   const [baker] = await db.update(bakersTable).set({
     ...profileUpdates,
     ...(paymentMode ? paymentPatch : {}),
+    ...(normalizedWhatsapp ? { whatsappNumber: normalizedWhatsapp } : {}),
+    ...(extras.data.maxOrdersPerDay !== undefined ? { maxOrdersPerDay: extras.data.maxOrdersPerDay } : {}),
+    ...(extras.data.photoUrl !== undefined ? { photoUrl: extras.data.photoUrl || null } : {}),
     agentConfig: {
       ...currentConfig,
       ...(socialLinks !== undefined ? { socialLinks } : {}),
@@ -869,17 +919,25 @@ router.get("/bakers/:bakerId/stats", requireBakerAuth, requireBakerOwnership, as
     res.status(404).json({ error: "Baker not found" });
     return;
   }
-  const today = new Date().toISOString().slice(0, 10);
+  const today = new Date();
+  const todayKey = today.toISOString().slice(0, 10);
   const allOrders = await db.select().from(ordersTable).where(eq(ordersTable.bakerId, bakerId));
-  const todayOrders = allOrders.filter((o) => o.createdAt.toISOString().slice(0, 10) === today);
-  const todayRevenue = todayOrders.reduce((s, o) => s + o.totalPkr, 0);
+  const activeOrders = allOrders.filter((o) => o.status !== "cancelled");
+  const dayKey = (value: Date | string | null | undefined) => {
+    if (!value) return null;
+    const parsed = value instanceof Date ? value : new Date(value);
+    if (Number.isNaN(parsed.getTime())) return null;
+    return parsed.toISOString().slice(0, 10);
+  };
+  const todayOrders = activeOrders.filter((o) => dayKey(o.deliveryDate) === todayKey || dayKey(o.createdAt) === todayKey);
+  const todayRevenue = todayOrders.reduce((s, o) => s + (o.status === "cancelled" ? 0 : o.totalPkr), 0);
   const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
   const weekOrders = allOrders.filter((o) => o.createdAt >= weekAgo);
   const weekRevenue = weekOrders.reduce((s, o) => s + o.totalPkr, 0);
   const totalRevenue = allOrders.reduce((s, o) => s + o.totalPkr, 0);
   const pendingOrders = allOrders.filter((o) => ["new", "confirmed", "in_production"].includes(o.status)).length;
-  const outstandingPayments = allOrders
-    .filter((o) => o.status === "delivered" && o.paymentStatus === "pending")
+  const outstandingPayments = activeOrders
+    .filter((o) => o.paymentStatus !== "paid")
     .reduce((s, o) => s + o.totalPkr, 0);
   const monthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
   const newCustomersThisMonth = new Set(

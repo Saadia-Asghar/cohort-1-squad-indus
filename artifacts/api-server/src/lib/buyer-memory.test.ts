@@ -23,6 +23,12 @@ describe("extractPreferences", () => {
     expect(prefs.eggless).toBe(true);
   });
 
+  it("records a spoken area and last cake request", () => {
+    const prefs = extractPreferences("I live in Bahria Town and want a chocolate cake", {});
+    expect(String(prefs.preferredArea).toLowerCase()).toContain("bahria");
+    expect(String(prefs.lastItem).toLowerCase()).toContain("chocolate cake");
+  });
+
   it("records occasion and allergy without copying the full message", () => {
     const prefs = extractPreferences("birthday cake, allergic to nuts", {});
     expect(prefs.occasion).toBe("birthday");

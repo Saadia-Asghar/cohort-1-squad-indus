@@ -4,6 +4,7 @@ import { useLocation } from "wouter";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { useManagedBaker } from "@/lib/managed-auth";
 import { useAppAuth } from "@/lib/app-auth";
+import { markBakeryQuestForNewSignup } from "@/lib/bakery-quest";
 
 const inputClass = "mt-2 h-12 w-full rounded-xl border border-border bg-white px-4 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/15";
 
@@ -38,6 +39,7 @@ export default function BakerOnboarding() {
         body: JSON.stringify({ ...form, idToken }),
       });
       managed.loginNatively(response.token, response.baker.id);
+      markBakeryQuestForNewSignup();
       navigate("/dashboard/welcome-features");
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Could not create your bakery.");

@@ -272,6 +272,15 @@ export function ApprovedHomePreview() {
   );
 
   const dueTomorrow = allOrders.filter((order) => isSameDayKey(order.deliveryDate, tomorrow)).length;
+  const todayOrders = allOrders.filter(
+    (order) =>
+      order.status !== "cancelled" &&
+      (isSameDayKey(order.deliveryDate, today) || isSameDayKey(order.createdAt, today)),
+  );
+  const todayRevenue = todayOrders.reduce((sum, order) => sum + (order.totalPkr ?? 0), 0);
+  const outstandingPkr = allOrders
+    .filter((order) => order.status !== "cancelled" && order.paymentStatus !== "paid")
+    .reduce((sum, order) => sum + Math.max(0, (order.totalPkr ?? 0) - (order.paymentAmountReceived ?? 0)), 0);
   const ownerName = firstName(baker?.ownerName);
   const attentionCount = attentionItems.length;
   const subtitle =
@@ -335,7 +344,7 @@ export function ApprovedHomePreview() {
             <section className="grid border-b border-border sm:grid-cols-2 lg:grid-cols-5">
               <Metric
                 label="Orders today"
-                value={String(stats?.todayOrders ?? 0).padStart(2, "0")}
+                value={String(todayOrders.length).padStart(2, "0")}
                 action="View orders"
                 href="/dashboard/orders"
                 icon={ShoppingBag}
@@ -343,7 +352,7 @@ export function ApprovedHomePreview() {
 
               <Metric
                 label="Revenue today"
-                value={formatPkr(stats?.todayRevenue ?? 0)}
+                value={formatPkr(todayRevenue)}
                 action="View report"
                 href="/dashboard/analytics"
                 icon={DollarSign}
@@ -359,7 +368,7 @@ export function ApprovedHomePreview() {
 
               <Metric
                 label="Outstanding"
-                value={formatPkr(stats?.outstandingPayments ?? 0)}
+                value={formatPkr(outstandingPkr)}
                 action="Review payments"
                 href="/dashboard/payments"
                 icon={CreditCard}

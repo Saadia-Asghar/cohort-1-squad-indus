@@ -34,23 +34,23 @@ import { createGuestActionToken, guestOrderUrl, verifyGuestActionToken, type Gue
 const router = Router();
 
 const ManualOrderBody = z.object({
-  buyerName: z.string().trim().min(1).max(120),
-  buyerWhatsapp: z.string().trim().min(6).max(32),
-  buyerAddress: z.string().trim().min(3).max(500),
-  buyerArea: z.string().trim().max(120).optional(),
-  productName: z.string().trim().min(1).max(160),
-  quantity: z.number().int().min(1).max(100).default(1),
-  totalPkr: z.number().int().min(0).max(10_000_000),
+  buyerName: z.string().trim().min(2).max(80).refine((value) => /[A-Za-z\u0600-\u06FF]/.test(value), "Customer name must include letters."),
+  buyerWhatsapp: z.string().trim().min(10).max(24),
+  buyerAddress: z.string().trim().min(8).max(500),
+  buyerArea: z.string().trim().max(80).optional(),
+  productName: z.string().trim().min(2).max(80),
+  quantity: z.number().int().min(1).max(50),
+  totalPkr: z.number().int().min(1).max(999_999),
   deliveryDate: z.string().date().optional(),
   deliveryTimeSlot: z.string().trim().max(80).optional(),
-  occasion: z.string().trim().max(120).optional(),
-  specialInstructions: z.string().trim().max(600).optional(),
+  occasion: z.string().trim().max(80).optional(),
+  specialInstructions: z.string().trim().max(280).optional(),
 });
 
 const DispatchOrderBody = z.object({
-  deliveryTimeSlot: z.string().trim().max(80).nullable().optional(),
-  riderName: z.string().trim().max(100).nullable().optional(),
-  riderPhone: z.string().trim().max(32).nullable().optional(),
+  deliveryTimeSlot: z.string().trim().min(2).max(80),
+  riderName: z.string().trim().max(80).optional(),
+  riderPhone: z.string().trim().max(24).optional(),
 });
 
 const RefundOrderBody = z.object({
@@ -450,6 +450,11 @@ router.post("/orders/manual", requireBakerAuth, async (req, res): Promise<void> 
   }
   const bakerId = (req as AuthenticatedRequest).bakerId!;
   const data = parsed.data;
+  const phone = normalizePakistanPhone(data.buyerWhatsapp);
+  if (!phone) {
+    res.status(400).json({ error: "Enter a valid Pakistani WhatsApp number, for example +92 300 1234567." });
+    return;
+  }
   const [baker] = await db.select().from(bakersTable).where(eq(bakersTable.id, bakerId));
   if (!baker) {
     res.status(404).json({ error: "Bakery not found." });
@@ -458,7 +463,7 @@ router.post("/orders/manual", requireBakerAuth, async (req, res): Promise<void> 
 
   const [existingCustomer] = await db.select().from(customersTable).where(and(
     eq(customersTable.bakerId, bakerId),
-    eq(customersTable.whatsappNumber, data.buyerWhatsapp),
+    eq(customersTable.whatsappNumber, phone),
   ));
   const [customer] = existingCustomer
     ? await db.update(customersTable).set({
@@ -472,7 +477,7 @@ router.post("/orders/manual", requireBakerAuth, async (req, res): Promise<void> 
     : await db.insert(customersTable).values({
       bakerId,
       name: data.buyerName,
-      whatsappNumber: data.buyerWhatsapp,
+      whatsappNumber: phone,
       preferredArea: data.buyerArea,
       totalOrders: 1,
       totalSpentPkr: data.totalPkr,
@@ -483,7 +488,7 @@ router.post("/orders/manual", requireBakerAuth, async (req, res): Promise<void> 
     bakerId,
     buyerId: customer.id,
     buyerName: data.buyerName,
-    buyerWhatsapp: data.buyerWhatsapp,
+    buyerWhatsapp: phone,
     buyerAddress: data.buyerAddress,
     buyerArea: data.buyerArea,
     items: [{ productName: data.productName, quantity: data.quantity, unitPricePkr: Math.round(data.totalPkr / data.quantity) }],
@@ -861,19 +866,32 @@ router.patch("/orders/:orderId/status", requireBakerAuth, async (req, res): Prom
   }
   const parsed = UpdateOrderStatusBody.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.message });
+    res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Could not update this order." });
     return;
   }
   const isCancelled = parsed.data.status === "cancelled";
   const isDelivered = parsed.data.status === "delivered";
   const [existingOrder] = await db
-    .select({ status: ordersTable.status, source: ordersTable.source, customerApprovedAt: ordersTable.customerApprovedAt })
+    .select({
+      status: ordersTable.status,
+      source: ordersTable.source,
+      customerApprovedAt: ordersTable.customerApprovedAt,
+      fulfillmentType: ordersTable.fulfillmentType,
+      riderName: ordersTable.riderName,
+      riderPhone: ordersTable.riderPhone,
+    })
     .from(ordersTable)
     .where(and(eq(ordersTable.id, params.data.orderId), eq(ordersTable.bakerId, (req as AuthenticatedRequest).bakerId!)))
     .limit(1);
   if (!existingOrder) {
     res.status(404).json({ error: "Order not found" });
     return;
+  }
+  if (parsed.data.status === "out_for_delivery" && existingOrder.fulfillmentType !== "pickup") {
+    if (!existingOrder.riderName?.trim() || !existingOrder.riderPhone?.trim()) {
+      res.status(400).json({ error: "Add rider name and phone in Dispatch before marking the order out for delivery." });
+      return;
+    }
   }
   if (existingOrder.source === "custom_quote" && existingOrder.status === "quoted" && parsed.data.status !== "cancelled") {
     res.status(409).json({ error: "The customer must accept this quote before production can begin." });
@@ -931,13 +949,32 @@ router.patch("/orders/:orderId/dispatch", requireBakerAuth, async (req, res): Pr
   const orderId = Number.parseInt(String(req.params.orderId), 10);
   const parsed = DispatchOrderBody.safeParse(req.body);
   if (!Number.isInteger(orderId) || !parsed.success) {
-    res.status(400).json({ error: parsed.success ? "Invalid order ID." : parsed.error.issues[0]?.message ?? "Invalid dispatch details." });
+    res.status(400).json({ error: parsed.success ? "Invalid order ID." : parsed.error.issues[0]?.message ?? "Enter a delivery window, rider name and a valid rider phone." });
+    return;
+  }
+  const riderPhone = parsed.data.riderPhone ? normalizePakistanPhone(parsed.data.riderPhone) : null;
+  if (parsed.data.riderPhone && !riderPhone) {
+    res.status(400).json({ error: "Enter a valid Pakistani phone number for the rider." });
+    return;
+  }
+  const [existing] = await db.select({
+    fulfillmentType: ordersTable.fulfillmentType,
+  }).from(ordersTable).where(and(
+    eq(ordersTable.id, orderId),
+    eq(ordersTable.bakerId, (req as AuthenticatedRequest).bakerId!),
+  )).limit(1);
+  if (!existing) {
+    res.status(404).json({ error: "Order not found." });
+    return;
+  }
+  if (existing.fulfillmentType !== "pickup" && (!parsed.data.riderName?.trim() || !riderPhone)) {
+    res.status(400).json({ error: "Delivery orders need a rider name and a valid rider phone." });
     return;
   }
   const [order] = await db.update(ordersTable).set({
-    deliveryTimeSlot: parsed.data.deliveryTimeSlot?.trim() || null,
+    deliveryTimeSlot: parsed.data.deliveryTimeSlot.trim(),
     riderName: parsed.data.riderName?.trim() || null,
-    riderPhone: parsed.data.riderPhone?.trim() || null,
+    riderPhone,
   }).where(and(
     eq(ordersTable.id, orderId),
     eq(ordersTable.bakerId, (req as AuthenticatedRequest).bakerId!),
@@ -1129,7 +1166,16 @@ router.patch("/orders/:orderId/payment", requireBakerAuth, requireBakerOwner, as
   }
   const parsed = MarkOrderPaidBody.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.message });
+    res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Enter the amount received." });
+    return;
+  }
+  const [existing] = await db.select().from(ordersTable).where(and(eq(ordersTable.id, params.data.orderId), eq(ordersTable.bakerId, (req as AuthenticatedRequest).bakerId!))).limit(1);
+  if (!existing) {
+    res.status(404).json({ error: "Order not found" });
+    return;
+  }
+  if (existing.status === "cancelled") {
+    res.status(400).json({ error: "Cancelled orders cannot be marked as paid." });
     return;
   }
   const [order] = await db.update(ordersTable)
@@ -1149,6 +1195,32 @@ router.patch("/orders/:orderId/payment", requireBakerAuth, requireBakerOwner, as
     fromStatus: "pending",
     toStatus: "paid",
     metadata: { amountReceived: order.paymentAmountReceived }
+  });
+  res.json(formatOrder(order));
+});
+
+router.patch("/orders/:orderId/unmark-paid", requireBakerAuth, requireBakerOwner, async (req, res): Promise<void> => {
+  const params = MarkOrderPaidParams.safeParse(req.params);
+  if (!params.success) {
+    res.status(400).json({ error: "Invalid order." });
+    return;
+  }
+  const [order] = await db.update(ordersTable)
+    .set({ paymentStatus: "pending", advancePaid: false, paymentAmountReceived: null })
+    .where(and(eq(ordersTable.id, params.data.orderId), eq(ordersTable.bakerId, (req as AuthenticatedRequest).bakerId!)))
+    .returning();
+  if (!order) {
+    res.status(404).json({ error: "Order not found" });
+    return;
+  }
+  await logOrderActivity({
+    orderId: order.id,
+    bakerId: order.bakerId,
+    actor: getActorFromRequest(req),
+    action: "payment_decision",
+    fromStatus: "paid",
+    toStatus: "pending",
+    metadata: { undone: true },
   });
   res.json(formatOrder(order));
 });

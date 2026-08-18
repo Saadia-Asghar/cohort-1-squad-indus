@@ -11,17 +11,19 @@ export default function BakerForgotPassword() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [sent, setSent] = useState(false);
+  const [resetUrl, setResetUrl] = useState("");
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setLoading(true);
     setError("");
     try {
-      await customFetch("/api/bakers/forgot-password", {
+      const result = await customFetch<{ message?: string; resetUrl?: string }>("/api/bakers/forgot-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: email.trim().toLowerCase() }),
       });
+      setResetUrl(typeof result.resetUrl === "string" ? result.resetUrl : "");
       setSent(true);
     } catch (cause: unknown) {
       setError(cause instanceof Error ? cause.message.replace(/^HTTP \d+\s*[^:]*:\s*/, "") : "Could not request password reset.");
@@ -48,7 +50,22 @@ export default function BakerForgotPassword() {
             <p className="text-sm font-medium text-foreground">
               If a Sweet Tooth account exists with that email address, you will receive a password reset link shortly.
             </p>
-            <Link href="/dashboard/login" className="inline-flex h-12 w-full items-center justify-center rounded-xl bg-primary text-sm font-bold text-white shadow-lg shadow-primary/15 hover:bg-primary/90">
+            {resetUrl ? (
+              <div className="space-y-3 rounded-xl border border-primary/15 bg-primary/5 p-4">
+                <p className="text-sm font-medium text-foreground">
+                  On this computer you can open the reset link now:
+                </p>
+                <a
+                  href={resetUrl}
+                  className="inline-flex h-12 w-full items-center justify-center rounded-xl bg-primary text-sm font-bold text-white shadow-lg shadow-primary/15 hover:bg-primary/90"
+                >
+                  Choose a new password
+                </a>
+              </div>
+            ) : null}
+            <Link href="/dashboard/login" className={resetUrl
+              ? "inline-flex h-12 w-full items-center justify-center rounded-xl border border-border bg-white text-sm font-bold text-foreground hover:bg-muted/40"
+              : "inline-flex h-12 w-full items-center justify-center rounded-xl bg-primary text-sm font-bold text-white shadow-lg shadow-primary/15 hover:bg-primary/90"}>
               Back to sign in
             </Link>
           </div>

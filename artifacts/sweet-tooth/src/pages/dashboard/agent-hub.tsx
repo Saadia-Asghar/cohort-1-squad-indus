@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import {
+  customFetch,
   useGetAgentConfig,
   useUpdateAgentConfig,
   useListConversations,
@@ -54,6 +55,18 @@ export default function AgentHub() {
   const [reindexResult, setReindexResult] = useState<KnowledgeReindexResult | null>(null);
   const [reindexError, setReindexError] = useState<string | null>(null);
   const [whatsappConnected, setWhatsappConnected] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    customFetch<{ whatsapp?: { connected?: boolean } }>("/api/meta/connections", { responseType: "json" })
+      .then((status) => {
+        if (!cancelled) setWhatsappConnected(Boolean(status.whatsapp?.connected));
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const reindexKnowledge = useReindexBakerKnowledge({
     mutation: {
@@ -305,8 +318,8 @@ export default function AgentHub() {
           />
           <StatusPill
             label="WhatsApp"
-            value={merged.whatsappAgentEnabled ? "Connected" : "Not set up"}
-            ok={!!merged.whatsappAgentEnabled}
+            value={whatsappConnected ? "Connected" : "Not connected"}
+            ok={whatsappConnected}
           />
           <StatusPill
             label="Saved replies"

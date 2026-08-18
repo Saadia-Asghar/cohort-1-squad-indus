@@ -11,6 +11,7 @@ import { useManagedBaker } from "@/lib/managed-auth";
 import { captureProductEvent, identifyBakerForAnalytics } from "@/lib/product-analytics";
 import { customFetch } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
+import { markBakeryQuestForNewSignup } from "@/lib/bakery-quest";
 
 function AuthField({
   id,
@@ -164,7 +165,8 @@ export default function BakerLogin({ initialTab = "login" }: { initialTab?: "log
       });
       identifyBakerForAnalytics(response.baker.id);
       captureProductEvent("baker_registration_completed");
-      finishAuth(response.token, response.baker.id, "password", "owner", "/dashboard");
+      markBakeryQuestForNewSignup();
+      finishAuth(response.token, response.baker.id, "password", "owner", "/dashboard/welcome-features");
     } catch (cause: unknown) {
       const message = cause instanceof Error ? cause.message.replace(/^HTTP \d+\s*[^:]*:\s*/, "") : "Could not create your bakery account";
       setError(message || "Could not create your bakery account");

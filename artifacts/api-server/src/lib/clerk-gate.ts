@@ -9,6 +9,9 @@ export function isPublicApiWithoutClerk(path: string): boolean {
   const normalized = path.split("?")[0];
   return (
     normalized === "/api/bakers/login" ||
+    normalized === "/api/bakers/register" ||
+    normalized === "/api/bakers/forgot-password" ||
+    normalized === "/api/bakers/reset-password" ||
     normalized === "/api/admin/login" ||
     normalized === "/api/waitlist" ||
     normalized === "/api/waitlist/count" ||

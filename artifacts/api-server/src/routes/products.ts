@@ -13,6 +13,7 @@ import {
 import { requireBakerAuth, requireBakerOwner } from "../middlewares/auth.js";
 import { rebuildBakerKnowledgeIndex } from "../lib/rag/pipeline.js";
 import { isProductCapReached } from "../lib/plan-limits.js";
+import { firstFriendlyZodIssue, sanitizeProductFields } from "../lib/product-validation.js";
 
 const router = Router();
 
@@ -49,7 +50,7 @@ router.get("/products", async (req, res): Promise<void> => {
 router.post("/products", requireBakerAuth, requireBakerOwner, async (req, res): Promise<void> => {
   const parsed = CreateProductBody.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.message });
+    res.status(400).json({ error: firstFriendlyZodIssue(parsed.error) });
     return;
   }
   
@@ -72,7 +73,13 @@ router.post("/products", requireBakerAuth, requireBakerOwner, async (req, res): 
     return;
   }
 
-  const [product] = await db.insert(productsTable).values(parsed.data as any).returning();
+  const cleaned = sanitizeProductFields(parsed.data);
+  if (cleaned.error) {
+    res.status(400).json({ error: cleaned.error });
+    return;
+  }
+
+  const [product] = await db.insert(productsTable).values({ ...parsed.data, ...cleaned.value } as never).returning();
   
   // Asynchronously rebuild RAG knowledge index
   rebuildBakerKnowledgeIndex(tokenBakerId).catch((err) =>
@@ -119,10 +126,19 @@ router.patch("/products/:productId", requireBakerAuth, requireBakerOwner, async 
 
   const parsed = UpdateProductBody.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.message });
+    res.status(400).json({ error: firstFriendlyZodIssue(parsed.error) });
     return;
   }
-  const [product] = await db.update(productsTable).set(parsed.data as any).where(eq(productsTable.id, params.data.productId)).returning();
+  const cleaned = sanitizeProductFields({
+    ...parsed.data,
+    dietaryTags: parsed.data.dietaryTags ?? existing.dietaryTags ?? [],
+    allergens: parsed.data.allergens ?? existing.allergens ?? [],
+  });
+  if (cleaned.error) {
+    res.status(400).json({ error: cleaned.error });
+    return;
+  }
+  const [product] = await db.update(productsTable).set({ ...parsed.data, ...cleaned.value } as never).where(eq(productsTable.id, params.data.productId)).returning();
 
   // Asynchronously rebuild RAG knowledge index
   rebuildBakerKnowledgeIndex(tokenBakerId).catch((err) =>

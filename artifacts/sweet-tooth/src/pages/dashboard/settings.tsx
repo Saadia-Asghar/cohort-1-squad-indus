@@ -14,6 +14,10 @@ import {
   type OccasionPreset,
   type PaymentMode,
 } from "@/lib/shop-settings";
+import { MAX_ORDERS_PER_DAY } from "@/lib/catalog-product";
+import { digitsOnlyPhone, normalizePakistanPhone } from "@/lib/pakistan-phone";
+import { isPublicImageUrl, uploadBakerImage } from "@/lib/image-upload";
+import { SafeImage } from "@/components/ui/safe-image";
 
 export default function DashboardSettings() {
   const { bakerId } = useBuyerSession();
@@ -38,7 +42,10 @@ export default function DashboardSettings() {
   const [deliveryAreasText, setDeliveryAreasText] = useState("");
   const [instagramUrl, setInstagramUrl] = useState("");
   const [facebookUrl, setFacebookUrl] = useState("");
-  const [maxOrdersPerDay, setMaxOrdersPerDay] = useState(10);
+  const [maxOrdersPerDay, setMaxOrdersPerDay] = useState("10");
+  const [photoUrl, setPhotoUrl] = useState("");
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
   const [blockedDates, setBlockedDates] = useState<string[]>([]);
   const [newBlockDate, setNewBlockDate] = useState("");
   const [pickupAddress, setPickupAddress] = useState("");
@@ -86,12 +93,13 @@ export default function DashboardSettings() {
       setBusinessName(baker.businessName ?? "");
       setTagline(baker.tagline ?? "");
       setWhatsappNumber(baker.whatsappNumber ?? "");
+      setMaxOrdersPerDay(String(baker.maxOrdersPerDay ?? 10));
+      setPhotoUrl(baker.photoUrl ?? "");
       setCodPolicy(baker.codPolicy ?? "");
       setAdvanceThresholdPkr(baker.advanceThresholdPkr ?? 2000);
       setAdvancePercentage(baker.advancePercentage ?? 50);
       setPaymentDetails(baker.paymentDetails ?? "");
       setDeliveryAreasText((baker.deliveryAreas ?? []).join(", "));
-      setMaxOrdersPerDay(baker.maxOrdersPerDay ?? 10);
       const conf = (baker as any).agentConfig ?? {};
       const mode = conf.paymentMode as PaymentMode | undefined;
       if (mode === "cod" || mode === "partial_advance" || mode === "full_advance") {
@@ -122,6 +130,21 @@ export default function DashboardSettings() {
   }, [baker]);
 
   const handleSave = () => {
+    setFormError(null);
+    const phone = normalizePakistanPhone(whatsappNumber);
+    if (!phone) {
+      setFormError("Enter a valid Pakistani WhatsApp number, for example +92 300 1234567.");
+      return;
+    }
+    const maxOrders = Number.parseInt(maxOrdersPerDay, 10);
+    if (!Number.isInteger(maxOrders) || maxOrders < 1 || maxOrders > MAX_ORDERS_PER_DAY) {
+      setFormError(`Maximum orders per day must be a whole number from 1 to ${MAX_ORDERS_PER_DAY}.`);
+      return;
+    }
+    if (photoUrl.trim() && !isPublicImageUrl(photoUrl) && !photoUrl.startsWith("data:image/")) {
+      setFormError("Bakery photo must be a public image URL or an uploaded image.");
+      return;
+    }
     const socialLinks = {
       ...(instagramUrl.trim() ? { instagram: instagramUrl.trim() } : {}),
       ...(facebookUrl.trim() ? { facebook: facebookUrl.trim() } : {}),
@@ -132,6 +155,8 @@ export default function DashboardSettings() {
       data: {
         businessName,
         tagline,
+        whatsappNumber: phone,
+        photoUrl: photoUrl.trim() || null,
         codPolicy,
         paymentMode,
         advanceThresholdPkr: paymentMode === "partial_advance" ? advanceThresholdPkr : paymentMode === "full_advance" ? 0 : advanceThresholdPkr,
@@ -139,7 +164,7 @@ export default function DashboardSettings() {
         paymentDetails,
         deliveryAreas: deliveryAreasText.split(",").map((area) => area.trim()).filter(Boolean),
         socialLinks,
-        maxOrdersPerDay,
+        maxOrdersPerDay: maxOrders,
         blockedDates,
         occasionPreset,
         occasionCustomLabel: occasionCustomLabel.trim(),
@@ -159,7 +184,7 @@ export default function DashboardSettings() {
         alert("Settings saved successfully!");
       },
       onError: (err) => {
-        alert("Failed to save settings: " + (err as any).message);
+        setFormError(((err as Error).message || "Failed to save settings").replace(/^HTTP \d+\s*[^:]*:\s*/, ""));
       }
     });
   };
@@ -193,6 +218,9 @@ export default function DashboardSettings() {
             <p className="text-muted-foreground mt-1">Manage your profile, delivery areas, and policies.</p>
           </div>
           <div className="flex items-center gap-3">
+            {formError ? (
+              <p role="alert" className="max-w-sm text-xs font-semibold text-[#a7313b]">{formError}</p>
+            ) : null}
             <button
               onClick={handleSave}
               disabled={updateBaker.isPending}
@@ -228,10 +256,12 @@ export default function DashboardSettings() {
                 <div className="space-y-2">
                   <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">WhatsApp Number</label>
                   <input 
-                    type="text" 
+                    type="tel"
+                    inputMode="tel"
                     className="min-h-11 w-full rounded-xl border border-border bg-card px-3.5 text-sm text-foreground outline-none transition focus:border-secondary/60 focus:ring-4 focus:ring-secondary/10" 
                     value={whatsappNumber}
-                    onChange={e => setWhatsappNumber(e.target.value)}
+                    placeholder="+92 300 1234567"
+                    onChange={e => setWhatsappNumber(digitsOnlyPhone(e.target.value))}
                   />
                 </div>
               </div>
@@ -243,6 +273,42 @@ export default function DashboardSettings() {
                   value={tagline}
                   onChange={e => setTagline(e.target.value)}
                 />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Bakery photo</label>
+                <p className="text-xs text-muted-foreground">This image appears on your public menu. Upload a photo or paste a public URL.</p>
+                <div className="h-28 overflow-hidden rounded-xl border border-border bg-accent">
+                  <SafeImage src={photoUrl} alt={businessName || "Bakery"} className="h-full w-full object-cover" fallback={<div className="grid h-full place-items-center text-xs text-muted-foreground">No bakery photo yet</div>} />
+                </div>
+                <input
+                  type="url"
+                  className="min-h-11 w-full rounded-xl border border-border bg-card px-3.5 text-sm text-foreground outline-none transition focus:border-secondary/60 focus:ring-4 focus:ring-secondary/10"
+                  placeholder="https://…"
+                  value={photoUrl}
+                  onChange={(e) => setPhotoUrl(e.target.value)}
+                />
+                <label className="inline-flex min-h-10 cursor-pointer items-center rounded-xl border border-border bg-white px-3 text-xs font-semibold">
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    className="sr-only"
+                    onChange={async (event) => {
+                      const file = event.target.files?.[0];
+                      event.target.value = "";
+                      if (!file) return;
+                      setUploadingPhoto(true);
+                      setFormError(null);
+                      try {
+                        setPhotoUrl(await uploadBakerImage(file));
+                      } catch (cause) {
+                        setFormError((cause instanceof Error ? cause.message : "Could not upload image.").replace(/^HTTP \d+\s*[^:]*:\s*/, ""));
+                      } finally {
+                        setUploadingPhoto(false);
+                      }
+                    }}
+                  />
+                  {uploadingPhoto ? "Uploading…" : "Upload bakery image"}
+                </label>
               </div>
             </div>
 
@@ -383,13 +449,14 @@ export default function DashboardSettings() {
               <div className="space-y-2">
                 <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Maximum orders per day</label>
                 <input 
-                  type="number"
-                  min="1"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   className="min-h-11 w-full rounded-xl border border-border bg-card px-3.5 text-sm text-foreground outline-none transition focus:border-secondary/60 focus:ring-4 focus:ring-secondary/10" 
                   value={maxOrdersPerDay}
-                  onChange={e => setMaxOrdersPerDay(Number(e.target.value))}
+                  onChange={e => setMaxOrdersPerDay(e.target.value.replace(/\D/g, "").slice(0, 3))}
                 />
-                <p className="text-xs text-muted-foreground">The calendar will display alerts when this limit is reached for a specific day.</p>
+                <p className="text-xs text-muted-foreground">Whole number from 1 to {MAX_ORDERS_PER_DAY}. The calendar will display alerts when this limit is reached for a specific day.</p>
               </div>
 
               <div className="space-y-3 pt-4 border-t border-border/50">

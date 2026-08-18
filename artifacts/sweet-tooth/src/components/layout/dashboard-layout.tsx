@@ -6,7 +6,8 @@ import {
   type ComponentType,
   type ReactNode,
 } from "react";
-import { useGetBaker } from "@workspace/api-client-react";
+import { useGetBaker, useListOrders, getListOrdersQueryKey } from "@workspace/api-client-react";
+import { liveDashboardQuery, ORDERS_POLL_MS } from "@/lib/dashboard-query";
 import { useQueryClient } from "@tanstack/react-query";
 import { useBuyerSession } from "@/hooks/use-session";
 import { NotificationBell } from "@/components/notification-bell";
@@ -118,9 +119,11 @@ function routeIsActive(location: string, href: string): boolean {
 function DesktopNavLink({
   item,
   active,
+  badge,
 }: {
   item: DashboardNavItem;
   active: boolean;
+  badge?: number;
 }) {
   const Icon = item.icon;
 
@@ -143,9 +146,9 @@ function DesktopNavLink({
 
       <span className="min-w-0 flex-1 truncate">{item.label}</span>
 
-      {item.label === "Orders" ? (
+      {item.label === "Orders" && badge ? (
         <span className="grid h-5 min-w-5 place-items-center rounded-full bg-secondary px-1 text-[9px] font-bold text-white">
-          3
+          {badge > 99 ? "99+" : badge}
         </span>
       ) : null}
     </Link>
@@ -173,6 +176,25 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
       staleTime: 60_000,
     },
   });
+
+  const { data: navOrders } = useListOrders(
+    { bakerId },
+    {
+      query: {
+        enabled: Boolean(bakerId),
+        queryKey: getListOrdersQueryKey({ bakerId }),
+        ...liveDashboardQuery(ORDERS_POLL_MS),
+      },
+    },
+  );
+
+  const openOrderCount = useMemo(
+    () =>
+      (navOrders ?? []).filter(
+        (order) => order.status !== "cancelled" && order.status !== "delivered",
+      ).length,
+    [navOrders],
+  );
 
   const trial = (
     baker as
@@ -294,6 +316,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
                 key={item.href}
                 item={item}
                 active={routeIsActive(location, item.href)}
+                badge={openOrderCount}
               />
             ))}
           </nav>

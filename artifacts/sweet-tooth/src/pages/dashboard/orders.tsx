@@ -29,6 +29,8 @@ import {
   Truck,
   X,
 } from "lucide-react";
+import { MAX_PRODUCT_PRICE_PKR } from "@/lib/catalog-product";
+import { normalizePakistanPhone } from "@/lib/pakistan-phone";
 import { exportOrdersPDF } from "@/lib/pdf-export";
 
 const emptyManualOrder = {
@@ -207,7 +209,13 @@ export default function DashboardOrders() {
     [allOrders],
   );
 
-  const handleStatusUpdate = (orderId: number, status: string) => {
+  const handleStatusUpdate = (order: { id: number; fulfillmentType?: string | null; riderName?: string | null; riderPhone?: string | null }, status: string) => {
+    if (status === "out_for_delivery" && order.fulfillmentType !== "pickup") {
+      if (!order.riderName?.trim() || !order.riderPhone?.trim()) {
+        window.alert("Add rider name and phone in Dispatch before marking this order out for delivery.");
+        return;
+      }
+    }
     const cancellationReason =
       status === "cancelled"
         ? window
@@ -223,7 +231,7 @@ export default function DashboardOrders() {
 
     updateStatus.mutate(
       {
-        orderId,
+        orderId: order.id,
         data: {
           status,
           ...(status === "cancelled"
@@ -239,6 +247,14 @@ export default function DashboardOrders() {
           queryClient.invalidateQueries({
             queryKey: getListOrdersQueryKey({ bakerId }),
           });
+        },
+        onError: (cause) => {
+          window.alert(
+            (cause instanceof Error ? cause.message : "Could not update this order.").replace(
+              /^HTTP \d+\s*[^:]*:\s*/,
+              "",
+            ),
+          );
         },
       },
     );
@@ -277,18 +293,32 @@ export default function DashboardOrders() {
     event.preventDefault();
     setManualError(null);
 
-    const quantity = Number(manualOrder.quantity);
-    const totalPkr = Number(manualOrder.totalPkr);
+    const quantity = Number.parseInt(manualOrder.quantity, 10);
+    const totalPkr = Number.parseInt(manualOrder.totalPkr, 10);
+    const phone = normalizePakistanPhone(manualOrder.buyerWhatsapp);
 
-    if (
-      !Number.isInteger(quantity) ||
-      quantity < 1 ||
-      !Number.isInteger(totalPkr) ||
-      totalPkr < 0
-    ) {
-      setManualError(
-        "Enter a whole-number quantity and amount in PKR.",
-      );
+    if (!/[A-Za-z\u0600-\u06FF]/.test(manualOrder.buyerName.trim())) {
+      setManualError("Customer name must include letters.");
+      return;
+    }
+    if (!phone) {
+      setManualError("Enter a valid Pakistani WhatsApp number, for example 0300 1234567.");
+      return;
+    }
+    if (manualOrder.buyerAddress.trim().length < 8) {
+      setManualError("Enter a full delivery or pickup address.");
+      return;
+    }
+    if (manualOrder.productName.trim().length < 2) {
+      setManualError("Enter what was ordered.");
+      return;
+    }
+    if (!Number.isInteger(quantity) || quantity < 1 || quantity > 50) {
+      setManualError("Quantity must be a whole number from 1 to 50.");
+      return;
+    }
+    if (!Number.isInteger(totalPkr) || totalPkr < 1 || totalPkr > MAX_PRODUCT_PRICE_PKR) {
+      setManualError(`Total must be a whole number from PKR 1 to PKR ${MAX_PRODUCT_PRICE_PKR.toLocaleString()}.`);
       return;
     }
 
@@ -302,14 +332,18 @@ export default function DashboardOrders() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          ...manualOrder,
+          buyerName: manualOrder.buyerName.trim(),
+          buyerWhatsapp: phone,
+          buyerAddress: manualOrder.buyerAddress.trim(),
+          buyerArea: manualOrder.buyerArea.trim() || undefined,
+          productName: manualOrder.productName.trim(),
           quantity,
           totalPkr,
-          buyerArea: manualOrder.buyerArea || undefined,
           deliveryDate: manualOrder.deliveryDate || undefined,
-          occasion: manualOrder.occasion || undefined,
+          deliveryTimeSlot: manualOrder.deliveryTimeSlot.trim() || undefined,
+          occasion: manualOrder.occasion.trim() || undefined,
           specialInstructions:
-            manualOrder.specialInstructions || undefined,
+            manualOrder.specialInstructions.trim() || undefined,
         }),
       });
 
@@ -320,9 +354,9 @@ export default function DashboardOrders() {
       closeManualOrder();
     } catch (cause) {
       setManualError(
-        cause instanceof Error
+        (cause instanceof Error
           ? cause.message
-          : "Could not save the order.",
+          : "Could not save the order.").replace(/^HTTP \d+\s*[^:]*:\s*/, ""),
       );
     } finally {
       setSavingManualOrder(false);
@@ -375,6 +409,7 @@ export default function DashboardOrders() {
 
   const saveDispatch = async (order: {
     id: number;
+    fulfillmentType?: string | null;
     deliveryTimeSlot?: string | null;
     riderName?: string | null;
     riderPhone?: string | null;
@@ -387,9 +422,14 @@ export default function DashboardOrders() {
     if (deliveryTimeSlot === null) {
       return;
     }
+    if (!/\d/.test(deliveryTimeSlot) || deliveryTimeSlot.trim().length < 2) {
+      window.alert("Enter a time window such as 3–5 pm.");
+      return;
+    }
 
+    const needsRider = order.fulfillmentType !== "pickup";
     const riderName = window.prompt(
-      "Rider name (leave blank if not assigned)",
+      needsRider ? "Rider name (required for delivery)" : "Rider name (optional for pickup)",
       order.riderName ?? "",
     );
 
@@ -398,12 +438,24 @@ export default function DashboardOrders() {
     }
 
     const riderPhone = window.prompt(
-      "Rider phone (leave blank if not assigned)",
+      needsRider ? "Rider phone (required for delivery)" : "Rider phone (optional for pickup)",
       order.riderPhone ?? "",
     );
 
     if (riderPhone === null) {
       return;
+    }
+
+    if (needsRider) {
+      if (!/[A-Za-z\u0600-\u06FF]/.test(riderName.trim())) {
+        window.alert("Enter the rider’s name before marking an order out for delivery.");
+        return;
+      }
+      const phone = normalizePakistanPhone(riderPhone);
+      if (!phone) {
+        window.alert("Enter a valid Pakistani rider phone number.");
+        return;
+      }
     }
 
     try {
@@ -414,9 +466,9 @@ export default function DashboardOrders() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          deliveryTimeSlot,
-          riderName,
-          riderPhone,
+          deliveryTimeSlot: deliveryTimeSlot.trim(),
+          riderName: riderName.trim(),
+          riderPhone: riderPhone.trim(),
         }),
       });
 
@@ -425,9 +477,9 @@ export default function DashboardOrders() {
       });
     } catch (cause) {
       window.alert(
-        cause instanceof Error
+        (cause instanceof Error
           ? cause.message
-          : "Could not save dispatch details.",
+          : "Could not save dispatch details.").replace(/^HTTP \d+\s*[^:]*:\s*/, ""),
       );
     }
   };
@@ -729,7 +781,7 @@ export default function DashboardOrders() {
                                     value={order.status}
                                     onChange={(event) =>
                                       handleStatusUpdate(
-                                        order.id,
+                                        order,
                                         event.target.value,
                                       )
                                     }
@@ -898,7 +950,7 @@ export default function DashboardOrders() {
                               value={order.status}
                               onChange={(event) =>
                                 handleStatusUpdate(
-                                  order.id,
+                                  order,
                                   event.target.value,
                                 )
                               }
