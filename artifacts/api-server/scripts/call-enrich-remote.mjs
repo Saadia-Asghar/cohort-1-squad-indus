@@ -1,7 +1,7 @@
 const apiBase = process.env.PUBLIC_API_URL?.replace(/\/$/, "") || "https://cohort-1-squad-indus-api-server-z3b.vercel.app";
-const secret = process.env.ENRICH_DEMO_SECRET?.trim() || process.env.JWT_SECRET?.trim();
+const secret = process.env.ENRICH_DEMO_SECRET?.trim();
 if (!secret) {
-  console.error("ENRICH_DEMO_SECRET or JWT_SECRET not available");
+  console.error("ENRICH_DEMO_SECRET is required for enrich-demo");
   process.exit(1);
 }
 

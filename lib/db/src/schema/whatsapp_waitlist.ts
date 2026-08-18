@@ -10,6 +10,8 @@ export const whatsappWaitlistTable = sweetTooth.table("whatsapp_waitlist", {
   bakerEmail: text("baker_email").notNull(),
   whatsappNumber: text("whatsapp_number").notNull(),
   note: text("note"),
+  source: text("source").notNull().default("whatsapp"),
+  city: text("city"),
   status: text("status").notNull().default("pending"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });

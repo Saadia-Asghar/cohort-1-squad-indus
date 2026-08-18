@@ -1,5 +1,6 @@
 import { Link } from "wouter";
 import { NotificationBell } from "@/components/notification-bell";
+import { bakerMenuHref } from "@/components/layout/guest-menu-shell";
 import { useBuyerSession } from "@/hooks/use-session";
 import type { ComponentType } from "react";
 import {
@@ -164,13 +165,28 @@ export function ApprovedHomePreview() {
                 </p>
               </div>
               <div className="flex shrink-0 items-center gap-2">
-                <Link
-                  href={`/menu/${bakerId}`}
-                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-[#dfd1c4] bg-white/65 px-4 text-sm font-semibold shadow-[0_8px_24px_rgba(47,24,55,0.05)] transition hover:-translate-y-0.5"
-                >
-                  Preview storefront
-                  <ExternalLink className="h-4 w-4" />
-                </Link>
+                {bakerId ? (
+                  <>
+                    <a
+                      href={bakerMenuHref(bakerId)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#632a73] px-4 text-sm font-semibold text-white shadow-[0_8px_24px_rgba(47,24,55,0.05)] transition hover:-translate-y-0.5"
+                    >
+                      Open menu
+                      <ExternalLink className="h-4 w-4" />
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        void navigator.clipboard.writeText(bakerMenuHref(bakerId));
+                      }}
+                      className="inline-flex min-h-11 items-center justify-center rounded-xl border border-[#dfd1c4] bg-white/65 px-4 text-sm font-semibold"
+                    >
+                      Copy link
+                    </button>
+                  </>
+                ) : null}
 
                 {bakerId ? (
                   <div className="hidden rounded-xl border border-[#dfd1c4] bg-white/65 shadow-[0_8px_24px_rgba(47,24,55,0.05)] xl:block">
@@ -443,9 +459,10 @@ export function ApprovedHomePreview() {
                 />
 
                 <QuickAction
-                  href={`/menu/${bakerId}`}
+                  href={bakerId ? bakerMenuHref(bakerId) : "/dashboard"}
                   label="Menu"
                   icon={Store}
+                  external={Boolean(bakerId)}
                 />
               </div>
             </section>
@@ -500,21 +517,29 @@ function QuickAction({
   href,
   label,
   icon: Icon,
+  external,
 }: {
   href: string;
   label: string;
   icon: IconType;
+  external?: boolean;
 }) {
-  return (
-    <Link
-      href={href}
-      className="group flex min-h-[72px] flex-col items-center justify-center rounded-xl border border-[#eadfd5] bg-[#fffaf6] px-1.5 text-center transition hover:border-[#c24f7a]/35 hover:bg-white"
-    >
-      <Icon className="h-4 w-4 text-[#c24f7a]" />
+  const className =
+    "group flex min-h-[72px] flex-col items-center justify-center rounded-xl border border-[#eadfd5] bg-[#fffaf6] px-1.5 text-center transition hover:border-[#c24f7a]/35 hover:bg-white";
 
-      <span className="mt-2 text-[9px] font-semibold leading-tight">
-        {label}
-      </span>
+  if (external) {
+    return (
+      <a href={href} target="_blank" rel="noopener noreferrer" className={className}>
+        <Icon className="h-4 w-4 text-[#c24f7a]" />
+        <span className="mt-2 text-[9px] font-semibold leading-tight">{label}</span>
+      </a>
+    );
+  }
+
+  return (
+    <Link href={href} className={className}>
+      <Icon className="h-4 w-4 text-[#c24f7a]" />
+      <span className="mt-2 text-[9px] font-semibold leading-tight">{label}</span>
     </Link>
   );
 }

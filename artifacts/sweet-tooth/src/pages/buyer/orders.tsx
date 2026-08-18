@@ -1,4 +1,4 @@
-import { BuyerLayout } from "@/components/layout/buyer-layout";
+import { GuestMenuShell } from "@/components/layout/guest-menu-shell";
 import { Link, useRoute } from "wouter";
 import { useEffect, useMemo, useState } from "react";
 import { customFetch } from "@workspace/api-client-react";
@@ -90,7 +90,7 @@ export default function BuyerOrders() {
   };
 
   return (
-    <BuyerLayout>
+    <GuestMenuShell bakerName="Your order" bakerId={order?.bakerId ?? null}>
       <div className="container mx-auto max-w-xl px-4 py-12">
         <div className="flex items-center gap-3"><LockKeyhole className="h-8 w-8 text-primary" /><div><h1 className="font-serif text-4xl font-bold text-primary">Secure order</h1><p className="mt-1 text-sm text-muted-foreground">No account or password is needed.</p></div></div>
 
@@ -120,10 +120,10 @@ export default function BuyerOrders() {
               </section>
             )}
             {error && <p role="alert" className="mt-4 text-sm text-destructive">{error}</p>}
-            <Link href={`/bakers/${order.bakerId}`} className="mt-5 inline-flex text-sm font-semibold text-primary underline">Return to bakery menu</Link>
+            <Link href={`/menu/${order.bakerId}`} className="mt-5 inline-flex text-sm font-semibold text-primary underline">Return to bakery menu</Link>
           </div>
         ) : null}
       </div>
-    </BuyerLayout>
+    </GuestMenuShell>
   );
 }

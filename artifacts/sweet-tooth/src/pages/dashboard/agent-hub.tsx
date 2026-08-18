@@ -101,6 +101,7 @@ export default function AgentHub() {
           bakerEmail: waitlistEmail,
           whatsappNumber: waitlistWhatsapp,
           note: "Joined waitlist from dashboard Agent Hub.",
+          source: "whatsapp",
         }),
       });
       if (res.ok) {

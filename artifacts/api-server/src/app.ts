@@ -7,6 +7,10 @@ import { ensureDatabase } from "./bootstrap-db.js";
 // Vercel has no separate migration runner for this API. Initialise the
 // idempotent schema before exposing routes, including for a newly linked Neon DB.
 await ensureDatabase();
+const { hydratePlatformBillingFromDb } = await import("./routes/admin.js");
+await hydratePlatformBillingFromDb().catch((error) => {
+  console.error("hydrate platform billing failed", error);
+});
 
 const app = express();
 
@@ -29,6 +33,9 @@ if (publishableKey && secretKey) {
 const allowedOrigins = new Set([
   process.env.FRONTEND_URL,
   "https://cohort-1-squad-indus-sweet-tooth.vercel.app",
+  ...(process.env.NODE_ENV !== "production" && !process.env.VERCEL
+    ? ["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:5180", "http://127.0.0.1:5180"]
+    : []),
 ].filter((origin): origin is string => Boolean(origin)));
 
 function isAllowedBrowserOrigin(origin: string): boolean {

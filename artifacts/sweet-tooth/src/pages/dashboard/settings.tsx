@@ -4,7 +4,7 @@ import { useBuyerSession } from "@/hooks/use-session";
 import { useGetBaker, useUpdateBaker, getGetBakerQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
-import { Copy, Facebook, Instagram, QrCode, Share2, Sparkles, ArrowRight, Store, CreditCard, Calendar, Users, Zap } from "lucide-react";
+import { Copy, ExternalLink, Facebook, Instagram, QrCode, Share2, Sparkles, ArrowRight, Store, CreditCard, Calendar, Users, Zap } from "lucide-react";
 import { getPlanById, FOUNDER_OFFER_ACTIVE, formatExtraReplyPkr, getFounderOfferLines, displayPrice } from "@/lib/pricing-plans";
 import { PlatformBillingPanel } from "@/components/dashboard/platform-billing-panel";
 import { TeamAccessPanel } from "@/components/dashboard/team-access-panel";
@@ -57,7 +57,11 @@ export default function DashboardSettings() {
 
   const shareShop = async () => {
     if (navigator.share) {
-      await navigator.share({ title: baker?.businessName ?? "Sweet Tooth", text: "Browse my menu and place an order.", url: shopUrl });
+      await navigator.share({
+        title: baker?.businessName ?? "Bakery menu",
+        text: "Open this link in your browser to see the menu and place an order.",
+        url: shopUrl,
+      });
       return;
     }
     await copyShopLink();
@@ -269,14 +273,32 @@ export default function DashboardSettings() {
                   <input type="url" className="min-h-11 w-full rounded-xl border border-[#dfd1c4] bg-[#fffaf6] px-3.5 text-sm text-[#241629] normal-case outline-none transition focus:border-[#c24f7a]/60 focus:ring-4 focus:ring-[#c24f7a]/10" placeholder="https://facebook.com/yourbakery" value={facebookUrl} onChange={(e) => setFacebookUrl(e.target.value)} />
                 </label>
               </div>
-              <p className="text-xs text-muted-foreground mt-2">Customers scan this QR code to open your live menu, talk to your assistant, and place an order.</p>
+              <p className="text-xs text-muted-foreground mt-2">
+                Share this link or QR. Customers open your bakery menu directly in the browser — they do not visit the Sweet Tooth website first.
+              </p>
               <div className="flex flex-col sm:flex-row gap-5 items-start pt-2">
                 {qrCodeUrl && <img src={qrCodeUrl} alt={`QR code for ${baker?.businessName ?? "your shop"}`} className="w-32 h-32 rounded-lg border border-border bg-white p-2" />}
                 <div className="space-y-3 flex-1 min-w-0">
-                  <input readOnly value={shopUrl} className="w-full px-3 py-2 border border-border rounded-md bg-muted text-sm" aria-label="Your menu link" />
+                  <a
+                    href={shopUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block w-full truncate rounded-md border border-border bg-muted px-3 py-2 text-sm text-primary underline-offset-2 hover:underline"
+                    aria-label="Open your menu in a new tab"
+                  >
+                    {shopUrl}
+                  </a>
                   <div className="flex flex-wrap gap-2">
+                    <a
+                      href={shopUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 px-3 py-2 rounded-md bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90"
+                    >
+                      <ExternalLink className="w-4 h-4" /> Open in browser
+                    </a>
                     <button onClick={copyShopLink} className="inline-flex items-center gap-2 px-3 py-2 rounded-md border border-border text-sm font-semibold hover:bg-muted cursor-pointer"><Copy className="w-4 h-4" /> Copy link</button>
-                    <button onClick={shareShop} className="inline-flex items-center gap-2 px-3 py-2 rounded-md bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 cursor-pointer"><Share2 className="w-4 h-4" /> Share shop</button>
+                    <button onClick={shareShop} className="inline-flex items-center gap-2 px-3 py-2 rounded-md border border-border text-sm font-semibold hover:bg-muted cursor-pointer"><Share2 className="w-4 h-4" /> Share</button>
                   </div>
                 </div>
               </div>

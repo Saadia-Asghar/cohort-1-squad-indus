@@ -502,6 +502,7 @@ export default function DashboardCustomers() {
                       (customer) => (
                         <CustomerRecord
                           key={customer.id}
+                          bakerId={bakerId}
                           customer={customer}
                           selected={selectedIds.includes(
                             customer.id,
@@ -808,11 +809,13 @@ function CustomerMetric({
 }
 
 function CustomerRecord({
+  bakerId,
   customer,
   selected,
   onToggle,
   cancellationCount,
 }: {
+  bakerId?: number | null;
   customer: {
     id: number;
     name: string;
@@ -828,6 +831,46 @@ function CustomerRecord({
   onToggle: () => void;
   cancellationCount: number;
 }) {
+  const [note, setNote] = useState("");
+  const [eggless, setEggless] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [summary, setSummary] = useState<string | null>(null);
+
+  const loadMemory = async () => {
+    if (!bakerId || loaded) return;
+    try {
+      const data = await customFetch<{
+        summary: string | null;
+        preferences: { bakerNote?: string; eggless?: boolean };
+      }>(`/api/bakers/${bakerId}/customers/${customer.id}/memory`, { responseType: "json" });
+      setSummary(data.summary);
+      setNote(typeof data.preferences?.bakerNote === "string" ? data.preferences.bakerNote : "");
+      setEggless(data.preferences?.eggless === true);
+    } catch {
+      setSummary(null);
+    } finally {
+      setLoaded(true);
+    }
+  };
+
+  const saveMemory = async () => {
+    if (!bakerId) return;
+    setSaving(true);
+    try {
+      const data = await customFetch<{ summary: string }>(`/api/bakers/${bakerId}/customers/${customer.id}/memory`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bakerNote: note, eggless }),
+        responseType: "json",
+      });
+      setSummary(data.summary);
+      setLoaded(true);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <article
       className={`grid gap-4 px-4 py-4 transition sm:px-5 lg:grid-cols-[40px_minmax(0,1.35fr)_minmax(170px,0.75fr)_minmax(145px,0.55fr)] lg:items-center ${
@@ -937,6 +980,30 @@ function CustomerRecord({
             ? "order"
             : "orders"}
         </p>
+      </div>
+
+      <div className="lg:col-span-4 rounded-xl border border-[#eadfd5] bg-[#fffaf6] p-3">
+        <button type="button" onClick={() => void loadMemory()} className="text-xs font-bold text-[#632a73]">
+          {loaded ? "Agent memory" : "Load what the agent remembers"}
+        </button>
+        {loaded && (
+          <div className="mt-2 space-y-2">
+            {summary && <p className="text-xs text-[#746876]">{summary}</p>}
+            <label className="flex items-center gap-2 text-xs font-semibold">
+              <input type="checkbox" checked={eggless} onChange={(e) => setEggless(e.target.checked)} />
+              Pin eggless
+            </label>
+            <input
+              className="h-10 w-full rounded-lg border border-[#dfd1c4] bg-white px-3 text-xs"
+              placeholder="Baker note the agent must honour"
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+            />
+            <button type="button" disabled={saving} onClick={() => void saveMemory()} className="rounded-lg bg-[#632a73] px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50">
+              {saving ? "Saving…" : "Save memory"}
+            </button>
+          </div>
+        )}
       </div>
     </article>
   );

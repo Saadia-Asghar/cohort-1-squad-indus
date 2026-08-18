@@ -22,6 +22,7 @@ import { AI_REPLY_CAP_BUYER_REPLY, isAiReplyCapReached } from "./plan-limits.js"
 import { callLlm } from "./llm.js";
 import { answerNeedsHumanConfirmation, isMenuScopedMessage } from "./agent-safety.js";
 import { logOrderActivity } from "./audit.js";
+import { extractPreferences, buildMemorySummary } from "./buyer-memory.js";
 
 export type AgentReply = {
   reply: string;
@@ -31,6 +32,7 @@ export type AgentReply = {
 };
 
 export { isMenuScopedMessage } from "./agent-safety.js";
+export { extractPreferences } from "./buyer-memory.js";
 
 function menuScopeRefusal(businessName: string): AgentReply {
   return {
@@ -61,34 +63,6 @@ async function notify(
   } catch (e) {
     logger.error({ err: e }, "Failed to create notification");
   }
-}
-
-export function extractPreferences(message: string, existing: Record<string, unknown>) {
-  const prefs: Record<string, unknown> = { ...existing };
-  const lowerMsg = message.toLowerCase();
-
-  if (lowerMsg.includes("eggless") || lowerMsg.includes("no egg")) {
-    prefs.eggless = true;
-  }
-  const areaMatches = [
-    "dha", "gulberg", "clifton", "defence", "bahria", "johar", "model town",
-    "cavalry", "cantt", "f-7", "f-8", "f-10", "g-9",
-  ];
-  for (const area of areaMatches) {
-    if (lowerMsg.includes(area)) {
-      prefs.preferredArea = area.toUpperCase();
-      break;
-    }
-  }
-  const allergyMatch = lowerMsg.match(/allerg(?:ic|y) to ([a-z\s]+)/);
-  if (allergyMatch) {
-    const allergies = (prefs.allergies as string[] ?? []);
-    const allergy = allergyMatch[1].trim().slice(0, 80);
-    if (allergy && !allergies.includes(allergy)) {
-      prefs.allergies = [...allergies.slice(0, 4), allergy];
-    }
-  }
-  return prefs;
 }
 
 export async function generateAgentReply(
@@ -510,6 +484,9 @@ export async function generateAgentReply(
       if (prefs.favoriteProducts && Array.isArray(prefs.favoriteProducts) && prefs.favoriteProducts.length > 0) {
         details.push(`favorites like ${prefs.favoriteProducts[0]}`);
       }
+      if (typeof prefs.bakerNote === "string" && prefs.bakerNote.trim()) {
+        details.push(prefs.bakerNote.trim().slice(0, 80));
+      }
 
       if (details.length > 0) {
         personalNote = ` Good to hear from you again! I still remember your preferences for ${details.join(", ")}, and will make sure to tailor your choices accordingly.`;
@@ -878,19 +855,25 @@ export async function processChatMessage(input: ProcessChatInput): Promise<Proce
   }
 
   if (buyerId) {
+    const [bakerRow] = await db
+      .select({ deliveryAreas: bakersTable.deliveryAreas })
+      .from(bakersTable)
+      .where(eq(bakersTable.id, bakerId))
+      .limit(1);
     const updatedPrefs = extractPreferences(
       message,
       {
         ...((memory?.preferences ?? {}) as Record<string, unknown>),
         ...historyPreferences,
       },
+      bakerRow?.deliveryAreas ?? [],
     );
     const newCount = (memory?.messageCount ?? 0) + 2;
-    // Full chat messages are kept in the bakery inbox. Keep long-term memory
-    // minimal and never copy a customer's free-form text into it.
-    const newSummary = agentReply.escalated
-      ? "Customer needs a baker follow-up."
-      : "Recent menu conversation saved.";
+    const newSummary = buildMemorySummary({
+      previousSummary: memory?.summary,
+      preferences: updatedPrefs,
+      escalated: agentReply.escalated,
+    });
     if (memory) {
       await db
         .update(conversationMemoryTable)

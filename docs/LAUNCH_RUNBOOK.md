@@ -4,10 +4,13 @@ Use this checklist before inviting any paying baker. Every item should have an o
 
 ## Before beta invitations
 
-- [ ] Deploy a production Clerk instance. Replace `VITE_CLERK_PUBLISHABLE_KEY` and `CLERK_SECRET_KEY` with production keys, add the final frontend domain to Clerk, and turn off development mode.
-- [ ] Confirm API production values: `DATABASE_URL`, a 32+ character `JWT_SECRET`, `FRONTEND_URL`, and `TOKEN_ENCRYPTION_KEY` when Meta accounts are connected.
+- [ ] Public baker waitlist at `/waitlist` is live; review new rows in `/admin`.
+- [ ] Confirm native baker login works in production (`AUTH_MODE=legacy` unless you intentionally enable Clerk).
+- [ ] Set production `ADMIN_EMAIL` and `ADMIN_PASSWORD` (12+ characters). There are no default admin credentials.
+- [ ] Confirm API production values: `DATABASE_URL`, a 32+ character `JWT_SECRET`, `FRONTEND_URL`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`, and `TOKEN_ENCRYPTION_KEY` when Meta accounts are connected.
+- [ ] Optional: deploy Clerk only if you want Google SSO. Replace `VITE_CLERK_PUBLISHABLE_KEY` and `CLERK_SECRET_KEY` with live keys and add the frontend domain.
 - [ ] Configure a Neon backup/restore policy and perform one restore drill on a non-production database.
-- [ ] Add a custom domain, then update `FRONTEND_URL`, Clerk allowed origins/redirects, and Meta webhook URLs.
+- [ ] Add a custom domain, then update `FRONTEND_URL`, optional Clerk allowed origins/redirects, and Meta webhook URLs.
 - [ ] Create Meta Business and a test WhatsApp Business number. Do not advertise the WhatsApp/Instagram agent as live until inbound and outbound webhook tests pass.
 - [ ] Set a production error alert and an uptime check for `/api/healthz`.
 

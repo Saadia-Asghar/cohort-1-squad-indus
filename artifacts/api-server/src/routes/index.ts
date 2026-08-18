@@ -16,6 +16,7 @@ import instagramRouter from "./instagram.js";
 import metaConnectRouter from "./meta-connect.js";
 import broadcastRouter from "./broadcast.js";
 import adminRouter from "./admin.js";
+import marketplaceRouter from "./marketplace.js";
 import khataRouter from "./khata.js";
 import billingRouter from "./billing.js";
 import staffRouter from "./staff.js";
@@ -23,6 +24,7 @@ import staffRouter from "./staff.js";
 const router = Router();
 
 router.use(healthRouter);
+router.use(marketplaceRouter);
 router.use(bakersRouter);
 router.use(staffRouter);
 router.use(notificationsRouter);

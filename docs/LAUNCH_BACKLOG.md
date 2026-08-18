@@ -60,7 +60,7 @@ Review signals once each week. For every item, record: evidence, affected bakers
 - Instagram inbox automation after Meta approval and a test account.
 - Paid-plan enforcement and billing reconciliation.
 - A/B test onboarding copy and trial packaging.
-- Customer-facing marketplace discovery, if bakers explicitly ask for it.
+- Customer-facing marketplace discovery is **out of scope**. Sweet Tooth is a baker workspace: shared menu + WhatsApp/Instagram, not a Daraz-style mall.
 
 ## Tool decision
 

@@ -75,10 +75,10 @@ export function BuyerLayout({
             </Link>
 
             <Link
-              href="/dashboard/register"
+              href="/waitlist"
               className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground shadow-lg shadow-primary/20 transition hover:-translate-y-0.5 hover:bg-primary/90"
             >
-              Start for bakers
+              Join waitlist
               <ChevronRight className="h-4 w-4" />
             </Link>
           </div>
@@ -144,11 +144,11 @@ export function BuyerLayout({
                   </Link>
 
                   <Link
-                    href="/dashboard/register"
+                    href="/waitlist"
                     onClick={closeMobileMenu}
                     className="inline-flex min-h-12 items-center justify-center rounded-xl bg-primary px-4 text-sm font-bold text-primary-foreground"
                   >
-                    Start for bakers
+                    Join waitlist
                   </Link>
                 </div>
               </div>
@@ -172,8 +172,8 @@ export function BuyerLayout({
               </Link>
 
               <p className="mt-5 max-w-sm text-sm leading-7 text-muted-foreground">
-                A calm order-management and AI-assistant platform built for
-                Pakistan&apos;s home bakers.
+                A workspace for Pakistan&apos;s home bakers to take orders on
+                WhatsApp, Instagram, and a menu they share — not a customer mall.
               </p>
 
               <div className="mt-6 flex items-center gap-3">
@@ -211,6 +211,10 @@ export function BuyerLayout({
             <FooterColumn
               title="For bakers"
               links={[
+                {
+                  label: "Join the waitlist",
+                  href: "/waitlist",
+                },
                 {
                   label: "Create an account",
                   href: "/dashboard/register",

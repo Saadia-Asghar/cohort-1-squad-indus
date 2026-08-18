@@ -1,4 +1,4 @@
-import { BuyerLayout } from "@/components/layout/buyer-layout";
+import { GuestMenuShell } from "@/components/layout/guest-menu-shell";
 import { Link } from "wouter";
 import { useEffect, useMemo, useState } from "react";
 import { customFetch } from "@workspace/api-client-react";
@@ -197,7 +197,7 @@ export default function Cart() {
   };
 
   return (
-    <BuyerLayout>
+    <GuestMenuShell bakerName={items[0]?.bakerName ?? baker?.businessName} bakerId={bakerId ?? null}>
       <div className="container mx-auto max-w-xl px-4 py-12">
         <h1 className="font-serif text-4xl font-bold text-primary">Your bag</h1>
         <p className="mt-2 text-muted-foreground text-sm">
@@ -252,11 +252,13 @@ export default function Cart() {
           <div className="mt-10 text-center">
             <p className="text-muted-foreground">Your bag is empty.</p>
             <p className="mt-2 text-sm text-muted-foreground">
-              Prefer messaging? Open a bakery menu and use WhatsApp, Instagram, or the web assistant.
+              Open the menu link your baker sent. It opens their bakery menu in the browser.
             </p>
-            <Link href="/bakers" className="mt-6 inline-flex rounded-md bg-primary px-5 py-3 text-sm font-bold text-primary-foreground">
-              Discover bakers
-            </Link>
+            {bakerId ? (
+              <Link href={`/menu/${bakerId}`} className="mt-6 inline-flex rounded-md bg-primary px-5 py-3 text-sm font-bold text-primary-foreground">
+                Back to menu
+              </Link>
+            ) : null}
           </div>
         ) : (
           <div className="mt-8 space-y-6">
@@ -329,6 +331,6 @@ export default function Cart() {
           </div>
         )}
       </div>
-    </BuyerLayout>
+    </GuestMenuShell>
   );
 }

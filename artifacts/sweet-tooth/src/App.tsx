@@ -12,10 +12,10 @@ import {
 } from "@/lib/managed-auth";
 import { initializeProductAnalytics } from "@/lib/product-analytics";
 
-// Read API URL from environment variable, falling back to the live production API alias.
-const apiUrl =
-  import.meta.env.VITE_API_URL ||
-  "https://cohort-1-squad-indus-api-server-z3b.vercel.app";
+// Local Vite proxies /api to the API server. Production falls back to the live API alias.
+const apiUrl = import.meta.env.DEV
+  ? import.meta.env.VITE_API_URL || ""
+  : import.meta.env.VITE_API_URL || "https://cohort-1-squad-indus-api-server-z3b.vercel.app";
 if (apiUrl) {
   setBaseUrl(apiUrl);
 }
@@ -29,6 +29,7 @@ import Cart from "@/pages/buyer/cart";
 import BuyerOrders from "@/pages/buyer/orders";
 import OrderFeedback from "@/pages/buyer/feedback";
 import { PrivacyPolicy, TermsOfService } from "@/pages/legal";
+import Waitlist from "@/pages/waitlist";
 
 // Dashboard pages — lazy-loaded so each tab opens fast without loading the whole app.
 const DashboardHome = lazy(() => import("@/pages/dashboard/home"));
@@ -49,6 +50,7 @@ import BakerOnboarding from "@/pages/auth/baker-onboarding";
 import BakerForgotPassword from "@/pages/auth/baker-forgot-password";
 import BakerResetPassword from "@/pages/auth/baker-reset-password";
 import AdminPortal from "@/pages/admin";
+import AdminBakerMonitor from "@/pages/admin-baker";
 
 import NotFound from "@/pages/not-found";
 
@@ -111,6 +113,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
+      <Route path="/waitlist" component={Waitlist} />
       <Route path="/contact" component={Contact} />
       <Route path="/bakers" component={Bakers} />
       <Route path="/menu/:id" component={BakerProfile} />
@@ -145,6 +148,7 @@ function Router() {
       <Route path="/login/buyer" component={Home} />
       <Route path="/forgot-password" component={BakerForgotPassword} />
       <Route path="/reset-password" component={BakerResetPassword} />
+      <Route path="/admin/bakers/:id" component={AdminBakerMonitor} />
       <Route path="/admin" component={AdminPortal} />
 
       <Route component={NotFound} />

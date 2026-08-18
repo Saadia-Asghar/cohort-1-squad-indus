@@ -16,7 +16,6 @@ import { seedBakerDemoData, syncBakerStats } from "./lib/seed-baker-demo.js";
 import { seedFullFeaturePack } from "./lib/seed-feature-packs.js";
 import { reindexBakerKnowledge } from "./lib/rag/indexer.js";
 import { hashPassword } from "./lib/auth.js";
-import { pathToFileURL } from "node:url";
 
 const DEMO_PASSWORDS: Record<string, string> = {
   "sana-sweet-studio": "SanaSweet2026!",
@@ -119,7 +118,7 @@ export async function enrichPitchData(): Promise<void> {
   console.log("Pitch enrich complete.");
 }
 
-const isDirectRun = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
+const isDirectRun = /(?:^|[\\/])seed-enrich\.(?:ts|js|mjs)$/.test(process.argv[1] ?? "");
 
 if (isDirectRun) {
   enrichPitchData()

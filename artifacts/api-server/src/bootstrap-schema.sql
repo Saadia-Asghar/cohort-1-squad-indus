@@ -32,10 +32,13 @@ CREATE TABLE IF NOT EXISTS sweet_tooth.bakers (
   instagram_page_id TEXT,
   marketplace_visible BOOLEAN NOT NULL DEFAULT false,
   subscription_plan TEXT NOT NULL DEFAULT 'free',
+  trial_ends_at TIMESTAMPTZ,
   rating_avg REAL NOT NULL DEFAULT 0,
   total_orders INTEGER NOT NULL DEFAULT 0,
   slug TEXT NOT NULL UNIQUE,
   photo_url TEXT,
+  reset_password_token TEXT,
+  reset_password_expires TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -588,3 +591,24 @@ FROM sweet_tooth.bakers b
 JOIN sweet_tooth.customers c ON c.baker_id = b.id AND c.whatsapp_number = '+923000000001'
 WHERE b.slug = 'sana-sweet-studio'
 ON CONFLICT (baker_id, buyer_id) DO UPDATE SET preferences = EXCLUDED.preferences, message_count = EXCLUDED.message_count, summary = EXCLUDED.summary, last_active_at = NOW();
+
+CREATE TABLE IF NOT EXISTS sweet_tooth.platform_settings (
+  key TEXT PRIMARY KEY,
+  value JSONB NOT NULL DEFAULT '{}'::jsonb,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS sweet_tooth.whatsapp_waitlist (
+  id SERIAL PRIMARY KEY,
+  baker_id INTEGER,
+  baker_name TEXT NOT NULL,
+  baker_email TEXT NOT NULL,
+  whatsapp_number TEXT NOT NULL,
+  note TEXT,
+  source TEXT NOT NULL DEFAULT 'whatsapp',
+  city TEXT,
+  status TEXT NOT NULL DEFAULT 'pending',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+ALTER TABLE sweet_tooth.whatsapp_waitlist ADD COLUMN IF NOT EXISTS source TEXT NOT NULL DEFAULT 'whatsapp';
+ALTER TABLE sweet_tooth.whatsapp_waitlist ADD COLUMN IF NOT EXISTS city TEXT;

@@ -209,9 +209,9 @@ function HeroSection() {
               transition={{ duration: 0.7, delay: 0.62 }}
               className="mt-6 max-w-[470px] border-l border-secondary/60 pl-4 text-[13px] leading-6 text-primary-foreground/68 sm:mt-9 sm:pl-6 sm:text-base sm:leading-8"
             >
-              Sweet Tooth turns customer conversations into organized orders,
-              payment records and production plans while keeping the baker in
-              control.
+              Sweet Tooth turns WhatsApp, Instagram and your shared menu chat
+              into organized orders for the people you already bake for. It is
+              not a customer marketplace.
             </motion.p>
 
             <motion.div
@@ -221,10 +221,10 @@ function HeroSection() {
               className="mt-6 flex flex-col gap-3 sm:mt-9 sm:flex-row lg:flex-wrap"
             >
               <Link
-                href="/dashboard/register"
+                href="/waitlist"
                 className="group inline-flex min-h-12 w-full items-center justify-center gap-4 rounded-xl bg-background px-5 py-3 text-sm font-bold text-primary shadow-md transition hover:-translate-y-0.5 hover:bg-secondary hover:text-secondary-foreground sm:min-h-14 sm:w-auto sm:px-8"
               >
-                Start your bakery
+                Join the waitlist
                 <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
               </Link>
 
@@ -1698,6 +1698,11 @@ const faqItems = [
       "The information can be organized into an order record with the product, size, cake message, delivery date, area and payment evidence kept together.",
   },
   {
+    question: "Is Sweet Tooth a marketplace like Daraz?",
+    answer:
+      "No. Buyers do not browse every bakery. You share your menu link, WhatsApp, or Instagram with your own customers. Their chats and orders stay in your dashboard.",
+  },
+  {
     question: "Is Sweet Tooth designed only for large bakeries?",
     answer:
       "No. The product is being designed around the daily workflow of home bakers and small bakery teams that currently manage orders through conversations.",
@@ -1895,10 +1900,10 @@ function FinalSection() {
 
           <div className="flex w-full flex-col gap-3 lg:w-auto">
             <Link
-              href="/dashboard/register"
+              href="/waitlist"
               className="group inline-flex min-h-12 w-full items-center justify-center gap-4 rounded-xl bg-primary px-5 py-3 text-sm font-bold text-primary-foreground shadow-sm transition hover:-translate-y-0.5 hover:bg-secondary sm:min-h-14 sm:px-8 lg:w-auto"
             >
-              Create your bakery
+              Join the waitlist
               <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
             </Link>
 

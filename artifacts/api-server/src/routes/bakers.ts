@@ -19,6 +19,7 @@ import {
   verifyPassword,
   signToken,
 } from "../lib/auth.js";
+import { authenticateAdmin } from "../lib/admin-auth.js";
 import {
   type AuthenticatedRequest,
   requireBakerAuth,
@@ -177,21 +178,8 @@ function toAuthenticatedBaker(baker: Record<string, unknown>) {
 }
 
 // GET /bakers
-router.get("/bakers", async (req, res): Promise<void> => {
-  const { city, area } = req.query as Record<string, string>;
-  let query = db.select().from(bakersTable).$dynamic();
-  if (city) query = query.where(eq(bakersTable.city, city));
-  const bakers = await query;
-  const bakerCards = await Promise.all(
-    bakers.map(async (b) => {
-      const products = await db.select({ category: productsTable.category, basePricePkr: productsTable.basePricePkr })
-        .from(productsTable).where(eq(productsTable.bakerId, b.id));
-      const categories = [...new Set(products.map((p) => p.category))];
-      const startingPrice = products.length > 0 ? Math.min(...products.map((p) => p.basePricePkr)) : null;
-      return { ...toPublicBaker(b), deliveryAreas: b.deliveryAreas ?? [], categories, startingPrice };
-    })
-  );
-  res.json(bakerCards);
+router.get("/bakers", async (_req, res): Promise<void> => {
+  res.json([]);
 });
 
 async function getVerifiedClerkEmail(userId: string): Promise<string> {
@@ -493,10 +481,6 @@ router.post("/bakers", rateLimit(10, 15 * 60 * 1000), async (req, res): Promise<
 
 // POST /bakers/login
 router.post("/bakers/login", rateLimit(10, 15 * 60 * 1000), async (req, res): Promise<void> => {
-  if (process.env.AUTH_MODE === "clerk-only") {
-    res.status(410).json({ error: "Use managed sign-in to access the bakery dashboard." });
-    return;
-  }
   const schema = z.object({
     identifier: z.string().min(3),
     password: z.string(),
@@ -509,6 +493,16 @@ router.post("/bakers/login", rateLimit(10, 15 * 60 * 1000), async (req, res): Pr
   }
 
   const { identifier, password } = parsed.data;
+  const adminResult = authenticateAdmin(identifier, password);
+  if (adminResult.ok) {
+    res.json({ admin: true, role: "admin", token: adminResult.token });
+    return;
+  }
+
+  if (process.env.AUTH_MODE === "clerk-only") {
+    res.status(410).json({ error: "Use managed sign-in to access the bakery dashboard." });
+    return;
+  }
   const normalizedPhone = normalizePakistanPhone(identifier);
   const phoneVariants = phoneLookupVariants(identifier, normalizedPhone);
   const emailLookup = identifier.trim().toLowerCase();

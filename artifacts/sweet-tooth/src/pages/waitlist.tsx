@@ -1,0 +1,187 @@
+import { useEffect, useState, type FormEvent } from "react";
+import { Link } from "wouter";
+import { ArrowRight, Check } from "lucide-react";
+import { BuyerLayout } from "@/components/layout/buyer-layout";
+
+const faces = [
+  { initials: "S", name: "Sana", color: "bg-[#632a73]" },
+  { initials: "A", name: "Ayesha", color: "bg-[#c24f7a]" },
+  { initials: "H", name: "Hira", color: "bg-[#d97706]" },
+  { initials: "M", name: "Maham", color: "bg-[#1d1033]" },
+];
+
+export default function Waitlist() {
+  const [bakerName, setBakerName] = useState("");
+  const [bakerEmail, setBakerEmail] = useState("");
+  const [whatsappNumber, setWhatsappNumber] = useState("");
+  const [city, setCity] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [joined, setJoined] = useState(false);
+  const [alreadyJoined, setAlreadyJoined] = useState(false);
+  const [error, setError] = useState("");
+  const [count, setCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    void fetch("/api/waitlist/count")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((body: { count?: number } | null) => {
+        if (typeof body?.count === "number") setCount(body.count);
+      })
+      .catch(() => undefined);
+  }, []);
+
+  const handleSubmit = async (event: FormEvent) => {
+    event.preventDefault();
+    setSubmitting(true);
+    setError("");
+    try {
+      const res = await fetch("/api/waitlist", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          bakerName,
+          bakerEmail,
+          whatsappNumber,
+          city: city || undefined,
+          source: "launch",
+          note: "Joined from public waitlist.",
+        }),
+      });
+      const body = (await res.json().catch(() => ({}))) as { error?: string; alreadyJoined?: boolean };
+      if (!res.ok) {
+        setError(body.error || "Could not join the waitlist. Check your details and try again.");
+        return;
+      }
+      setAlreadyJoined(Boolean(body.alreadyJoined));
+      setJoined(true);
+      setCount((current) => (typeof current === "number" && !body.alreadyJoined ? current + 1 : current));
+    } catch {
+      setError("Network error. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <BuyerLayout>
+      <section className="relative overflow-hidden bg-[#f8f5ef] px-4 py-16 sm:px-6 sm:py-24">
+        <div aria-hidden="true" className="pointer-events-none absolute -right-24 top-10 h-72 w-72 rounded-full bg-[#c24f7a]/10 blur-3xl" />
+        <div aria-hidden="true" className="pointer-events-none absolute -left-16 bottom-0 h-64 w-64 rounded-full bg-[#f1a93b]/20 blur-3xl" />
+
+        <div className="relative mx-auto grid max-w-5xl items-center gap-12 lg:grid-cols-[1.05fr_0.95fr]">
+          <div>
+            <p className="inline-flex rounded-full border border-[#eadfce] bg-white px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-primary">
+              Closed beta · Pakistan
+            </p>
+            <h1 className="mt-6 font-serif text-4xl font-bold leading-[0.95] tracking-[-0.04em] text-[#241532] sm:text-6xl">
+              Join the Sweet Tooth waitlist
+            </h1>
+            <p className="mt-5 max-w-lg text-base leading-7 text-muted-foreground">
+              We are inviting a small group of home bakers first. Leave your bakery details and we will WhatsApp you when your workspace is ready.
+            </p>
+
+            <div className="mt-8 flex items-center gap-3">
+              <div className="flex -space-x-3">
+                {faces.map((face) => (
+                  <span
+                    key={face.name}
+                    title={face.name}
+                    className={`inline-flex h-10 w-10 items-center justify-center rounded-full border-2 border-white text-xs font-bold text-white ${face.color}`}
+                  >
+                    {face.initials}
+                  </span>
+                ))}
+              </div>
+              <p className="text-sm font-semibold text-[#382b43]">
+                {count && count > 0
+                  ? `${count} baker${count === 1 ? "y" : "ies"} already on the list`
+                  : "Be among the first bakeries we invite"}
+              </p>
+            </div>
+          </div>
+
+          <div className="rounded-3xl border border-[#eadfce] bg-white p-6 shadow-[0_24px_60px_rgba(47,24,55,0.08)] sm:p-8">
+            {joined ? (
+              <div className="space-y-4 py-6 text-center">
+                <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-50 text-emerald-700">
+                  <Check className="h-6 w-6" />
+                </span>
+                <h2 className="font-serif text-3xl font-bold text-[#241532]">
+                  {alreadyJoined ? "You are already on the list" : "You are on the list"}
+                </h2>
+                <p className="text-sm leading-6 text-muted-foreground">
+                  We will message you on WhatsApp when a bakery slot opens. No need to create an account yet.
+                </p>
+                <Link href="/" className="inline-flex min-h-11 items-center justify-center gap-2 text-sm font-bold text-primary">
+                  Back to Sweet Tooth <ArrowRight className="h-4 w-4" />
+                </Link>
+              </div>
+            ) : (
+              <form onSubmit={(event) => void handleSubmit(event)} className="space-y-4">
+                <div>
+                  <h2 className="font-serif text-2xl font-bold text-[#241532]">Request early access</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">Bakery name, email, and WhatsApp only. We do not sell this list.</p>
+                </div>
+                <label className="block space-y-1.5 text-xs font-bold uppercase tracking-wider text-[#746876]">
+                  Bakery name
+                  <input
+                    required
+                    value={bakerName}
+                    onChange={(e) => setBakerName(e.target.value)}
+                    className="min-h-12 w-full rounded-xl border border-[#dfd1c4] bg-[#fffaf6] px-3.5 text-sm font-semibold normal-case text-[#241629] outline-none focus:border-[#c24f7a]/60 focus:ring-4 focus:ring-[#c24f7a]/10"
+                    placeholder="e.g. Sana's Kitchen"
+                  />
+                </label>
+                <label className="block space-y-1.5 text-xs font-bold uppercase tracking-wider text-[#746876]">
+                  Email
+                  <input
+                    required
+                    type="email"
+                    value={bakerEmail}
+                    onChange={(e) => setBakerEmail(e.target.value)}
+                    className="min-h-12 w-full rounded-xl border border-[#dfd1c4] bg-[#fffaf6] px-3.5 text-sm font-semibold normal-case text-[#241629] outline-none focus:border-[#c24f7a]/60 focus:ring-4 focus:ring-[#c24f7a]/10"
+                    placeholder="you@bakery.com"
+                  />
+                </label>
+                <label className="block space-y-1.5 text-xs font-bold uppercase tracking-wider text-[#746876]">
+                  WhatsApp number
+                  <input
+                    required
+                    value={whatsappNumber}
+                    onChange={(e) => setWhatsappNumber(e.target.value)}
+                    className="min-h-12 w-full rounded-xl border border-[#dfd1c4] bg-[#fffaf6] px-3.5 text-sm font-semibold normal-case text-[#241629] outline-none focus:border-[#c24f7a]/60 focus:ring-4 focus:ring-[#c24f7a]/10"
+                    placeholder="03XX XXXXXXX"
+                  />
+                </label>
+                <label className="block space-y-1.5 text-xs font-bold uppercase tracking-wider text-[#746876]">
+                  City <span className="font-medium normal-case tracking-normal text-muted-foreground">(optional)</span>
+                  <input
+                    value={city}
+                    onChange={(e) => setCity(e.target.value)}
+                    className="min-h-12 w-full rounded-xl border border-[#dfd1c4] bg-[#fffaf6] px-3.5 text-sm font-semibold normal-case text-[#241629] outline-none focus:border-[#c24f7a]/60 focus:ring-4 focus:ring-[#c24f7a]/10"
+                    placeholder="Lahore, Karachi, Islamabad…"
+                  />
+                </label>
+                {error && <p className="rounded-xl bg-red-50 px-3 py-2 text-sm font-medium text-red-700">{error}</p>}
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary px-5 text-sm font-bold text-primary-foreground transition hover:bg-primary/90 disabled:opacity-50"
+                >
+                  {submitting ? "Joining…" : "Join the waitlist"}
+                  {!submitting && <ArrowRight className="h-4 w-4" />}
+                </button>
+                <p className="text-center text-xs text-muted-foreground">
+                  Already invited?{" "}
+                  <Link href="/dashboard/login" className="font-semibold text-primary hover:underline">
+                    Baker sign in
+                  </Link>
+                </p>
+              </form>
+            )}
+          </div>
+        </div>
+      </section>
+    </BuyerLayout>
+  );
+}

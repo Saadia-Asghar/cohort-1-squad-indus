@@ -113,29 +113,23 @@ export default function BakerLogin({ initialTab = "login" }: { initialTab?: "log
     setLoading(true);
     setError("");
     try {
-      // Admin shortcut: if the user enters admin credentials, redirect to the admin portal
-      if (email.trim().toLowerCase() === "admin@sweettooth.pk") {
-        const adminRes = await fetch("/api/admin/login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email: email.trim(), password }),
-        });
-        const adminData = await adminRes.json();
-        if (adminRes.ok && adminData.token) {
-          localStorage.setItem("admin_bearer_token", adminData.token);
-          setLocation("/admin");
-          return;
-        }
-        setError("Invalid admin credentials.");
-        return;
-      }
-
-      const response = await customFetch<{ token: string; baker: { id: number }; role?: "owner" | "staff" }>("/api/bakers/login", {
+      const response = await customFetch<{
+        token: string;
+        baker?: { id: number };
+        role?: "owner" | "staff" | "admin";
+        admin?: boolean;
+      }>("/api/bakers/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ identifier: email.trim(), password }),
       });
-      const role = response.role ?? "owner";
+      if (response.admin || response.role === "admin") {
+        localStorage.setItem("admin_bearer_token", response.token);
+        setLocation("/admin");
+        return;
+      }
+      if (!response.baker?.id) throw new Error("Could not open your bakery dashboard.");
+      const role = response.role === "staff" ? "staff" : "owner";
       finishAuth(response.token, response.baker.id, "password", role, role === "staff" ? "/dashboard/human-inbox" : "/dashboard");
     } catch (cause: unknown) {
       const message = cause instanceof Error ? cause.message.replace(/^HTTP \d+\s*[^:]*:\s*/, "") : "Invalid email/number or password";

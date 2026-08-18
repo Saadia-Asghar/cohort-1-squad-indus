@@ -1,90 +1,105 @@
-# 🧁 Sweet Tooth — AI-Powered Home-Baker Commerce Platform
+# Sweet Tooth — bakery order workspace
 
-**Sweet Tooth** (*Meethi Khushiyan, Ghar Se Aap Tak*) is an all-in-one AI commerce, customer retention, and automated order management platform built specifically for home-based bakeries and micro-food businesses.
+**Sweet Tooth** (*Meethi Khushiyan, Ghar Se Aap Tak*) helps Pakistan’s home bakers take orders from the people they already talk to: **WhatsApp**, **Instagram**, and a **menu link they share**. It is **not** a Daraz-style marketplace. Customers do not browse every bakery.
+
+Bakers publish a menu, share it (link or QR), and connect WhatsApp / Instagram. The assistant collects cake details from those chats. Orders, payments, and the production calendar stay in one dashboard.
 
 ---
 
-## ✨ Key Features & Architecture
+## What this product is
 
-### 1. 🔐 Baker authentication
-* **Native credentials** (email/phone + password) work without Clerk.
-* **Clerk SSO** is optional — only enabled when `VITE_CLERK_PUBLISHABLE_KEY` / API Clerk secrets are set for the deployment domain. See **[docs/CLERK_SETUP.md](docs/CLERK_SETUP.md)** for Google sign-in on Vercel.
-* **Per-baker data isolation** for catalog, customers, and orders.
+| For bakers | For their customers |
+| --- | --- |
+| Inbox for WhatsApp, Instagram, and the shared-menu web agent | Open the **menu link the baker sent** |
+| Remember returning buyers (eggless, area, allergies, baker notes) | Chat on that menu, WhatsApp, or Instagram |
+| Orders, JazzCash proof review, khata, calendar | Not a mall of other bakeries |
 
-### 2. 📱 Omnichannel Meta (Instagram & WhatsApp)
+Admin (`/admin`) activates baker plans after JazzCash / Easypaisa / bank confirmation. There is no payment gateway.
+
+---
+
+## Key features
+
+### Baker authentication
+* Native JWT (email/phone + password) is the default. Tokens are stored as `baker_token`.
+* Clerk SSO is optional — only when Clerk keys are set. See **[docs/CLERK_SETUP.md](docs/CLERK_SETUP.md)**.
+* Admin portal is `/admin`. Sign in with `ADMIN_EMAIL` / `ADMIN_PASSWORD`; the API issues a signed admin JWT.
+
+### WhatsApp, Instagram, and shared menu
 * Webhooks: `/api/webhooks/whatsapp`, `/api/webhooks/instagram`.
-* **WhatsApp Embedded Signup** + **Instagram Meta connect** in Agent Hub (requires Meta app env vars).
+* WhatsApp Embedded Signup + Instagram Meta connect in Agent Hub.
 * Tokens are encrypted per bakery (`TOKEN_ENCRYPTION_KEY`).
+* Each bakery has a shareable menu at `/menu/:bakerId`. Copy it from the dashboard or Settings (QR included).
 
-### 3. 🔍 OCR payment slip review (advisory)
-* Buyers can upload a JazzCash / Easypaisa screenshot after checkout on the cart success screen.
-* Bakers can also upload/check receipts on **Payments**. OCR is advisory only — it never auto-marks paid.
-* File upload works without Cloudinary; `RECEIPT_IMAGE_HOSTS` is only needed for pasted external URLs.
+### Payments
+* Buyers can upload a JazzCash / Easypaisa screenshot after checkout.
+* OCR is advisory only — it never auto-marks paid.
 
-### 4. 🧠 Smart AI assistant & RAG memory
-* Rule-based replies first; **RAG fallback** from indexed menu/policy chunks when rules miss.
-* Conversation memory + knowledge reindex after catalog/policy changes.
+### Agent + memory
+* Rule-based replies first; RAG fallback from indexed menu/policy chunks.
+* Conversation memory stores slots (eggless, area, allergies, occasion), including Roman Urdu like *anda nahi*. Summaries are not wiped every turn.
+* Bakers can pin a note and eggless flag on **Customers** so the agent honours it.
 
-### 5. 📊 Analytics & outreach
+### Analytics
 * Revenue/order charts and retention stats.
-* WhatsApp broadcasts send through the bakery’s connected Meta number (not a mock gateway).
+* WhatsApp broadcasts go through the bakery’s connected Meta number.
 
-### Ordering model
-* Menus can hand off to WhatsApp/Instagram, or use the web assistant.
-* **Guest web checkout** is available (`/cart`) with server-side price verification.
-* Buyers can look up order status by WhatsApp number on `/orders`.
+### Ordering
+* Shared menu can use the web assistant and/or hand off to WhatsApp/Instagram.
+* Guest checkout on that baker’s menu (`/cart`) with server-side price verification.
+* Order status uses the secure link from checkout — not a public phone lookup.
 
 ---
 
-## 🛠️ Project Structure (Monorepo)
+## Project structure
 
 ```
 Sweet-Tooth/
 ├── artifacts/
-│   ├── api-server/         # Express.js API server (OCR, Meta Webhooks, RAG Engine)
-│   └── sweet-tooth/        # React + Vite Frontend (Baker Dashboard & Marketplace)
+│   ├── api-server/         # Express API (Meta webhooks, agent, RAG)
+│   └── sweet-tooth/        # React + Vite (baker dashboard + shared menus)
 ├── lib/
-│   ├── api-client-react/   # Generated React Query API hooks
-│   ├── api-spec/           # OpenAPI 3.0 specification
-│   ├── api-zod/            # Generated Zod validation schemas
-│   └── db/                 # Drizzle ORM database schemas (Supabase PostgreSQL)
+│   ├── api-client-react/
+│   ├── api-spec/
+│   ├── api-zod/
+│   └── db/
 ├── package.json
-└── vercel.json             # Vercel serverless deployment config
+└── vercel.json
 ```
 
 ---
 
-## 🚀 Quick Start (Local Setup)
+## Local setup
 
-### 1. Prerequisites & Environment Variables
-API: copy `artifacts/api-server/.env.example` → `.env` (or set on Vercel).
-Frontend: copy `artifacts/sweet-tooth/.env.example` and set at least `VITE_API_URL`.
+API: copy `artifacts/api-server/.env.example` → `artifacts/api-server/.env`. Local Postgres can also come from the parent `D:\sweettooth app\.env` (`DATABASE_HOST`, `DATABASE_NAME`, `DATABASE_USERNAME`, `DATABASE_PASSWORD`, `DATABASE_PORT`).
 
-Meta connect also needs on the API: `META_APP_ID`, `META_APP_SECRET`, `META_WEBHOOK_VERIFY_TOKEN`, `TOKEN_ENCRYPTION_KEY`.
-OCR hosts: `RECEIPT_IMAGE_HOSTS`.
+Frontend: copy `artifacts/sweet-tooth/.env.example` → `.env`. For local Vite, leave `VITE_API_URL` unset so `/api` proxies to port 8080.
 
-**Optional agent observability (free Hobby):** [Langfuse Cloud](https://cloud.langfuse.com) — set `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`, and optionally `LANGFUSE_BASE_URL` (default EU cloud). No credit card; traces every chat turn (web/WhatsApp/Instagram) so you can see escalations and weak replies. Without these keys, tracing is off.
+If ApplyOne (or another app) already uses **5173**, run Sweet Tooth on **5180**:
 
-**Optional n8n automations:** set `N8N_WEBHOOK_URL` (+ `N8N_WEBHOOK_SECRET`). Events: `order.created`, `chat.received`, `chat.escalated`, `payment.advance_reminder`, `billing.upgrade_requested`, `billing.plan_activated`. Use n8n for WhatsApp follow-ups / Slack alerts — keep RAG + caps in the API.
+```powershell
+$env:PORT='5180'; pnpm --filter @workspace/sweet-tooth run dev
+```
 
-**Platform billing (free, no JazzCash API):** set `PLATFORM_WHATSAPP`, `PLATFORM_PAYMENT_DETAILS`, and optional `PLATFORM_BILLING_NAME`. Bakers pick a plan in Settings → transfer → WhatsApp you with a receipt. Activate with `POST /api/admin/activate-plan` and `Authorization: Bearer <JWT_SECRET>` body `{ "bakerId": 1, "planId": "starter" }`.
+Meta: `META_APP_ID`, `META_APP_SECRET`, `META_WEBHOOK_VERIFY_TOKEN`, `TOKEN_ENCRYPTION_KEY`.
 
-**Optional Google sign-in:** follow [docs/CLERK_SETUP.md](docs/CLERK_SETUP.md), then run `.\scripts\sync-clerk-vercel.ps1`.
+**Platform billing (no JazzCash merchant API):** `PLATFORM_WHATSAPP`, `PLATFORM_PAYMENT_DETAILS`, optional `PLATFORM_BILLING_NAME`. Bakers transfer, WhatsApp a receipt, you activate from `/admin`.
 
-### 2. Install Dependencies & Build
 ```bash
 pnpm install
 pnpm --filter @workspace/api-server run build
 ```
 
-### 3. Run Development Servers
-```bash
-# Terminal 1: API Server
-pnpm --filter @workspace/api-server run dev
+```powershell
+# API (PowerShell)
+$env:NODE_ENV='development'; $env:PORT='8080'; pnpm --filter @workspace/api-server run start
 
-# Terminal 2: Frontend Client
-pnpm --filter @workspace/sweet-tooth run dev
+# Frontend
+$env:PORT='5180'; pnpm --filter @workspace/sweet-tooth run dev
 ```
 
-* **Frontend Marketplace**: `http://localhost:20458/`
-* **API Health Check**: `http://localhost:8080/api/healthz`
+* UI: `http://localhost:5180/`
+* Baker dashboard: `http://localhost:5180/dashboard`
+* Admin: `http://localhost:5180/admin`
+* Shared menu example: `http://localhost:5180/menu/1`
+* API health: `http://localhost:8080/api/healthz`

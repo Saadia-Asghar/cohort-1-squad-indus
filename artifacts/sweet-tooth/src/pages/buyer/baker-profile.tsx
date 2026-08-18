@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { BuyerLayout } from "@/components/layout/buyer-layout";
+import { GuestMenuShell } from "@/components/layout/guest-menu-shell";
 import { 
   useGetBaker, 
   useGetBakerProducts, 
@@ -17,7 +17,6 @@ import { resolveConversationFlow, type ResolvedConversationFlow } from "@/lib/co
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { addGuestCartItem } from "@/pages/buyer/cart";
-import { Link } from "wouter";
 
 type PublicChatMessage = {
   id: string;
@@ -222,7 +221,7 @@ export default function BakerProfile() {
   };
 
   return (
-    <BuyerLayout>
+    <GuestMenuShell bakerName={baker?.businessName} bakerId={bakerId || null}>
       <div className="container mx-auto px-4 py-8 max-w-5xl relative">
         {loadingBaker ? (
           <div className="animate-pulse space-y-8">
@@ -663,6 +662,6 @@ export default function BakerProfile() {
           </div>
         </div>
       )}
-    </BuyerLayout>
+    </GuestMenuShell>
   );
 }
