@@ -1,8 +1,28 @@
 import crypto from "node:crypto";
 
 const MAX_IMAGE_BYTES = 4 * 1024 * 1024;
+const HOSTING_UNAVAILABLE =
+  "Photo hosting is not available right now. Paste a public https image URL instead.";
 
-function cloudinaryConfig() {
+function parseCloudinaryUrl(value?: string): { cloudName: string; apiKey: string; apiSecret: string } | null {
+  const raw = value?.trim();
+  if (!raw) return null;
+  try {
+    const url = new URL(raw);
+    if (url.protocol !== "cloudinary:") return null;
+    const cloudName = url.hostname.trim();
+    const apiKey = decodeURIComponent(url.username);
+    const apiSecret = decodeURIComponent(url.password);
+    if (!cloudName || !apiKey || !apiSecret) return null;
+    return { cloudName, apiKey, apiSecret };
+  } catch {
+    return null;
+  }
+}
+
+export function cloudinaryConfig(): { cloudName: string; apiKey: string; apiSecret: string } | null {
+  const fromUrl = parseCloudinaryUrl(process.env.CLOUDINARY_URL);
+  if (fromUrl) return fromUrl;
   const cloudName = process.env.CLOUDINARY_CLOUD_NAME?.trim();
   const apiKey = process.env.CLOUDINARY_API_KEY?.trim();
   const apiSecret = process.env.CLOUDINARY_API_SECRET?.trim();
@@ -10,16 +30,32 @@ function cloudinaryConfig() {
   return { cloudName, apiKey, apiSecret };
 }
 
+export function isPublicHttpUrl(value: string): boolean {
+  try {
+    const url = new URL(value.trim());
+    return url.protocol === "https:" || url.protocol === "http:";
+  } catch {
+    return false;
+  }
+}
+
 export async function uploadBakerImage(file: string): Promise<string> {
-  const config = cloudinaryConfig();
   const trimmed = file.trim();
   if (!trimmed) throw new Error("Choose an image or paste a photo URL.");
 
-  if (!config) {
-    if (!/^https?:\/\//i.test(trimmed)) {
-      throw new Error("Image upload is not configured. Paste a public https image URL instead.");
-    }
+  // Never send an already-hosted URL through Cloudinary — a bad cloud_name
+  // would reject pasted Unsplash/Cloudinary links that bakers can otherwise save.
+  if (isPublicHttpUrl(trimmed)) {
     return trimmed.slice(0, 2000);
+  }
+
+  if (!trimmed.startsWith("data:image/")) {
+    throw new Error("Paste a public https image URL or upload a JPEG, PNG or WebP photo.");
+  }
+
+  const config = cloudinaryConfig();
+  if (!config) {
+    throw new Error(HOSTING_UNAVAILABLE);
   }
 
   const timestamp = Math.floor(Date.now() / 1000);
@@ -44,7 +80,11 @@ export async function uploadBakerImage(file: string): Promise<string> {
   });
   const payload = await response.json() as { secure_url?: string; error?: { message?: string } };
   if (!response.ok || !payload.secure_url) {
-    throw new Error(payload.error?.message || "Could not upload that image. Try a smaller JPEG or PNG.");
+    const detail = payload.error?.message || "";
+    if (/invalid cloud_name|unknown api_key|invalid signature/i.test(detail)) {
+      throw new Error(HOSTING_UNAVAILABLE);
+    }
+    throw new Error("Could not upload that image. Try a smaller JPEG or PNG, or paste a public photo URL.");
   }
   return payload.secure_url;
 }

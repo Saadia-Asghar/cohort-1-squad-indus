@@ -29,6 +29,12 @@ describe("extractPreferences", () => {
     expect(String(prefs.lastItem).toLowerCase()).toContain("chocolate cake");
   });
 
+  it("picks up I'm-in phrasing and looking-for requests", () => {
+    const prefs = extractPreferences("I'm in Clifton and looking for a bento cake", {});
+    expect(String(prefs.preferredArea).toLowerCase()).toContain("clifton");
+    expect(String(prefs.lastItem).toLowerCase()).toContain("bento cake");
+  });
+
   it("records occasion and allergy without copying the full message", () => {
     const prefs = extractPreferences("birthday cake, allergic to nuts", {});
     expect(prefs.occasion).toBe("birthday");

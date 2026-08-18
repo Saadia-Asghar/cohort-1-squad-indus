@@ -54775,12 +54775,12 @@ var init_demo_bakers = __esm({
             ],
             isEgglessAvailable: true,
             leadTimeDays: 7,
-            category: "Wedding Cakes",
+            category: "Cakes",
             occasionTags: ["Wedding", "Nikah"],
             dietaryTags: [],
             ingredients: ["vanilla sponge", "fondant", "sugar flowers"],
             allergens: ["dairy", "gluten", "eggs"],
-            photoUrl: "https://images.unsplash.com/photo-1549298651-0e5b3a0e9ca3?w=600&auto=format&fit=crop",
+            photoUrl: "https://images.unsplash.com/photo-1464349095431-e9a21285b5f3?w=600&auto=format&fit=crop",
             isBestSeller: true,
             isTopRated: true,
             displayOrder: 1
@@ -76817,6 +76817,124 @@ function phoneLookupVariants(value, normalized) {
   return [.../* @__PURE__ */ new Set([raw, normalized, digits, `0${digits.slice(2)}`, digits.slice(2)])];
 }
 
+// src/lib/product-validation.ts
+var PRODUCT_CATEGORIES = [
+  "Cakes",
+  "Cupcakes",
+  "Brownies",
+  "Cookies",
+  "Desserts",
+  "Breads",
+  "Savory",
+  "Other"
+];
+var LEGACY_CATEGORY_ALIASES = {
+  "Wedding Cakes": "Cakes",
+  "Wedding Cake": "Cakes",
+  "Dessert Boxes": "Desserts",
+  "Dessert Box": "Desserts",
+  "Cup Cake": "Cupcakes",
+  "Cup Cakes": "Cupcakes",
+  Brownie: "Brownies",
+  Cookie: "Cookies",
+  Dessert: "Desserts",
+  Bread: "Breads",
+  Savoury: "Savory"
+};
+var MAX_PRODUCT_PRICE_PKR = 999999;
+var MAX_PRODUCT_DESCRIPTION_CHARS = 280;
+var LABEL_CONFLICTS = {
+  "Egg-free": ["Contains eggs"],
+  "Contains eggs": ["Egg-free"],
+  "Dairy-free": ["Contains dairy"],
+  "Contains dairy": ["Dairy-free"],
+  "Gluten-free": ["Contains gluten"],
+  "Contains gluten": ["Gluten-free"],
+  "Nut-free": ["Contains nuts"],
+  "Contains nuts": ["Nut-free"],
+  Vegan: ["Contains eggs", "Contains dairy"]
+};
+function toTitleCase(value) {
+  return value.trim().replace(/\s+/g, " ").split(" ").map((word) => {
+    if (!word) return word;
+    if (word === word.toUpperCase() && word.length <= 3) return word;
+    return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+  }).join(" ");
+}
+function firstFriendlyZodIssue(error40) {
+  return error40.issues?.[0]?.message ?? "Please check the form and try again.";
+}
+function coerceProductCategory(category) {
+  const titled = toTitleCase(category);
+  const exact = PRODUCT_CATEGORIES.find((item) => item.toLowerCase() === titled.toLowerCase());
+  if (exact) return exact;
+  return LEGACY_CATEGORY_ALIASES[titled] ?? LEGACY_CATEGORY_ALIASES[category.trim()] ?? "Other";
+}
+function sanitizeProductFields(input) {
+  const value = {};
+  if (input.name !== void 0) {
+    const name = toTitleCase(input.name);
+    if (name.length < 2 || name.length > 80) {
+      return { error: "Product name must be between 2 and 80 characters." };
+    }
+    value.name = name;
+  }
+  if (input.description !== void 0) {
+    const description = (input.description ?? "").trim();
+    if (description.length > MAX_PRODUCT_DESCRIPTION_CHARS) {
+      return { error: `Description must be ${MAX_PRODUCT_DESCRIPTION_CHARS} characters or fewer.` };
+    }
+    value.description = description || null;
+  }
+  if (input.category !== void 0) {
+    const category = String(input.category ?? "").trim();
+    if (!category) {
+      return { error: "Choose a category from the list." };
+    }
+    value.category = coerceProductCategory(category);
+  }
+  if (input.basePricePkr !== void 0) {
+    if (!Number.isInteger(input.basePricePkr) || input.basePricePkr < 1 || input.basePricePkr > MAX_PRODUCT_PRICE_PKR) {
+      return { error: `Price must be a whole number from PKR 1 to PKR ${MAX_PRODUCT_PRICE_PKR.toLocaleString()}.` };
+    }
+    value.basePricePkr = input.basePricePkr;
+  }
+  if (input.recipeCostPkr !== void 0) {
+    if (input.recipeCostPkr === null) {
+      value.recipeCostPkr = null;
+    } else if (!Number.isInteger(input.recipeCostPkr) || input.recipeCostPkr < 0 || input.recipeCostPkr > MAX_PRODUCT_PRICE_PKR) {
+      return { error: `Recipe cost must be a whole number from PKR 0 to PKR ${MAX_PRODUCT_PRICE_PKR.toLocaleString()}.` };
+    } else {
+      value.recipeCostPkr = input.recipeCostPkr;
+    }
+  }
+  if (input.dietaryTags !== void 0 || input.allergens !== void 0) {
+    const dietaryTags = [...input.dietaryTags ?? []];
+    const allergens = [...input.allergens ?? []];
+    const combined = [...dietaryTags, ...allergens];
+    for (const label of combined) {
+      const conflicts = LABEL_CONFLICTS[label] ?? [];
+      if (conflicts.some((item) => combined.includes(item))) {
+        return { error: `\u201C${label}\u201D cannot be combined with a contradictory label.` };
+      }
+    }
+    if (input.dietaryTags !== void 0) value.dietaryTags = dietaryTags;
+    if (input.allergens !== void 0) value.allergens = allergens;
+    if (dietaryTags.includes("Egg-free")) value.isEgglessAvailable = true;
+    if (allergens.includes("Contains eggs")) value.isEgglessAvailable = false;
+  }
+  if (input.photoUrl !== void 0) {
+    const photoUrl = (input.photoUrl ?? "").trim();
+    if (!photoUrl) value.photoUrl = null;
+    else if (!/^https?:\/\//i.test(photoUrl) && !photoUrl.startsWith("data:image/")) {
+      return { error: "Product photo must be an image URL or an uploaded image." };
+    } else {
+      value.photoUrl = photoUrl.slice(0, 2e3);
+    }
+  }
+  return { value };
+}
+
 // src/lib/shop-settings.ts
 var OCCASION_LABELS = {
   eid_fitr: "Eid ul-Fitr",
@@ -77497,8 +77615,9 @@ router2.post("/bakers/forgot-password", rateLimit(5, 15 * 60 * 1e3), async (req,
   const emailLookup = parsed.data.email.trim().toLowerCase();
   const [baker] = await db.select().from(bakersTable).where(eq(bakersTable.email, emailLookup)).limit(1);
   const genericMessage = "If an account exists with that email, a password reset link has been sent.";
+  const emailConfigured = isMailerConfigured();
   if (!baker) {
-    res.json({ message: genericMessage });
+    res.json({ message: genericMessage, emailConfigured });
     return;
   }
   const { token, tokenHash, expires } = createPasswordResetToken();
@@ -77542,8 +77661,43 @@ This link is valid for 1 hour. If you did not request this, you can safely ignor
   }
   res.json({
     message: genericMessage,
+    emailConfigured,
     ...isLocalDev() ? { resetUrl: resetLink } : {}
   });
+});
+router2.post("/bakers/change-password", requireBakerAuth, requireBakerOwner, rateLimit(8, 15 * 60 * 1e3), async (req, res) => {
+  const parsed = external_exports.object({
+    currentPassword: external_exports.string().min(1).max(128),
+    newPassword: external_exports.string().min(12).max(128)
+  }).safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Enter your current password and a new password of at least 12 characters." });
+    return;
+  }
+  const bakerId = req.bakerId;
+  if (!bakerId) {
+    res.status(401).json({ error: "Sign in to change your password." });
+    return;
+  }
+  const [baker] = await db.select().from(bakersTable).where(eq(bakersTable.id, bakerId)).limit(1);
+  if (!baker) {
+    res.status(404).json({ error: "Baker not found" });
+    return;
+  }
+  const { currentPassword, newPassword } = parsed.data;
+  const matchesStored = Boolean(baker.passwordHash && verifyPassword(currentPassword, baker.passwordHash));
+  const demoPassword = demoPasswordForIdentifier(baker.email ?? "");
+  const matchesDemo = Boolean(demoPassword && currentPassword === demoPassword);
+  if (!matchesStored && !matchesDemo) {
+    res.status(400).json({ error: "Current password is incorrect." });
+    return;
+  }
+  await db.update(bakersTable).set({
+    passwordHash: hashPassword(newPassword),
+    resetPasswordToken: null,
+    resetPasswordExpires: null
+  }).where(eq(bakersTable.id, baker.id));
+  res.json({ message: "Your password has been updated. Use the new password next time you sign in." });
 });
 router2.post("/bakers/reset-password", rateLimit(5, 15 * 60 * 1e3), async (req, res) => {
   const schema = external_exports.object({
@@ -77681,6 +77835,7 @@ router2.get("/bakers/:bakerId/products", async (req, res) => {
   const products = await db.select().from(productsTable).where(eq(productsTable.bakerId, params.data.bakerId)).orderBy(productsTable.displayOrder, productsTable.createdAt);
   res.json(products.map((p) => ({
     ...p,
+    category: coerceProductCategory(p.category ?? "Other"),
     sizes: p.sizes ?? [],
     variants: p.variants ?? [],
     occasionTags: p.occasionTags ?? [],
@@ -78086,110 +78241,11 @@ var import_express6 = __toESM(require_express2(), 1);
 init_drizzle_orm();
 init_src();
 init_plan_limits();
-
-// src/lib/product-validation.ts
-var PRODUCT_CATEGORIES = [
-  "Cakes",
-  "Cupcakes",
-  "Brownies",
-  "Cookies",
-  "Desserts",
-  "Breads",
-  "Savory",
-  "Other"
-];
-var MAX_PRODUCT_PRICE_PKR = 999999;
-var MAX_PRODUCT_DESCRIPTION_CHARS = 280;
-var LABEL_CONFLICTS = {
-  "Egg-free": ["Contains eggs"],
-  "Contains eggs": ["Egg-free"],
-  "Dairy-free": ["Contains dairy"],
-  "Contains dairy": ["Dairy-free"],
-  "Gluten-free": ["Contains gluten"],
-  "Contains gluten": ["Gluten-free"],
-  "Nut-free": ["Contains nuts"],
-  "Contains nuts": ["Nut-free"],
-  Vegan: ["Contains eggs", "Contains dairy"]
-};
-function toTitleCase(value) {
-  return value.trim().replace(/\s+/g, " ").split(" ").map((word) => {
-    if (!word) return word;
-    if (word === word.toUpperCase() && word.length <= 3) return word;
-    return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
-  }).join(" ");
-}
-function firstFriendlyZodIssue(error40) {
-  return error40.issues?.[0]?.message ?? "Please check the form and try again.";
-}
-function sanitizeProductFields(input) {
-  const value = {};
-  if (input.name !== void 0) {
-    const name = toTitleCase(input.name);
-    if (name.length < 2 || name.length > 80) {
-      return { error: "Product name must be between 2 and 80 characters." };
-    }
-    value.name = name;
-  }
-  if (input.description !== void 0) {
-    const description = (input.description ?? "").trim();
-    if (description.length > MAX_PRODUCT_DESCRIPTION_CHARS) {
-      return { error: `Description must be ${MAX_PRODUCT_DESCRIPTION_CHARS} characters or fewer.` };
-    }
-    value.description = description || null;
-  }
-  if (input.category !== void 0) {
-    if (!PRODUCT_CATEGORIES.includes(input.category)) {
-      return { error: "Choose a category from the list." };
-    }
-    value.category = input.category;
-  }
-  if (input.basePricePkr !== void 0) {
-    if (!Number.isInteger(input.basePricePkr) || input.basePricePkr < 1 || input.basePricePkr > MAX_PRODUCT_PRICE_PKR) {
-      return { error: `Price must be a whole number from PKR 1 to PKR ${MAX_PRODUCT_PRICE_PKR.toLocaleString()}.` };
-    }
-    value.basePricePkr = input.basePricePkr;
-  }
-  if (input.recipeCostPkr !== void 0) {
-    if (input.recipeCostPkr === null) {
-      value.recipeCostPkr = null;
-    } else if (!Number.isInteger(input.recipeCostPkr) || input.recipeCostPkr < 0 || input.recipeCostPkr > MAX_PRODUCT_PRICE_PKR) {
-      return { error: `Recipe cost must be a whole number from PKR 0 to PKR ${MAX_PRODUCT_PRICE_PKR.toLocaleString()}.` };
-    } else {
-      value.recipeCostPkr = input.recipeCostPkr;
-    }
-  }
-  if (input.dietaryTags !== void 0 || input.allergens !== void 0) {
-    const dietaryTags = [...input.dietaryTags ?? []];
-    const allergens = [...input.allergens ?? []];
-    const combined = [...dietaryTags, ...allergens];
-    for (const label of combined) {
-      const conflicts = LABEL_CONFLICTS[label] ?? [];
-      if (conflicts.some((item) => combined.includes(item))) {
-        return { error: `\u201C${label}\u201D cannot be combined with a contradictory label.` };
-      }
-    }
-    if (input.dietaryTags !== void 0) value.dietaryTags = dietaryTags;
-    if (input.allergens !== void 0) value.allergens = allergens;
-    if (dietaryTags.includes("Egg-free")) value.isEgglessAvailable = true;
-    if (allergens.includes("Contains eggs")) value.isEgglessAvailable = false;
-  }
-  if (input.photoUrl !== void 0) {
-    const photoUrl = (input.photoUrl ?? "").trim();
-    if (!photoUrl) value.photoUrl = null;
-    else if (!/^https?:\/\//i.test(photoUrl) && !photoUrl.startsWith("data:image/")) {
-      return { error: "Product photo must be an image URL or an uploaded image." };
-    } else {
-      value.photoUrl = photoUrl.slice(0, 2e3);
-    }
-  }
-  return { value };
-}
-
-// src/routes/products.ts
 var router4 = (0, import_express6.Router)();
 function formatProduct(p) {
   return {
     ...p,
+    category: coerceProductCategory(p.category ?? "Other"),
     sizes: p.sizes ?? [],
     variants: p.variants ?? [],
     occasionTags: p.occasionTags ?? [],
@@ -81007,7 +81063,12 @@ function extractPreferences(message, existing, deliveryAreas = []) {
     const spoken = areaPhrase[1].replace(/\b(please|thanks|karachi|lahore|islamabad)\b/g, "").trim();
     if (spoken.length >= 3) prefs.preferredArea = spoken;
   }
-  const lastItem = lowerMsg.match(/(?:order(?:ed|ing)?|want|need)\s+(?:a |an |the )?([a-z0-9 ]{3,40}(?:cake|cupcake|brownie|cookie|dessert))/);
+  const spokenHere = lowerMsg.match(/(?:i(?:'m| am)|we(?:'re| are))\s+(?:in|from|at)\s+([a-z0-9 .'-]{3,40})/);
+  if (!prefs.preferredArea && spokenHere?.[1]) {
+    const spoken = spokenHere[1].replace(/\b(please|thanks|karachi|lahore|islamabad)\b/g, "").trim();
+    if (spoken.length >= 3) prefs.preferredArea = spoken;
+  }
+  const lastItem = lowerMsg.match(/(?:order(?:ed|ing)?|want|need|looking for)\s+(?:a |an |the )?([a-z0-9 ]{3,40}(?:cake|cupcake|brownie|cookie|dessert|bento|box))/);
   if (lastItem?.[1]) prefs.lastItem = lastItem[1].trim();
   const allergyMatch = lowerMsg.match(/allerg(?:ic|y)(?:\s+hai)?(?:\s+to)\s+([a-z]{2,40})/) ?? lowerMsg.match(/\ballergy\s+([a-z]{2,40})/);
   if (allergyMatch?.[1]) {
@@ -83582,22 +83643,51 @@ init_rate_limiter();
 // src/lib/cloudinary-upload.ts
 import crypto11 from "node:crypto";
 var MAX_IMAGE_BYTES = 4 * 1024 * 1024;
+var HOSTING_UNAVAILABLE = "Photo hosting is not available right now. Paste a public https image URL instead.";
+function parseCloudinaryUrl(value) {
+  const raw = value?.trim();
+  if (!raw) return null;
+  try {
+    const url2 = new URL(raw);
+    if (url2.protocol !== "cloudinary:") return null;
+    const cloudName = url2.hostname.trim();
+    const apiKey = decodeURIComponent(url2.username);
+    const apiSecret = decodeURIComponent(url2.password);
+    if (!cloudName || !apiKey || !apiSecret) return null;
+    return { cloudName, apiKey, apiSecret };
+  } catch {
+    return null;
+  }
+}
 function cloudinaryConfig() {
+  const fromUrl = parseCloudinaryUrl(process.env.CLOUDINARY_URL);
+  if (fromUrl) return fromUrl;
   const cloudName = process.env.CLOUDINARY_CLOUD_NAME?.trim();
   const apiKey = process.env.CLOUDINARY_API_KEY?.trim();
   const apiSecret = process.env.CLOUDINARY_API_SECRET?.trim();
   if (!cloudName || !apiKey || !apiSecret) return null;
   return { cloudName, apiKey, apiSecret };
 }
+function isPublicHttpUrl(value) {
+  try {
+    const url2 = new URL(value.trim());
+    return url2.protocol === "https:" || url2.protocol === "http:";
+  } catch {
+    return false;
+  }
+}
 async function uploadBakerImage(file2) {
-  const config2 = cloudinaryConfig();
   const trimmed = file2.trim();
   if (!trimmed) throw new Error("Choose an image or paste a photo URL.");
-  if (!config2) {
-    if (!/^https?:\/\//i.test(trimmed)) {
-      throw new Error("Image upload is not configured. Paste a public https image URL instead.");
-    }
+  if (isPublicHttpUrl(trimmed)) {
     return trimmed.slice(0, 2e3);
+  }
+  if (!trimmed.startsWith("data:image/")) {
+    throw new Error("Paste a public https image URL or upload a JPEG, PNG or WebP photo.");
+  }
+  const config2 = cloudinaryConfig();
+  if (!config2) {
+    throw new Error(HOSTING_UNAVAILABLE);
   }
   const timestamp2 = Math.floor(Date.now() / 1e3);
   const folder = "sweet-tooth";
@@ -83616,7 +83706,11 @@ async function uploadBakerImage(file2) {
   });
   const payload = await response.json();
   if (!response.ok || !payload.secure_url) {
-    throw new Error(payload.error?.message || "Could not upload that image. Try a smaller JPEG or PNG.");
+    const detail = payload.error?.message || "";
+    if (/invalid cloud_name|unknown api_key|invalid signature/i.test(detail)) {
+      throw new Error(HOSTING_UNAVAILABLE);
+    }
+    throw new Error("Could not upload that image. Try a smaller JPEG or PNG, or paste a public photo URL.");
   }
   return payload.secure_url;
 }
@@ -84164,8 +84258,8 @@ FROM (VALUES\r
   ('sana-sweet-studio', 'Classic Black Forest Cake', 'Moist chocolate sponge, fresh cream, and cherries.', 2800, '[{"label":"Half Kg","pricePkr":2800},{"label":"1 Kg","pricePkr":5200}]', '{}', true, 1, 'Cakes', '{Birthday,Anniversary}', '{}', 'https://images.unsplash.com/photo-1571115764595-644a1f56a55c?w=600&auto=format&fit=crop', 89, true, true, 1),\r
   ('sana-sweet-studio', 'Red Velvet Cupcakes', 'Velvety cupcakes with cream-cheese frosting.', 1200, '[{"label":"Box of 6","pricePkr":1200},{"label":"Box of 12","pricePkr":2200}]', '{}', false, 1, 'Cupcakes', '{Birthday,Party}', '{}', 'https://images.unsplash.com/photo-1614707267537-b85aaf00c4b7?w=600&auto=format&fit=crop', 134, true, false, 2),\r
   ('sana-sweet-studio', 'Lotus Biscoff Celebration Cake', 'Caramel sponge, Biscoff cream, and a biscuit crunch finish.', 3600, '[{"label":"Half Kg","pricePkr":3600},{"label":"1 Kg","pricePkr":6500}]', '{}', true, 2, 'Cakes', '{Birthday,Anniversary,Gift}', '{Egg-free option,Contains gluten,Contains dairy}', 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=600&auto=format&fit=crop', 42, false, true, 3),\r
-  ('fatima-cakery', 'Fondant Wedding Cake', 'Elegant custom wedding cakes with sugar flowers.', 15000, '[{"label":"2 Tier","pricePkr":15000}]', '{}', true, 7, 'Wedding Cakes', '{Wedding,Nikah}', '{}', 'https://images.unsplash.com/photo-1549298651-0e5b3a0e9ca3?w=600&auto=format&fit=crop', 34, true, true, 1),\r
-  ('fatima-cakery', 'Mini Dessert Table Box', 'Twelve elegant dessert cups for dholki, bridal showers, and office gifting.', 4200, '[{"label":"Box of 12","pricePkr":4200},{"label":"Box of 24","pricePkr":7800}]', '{}', true, 3, 'Dessert Boxes', '{Bridal shower,Dholki,Gift}', '{Egg-free option,Contains dairy}', 'https://images.unsplash.com/photo-1488477181946-6428a0291777?w=600&auto=format&fit=crop', 27, true, false, 2),\r
+  ('fatima-cakery', 'Fondant Wedding Cake', 'Elegant custom wedding cakes with sugar flowers.', 15000, '[{"label":"2 Tier","pricePkr":15000}]', '{}', true, 7, 'Cakes', '{Wedding,Nikah}', '{}', 'https://images.unsplash.com/photo-1464349095431-e9a21285b5f3?w=600&auto=format&fit=crop', 34, true, true, 1),\r
+  ('fatima-cakery', 'Mini Dessert Table Box', 'Twelve elegant dessert cups for dholki, bridal showers, and office gifting.', 4200, '[{"label":"Box of 12","pricePkr":4200},{"label":"Box of 24","pricePkr":7800}]', '{}', true, 3, 'Desserts', '{Bridal shower,Dholki,Gift}', '{Egg-free option,Contains dairy}', 'https://images.unsplash.com/photo-1488477181946-6428a0291777?w=600&auto=format&fit=crop', 27, true, false, 2),\r
   ('fatima-cakery', 'Pastel Bento Cake', 'A small hand-piped celebration cake with a custom message.', 1850, '[{"label":"4 inch","pricePkr":1850}]', '{}', false, 2, 'Cakes', '{Birthday,Anniversary}', '{Contains eggs,Contains dairy,Contains gluten}', 'https://images.unsplash.com/photo-1535254973040-607b474cb50d?w=600&auto=format&fit=crop', 61, false, true, 3),\r
   ('amna-bakes', 'Chocolate Chip Cookies', 'Crispy edges and chewy centres.', 700, '[{"label":"Box of 12","pricePkr":700}]', '{}', false, 1, 'Cookies', '{Casual,Gift}', '{}', 'https://images.unsplash.com/photo-1499636136210-6f4ee915583e?w=600&auto=format&fit=crop', 156, true, true, 1),\r
   ('amna-bakes', 'Fudgy Brownie Tray', 'Dark chocolate brownies, cut into sixteen generous squares.', 1850, '[{"label":"16 pieces","pricePkr":1850},{"label":"32 pieces","pricePkr":3400}]', '{}', true, 1, 'Brownies', '{Dawat,Office,Gift}', '{Egg-free option,Contains dairy,Contains gluten}', 'https://images.unsplash.com/photo-1606313564200-e75d5e30476c?w=600&auto=format&fit=crop', 83, true, true, 2),\r

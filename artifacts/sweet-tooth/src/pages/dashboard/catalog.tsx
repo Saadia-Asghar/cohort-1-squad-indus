@@ -1230,6 +1230,7 @@ export default function DashboardCatalog() {
                   />
                   {uploadingPhoto ? "Uploading photo…" : "Upload image"}
                 </label>
+                <p className="mt-2 text-xs text-muted-foreground">If upload is unavailable, paste a public https photo URL above.</p>
               </FormField>
 
               <FormField label={`Short description (${createForm.description.length}/${MAX_PRODUCT_DESCRIPTION_CHARS})`}>

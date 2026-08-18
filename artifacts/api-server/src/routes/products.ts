@@ -13,13 +13,14 @@ import {
 import { requireBakerAuth, requireBakerOwner } from "../middlewares/auth.js";
 import { rebuildBakerKnowledgeIndex } from "../lib/rag/pipeline.js";
 import { isProductCapReached } from "../lib/plan-limits.js";
-import { firstFriendlyZodIssue, sanitizeProductFields } from "../lib/product-validation.js";
+import { firstFriendlyZodIssue, sanitizeProductFields, coerceProductCategory } from "../lib/product-validation.js";
 
 const router = Router();
 
 function formatProduct(p: typeof productsTable.$inferSelect) {
   return {
     ...p,
+    category: coerceProductCategory(p.category ?? "Other"),
     sizes: (p.sizes as unknown[]) ?? [],
     variants: p.variants ?? [],
     occasionTags: p.occasionTags ?? [],

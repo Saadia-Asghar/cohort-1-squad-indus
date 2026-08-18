@@ -82,8 +82,13 @@ export function extractPreferences(
     const spoken = areaPhrase[1].replace(/\b(please|thanks|karachi|lahore|islamabad)\b/g, "").trim();
     if (spoken.length >= 3) prefs.preferredArea = spoken;
   }
+  const spokenHere = lowerMsg.match(/(?:i(?:'m| am)|we(?:'re| are))\s+(?:in|from|at)\s+([a-z0-9 .'-]{3,40})/);
+  if (!prefs.preferredArea && spokenHere?.[1]) {
+    const spoken = spokenHere[1].replace(/\b(please|thanks|karachi|lahore|islamabad)\b/g, "").trim();
+    if (spoken.length >= 3) prefs.preferredArea = spoken;
+  }
 
-  const lastItem = lowerMsg.match(/(?:order(?:ed|ing)?|want|need)\s+(?:a |an |the )?([a-z0-9 ]{3,40}(?:cake|cupcake|brownie|cookie|dessert))/);
+  const lastItem = lowerMsg.match(/(?:order(?:ed|ing)?|want|need|looking for)\s+(?:a |an |the )?([a-z0-9 ]{3,40}(?:cake|cupcake|brownie|cookie|dessert|bento|box))/);
   if (lastItem?.[1]) prefs.lastItem = lastItem[1].trim();
 
   const allergyMatch =

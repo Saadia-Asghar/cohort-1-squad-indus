@@ -9,6 +9,22 @@ export const PRODUCT_CATEGORIES = [
   "Other",
 ] as const;
 
+export type ProductCategory = (typeof PRODUCT_CATEGORIES)[number];
+
+const LEGACY_CATEGORY_ALIASES: Record<string, ProductCategory> = {
+  "Wedding Cakes": "Cakes",
+  "Wedding Cake": "Cakes",
+  "Dessert Boxes": "Desserts",
+  "Dessert Box": "Desserts",
+  "Cup Cake": "Cupcakes",
+  "Cup Cakes": "Cupcakes",
+  Brownie: "Brownies",
+  Cookie: "Cookies",
+  Dessert: "Desserts",
+  Bread: "Breads",
+  Savoury: "Savory",
+};
+
 export const DIETARY_LABELS = [
   "Egg-free",
   "Vegan",
@@ -45,6 +61,13 @@ export const MAX_PRODUCT_PRICE_PKR = 999_999;
 export const MAX_PRODUCT_DESCRIPTION_CHARS = 280;
 export const MAX_BAKER_NOTE_CHARS = 160;
 export const MAX_ORDERS_PER_DAY = 200;
+
+export function coerceProductCategory(category?: string | null): ProductCategory {
+  const titled = toTitleCase(category ?? "");
+  const exact = PRODUCT_CATEGORIES.find((item) => item.toLowerCase() === titled.toLowerCase());
+  if (exact) return exact;
+  return LEGACY_CATEGORY_ALIASES[titled] ?? LEGACY_CATEGORY_ALIASES[(category ?? "").trim()] ?? "Other";
+}
 
 export function toTitleCase(value: string): string {
   return value

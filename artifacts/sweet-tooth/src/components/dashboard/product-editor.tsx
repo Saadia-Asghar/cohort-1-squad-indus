@@ -9,6 +9,7 @@ import {
   MAX_PRODUCT_PRICE_PKR,
   PRODUCT_CATEGORIES,
   applyLabelToggle,
+  coerceProductCategory,
   parseMoneyPkr,
   toTitleCase,
 } from "@/lib/catalog-product";
@@ -53,7 +54,7 @@ export function ProductEditorPanel({
   const deleteProduct = useDeleteProduct();
   const [name, setName] = useState(product.name);
   const [description, setDescription] = useState(product.description ?? "");
-  const [category, setCategory] = useState(product.category || "Cakes");
+  const [category, setCategory] = useState(coerceProductCategory(product.category));
   const [photoUrl, setPhotoUrl] = useState(product.photoUrl ?? "");
   const [basePricePkr, setBasePricePkr] = useState(String(product.basePricePkr ?? ""));
   const [isAvailable, setIsAvailable] = useState(product.isAvailable !== false);
@@ -72,7 +73,7 @@ export function ProductEditorPanel({
   useEffect(() => {
     setName(product.name);
     setDescription(product.description ?? "");
-    setCategory(product.category || "Cakes");
+    setCategory(coerceProductCategory(product.category));
     setPhotoUrl(product.photoUrl ?? "");
     setBasePricePkr(String(product.basePricePkr ?? ""));
     setIsAvailable(product.isAvailable !== false);
@@ -192,7 +193,7 @@ export function ProductEditorPanel({
 
           <section>
             <label className="text-xs font-semibold">Category</label>
-            <select value={PRODUCT_CATEGORIES.includes(category as (typeof PRODUCT_CATEGORIES)[number]) ? category : "Other"} onChange={(e) => setCategory(e.target.value)} className={inputClass}>
+            <select value={category} onChange={(e) => setCategory(coerceProductCategory(e.target.value))} className={inputClass}>
               {PRODUCT_CATEGORIES.map((item) => (
                 <option key={item} value={item}>{item}</option>
               ))}
@@ -256,6 +257,7 @@ export function ProductEditorPanel({
               />
               {uploading ? "Uploading…" : "Upload image"}
             </label>
+            <p className="mt-2 text-xs text-muted-foreground">If upload fails, paste a public https photo URL above and save.</p>
           </section>
 
           <label className="flex min-h-10 cursor-pointer items-center justify-between gap-3 rounded-xl border border-border px-3 text-sm font-semibold">

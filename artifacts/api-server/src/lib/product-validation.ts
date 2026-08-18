@@ -9,6 +9,22 @@ export const PRODUCT_CATEGORIES = [
   "Other",
 ] as const;
 
+export type ProductCategory = (typeof PRODUCT_CATEGORIES)[number];
+
+const LEGACY_CATEGORY_ALIASES: Record<string, ProductCategory> = {
+  "Wedding Cakes": "Cakes",
+  "Wedding Cake": "Cakes",
+  "Dessert Boxes": "Desserts",
+  "Dessert Box": "Desserts",
+  "Cup Cake": "Cupcakes",
+  "Cup Cakes": "Cupcakes",
+  Brownie: "Brownies",
+  Cookie: "Cookies",
+  Dessert: "Desserts",
+  Bread: "Breads",
+  Savoury: "Savory",
+};
+
 export const MAX_PRODUCT_PRICE_PKR = 999_999;
 export const MAX_PRODUCT_DESCRIPTION_CHARS = 280;
 
@@ -41,6 +57,13 @@ export function firstFriendlyZodIssue(error: { issues?: Array<{ message: string 
   return error.issues?.[0]?.message ?? "Please check the form and try again.";
 }
 
+export function coerceProductCategory(category: string): ProductCategory {
+  const titled = toTitleCase(category);
+  const exact = PRODUCT_CATEGORIES.find((item) => item.toLowerCase() === titled.toLowerCase());
+  if (exact) return exact;
+  return LEGACY_CATEGORY_ALIASES[titled] ?? LEGACY_CATEGORY_ALIASES[category.trim()] ?? "Other";
+}
+
 export function sanitizeProductFields(input: {
   name?: string;
   description?: string | null;
@@ -70,10 +93,11 @@ export function sanitizeProductFields(input: {
   }
 
   if (input.category !== undefined) {
-    if (!PRODUCT_CATEGORIES.includes(input.category as (typeof PRODUCT_CATEGORIES)[number])) {
+    const category = String(input.category ?? "").trim();
+    if (!category) {
       return { error: "Choose a category from the list." };
     }
-    value.category = input.category;
+    value.category = coerceProductCategory(category);
   }
 
   if (input.basePricePkr !== undefined) {

@@ -40,6 +40,7 @@ import {
   passwordResetUrl,
 } from "../lib/password-reset.js";
 import { normalizePakistanPhone, phoneLookupVariants } from "../lib/phone.js";
+import { coerceProductCategory } from "../lib/product-validation.js";
 import {
   buildOccasionBanner,
   buildPaymentPolicySummary,
@@ -645,10 +646,11 @@ router.post("/bakers/forgot-password", rateLimit(5, 15 * 60 * 1000), async (req,
     .limit(1);
 
   const genericMessage = "If an account exists with that email, a password reset link has been sent.";
+  const emailConfigured = isMailerConfigured();
 
   if (!baker) {
     // Return success to avoid email enumeration
-    res.json({ message: genericMessage });
+    res.json({ message: genericMessage, emailConfigured });
     return;
   }
 
@@ -694,8 +696,53 @@ router.post("/bakers/forgot-password", rateLimit(5, 15 * 60 * 1000), async (req,
 
   res.json({
     message: genericMessage,
+    emailConfigured,
     ...(isLocalDev() ? { resetUrl: resetLink } : {}),
   });
+});
+
+// POST /bakers/change-password — signed-in bakers can rotate a password without email
+router.post("/bakers/change-password", requireBakerAuth, requireBakerOwner, rateLimit(8, 15 * 60 * 1000), async (req, res): Promise<void> => {
+  const parsed = z.object({
+    currentPassword: z.string().min(1).max(128),
+    newPassword: z.string().min(12).max(128),
+  }).safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Enter your current password and a new password of at least 12 characters." });
+    return;
+  }
+
+  const bakerId = (req as AuthenticatedRequest).bakerId;
+  if (!bakerId) {
+    res.status(401).json({ error: "Sign in to change your password." });
+    return;
+  }
+
+  const [baker] = await db.select().from(bakersTable).where(eq(bakersTable.id, bakerId)).limit(1);
+  if (!baker) {
+    res.status(404).json({ error: "Baker not found" });
+    return;
+  }
+
+  const { currentPassword, newPassword } = parsed.data;
+  const matchesStored = Boolean(baker.passwordHash && verifyPassword(currentPassword, baker.passwordHash));
+  const demoPassword = demoPasswordForIdentifier(baker.email ?? "");
+  const matchesDemo = Boolean(demoPassword && currentPassword === demoPassword);
+  if (!matchesStored && !matchesDemo) {
+    res.status(400).json({ error: "Current password is incorrect." });
+    return;
+  }
+
+  await db
+    .update(bakersTable)
+    .set({
+      passwordHash: hashPassword(newPassword),
+      resetPasswordToken: null,
+      resetPasswordExpires: null,
+    })
+    .where(eq(bakersTable.id, baker.id));
+
+  res.json({ message: "Your password has been updated. Use the new password next time you sign in." });
 });
 
 // POST /bakers/reset-password
@@ -879,6 +926,7 @@ router.get("/bakers/:bakerId/products", async (req, res): Promise<void> => {
     .orderBy(productsTable.displayOrder, productsTable.createdAt);
   res.json(products.map((p) => ({
     ...p,
+    category: coerceProductCategory(p.category ?? "Other"),
     sizes: (p.sizes as unknown[]) ?? [],
     variants: p.variants ?? [],
     occasionTags: p.occasionTags ?? [],

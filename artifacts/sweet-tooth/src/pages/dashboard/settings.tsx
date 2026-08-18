@@ -4,7 +4,7 @@ import { useBuyerSession } from "@/hooks/use-session";
 import { useGetBaker, useUpdateBaker, getGetBakerQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
-import { Copy, ExternalLink, Facebook, Instagram, QrCode, Share2, Sparkles, ArrowRight, Store, CreditCard, Calendar, Users, Zap } from "lucide-react";
+import { Copy, ExternalLink, Facebook, Instagram, QrCode, Share2, Sparkles, ArrowRight, Store, CreditCard, Calendar, Users, Zap, KeyRound } from "lucide-react";
 import { getPlanById, FOUNDER_OFFER_ACTIVE, formatExtraReplyPkr, getFounderOfferLines, displayPrice } from "@/lib/pricing-plans";
 import { PlatformBillingPanel } from "@/components/dashboard/platform-billing-panel";
 import { TeamAccessPanel } from "@/components/dashboard/team-access-panel";
@@ -18,6 +18,7 @@ import { MAX_ORDERS_PER_DAY } from "@/lib/catalog-product";
 import { digitsOnlyPhone, normalizePakistanPhone } from "@/lib/pakistan-phone";
 import { isPublicImageUrl, uploadBakerImage } from "@/lib/image-upload";
 import { SafeImage } from "@/components/ui/safe-image";
+import { customFetch } from "@workspace/api-client-react";
 
 export default function DashboardSettings() {
   const { bakerId } = useBuyerSession();
@@ -46,6 +47,11 @@ export default function DashboardSettings() {
   const [photoUrl, setPhotoUrl] = useState("");
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordBusy, setPasswordBusy] = useState(false);
+  const [passwordMessage, setPasswordMessage] = useState<string | null>(null);
   const [blockedDates, setBlockedDates] = useState<string[]>([]);
   const [newBlockDate, setNewBlockDate] = useState("");
   const [pickupAddress, setPickupAddress] = useState("");
@@ -60,6 +66,34 @@ export default function DashboardSettings() {
   const copyShopLink = async () => {
     await navigator.clipboard.writeText(shopUrl);
     alert("Your menu link has been copied.");
+  };
+
+  const changePassword = async () => {
+    setPasswordMessage(null);
+    if (newPassword.length < 12) {
+      setPasswordMessage("New password must be at least 12 characters.");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordMessage("New password and confirmation do not match.");
+      return;
+    }
+    setPasswordBusy(true);
+    try {
+      const result = await customFetch<{ message?: string }>("/api/bakers/change-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ currentPassword, newPassword }),
+      });
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      setPasswordMessage(result.message || "Your password has been updated.");
+    } catch (cause: unknown) {
+      setPasswordMessage((cause instanceof Error ? cause.message : "Could not update password.").replace(/^HTTP \d+\s*[^:]*:\s*/, ""));
+    } finally {
+      setPasswordBusy(false);
+    }
   };
 
   const shareShop = async () => {
@@ -309,7 +343,55 @@ export default function DashboardSettings() {
                   />
                   {uploadingPhoto ? "Uploading…" : "Upload bakery image"}
                 </label>
+                <p className="text-xs text-muted-foreground">If upload is unavailable, paste a public https photo link above and save.</p>
               </div>
+            </div>
+
+            <div className="space-y-4 rounded-2xl border border-border bg-white/70 p-5 shadow-sm">
+              <div className="flex items-center gap-2 border-b border-border/50 pb-2">
+                <KeyRound className="w-5 h-5 text-primary" />
+                <h3 className="font-serif text-xl font-semibold tracking-[-0.02em] text-foreground">Password</h3>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Change your password here while you are signed in. This works even if reset emails are not configured.
+              </p>
+              <div className="grid gap-3">
+                <input
+                  type="password"
+                  autoComplete="current-password"
+                  placeholder="Current password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  className="min-h-11 w-full rounded-xl border border-border bg-card px-3.5 text-sm outline-none transition focus:border-secondary/60 focus:ring-4 focus:ring-secondary/10"
+                />
+                <input
+                  type="password"
+                  autoComplete="new-password"
+                  placeholder="New password (12+ characters)"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="min-h-11 w-full rounded-xl border border-border bg-card px-3.5 text-sm outline-none transition focus:border-secondary/60 focus:ring-4 focus:ring-secondary/10"
+                />
+                <input
+                  type="password"
+                  autoComplete="new-password"
+                  placeholder="Confirm new password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="min-h-11 w-full rounded-xl border border-border bg-card px-3.5 text-sm outline-none transition focus:border-secondary/60 focus:ring-4 focus:ring-secondary/10"
+                />
+              </div>
+              {passwordMessage ? (
+                <p role="status" className="text-xs font-semibold text-foreground">{passwordMessage}</p>
+              ) : null}
+              <button
+                type="button"
+                onClick={() => void changePassword()}
+                disabled={passwordBusy}
+                className="min-h-11 rounded-xl bg-primary px-5 text-sm font-bold text-white shadow-md transition hover:bg-[#542261] disabled:opacity-50"
+              >
+                {passwordBusy ? "Updating…" : "Update password"}
+              </button>
             </div>
 
             {/* Share Menu */}

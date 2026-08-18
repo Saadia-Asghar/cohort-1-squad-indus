@@ -12,18 +12,20 @@ export default function BakerForgotPassword() {
   const [error, setError] = useState("");
   const [sent, setSent] = useState(false);
   const [resetUrl, setResetUrl] = useState("");
+  const [emailConfigured, setEmailConfigured] = useState(true);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setLoading(true);
     setError("");
     try {
-      const result = await customFetch<{ message?: string; resetUrl?: string }>("/api/bakers/forgot-password", {
+      const result = await customFetch<{ message?: string; resetUrl?: string; emailConfigured?: boolean }>("/api/bakers/forgot-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: email.trim().toLowerCase() }),
       });
       setResetUrl(typeof result.resetUrl === "string" ? result.resetUrl : "");
+      setEmailConfigured(result.emailConfigured !== false);
       setSent(true);
     } catch (cause: unknown) {
       setError(cause instanceof Error ? cause.message.replace(/^HTTP \d+\s*[^:]*:\s*/, "") : "Could not request password reset.");
@@ -48,7 +50,9 @@ export default function BakerForgotPassword() {
         {sent ? (
           <div className="space-y-4">
             <p className="text-sm font-medium text-foreground">
-              If a Sweet Tooth account exists with that email address, you will receive a password reset link shortly.
+              {emailConfigured
+                ? "If a Sweet Tooth account exists with that email address, you will receive a password reset link shortly."
+                : "If you can still sign in, open Settings and change your password there. Email delivery is not enabled on this server yet, so a reset link cannot be sent."}
             </p>
             {resetUrl ? (
               <div className="space-y-3 rounded-xl border border-primary/15 bg-primary/5 p-4">

@@ -256,8 +256,7 @@ export function ApprovedHomePreview() {
           (order) =>
             order.status !== "cancelled" &&
             order.status !== "delivered" &&
-            (isSameDayKey(order.deliveryDate, today) ||
-              ["in_production", "confirmed", "out_for_delivery"].includes(order.status)),
+            (isSameDayKey(order.deliveryDate, today) || isSameDayKey(order.createdAt, today)),
         )
         .slice(0, 6),
     [allOrders, today],
@@ -445,7 +444,7 @@ export function ApprovedHomePreview() {
 
                 {productionItems.length === 0 ? (
                   <p className="px-4 py-8 text-sm text-muted-foreground">
-                    No bakes scheduled yet. Orders you confirm will appear on today&apos;s list.
+                    Nothing due today. Overdue or in-progress orders from earlier days appear under Needs your attention.
                   </p>
                 ) : (
                   <div className="divide-y divide-[#eadfd5]">
