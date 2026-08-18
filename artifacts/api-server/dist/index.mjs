@@ -81095,6 +81095,12 @@ function extractPreferences(message, existing, deliveryAreas = []) {
   }
   return prefs;
 }
+function foldSessionPreferences(messages, existing = {}, deliveryAreas = []) {
+  return messages.reduce(
+    (prefs, text2) => extractPreferences(text2, prefs, deliveryAreas),
+    { ...existing }
+  );
+}
 function slotLine(preferences) {
   const parts = [];
   if (preferences.eggless) parts.push("Eggless");
@@ -81319,6 +81325,19 @@ async function generateAgentReply(bakerId, buyerId, message, memory, historyPref
       escalated: true
     };
   }
+  const remembered = [
+    typeof buyerPrefs.lastItem === "string" && buyerPrefs.lastItem.trim() ? `you asked about ${buyerPrefs.lastItem.trim()}` : "",
+    typeof buyerPrefs.preferredArea === "string" && buyerPrefs.preferredArea.trim() ? `delivery in ${buyerPrefs.preferredArea.trim()}` : "",
+    buyerPrefs.eggless ? "eggless" : ""
+  ].filter(Boolean);
+  if (remembered.length > 0 && /(what did i|do you remember|which area did i|my (last |previous )?(order|request|cake))/.test(lowerMsg)) {
+    return {
+      reply: `I still have ${remembered.join(" and ")}. Tell me if anything should change, or say the product name to see price and lead time.`,
+      action: null,
+      cartItemId: null,
+      escalated: false
+    };
+  }
   if (/(custom (cake|order|design)|theme cake|birthday cake|wedding cake|photo cake|logo cake|sculpted cake|3d cake|fondant)/.test(lowerMsg)) {
     return {
       reply: `I can help ${baker.businessName} prepare a custom-order request. Please share the occasion/design, required date and time, number of servings, flavour, eggless/dietary needs, and delivery or pickup area. The baker will confirm the final price and availability.`,
@@ -81327,9 +81346,10 @@ async function generateAgentReply(bakerId, buyerId, message, memory, historyPref
       escalated: true
     };
   }
+  const lastItem = typeof buyerPrefs.lastItem === "string" ? buyerPrefs.lastItem.toLowerCase().trim() : "";
   const mentionedProduct = products.find(
     (product) => lowerMsg.includes(product.name.toLowerCase())
-  );
+  ) ?? (lastItem && /(want|need|looking for|order|price|cake|bento|cupcake|brownie)/.test(lowerMsg) ? products.find((product) => product.name.toLowerCase().includes(lastItem)) : void 0);
   if (mentionedProduct) {
     if (!mentionedProduct.isAvailable) {
       const alternatives = products.filter(
@@ -81427,8 +81447,9 @@ Would you like to order any of these?`,
     const matchedZone = findDeliveryZone(deliveryZones, message) ?? findDeliveryZone(deliveryZones, String(buyerPrefs.preferredArea ?? ""));
     const zonePricing = matchedZone ? ` Delivery to ${matchedZone.name} is PKR ${matchedZone.feePkr.toLocaleString()}${matchedZone.minimumOrderPkr ? ` (minimum order PKR ${matchedZone.minimumOrderPkr.toLocaleString()})` : ""}.` : deliveryZones.length ? ` Delivery zones and charges: ${deliveryZoneSummary(deliveryZones)}.` : "";
     const personalNote = buyerPrefs.preferredArea && areas.toLowerCase().includes(buyerPrefs.preferredArea.toLowerCase()) ? ` Great news \u2014 we deliver to ${buyerPrefs.preferredArea}!` : "";
+    const areaFollowUp = buyerPrefs.preferredArea ? " Pickup is also available." : " Pickup is also available. Which area are you in?";
     return {
-      reply: areas ? `${baker.businessName} delivers to: ${areas}.${zonePricing || (deliveryPricing ? ` Delivery charges: ${deliveryPricing}.` : "")}${personalNote} Pickup is also available. Which area are you in?` : `${baker.businessName} has not published delivery areas yet. I cannot confirm delivery or invent a fee; please use the bakery's published contact details to ask the baker.`,
+      reply: areas ? `${baker.businessName} delivers to: ${areas}.${zonePricing || (deliveryPricing ? ` Delivery charges: ${deliveryPricing}.` : "")}${personalNote}${areaFollowUp}` : `${baker.businessName} has not published delivery areas yet. I cannot confirm delivery or invent a fee; please use the bakery's published contact details to ask the baker.`,
       action: null,
       cartItemId: null,
       escalated: false
@@ -81625,6 +81646,17 @@ async function processChatMessage(input) {
     role: "user",
     content: message
   });
+  const [bakerForMemory] = await db.select({ deliveryAreas: bakersTable.deliveryAreas }).from(bakersTable).where(eq(bakersTable.id, bakerId)).limit(1);
+  const sessionTurns = await db.select({ content: chatMessagesTable.content }).from(chatMessagesTable).where(and(
+    eq(chatMessagesTable.bakerId, bakerId),
+    eq(chatMessagesTable.sessionId, sid),
+    eq(chatMessagesTable.role, "user")
+  )).orderBy(asc(chatMessagesTable.id)).limit(30);
+  historyPreferences = foldSessionPreferences(
+    sessionTurns.map((turn) => turn.content),
+    historyPreferences,
+    bakerForMemory?.deliveryAreas ?? []
+  );
   const [activeHandoff] = await db.select({ id: chatHandoffsTable.id }).from(chatHandoffsTable).where(and(
     eq(chatHandoffsTable.bakerId, bakerId),
     eq(chatHandoffsTable.sessionId, sid),

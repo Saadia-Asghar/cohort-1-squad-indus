@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildMemorySummary, extractPreferences, MEMORY_STUB_SUMMARIES } from "./buyer-memory.js";
+import { buildMemorySummary, extractPreferences, foldSessionPreferences, MEMORY_STUB_SUMMARIES } from "./buyer-memory.js";
 
 describe("extractPreferences", () => {
   it("detects English and Roman Urdu eggless phrasing", () => {
@@ -31,6 +31,19 @@ describe("extractPreferences", () => {
 
   it("picks up I'm-in phrasing and looking-for requests", () => {
     const prefs = extractPreferences("I'm in Clifton and looking for a bento cake", {});
+    expect(String(prefs.preferredArea).toLowerCase()).toContain("clifton");
+    expect(String(prefs.lastItem).toLowerCase()).toContain("bento cake");
+  });
+
+  it("keeps area and last item across later turns in the same session", () => {
+    const prefs = foldSessionPreferences(
+      [
+        "I'm in Clifton and looking for a bento cake",
+        "what did I ask for and which area?",
+      ],
+      {},
+      ["Clifton", "Defence"],
+    );
     expect(String(prefs.preferredArea).toLowerCase()).toContain("clifton");
     expect(String(prefs.lastItem).toLowerCase()).toContain("bento cake");
   });

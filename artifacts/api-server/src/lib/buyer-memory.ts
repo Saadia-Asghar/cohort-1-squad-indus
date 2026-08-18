@@ -123,6 +123,17 @@ export function extractPreferences(
   return prefs;
 }
 
+export function foldSessionPreferences(
+  messages: string[],
+  existing: Record<string, unknown> = {},
+  deliveryAreas: string[] = [],
+): Record<string, unknown> {
+  return messages.reduce(
+    (prefs, text) => extractPreferences(text, prefs, deliveryAreas),
+    { ...existing },
+  );
+}
+
 function slotLine(preferences: Record<string, unknown>): string {
   const parts: string[] = [];
   if (preferences.eggless) parts.push("Eggless");
