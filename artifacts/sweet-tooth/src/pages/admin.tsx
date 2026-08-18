@@ -80,6 +80,47 @@ function adminHeaders(token: string, json = false): HeadersInit {
   };
 }
 
+function asRecordArray(value: unknown): Record<string, unknown>[] {
+  return Array.isArray(value) ? value.filter((row): row is Record<string, unknown> => Boolean(row) && typeof row === "object") : [];
+}
+
+function readWaitlist(value: unknown): WaitlistEntry[] {
+  return asRecordArray(value).map((row) => ({
+    id: Number(row.id),
+    bakerId: row.bakerId == null && row.baker_id == null ? null : Number(row.bakerId ?? row.baker_id),
+    bakerName: String(row.bakerName ?? row.baker_name ?? ""),
+    bakerEmail: String(row.bakerEmail ?? row.baker_email ?? ""),
+    whatsappNumber: String(row.whatsappNumber ?? row.whatsapp_number ?? ""),
+    city: typeof row.city === "string" ? row.city : null,
+    note: typeof row.note === "string" ? row.note : null,
+    source: String(row.source ?? "launch"),
+    status: String(row.status ?? "pending"),
+    createdAt: String(row.createdAt ?? row.created_at ?? ""),
+  }));
+}
+
+function readAppReviews(value: unknown): AppReviewEntry[] {
+  return asRecordArray(value).map((row) => ({
+    id: Number(row.id),
+    reviewerName: String(row.reviewerName ?? row.reviewer_name ?? ""),
+    email: typeof row.email === "string" ? row.email : null,
+    role: String(row.role ?? ""),
+    roleNote: typeof row.roleNote === "string" ? row.roleNote : typeof row.role_note === "string" ? row.role_note : null,
+    rating: Number(row.rating ?? 0),
+    reviewText: String(row.reviewText ?? row.review_text ?? ""),
+    usedHow: typeof row.usedHow === "string" ? row.usedHow : typeof row.used_how === "string" ? row.used_how : null,
+    createdAt: String(row.createdAt ?? row.created_at ?? ""),
+  }));
+}
+
+function waitlistWhatsAppHref(phone: string, name: string): string | null {
+  const digits = phone.replace(/\D/g, "");
+  if (digits.length < 8) return null;
+  const international = digits.startsWith("0") ? `92${digits.slice(1)}` : digits;
+  const text = `Hi ${name}, this is Sweet Tooth. You joined the baker waitlist — we can onboard you now.`;
+  return `https://wa.me/${international}?text=${encodeURIComponent(text)}`;
+}
+
 function FlagButton({
   on,
   disabled,
@@ -111,6 +152,7 @@ export default function AdminPortal() {
   const [bakers, setBakers] = useState<BakerAdmin[]>([]);
   const [waitlist, setWaitlist] = useState<WaitlistEntry[]>([]);
   const [appReviews, setAppReviews] = useState<AppReviewEntry[]>([]);
+  const [listsError, setListsError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loginEmail, setLoginEmail] = useState("");
@@ -148,6 +190,32 @@ export default function AdminPortal() {
     }
   }, []);
 
+  useEffect(() => {
+    if (!isAuthorized || !token) return;
+    const id = window.setInterval(() => {
+      void refreshLiveLists(token);
+    }, 12000);
+    return () => window.clearInterval(id);
+  }, [isAuthorized, token]);
+
+  const refreshLiveLists = async (bearerToken: string) => {
+    try {
+      const [waitlistRes, reviewsRes] = await Promise.all([
+        fetch(apiUrl("/api/admin/waitlist"), { headers: adminHeaders(bearerToken) }),
+        fetch(apiUrl("/api/admin/app-reviews"), { headers: adminHeaders(bearerToken) }),
+      ]);
+      if (waitlistRes.ok) setWaitlist(readWaitlist(await waitlistRes.json()));
+      if (reviewsRes.ok) setAppReviews(readAppReviews(await reviewsRes.json()));
+      if (waitlistRes.ok && reviewsRes.ok) {
+        setListsError(null);
+        return;
+      }
+      setListsError("Could not refresh waitlist or reviews from the live database.");
+    } catch {
+      setListsError("Could not refresh waitlist or reviews from the live database.");
+    }
+  };
+
   const loadAdmin = async (bearerToken: string) => {
     setLoading(true);
     setError(null);
@@ -167,8 +235,11 @@ export default function AdminPortal() {
         fetch(apiUrl("/api/admin/platform-billing"), { headers: adminHeaders(bearerToken) }),
         fetch(apiUrl("/api/admin/app-reviews"), { headers: adminHeaders(bearerToken) }),
       ]);
-      if (waitlistRes.ok) setWaitlist(await waitlistRes.json());
-      if (reviewsRes.ok) setAppReviews(await reviewsRes.json());
+      if (waitlistRes.ok) setWaitlist(readWaitlist(await waitlistRes.json()));
+      else setListsError("Could not load the baker waitlist.");
+      if (reviewsRes.ok) setAppReviews(readAppReviews(await reviewsRes.json()));
+      else setListsError((current) => current || "Could not load live app reviews.");
+      if (waitlistRes.ok && reviewsRes.ok) setListsError(null);
       if (billingRes.ok) {
         const data = await billingRes.json();
         const platform = data.platform ?? {};
@@ -407,6 +478,9 @@ export default function AdminPortal() {
                 setIsAuthorized(false);
                 setToken("");
                 setBakers([]);
+                setWaitlist([]);
+                setAppReviews([]);
+                setListsError(null);
               }}
               className={ghostBtn}
             >
@@ -419,10 +493,13 @@ export default function AdminPortal() {
         </header>
 
         {error && <p className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm font-medium text-red-700">{error}</p>}
+        {listsError && <p className="mt-4 rounded-xl bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">{listsError}</p>}
 
-        <section className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <section className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
           {[
             { label: "Bakeries", value: bakers.length, icon: Store },
+            { label: "Waitlist", value: waitlist.length, icon: Phone },
+            { label: "App reviews", value: appReviews.length, icon: Users },
             { label: "Live agents", value: bakers.filter((baker) => baker.agentActive).length, icon: Sparkles },
             { label: "Public menus", value: bakers.filter((baker) => baker.marketplaceVisible).length, icon: Users },
             { label: "Paid plans", value: bakers.filter((baker) => baker.subscriptionPlan !== "free").length, icon: CreditCard },
@@ -613,7 +690,9 @@ export default function AdminPortal() {
         <section className={`${cardClass} mt-8 overflow-hidden p-0`}>
           <div className="border-b border-border p-5">
             <h2 className="font-serif text-xl font-bold">Baker waitlist</h2>
-            <p className="mt-1 text-sm text-muted-foreground">People who asked to be onboarded. Contact them on WhatsApp, then mark contacted or approved.</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Live signups from /waitlist. Contact them on WhatsApp, then mark contacted or approved. This list refreshes from the database.
+            </p>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[900px] text-left text-sm">
@@ -626,27 +705,50 @@ export default function AdminPortal() {
                 </tr>
               </thead>
               <tbody>
-                {waitlist.map((entry) => (
-                  <tr key={entry.id} className="border-t border-border">
-                    <td className="px-4 py-4 font-semibold">
-                      {entry.bakerName}
-                      {entry.city ? <p className="text-xs font-normal text-muted-foreground">{entry.city}</p> : null}
-                      {entry.note ? <p className="mt-1 text-xs font-normal text-muted-foreground">{entry.note}</p> : null}
-                    </td>
-                    <td className="px-4 py-4 text-muted-foreground">{entry.bakerEmail} · {entry.whatsappNumber}</td>
-                    <td className="px-4 py-4">{entry.source === "launch" ? "Launch" : "WhatsApp agent"}</td>
-                    <td className="px-4 py-4">
-                      <select value={entry.status} onChange={(e) => void handleUpdateWaitlistStatus(entry.id, e.target.value)} className={inputClass}>
-                        <option value="pending">Pending</option>
-                        <option value="contacted">Contacted</option>
-                        <option value="approved">Approved</option>
-                      </select>
-                    </td>
-                  </tr>
-                ))}
+                {waitlist.map((entry) => {
+                  const whatsapp = waitlistWhatsAppHref(entry.whatsappNumber, entry.bakerName);
+                  return (
+                    <tr key={entry.id} className="border-t border-border">
+                      <td className="px-4 py-4 font-semibold">
+                        {entry.bakerName}
+                        {entry.city ? <p className="text-xs font-normal text-muted-foreground">{entry.city}</p> : null}
+                        {entry.note ? <p className="mt-1 text-xs font-normal text-muted-foreground">{entry.note}</p> : null}
+                        {entry.createdAt ? (
+                          <p className="mt-1 text-xs font-normal text-muted-foreground">{new Date(entry.createdAt).toLocaleString()}</p>
+                        ) : null}
+                      </td>
+                      <td className="px-4 py-4">
+                        <a className="block text-sm font-semibold text-primary hover:underline" href={`mailto:${entry.bakerEmail}`}>
+                          {entry.bakerEmail}
+                        </a>
+                        <p className="mt-1 text-xs text-muted-foreground">{entry.whatsappNumber}</p>
+                        {whatsapp ? (
+                          <a
+                            className="mt-2 inline-flex min-h-9 items-center rounded-lg bg-[#25D366] px-3 text-xs font-bold text-white hover:opacity-90"
+                            href={whatsapp}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            WhatsApp
+                          </a>
+                        ) : null}
+                      </td>
+                      <td className="px-4 py-4">{entry.source === "launch" ? "Launch" : "WhatsApp agent"}</td>
+                      <td className="px-4 py-4">
+                        <select value={entry.status} onChange={(e) => void handleUpdateWaitlistStatus(entry.id, e.target.value)} className={inputClass}>
+                          <option value="pending">Pending</option>
+                          <option value="contacted">Contacted</option>
+                          <option value="approved">Approved</option>
+                        </select>
+                      </td>
+                    </tr>
+                  );
+                })}
                 {waitlist.length === 0 && (
                   <tr>
-                    <td colSpan={4} className="px-4 py-10 text-center text-muted-foreground">No waitlist entries yet.</td>
+                    <td colSpan={4} className="px-4 py-10 text-center text-muted-foreground">
+                      No live waitlist signups yet. New joins from the public waitlist appear here automatically.
+                    </td>
                   </tr>
                 )}
               </tbody>
@@ -657,7 +759,9 @@ export default function AdminPortal() {
         <section className={`${cardClass} mt-8 overflow-hidden p-0`}>
           <div className="border-b border-border p-5">
             <h2 className="font-serif text-xl font-bold">App reviews</h2>
-            <p className="mt-1 text-sm text-muted-foreground">Anyone can submit these — bakers, students, developers, and others. No bakery account required.</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Live submissions from /review — bakers, students, developers, and others. This list refreshes from the database.
+            </p>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[900px] text-left text-sm">
@@ -675,7 +779,7 @@ export default function AdminPortal() {
                     <td className="px-4 py-4 font-semibold">
                       {entry.reviewerName}
                       {entry.email ? <p className="text-xs font-normal text-muted-foreground">{entry.email}</p> : null}
-                      <p className="text-xs font-normal text-muted-foreground">{new Date(entry.createdAt).toLocaleString()}</p>
+                      <p className="text-xs font-normal text-muted-foreground">{entry.createdAt ? new Date(entry.createdAt).toLocaleString() : ""}</p>
                     </td>
                     <td className="px-4 py-4">
                       {APP_REVIEW_ROLES.find((role) => role.id === entry.role)?.label || entry.role}
@@ -692,7 +796,9 @@ export default function AdminPortal() {
                 ))}
                 {appReviews.length === 0 && (
                   <tr>
-                    <td colSpan={4} className="px-4 py-10 text-center text-muted-foreground">No app reviews yet.</td>
+                    <td colSpan={4} className="px-4 py-10 text-center text-muted-foreground">
+                      No live app reviews yet. Submissions from the public review page appear here automatically.
+                    </td>
                   </tr>
                 )}
               </tbody>

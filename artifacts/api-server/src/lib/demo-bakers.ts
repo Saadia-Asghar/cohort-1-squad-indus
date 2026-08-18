@@ -240,3 +240,15 @@ export const DEMO_BAKER_PROFILES: Record<DemoSlug, DemoBakerProfile> = {
     ],
   },
 };
+
+/** Public demo bakery passwords from the catalog. Used so login still works if hashes go stale. */
+export function demoPasswordForIdentifier(identifier: string): string | null {
+  const value = identifier.trim().toLowerCase();
+  for (const slug of DEMO_SLUGS) {
+    const profile = DEMO_BAKER_PROFILES[slug];
+    if (profile.email === value || profile.whatsappNumber.replace(/\s/g, "") === identifier.trim().replace(/\s/g, "")) {
+      return DEMO_PASSWORDS[slug];
+    }
+  }
+  return null;
+}

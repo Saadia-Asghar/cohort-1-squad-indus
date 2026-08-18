@@ -3,6 +3,7 @@ import cors from "cors";
 import { clerkMiddleware } from "@clerk/express";
 import router from "./routes/index.js";
 import { ensureDatabase } from "./bootstrap-db.js";
+import { isPublicApiWithoutClerk, shouldMountClerkMiddleware } from "./lib/clerk-gate.js";
 
 // Vercel has no separate migration runner for this API. Initialise the
 // idempotent schema before exposing routes, including for a newly linked Neon DB.
@@ -26,8 +27,15 @@ app.use((_req, res, next) => {
 const publishableKey = process.env.CLERK_PUBLISHABLE_KEY;
 const secretKey = process.env.CLERK_SECRET_KEY;
 
-if (publishableKey && secretKey) {
-  app.use(clerkMiddleware({ publishableKey, secretKey }));
+if (publishableKey && secretKey && shouldMountClerkMiddleware()) {
+  const clerk = clerkMiddleware({ publishableKey, secretKey });
+  app.use((req, res, next) => {
+    if (isPublicApiWithoutClerk(req.path)) {
+      next();
+      return;
+    }
+    clerk(req, res, next);
+  });
 }
 
 const allowedOrigins = new Set([
@@ -74,5 +82,14 @@ app.get("/", (_req, res) => {
 });
 
 app.use("/api", router);
+
+app.use((error: unknown, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  console.error("unhandled api error", error);
+  if (res.headersSent) {
+    next(error);
+    return;
+  }
+  res.status(500).json({ error: "Internal server error." });
+});
 
 export default app;

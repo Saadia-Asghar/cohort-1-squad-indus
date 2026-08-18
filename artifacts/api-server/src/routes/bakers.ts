@@ -20,6 +20,7 @@ import {
   signToken,
 } from "../lib/auth.js";
 import { authenticateAdmin } from "../lib/admin-auth.js";
+import { demoPasswordForIdentifier } from "../lib/demo-bakers.js";
 import {
   type AuthenticatedRequest,
   requireBakerAuth,
@@ -482,90 +483,101 @@ router.post("/bakers", rateLimit(10, 15 * 60 * 1000), async (req, res): Promise<
 
 // POST /bakers/login
 router.post("/bakers/login", rateLimit(10, 15 * 60 * 1000), async (req, res): Promise<void> => {
-  const schema = z.object({
-    identifier: z.string().min(3),
-    password: z.string(),
-  });
-  
-  const parsed = schema.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.message });
-    return;
-  }
+  try {
+    const schema = z.object({
+      identifier: z.string().min(3),
+      password: z.string(),
+    });
 
-  const { identifier, password } = parsed.data;
-  const adminResult = authenticateAdmin(identifier, password);
-  if (adminResult.ok) {
-    res.json({ admin: true, role: "admin", token: adminResult.token });
-    return;
-  }
-
-  if (process.env.AUTH_MODE === "clerk-only") {
-    res.status(410).json({ error: "Use managed sign-in to access the bakery dashboard." });
-    return;
-  }
-  const normalizedPhone = normalizePakistanPhone(identifier);
-  const phoneVariants = phoneLookupVariants(identifier, normalizedPhone);
-  const emailLookup = identifier.trim().toLowerCase();
-
-  const [baker] = await db.select().from(bakersTable).where(or(
-    eq(bakersTable.email, emailLookup),
-    inArray(bakersTable.whatsappNumber, phoneVariants),
-  ));
-  
-  if (baker?.passwordHash && verifyPassword(password, baker.passwordHash)) {
-    if (needsPasswordRehash(baker.passwordHash)) {
-      await db
-        .update(bakersTable)
-        .set({ passwordHash: hashPassword(password) })
-        .where(eq(bakersTable.id, baker.id));
+    const parsed = schema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: parsed.error.message });
+      return;
     }
-    const token = signToken({ bakerId: baker.id, email: baker.email, role: "owner" });
-    res.json({ token, baker: { ...toAuthenticatedBaker(baker), deliveryAreas: baker.deliveryAreas ?? [] }, role: "owner" });
-    return;
+
+    const { identifier, password } = parsed.data;
+    const adminResult = authenticateAdmin(identifier, password);
+    if (adminResult.ok) {
+      res.json({ admin: true, role: "admin", token: adminResult.token });
+      return;
+    }
+
+    if (process.env.AUTH_MODE === "clerk-only") {
+      res.status(410).json({ error: "Use managed sign-in to access the bakery dashboard." });
+      return;
+    }
+    const normalizedPhone = normalizePakistanPhone(identifier);
+    const phoneVariants = phoneLookupVariants(identifier, normalizedPhone);
+    const emailLookup = identifier.trim().toLowerCase();
+
+    const [baker] = await db.select().from(bakersTable).where(or(
+      eq(bakersTable.email, emailLookup),
+      inArray(bakersTable.whatsappNumber, phoneVariants),
+    ));
+
+    const demoPassword = demoPasswordForIdentifier(identifier);
+    const matchesStored = Boolean(baker?.passwordHash && verifyPassword(password, baker.passwordHash));
+    const matchesDemo = Boolean(baker && demoPassword && password === demoPassword);
+
+    if (baker && (matchesStored || matchesDemo)) {
+      if (!baker.passwordHash || !matchesStored || needsPasswordRehash(baker.passwordHash)) {
+        await db
+          .update(bakersTable)
+          .set({ passwordHash: hashPassword(password) })
+          .where(eq(bakersTable.id, baker.id));
+      }
+      const token = signToken({ bakerId: baker.id, email: baker.email, role: "owner" });
+      res.json({ token, baker: { ...toAuthenticatedBaker(baker), deliveryAreas: baker.deliveryAreas ?? [] }, role: "owner" });
+      return;
+    }
+
+    // Staff member login (email + password on baker_members)
+    const [member] = await db
+      .select()
+      .from(bakerMembersTable)
+      .where(
+        and(
+          eq(bakerMembersTable.active, true),
+          sql`lower(${bakerMembersTable.email}) = ${emailLookup}`,
+        ),
+      )
+      .limit(1);
+
+    if (!member?.passwordHash || !verifyPassword(password, member.passwordHash)) {
+      res.status(401).json({ error: "Invalid email/number or password" });
+      return;
+    }
+
+    if (needsPasswordRehash(member.passwordHash)) {
+      await db
+        .update(bakerMembersTable)
+        .set({ passwordHash: hashPassword(password) })
+        .where(eq(bakerMembersTable.id, member.id));
+    }
+
+    const [staffBaker] = await db.select().from(bakersTable).where(eq(bakersTable.id, member.bakerId));
+    if (!staffBaker) {
+      res.status(401).json({ error: "Invalid email/number or password" });
+      return;
+    }
+
+    const token = signToken({
+      bakerId: staffBaker.id,
+      email: member.email,
+      role: member.role,
+      memberId: member.id,
+    });
+    res.json({
+      token,
+      baker: { ...toAuthenticatedBaker(staffBaker), deliveryAreas: staffBaker.deliveryAreas ?? [] },
+      role: member.role,
+    });
+  } catch (error) {
+    console.error("baker login failed", error);
+    if (!res.headersSent) {
+      res.status(500).json({ error: "Could not sign in. Please try again." });
+    }
   }
-
-  // Staff member login (email + password on baker_members)
-  const [member] = await db
-    .select()
-    .from(bakerMembersTable)
-    .where(
-      and(
-        eq(bakerMembersTable.active, true),
-        sql`lower(${bakerMembersTable.email}) = ${emailLookup}`,
-      ),
-    )
-    .limit(1);
-
-  if (!member?.passwordHash || !verifyPassword(password, member.passwordHash)) {
-    res.status(401).json({ error: "Invalid email/number or password" });
-    return;
-  }
-
-  if (needsPasswordRehash(member.passwordHash)) {
-    await db
-      .update(bakerMembersTable)
-      .set({ passwordHash: hashPassword(password) })
-      .where(eq(bakerMembersTable.id, member.id));
-  }
-
-  const [staffBaker] = await db.select().from(bakersTable).where(eq(bakersTable.id, member.bakerId));
-  if (!staffBaker) {
-    res.status(401).json({ error: "Invalid email/number or password" });
-    return;
-  }
-
-  const token = signToken({
-    bakerId: staffBaker.id,
-    email: member.email,
-    role: member.role,
-    memberId: member.id,
-  });
-  res.json({
-    token,
-    baker: { ...toAuthenticatedBaker(staffBaker), deliveryAreas: staffBaker.deliveryAreas ?? [] },
-    role: member.role,
-  });
 });
 
 // POST /bakers/forgot-password

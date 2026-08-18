@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DEMO_BAKER_PROFILES, DEMO_PASSWORDS, DEMO_SLUGS } from "./demo-bakers.js";
+import { DEMO_BAKER_PROFILES, DEMO_PASSWORDS, DEMO_SLUGS, demoPasswordForIdentifier } from "./demo-bakers.js";
 
 describe("demo baker catalog", () => {
   it("covers every demo slug with a unique email, phone, and starter menu", () => {
@@ -19,5 +19,12 @@ describe("demo baker catalog", () => {
       emails.add(profile.email);
       phones.add(profile.whatsappNumber);
     }
+  });
+
+  it("maps public demo emails to the published demo passwords", () => {
+    expect(demoPasswordForIdentifier("sana@studio.com")).toBe("SanaSweet2026!");
+    expect(demoPasswordForIdentifier("fatima@cakery.com")).toBe("FatimaCake2026!");
+    expect(demoPasswordForIdentifier("amna@bakes.com")).toBe("AmnaBakes2026!");
+    expect(demoPasswordForIdentifier("unknown@example.com")).toBeNull();
   });
 });
