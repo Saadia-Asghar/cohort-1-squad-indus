@@ -374,6 +374,9 @@ ALTER TABLE sweet_tooth.bakers ADD COLUMN IF NOT EXISTS rating_avg REAL NOT NULL
 ALTER TABLE sweet_tooth.bakers ADD COLUMN IF NOT EXISTS total_orders INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE sweet_tooth.bakers ADD COLUMN IF NOT EXISTS photo_url TEXT;
 ALTER TABLE sweet_tooth.bakers ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+ALTER TABLE sweet_tooth.bakers ADD COLUMN IF NOT EXISTS reset_password_token TEXT;
+ALTER TABLE sweet_tooth.bakers ADD COLUMN IF NOT EXISTS reset_password_expires TIMESTAMPTZ;
+ALTER TABLE sweet_tooth.baker_members ADD COLUMN IF NOT EXISTS clerk_user_id TEXT UNIQUE;
 ALTER TABLE sweet_tooth.orders ADD COLUMN IF NOT EXISTS flavour TEXT;
 ALTER TABLE sweet_tooth.orders ADD COLUMN IF NOT EXISTS text_on_cake TEXT;
 ALTER TABLE sweet_tooth.orders ADD COLUMN IF NOT EXISTS payment_screenshot_url TEXT;

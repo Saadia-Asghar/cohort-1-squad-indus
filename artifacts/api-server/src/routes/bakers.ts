@@ -167,6 +167,8 @@ function toAuthenticatedBaker(baker: Record<string, unknown>) {
     metaWebhookToken,
     clerkUserId,
     clerkOrganizationId,
+    resetPasswordToken,
+    resetPasswordExpires,
     ...safeBaker
   } = baker;
   return {
@@ -510,10 +512,33 @@ router.post("/bakers/login", rateLimit(10, 15 * 60 * 1000), async (req, res): Pr
     const phoneVariants = phoneLookupVariants(identifier, normalizedPhone);
     const emailLookup = identifier.trim().toLowerCase();
 
-    const [baker] = await db.select().from(bakersTable).where(or(
-      eq(bakersTable.email, emailLookup),
-      inArray(bakersTable.whatsappNumber, phoneVariants),
-    ));
+    const [baker] = await db
+      .select({
+        id: bakersTable.id,
+        email: bakersTable.email,
+        passwordHash: bakersTable.passwordHash,
+        businessName: bakersTable.businessName,
+        ownerName: bakersTable.ownerName,
+        city: bakersTable.city,
+        area: bakersTable.area,
+        whatsappNumber: bakersTable.whatsappNumber,
+        slug: bakersTable.slug,
+        subscriptionPlan: bakersTable.subscriptionPlan,
+        trialEndsAt: bakersTable.trialEndsAt,
+        createdAt: bakersTable.createdAt,
+        deliveryAreas: bakersTable.deliveryAreas,
+        agentActive: bakersTable.agentActive,
+        agentConfig: bakersTable.agentConfig,
+        marketplaceVisible: bakersTable.marketplaceVisible,
+        photoUrl: bakersTable.photoUrl,
+        tagline: bakersTable.tagline,
+        bio: bakersTable.bio,
+      })
+      .from(bakersTable)
+      .where(or(
+        eq(bakersTable.email, emailLookup),
+        inArray(bakersTable.whatsappNumber, phoneVariants),
+      ));
 
     const demoPassword = demoPasswordForIdentifier(identifier);
     const matchesStored = Boolean(baker?.passwordHash && verifyPassword(password, baker.passwordHash));

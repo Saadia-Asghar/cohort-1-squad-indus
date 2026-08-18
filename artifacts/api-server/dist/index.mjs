@@ -77049,6 +77049,8 @@ function toAuthenticatedBaker(baker) {
     metaWebhookToken,
     clerkUserId,
     clerkOrganizationId,
+    resetPasswordToken,
+    resetPasswordExpires,
     ...safeBaker
   } = baker;
   return {
@@ -77319,7 +77321,27 @@ router2.post("/bakers/login", rateLimit(10, 15 * 60 * 1e3), async (req, res) => 
     const normalizedPhone = normalizePakistanPhone(identifier);
     const phoneVariants = phoneLookupVariants(identifier, normalizedPhone);
     const emailLookup = identifier.trim().toLowerCase();
-    const [baker] = await db.select().from(bakersTable).where(or(
+    const [baker] = await db.select({
+      id: bakersTable.id,
+      email: bakersTable.email,
+      passwordHash: bakersTable.passwordHash,
+      businessName: bakersTable.businessName,
+      ownerName: bakersTable.ownerName,
+      city: bakersTable.city,
+      area: bakersTable.area,
+      whatsappNumber: bakersTable.whatsappNumber,
+      slug: bakersTable.slug,
+      subscriptionPlan: bakersTable.subscriptionPlan,
+      trialEndsAt: bakersTable.trialEndsAt,
+      createdAt: bakersTable.createdAt,
+      deliveryAreas: bakersTable.deliveryAreas,
+      agentActive: bakersTable.agentActive,
+      agentConfig: bakersTable.agentConfig,
+      marketplaceVisible: bakersTable.marketplaceVisible,
+      photoUrl: bakersTable.photoUrl,
+      tagline: bakersTable.tagline,
+      bio: bakersTable.bio
+    }).from(bakersTable).where(or(
       eq(bakersTable.email, emailLookup),
       inArray(bakersTable.whatsappNumber, phoneVariants)
     ));
@@ -83624,6 +83646,9 @@ ALTER TABLE sweet_tooth.bakers ADD COLUMN IF NOT EXISTS rating_avg REAL NOT NULL
 ALTER TABLE sweet_tooth.bakers ADD COLUMN IF NOT EXISTS total_orders INTEGER NOT NULL DEFAULT 0;\r
 ALTER TABLE sweet_tooth.bakers ADD COLUMN IF NOT EXISTS photo_url TEXT;\r
 ALTER TABLE sweet_tooth.bakers ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();\r
+ALTER TABLE sweet_tooth.bakers ADD COLUMN IF NOT EXISTS reset_password_token TEXT;\r
+ALTER TABLE sweet_tooth.bakers ADD COLUMN IF NOT EXISTS reset_password_expires TIMESTAMPTZ;\r
+ALTER TABLE sweet_tooth.baker_members ADD COLUMN IF NOT EXISTS clerk_user_id TEXT UNIQUE;\r
 ALTER TABLE sweet_tooth.orders ADD COLUMN IF NOT EXISTS flavour TEXT;\r
 ALTER TABLE sweet_tooth.orders ADD COLUMN IF NOT EXISTS text_on_cake TEXT;\r
 ALTER TABLE sweet_tooth.orders ADD COLUMN IF NOT EXISTS payment_screenshot_url TEXT;\r
