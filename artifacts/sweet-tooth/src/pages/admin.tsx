@@ -57,6 +57,7 @@ type AppReviewEntry = {
   reviewerName: string;
   email: string | null;
   role: string;
+  roleNote: string | null;
   rating: number;
   reviewText: string;
   usedHow: string | null;
@@ -600,7 +601,7 @@ export default function AdminPortal() {
         <section className={`${cardClass} mt-8 overflow-hidden p-0`}>
           <div className="border-b border-border p-5">
             <h2 className="font-serif text-xl font-bold">Baker waitlist</h2>
-            <p className="mt-1 text-sm text-muted-foreground">Launch page and WhatsApp-agent requests. Approve, then invite them to create an account.</p>
+            <p className="mt-1 text-sm text-muted-foreground">People who asked to be onboarded. Contact them on WhatsApp, then mark contacted or approved.</p>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[900px] text-left text-sm">
@@ -618,6 +619,7 @@ export default function AdminPortal() {
                     <td className="px-4 py-4 font-semibold">
                       {entry.bakerName}
                       {entry.city ? <p className="text-xs font-normal text-muted-foreground">{entry.city}</p> : null}
+                      {entry.note ? <p className="mt-1 text-xs font-normal text-muted-foreground">{entry.note}</p> : null}
                     </td>
                     <td className="px-4 py-4 text-muted-foreground">{entry.bakerEmail} · {entry.whatsappNumber}</td>
                     <td className="px-4 py-4">{entry.source === "launch" ? "Launch" : "WhatsApp agent"}</td>
@@ -665,6 +667,7 @@ export default function AdminPortal() {
                     </td>
                     <td className="px-4 py-4">
                       {APP_REVIEW_ROLES.find((role) => role.id === entry.role)?.label || entry.role}
+                      {entry.roleNote ? <p className="text-xs text-muted-foreground">{entry.roleNote}</p> : null}
                       {entry.usedHow ? (
                         <p className="text-xs text-muted-foreground">
                           {APP_REVIEW_USED_HOW.find((item) => item.id === entry.usedHow)?.label || entry.usedHow}

@@ -43,8 +43,8 @@ export default function OpenSharedMenu() {
         </form>
         <p className="mt-8 text-sm text-muted-foreground">
           Are you a baker?{" "}
-          <Link href="/dashboard/register" className="font-semibold text-primary">
-            Share your own menu from the dashboard
+          <Link href="/waitlist" className="font-semibold text-primary">
+            Join the waitlist and we will onboard you
           </Link>
           .
         </p>

@@ -15,6 +15,7 @@ export default function Waitlist() {
   const [bakerEmail, setBakerEmail] = useState("");
   const [whatsappNumber, setWhatsappNumber] = useState("");
   const [city, setCity] = useState("");
+  const [note, setNote] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [joined, setJoined] = useState(false);
   const [alreadyJoined, setAlreadyJoined] = useState(false);
@@ -44,7 +45,7 @@ export default function Waitlist() {
           whatsappNumber,
           city: city || undefined,
           source: "launch",
-          note: "Joined from public waitlist.",
+          note: note.trim() || "Joined from public waitlist. Contact to onboard.",
         }),
       });
       const body = (await res.json().catch(() => ({}))) as { error?: string; alreadyJoined?: boolean };
@@ -77,7 +78,7 @@ export default function Waitlist() {
               Join the Sweet Tooth waitlist
             </h1>
             <p className="mt-5 max-w-lg text-base leading-7 text-muted-foreground">
-              We are inviting a small group of home bakers first. Leave your bakery details and we will WhatsApp you when your workspace is ready.
+              Want a bakery workspace? Leave your details here. Do not create an account yet — we will WhatsApp you and onboard you ourselves.
             </p>
 
             <div className="mt-8 flex items-center gap-3">
@@ -110,7 +111,7 @@ export default function Waitlist() {
                   {alreadyJoined ? "You are already on the list" : "You are on the list"}
                 </h2>
                 <p className="text-sm leading-6 text-muted-foreground">
-                  We will message you on WhatsApp when a bakery slot opens. No need to create an account yet.
+                  We will contact you on WhatsApp to set up your bakery account. No need to sign up yourself.
                 </p>
                 <Link href="/" className="inline-flex min-h-11 items-center justify-center gap-2 text-sm font-bold text-primary">
                   Back to Sweet Tooth <ArrowRight className="h-4 w-4" />
@@ -120,7 +121,7 @@ export default function Waitlist() {
               <form onSubmit={(event) => void handleSubmit(event)} className="space-y-4">
                 <div>
                   <h2 className="font-serif text-2xl font-bold text-foreground">Request early access</h2>
-                  <p className="mt-1 text-sm text-muted-foreground">Bakery name, email, and WhatsApp only. We do not sell this list.</p>
+                  <p className="mt-1 text-sm text-muted-foreground">We use this to WhatsApp you and walk you through onboarding.</p>
                 </div>
                 <label className="block space-y-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground">
                   Bakery name
@@ -160,6 +161,17 @@ export default function Waitlist() {
                     onChange={(e) => setCity(e.target.value)}
                     className="min-h-12 w-full rounded-xl border border-border bg-card px-3.5 text-sm font-semibold normal-case text-foreground outline-none focus:border-secondary/60 focus:ring-4 focus:ring-secondary/10"
                     placeholder="Lahore, Karachi, Islamabad…"
+                  />
+                </label>
+                <label className="block space-y-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Anything we should know? <span className="font-medium normal-case tracking-normal text-muted-foreground">(optional)</span>
+                  <textarea
+                    value={note}
+                    onChange={(e) => setNote(e.target.value)}
+                    rows={3}
+                    maxLength={500}
+                    className="w-full rounded-xl border border-border bg-card px-3.5 py-3 text-sm font-semibold normal-case text-foreground outline-none focus:border-secondary/60 focus:ring-4 focus:ring-secondary/10"
+                    placeholder="e.g. I bake from DHA Lahore, about 40 orders a month, mainly WhatsApp."
                   />
                 </label>
                 {error && <p className="rounded-xl bg-red-50 px-3 py-2 text-sm font-medium text-red-700">{error}</p>}

@@ -230,6 +230,12 @@ export default function BakerLogin({ initialTab = "login" }: { initialTab?: "log
         </TabsContent>
 
         <TabsContent value="register" className="mt-7 space-y-5 focus-visible:outline-none">
+          <div className="rounded-xl border border-border bg-background px-4 py-3 text-sm text-muted-foreground">
+            New bakeries join through the waitlist. We WhatsApp you and onboard you — do not create an account unless we invited you.{" "}
+            <Link href="/waitlist" className="font-semibold text-primary hover:underline">Join the waitlist</Link>
+            {" · "}
+            <Link href="/review" className="font-semibold text-primary hover:underline">Review the app</Link>
+          </div>
           {selectedPlan && selectedPlan.id !== "free" && (
             <div className="rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-muted-foreground">
               You selected <strong className="text-primary">{selectedPlan.name}</strong>. Start free and upgrade after your first orders. See the <Link href="/#pricing" className="font-semibold text-primary hover:underline">pricing details</Link>.

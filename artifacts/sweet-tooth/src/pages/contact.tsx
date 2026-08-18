@@ -15,7 +15,7 @@ export default function Contact() {
             <p className="text-sm font-bold uppercase tracking-wider text-primary">Sweet Tooth support</p>
             <h1 className="mt-3 font-serif text-5xl font-bold">Let&apos;s make your bakery&apos;s first reply feel professional.</h1>
             <p className="mt-5 max-w-xl leading-relaxed text-muted-foreground">
-              Start by creating your baker account and setting up your bakery. Once your menu and rules are ready, the agent can give customers consistent answers and bring important follow-ups back to you.
+              Want a bakery workspace? Join the waitlist and we will WhatsApp you to onboard. Already invited? Sign in. Anyone can also leave a review of the app.
             </p>
             <div className="mt-8 space-y-4">
               <div className="flex gap-3 rounded-xl border border-border p-4">
@@ -35,8 +35,8 @@ export default function Contact() {
             <a href={`mailto:${SUPPORT_EMAIL}`} className="mt-6 inline-flex w-full items-center justify-center rounded-xl bg-primary px-5 py-3 font-bold text-primary-foreground hover:bg-primary/90">Email support</a>
             <a href={whatsappSupportLink("Assalam-o-Alaikum! I need help with my Sweet Tooth bakery account.")} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex w-full items-center justify-center rounded-xl border border-green-200 bg-green-50 px-5 py-3 font-bold text-green-800 hover:bg-green-100">WhatsApp support</a>
             <Link href="/review" className="mt-3 inline-flex w-full items-center justify-center rounded-xl border border-border px-5 py-3 font-bold hover:bg-muted">Review the app</Link>
-            <Link href="/dashboard/register" className="mt-3 inline-flex w-full items-center justify-center rounded-xl border border-border px-5 py-3 font-bold hover:bg-muted">Create baker account</Link>
-            <Link href="/dashboard/login" className="mt-3 inline-flex w-full items-center justify-center rounded-xl border border-border px-5 py-3 font-bold hover:bg-muted">Open baker portal</Link>
+            <Link href="/waitlist" className="mt-3 inline-flex w-full items-center justify-center rounded-xl border border-border px-5 py-3 font-bold hover:bg-muted">Join the waitlist</Link>
+            <Link href="/dashboard/login" className="mt-3 inline-flex w-full items-center justify-center rounded-xl border border-border px-5 py-3 font-bold hover:bg-muted">Already invited? Sign in</Link>
           </aside>
         </div>
       </section>

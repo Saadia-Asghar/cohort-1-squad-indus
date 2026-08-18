@@ -631,7 +631,7 @@ router.get("/waitlist/count", rateLimit(40, 60 * 1000), async (_req, res): Promi
 router.post("/app-reviews", rateLimit(8, 15 * 60 * 1000), async (req, res): Promise<void> => {
   const parsed = parseAppReview(req.body);
   if (!parsed) {
-    res.status(400).json({ error: "Name, who you are, a 1–5 rating, and a short review are required." });
+    res.status(400).json({ error: "Name, who you are, a 1–5 rating, and a free-form review are required." });
     return;
   }
 

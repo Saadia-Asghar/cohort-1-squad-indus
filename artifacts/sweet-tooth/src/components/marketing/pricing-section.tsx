@@ -24,7 +24,7 @@ function OfferCard({ offer }: { offer: OfferPlan }) {
       <p className={`mt-2 text-sm ${offer.featured ? "text-white/85" : "text-muted-foreground"}`}>{offer.tagline}</p>
       <p className="mt-6 text-3xl font-bold">{price.primary}<span className={`ml-1 text-sm font-medium ${offer.featured ? "text-white/75" : "text-muted-foreground"}`}>{price.suffix}</span></p>
       <ul className="mt-6 space-y-3 text-sm">{included.map((feature) => <li key={feature} className="flex gap-2"><CheckCircle2 className={`h-4 w-4 shrink-0 ${offer.featured ? "text-secondary" : "text-primary"}`} />{feature}</li>)}</ul>
-      <Link href={`/dashboard/register?plan=${offer.planId}&offer=${offer.id}&billing=monthly`} className={`mt-auto inline-flex items-center justify-center gap-2 rounded-md px-4 py-3 text-sm font-bold transition-colors ${offer.featured ? "bg-white text-primary hover:bg-white/90" : "bg-primary text-primary-foreground hover:bg-primary/90"}`}>Choose plan <ArrowRight className="h-4 w-4" /></Link>
+      <Link href="/waitlist" className={`mt-auto inline-flex items-center justify-center gap-2 rounded-md px-4 py-3 text-sm font-bold transition-colors ${offer.featured ? "bg-white text-primary hover:bg-white/90" : "bg-primary text-primary-foreground hover:bg-primary/90"}`}>Join waitlist <ArrowRight className="h-4 w-4" /></Link>
     </article>
   );
 }
@@ -33,9 +33,9 @@ export function PricingSection({ compact = false }: { compact?: boolean }) {
   return (
     <section id="pricing" className="scroll-mt-20 bg-muted px-4 py-16 md:py-20">
       <div className="mx-auto max-w-6xl">
-        <div className="mx-auto max-w-2xl text-center"><h2 className="font-serif text-4xl font-bold">Simple pricing. No surprises.</h2><p className="mt-3 text-muted-foreground">Start with the plan that fits your bakery. Upgrade when you grow.</p></div>
+        <div className="mx-auto max-w-2xl text-center"><h2 className="font-serif text-4xl font-bold">Simple pricing. No surprises.</h2><p className="mt-3 text-muted-foreground">Join the waitlist for the plan that fits. We contact you to onboard — you do not create an account yourself.</p></div>
         <div className={`mx-auto mt-10 grid gap-5 ${compact ? "max-w-4xl md:grid-cols-2" : "lg:grid-cols-3"}`}>{launchOffers.map((offer) => <OfferCard key={offer.id} offer={offer} />)}</div>
-        <p className="mt-7 text-center text-sm text-muted-foreground">Choose a plan while creating your bakery. Your menu link and dashboard are included.</p>
+        <p className="mt-7 text-center text-sm text-muted-foreground">Leave your details on the waitlist. We WhatsApp you and set up the workspace together.</p>
       </div>
     </section>
   );

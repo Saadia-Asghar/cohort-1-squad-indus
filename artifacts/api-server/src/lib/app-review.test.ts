@@ -14,6 +14,7 @@ describe("parseAppReview", () => {
     expect(parsed).toMatchObject({
       reviewerName: "Ayesha",
       role: "student",
+      roleNote: null,
       rating: 4,
       usedHow: "browsed",
     });
@@ -28,6 +29,26 @@ describe("parseAppReview", () => {
     });
     expect(parsed?.email).toBeNull();
     expect(parsed?.role).toBe("developer");
+  });
+
+  it("requires a short note when the role is Other", () => {
+    expect(
+      parseAppReview({
+        reviewerName: "Noor",
+        role: "other",
+        rating: 4,
+        reviewText: "The homepage waitlist and review buttons are easy to find.",
+      }),
+    ).toBeNull();
+    expect(
+      parseAppReview({
+        reviewerName: "Noor",
+        role: "other",
+        roleNote: "CS student at FAST",
+        rating: 4,
+        reviewText: "The homepage waitlist and review buttons are easy to find.",
+      }),
+    ).toMatchObject({ role: "other", roleNote: "CS student at FAST" });
   });
 
   it("rejects baker-only assumptions and thin reviews", () => {

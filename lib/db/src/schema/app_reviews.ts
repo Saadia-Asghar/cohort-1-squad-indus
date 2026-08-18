@@ -8,6 +8,7 @@ export const appReviewsTable = sweetTooth.table("app_reviews", {
   reviewerName: text("reviewer_name").notNull(),
   email: text("email"),
   role: text("role").notNull(),
+  roleNote: text("role_note"),
   rating: integer("rating").notNull(),
   reviewText: text("review_text").notNull(),
   usedHow: text("used_how"),

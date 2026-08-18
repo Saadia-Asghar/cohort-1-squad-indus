@@ -81,6 +81,12 @@ export function BuyerLayout({
               Join waitlist
               <ChevronRight className="h-4 w-4" />
             </Link>
+            <Link
+              href="/review"
+              className="inline-flex min-h-11 items-center justify-center rounded-xl border border-border bg-white px-4 py-2.5 text-sm font-bold text-foreground transition hover:border-primary/40 hover:text-primary"
+            >
+              Review
+            </Link>
           </div>
 
           <button
@@ -136,21 +142,27 @@ export function BuyerLayout({
 
                 <div className="grid grid-cols-2 gap-3 border-t border-border pt-4">
                   <Link
-                    href="/dashboard/login"
-                    onClick={closeMobileMenu}
-                    className="inline-flex min-h-12 items-center justify-center rounded-xl border border-border bg-white px-4 text-sm font-bold"
-                  >
-                    Baker sign in
-                  </Link>
-
-                  <Link
                     href="/waitlist"
                     onClick={closeMobileMenu}
                     className="inline-flex min-h-12 items-center justify-center rounded-xl bg-primary px-4 text-sm font-bold text-primary-foreground"
                   >
                     Join waitlist
                   </Link>
+                  <Link
+                    href="/review"
+                    onClick={closeMobileMenu}
+                    className="inline-flex min-h-12 items-center justify-center rounded-xl border border-border bg-white px-4 text-sm font-bold"
+                  >
+                    Review the app
+                  </Link>
                 </div>
+                <Link
+                  href="/dashboard/login"
+                  onClick={closeMobileMenu}
+                  className="inline-flex min-h-12 w-full items-center justify-center rounded-xl px-4 text-sm font-semibold text-muted-foreground"
+                >
+                  Already invited? Baker sign in
+                </Link>
               </div>
             </motion.div>
           )}
@@ -216,11 +228,7 @@ export function BuyerLayout({
                   href: "/waitlist",
                 },
                 {
-                  label: "Create an account",
-                  href: "/dashboard/register",
-                },
-                {
-                  label: "Baker sign in",
+                  label: "Already invited? Sign in",
                   href: "/dashboard/login",
                 },
                 {

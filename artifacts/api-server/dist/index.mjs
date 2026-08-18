@@ -54317,6 +54317,7 @@ var init_app_reviews = __esm({
       reviewerName: text("reviewer_name").notNull(),
       email: text("email"),
       role: text("role").notNull(),
+      roleNote: text("role_note"),
       rating: integer("rating").notNull(),
       reviewText: text("review_text").notNull(),
       usedHow: text("used_how"),
@@ -64911,16 +64912,19 @@ function parseAppReview(body) {
   const emailRaw = typeof record2.email === "string" ? record2.email.trim().toLowerCase().slice(0, 120) : "";
   const role = typeof record2.role === "string" && ROLE_IDS.has(record2.role) ? record2.role : null;
   const rating = typeof record2.rating === "number" ? record2.rating : Number(record2.rating);
-  const reviewText = typeof record2.reviewText === "string" ? record2.reviewText.trim().slice(0, 2e3) : "";
+  const reviewText = typeof record2.reviewText === "string" ? record2.reviewText.trim().slice(0, 4e3) : "";
+  const roleNoteRaw = typeof record2.roleNote === "string" ? record2.roleNote.trim().slice(0, 160) : "";
   const usedHow = typeof record2.usedHow === "string" && USED_HOW_IDS.has(record2.usedHow) ? record2.usedHow : null;
   if (reviewerName.length < 2 || !role || !Number.isInteger(rating) || rating < 1 || rating > 5 || reviewText.length < 20) {
     return null;
   }
   if (emailRaw && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailRaw)) return null;
+  if (role === "other" && roleNoteRaw.length < 2) return null;
   return {
     reviewerName,
     email: emailRaw || null,
     role,
+    roleNote: roleNoteRaw || null,
     rating,
     reviewText,
     usedHow
@@ -65416,7 +65420,7 @@ var init_admin = __esm({
     router17.post("/app-reviews", rateLimit(8, 15 * 60 * 1e3), async (req, res) => {
       const parsed = parseAppReview(req.body);
       if (!parsed) {
-        res.status(400).json({ error: "Name, who you are, a 1\u20135 rating, and a short review are required." });
+        res.status(400).json({ error: "Name, who you are, a 1\u20135 rating, and a free-form review are required." });
         return;
       }
       try {
@@ -83833,11 +83837,13 @@ CREATE TABLE IF NOT EXISTS sweet_tooth.app_reviews (\r
   reviewer_name TEXT NOT NULL,\r
   email TEXT,\r
   role TEXT NOT NULL,\r
+  role_note TEXT,\r
   rating INTEGER NOT NULL,\r
   review_text TEXT NOT NULL,\r
   used_how TEXT,\r
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()\r
 );\r
+ALTER TABLE sweet_tooth.app_reviews ADD COLUMN IF NOT EXISTS role_note TEXT;\r
 `;
 
 // src/bootstrap-db.ts

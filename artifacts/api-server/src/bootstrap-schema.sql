@@ -618,8 +618,10 @@ CREATE TABLE IF NOT EXISTS sweet_tooth.app_reviews (
   reviewer_name TEXT NOT NULL,
   email TEXT,
   role TEXT NOT NULL,
+  role_note TEXT,
   rating INTEGER NOT NULL,
   review_text TEXT NOT NULL,
   used_how TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+ALTER TABLE sweet_tooth.app_reviews ADD COLUMN IF NOT EXISTS role_note TEXT;

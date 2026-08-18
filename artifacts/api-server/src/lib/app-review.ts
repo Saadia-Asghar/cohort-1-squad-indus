@@ -26,6 +26,7 @@ export type ParsedAppReview = {
   reviewerName: string;
   email: string | null;
   role: AppReviewRoleId;
+  roleNote: string | null;
   rating: number;
   reviewText: string;
   usedHow: AppReviewUsedHowId | null;
@@ -38,7 +39,8 @@ export function parseAppReview(body: unknown): ParsedAppReview | null {
   const emailRaw = typeof record.email === "string" ? record.email.trim().toLowerCase().slice(0, 120) : "";
   const role = typeof record.role === "string" && ROLE_IDS.has(record.role) ? (record.role as AppReviewRoleId) : null;
   const rating = typeof record.rating === "number" ? record.rating : Number(record.rating);
-  const reviewText = typeof record.reviewText === "string" ? record.reviewText.trim().slice(0, 2000) : "";
+  const reviewText = typeof record.reviewText === "string" ? record.reviewText.trim().slice(0, 4000) : "";
+  const roleNoteRaw = typeof record.roleNote === "string" ? record.roleNote.trim().slice(0, 160) : "";
   const usedHow =
     typeof record.usedHow === "string" && USED_HOW_IDS.has(record.usedHow)
       ? (record.usedHow as AppReviewUsedHowId)
@@ -48,11 +50,13 @@ export function parseAppReview(body: unknown): ParsedAppReview | null {
     return null;
   }
   if (emailRaw && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailRaw)) return null;
+  if (role === "other" && roleNoteRaw.length < 2) return null;
 
   return {
     reviewerName,
     email: emailRaw || null,
     role,
+    roleNote: roleNoteRaw || null,
     rating,
     reviewText,
     usedHow,

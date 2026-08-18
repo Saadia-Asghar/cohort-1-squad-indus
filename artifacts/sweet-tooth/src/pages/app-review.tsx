@@ -8,6 +8,7 @@ export default function AppReviewPage() {
   const [reviewerName, setReviewerName] = useState("");
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<AppReviewRoleId | "">("");
+  const [roleNote, setRoleNote] = useState("");
   const [usedHow, setUsedHow] = useState<AppReviewUsedHowId | "">("");
   const [rating, setRating] = useState(0);
   const [reviewText, setReviewText] = useState("");
@@ -27,6 +28,7 @@ export default function AppReviewPage() {
           reviewerName,
           email: email || undefined,
           role,
+          roleNote: roleNote.trim() || undefined,
           usedHow: usedHow || undefined,
           rating,
           reviewText,
@@ -57,13 +59,13 @@ export default function AppReviewPage() {
               Review Sweet Tooth
             </h1>
             <p className="mt-5 max-w-lg text-base leading-7 text-muted-foreground">
-              You do not need a bakery. Students, developers, designers, mentors and home bakers can all leave a signed review of the product after trying the site or a demo login.
+              Tell us who you are — home baker, student, developer, designer, or something else — then write freely about what you thought.
             </p>
             <p className="mt-4 max-w-lg text-sm leading-6 text-muted-foreground">
-              Tell us who you are so we can read baker notes separately from jury, classmate, or engineering feedback.
+              You do not need a bakery account. We read baker notes separately from student, developer, and jury feedback.
             </p>
             <Link href="/waitlist" className="mt-8 inline-flex items-center gap-2 text-sm font-bold text-primary hover:underline">
-              Looking for a bakery seat instead? Join the waitlist
+              Want a bakery workspace instead? Join the waitlist
               <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
@@ -76,7 +78,7 @@ export default function AppReviewPage() {
                 </span>
                 <h2 className="font-serif text-2xl font-bold">Thank you</h2>
                 <p className="text-sm leading-6 text-muted-foreground">
-                  Your review is saved with your role. The team reads these in Admin next to the baker waitlist.
+                  Your review is saved with who you are. The team reads these in Admin next to the baker waitlist.
                 </p>
               </div>
             ) : (
@@ -91,6 +93,7 @@ export default function AppReviewPage() {
                 </label>
                 <fieldset>
                   <legend className="text-sm font-bold">Who are you?</legend>
+                  <p className="mt-1 text-xs font-medium text-muted-foreground">Baker, developer, student, designer — tap one.</p>
                   <div className="mt-3 flex flex-wrap gap-2">
                     {APP_REVIEW_ROLES.map((item) => (
                       <button
@@ -108,8 +111,20 @@ export default function AppReviewPage() {
                     ))}
                   </div>
                 </fieldset>
+                <label className="block text-sm font-bold">
+                  More about you {role === "other" ? "" : <span className="font-medium text-muted-foreground">(optional)</span>}
+                  <input
+                    required={role === "other"}
+                    minLength={role === "other" ? 2 : undefined}
+                    maxLength={160}
+                    value={roleNote}
+                    onChange={(event) => setRoleNote(event.target.value)}
+                    placeholder="e.g. CS student at FAST, baker from Karachi, product designer…"
+                    className="mt-2 h-12 w-full rounded-xl border border-border bg-background px-4 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/15"
+                  />
+                </label>
                 <fieldset>
-                  <legend className="text-sm font-bold">How did you try it?</legend>
+                  <legend className="text-sm font-bold">How did you try it? <span className="font-medium text-muted-foreground">(optional)</span></legend>
                   <div className="mt-3 flex flex-wrap gap-2">
                     {APP_REVIEW_USED_HOW.map((item) => (
                       <button
@@ -146,21 +161,21 @@ export default function AppReviewPage() {
                   </div>
                 </fieldset>
                 <label className="block text-sm font-bold">
-                  Your review
+                  Write freely
                   <textarea
                     required
                     minLength={20}
-                    rows={5}
+                    rows={7}
                     value={reviewText}
                     onChange={(event) => setReviewText(event.target.value)}
-                    placeholder="What worked, what confused you, and what you would change."
-                    className="mt-2 w-full rounded-xl border border-border bg-background px-4 py-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/15"
+                    placeholder="What worked, what confused you, and what you would change. Write as much as you like."
+                    className="mt-2 w-full rounded-xl border border-border bg-background px-4 py-3 text-sm leading-6 outline-none focus:border-primary focus:ring-2 focus:ring-primary/15"
                   />
                 </label>
                 {error && <p className="rounded-xl bg-red-50 px-3 py-2 text-sm font-medium text-red-700">{error}</p>}
                 <button
                   type="submit"
-                  disabled={submitting || !role || rating < 1}
+                  disabled={submitting || !role || rating < 1 || (role === "other" && roleNote.trim().length < 2)}
                   className="inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-primary text-sm font-bold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
                 >
                   {submitting ? "Sending…" : "Send review"}

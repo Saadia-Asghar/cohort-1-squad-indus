@@ -204,12 +204,12 @@ function HeroSection() {
                 <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
               </Link>
 
-              <a
-                href="#how-it-works"
+              <Link
+                href="/review"
                 className="inline-flex min-h-12 w-full items-center justify-center rounded-xl border border-primary-foreground/25 px-5 py-3 text-sm font-bold text-primary-foreground transition hover:border-secondary hover:text-secondary sm:min-h-14 sm:w-auto sm:px-8"
               >
-                See the workflow
-              </a>
+                Review the app
+              </Link>
             </motion.div>
 
             <motion.div
