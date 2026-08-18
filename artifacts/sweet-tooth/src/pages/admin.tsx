@@ -194,12 +194,23 @@ export default function AdminPortal() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: loginEmail, password: loginPassword }),
       });
-      const data = await res.json();
-      if (res.ok && data.token) {
-        setToken(data.token);
-        await loadAdmin(data.token);
+      const raw = await res.text();
+      let body: { error?: string; token?: string } = {};
+      try {
+        body = raw ? (JSON.parse(raw) as { error?: string; token?: string }) : {};
+      } catch {
+        setError(
+          res.status >= 500
+            ? "Admin server crashed. In Vercel, open the API project and set JWT_SECRET (32+ characters) plus ADMIN_EMAIL and ADMIN_PASSWORD."
+            : "Admin server returned an invalid response.",
+        );
+        return;
+      }
+      if (res.ok && body.token) {
+        setToken(body.token);
+        await loadAdmin(body.token);
       } else {
-        setError(data.error || "Invalid credentials.");
+        setError(body.error || "Invalid credentials.");
       }
     } catch {
       setError("Network error. Please try again.");

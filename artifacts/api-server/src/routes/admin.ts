@@ -74,13 +74,18 @@ function requireEnrichOrAdminBearer(req: { headers: { authorization?: string } }
  * No default credentials. Returns a signed admin JWT — never the signing secret.
  */
 router.post("/admin/login", async (req, res): Promise<void> => {
-  const { email, password } = req.body as { email?: string; password?: string };
-  const result = authenticateAdmin(email, password);
-  if (!result.ok) {
-    res.status(result.status).json({ error: result.error });
-    return;
+  try {
+    const { email, password } = req.body as { email?: string; password?: string };
+    const result = authenticateAdmin(email, password);
+    if (!result.ok) {
+      res.status(result.status).json({ error: result.error });
+      return;
+    }
+    res.json({ token: result.token });
+  } catch (error) {
+    console.error("admin login failed", error);
+    res.status(500).json({ error: "Admin login failed." });
   }
-  res.json({ token: result.token });
 });
 
 

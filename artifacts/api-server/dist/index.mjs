@@ -54615,10 +54615,15 @@ function authenticateAdmin(email3, password) {
   if (!emailOk || !passwordOk) {
     return { ok: false, status: 401, error: "Invalid email or password." };
   }
-  return {
-    ok: true,
-    token: signToken({ role: "admin", admin: true, email: configured.email })
-  };
+  try {
+    return {
+      ok: true,
+      token: signToken({ role: "admin", admin: true, email: configured.email })
+    };
+  } catch (error40) {
+    console.error("admin JWT signing failed", error40);
+    return { ok: false, status: 503, error: "Admin login is not configured." };
+  }
 }
 function isAdminAuthorization(authorization) {
   const token = bearerToken(authorization);
@@ -65019,13 +65024,18 @@ var init_admin = __esm({
     init_app_review();
     router17 = (0, import_express19.Router)();
     router17.post("/admin/login", async (req, res) => {
-      const { email: email3, password } = req.body;
-      const result = authenticateAdmin(email3, password);
-      if (!result.ok) {
-        res.status(result.status).json({ error: result.error });
-        return;
+      try {
+        const { email: email3, password } = req.body;
+        const result = authenticateAdmin(email3, password);
+        if (!result.ok) {
+          res.status(result.status).json({ error: result.error });
+          return;
+        }
+        res.json({ token: result.token });
+      } catch (error40) {
+        console.error("admin login failed", error40);
+        res.status(500).json({ error: "Admin login failed." });
       }
-      res.json({ token: result.token });
     });
     router17.post("/admin/enrich-demo", async (req, res) => {
       if (!requireEnrichOrAdminBearer(req, res)) return;

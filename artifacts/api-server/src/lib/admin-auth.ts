@@ -51,10 +51,15 @@ export function authenticateAdmin(
     return { ok: false, status: 401, error: "Invalid email or password." };
   }
 
-  return {
-    ok: true,
-    token: signToken({ role: "admin", admin: true, email: configured.email }),
-  };
+  try {
+    return {
+      ok: true,
+      token: signToken({ role: "admin", admin: true, email: configured.email }),
+    };
+  } catch (error) {
+    console.error("admin JWT signing failed", error);
+    return { ok: false, status: 503, error: "Admin login is not configured." };
+  }
 }
 
 export function isAdminAuthorization(authorization: string | undefined): boolean {

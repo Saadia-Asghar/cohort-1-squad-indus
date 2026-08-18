@@ -24,6 +24,7 @@ describe("admin authentication", () => {
     delete process.env.ADMIN_PASSWORD;
     delete process.env.ENRICH_DEMO_SECRET;
     delete process.env.TOKEN_ENCRYPTION_KEY;
+    delete process.env.VERCEL;
   });
 
   it("refuses login when admin credentials are not configured", () => {
@@ -63,6 +64,19 @@ describe("admin authentication", () => {
     expect(result.token).not.toBe(JWT_SECRET);
     expect(result.token.split(".")).toHaveLength(3);
     expect(isAdminAuthorization(`Bearer ${result.token}`)).toBe(true);
+  });
+
+  it("returns 503 instead of crashing when JWT signing is unavailable", () => {
+    process.env.ADMIN_EMAIL = "ops@example.com";
+    process.env.ADMIN_PASSWORD = "correct-horse-battery-staple";
+    process.env.VERCEL = "1";
+    delete process.env.JWT_SECRET;
+    const result = authenticateAdmin("ops@example.com", "correct-horse-battery-staple");
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.status).toBe(503);
+      expect(result.error).toMatch(/not configured/i);
+    }
   });
 
   it("does not treat the raw JWT_SECRET as an admin bearer", () => {
