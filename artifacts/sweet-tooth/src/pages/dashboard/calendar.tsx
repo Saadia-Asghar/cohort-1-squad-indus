@@ -108,13 +108,13 @@ function statusStyle(status: string): string {
       return "bg-[#fff0dd] text-[#b86a24]";
 
     case "ready":
-      return "bg-[#f1dde5] text-[#8e345c]";
+      return "bg-accent text-[#8e345c]";
 
     case "out_for_delivery":
       return "bg-[#e7edf8] text-[#3f5f92]";
 
     default:
-      return "bg-[#eee5f1] text-[#632a73]";
+      return "bg-[#eee5f1] text-primary";
   }
 }
 
@@ -130,13 +130,13 @@ function statusDot(status: string): string {
       return "bg-[#b86a24]";
 
     case "ready":
-      return "bg-[#c24f7a]";
+      return "bg-secondary";
 
     case "out_for_delivery":
       return "bg-[#3f5f92]";
 
     default:
-      return "bg-[#632a73]";
+      return "bg-primary";
   }
 }
 
@@ -292,11 +292,11 @@ export default function DashboardCalendar() {
 
   return (
     <DashboardLayout>
-      <div className="min-h-screen bg-[#fbf6ee] px-4 py-5 text-[#241629] sm:px-6 lg:px-7">
+      <div className="min-h-screen bg-background px-4 py-5 text-foreground sm:px-6 lg:px-7">
         <div className="mx-auto max-w-[1480px]">
-          <header className="flex flex-col gap-5 border-b border-[#dfd1c4] pb-5 lg:flex-row lg:items-end lg:justify-between">
+          <header className="flex flex-col gap-5 border-b border-border pb-5 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#c24f7a]">
+              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-secondary">
                 Orders / Schedule
               </p>
 
@@ -304,19 +304,19 @@ export default function DashboardCalendar() {
                 Order schedule
               </h1>
 
-              <p className="mt-3 max-w-2xl text-sm leading-6 text-[#746876]">
+              <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">
                 Plan production, monitor daily capacity
                 and review every delivery from one
                 calendar.
               </p>
             </div>
 
-            <div className="flex items-center rounded-xl border border-[#dfd1c4] bg-[#fffaf6] p-1">
+            <div className="flex items-center rounded-xl border border-border bg-card p-1">
               <button
                 type="button"
                 onClick={goToPreviousMonth}
                 aria-label="Previous month"
-                className="grid h-10 w-10 place-items-center rounded-lg text-[#746876] transition hover:bg-[#f1e9e2] hover:text-[#241629]"
+                className="grid h-10 w-10 place-items-center rounded-lg text-muted-foreground transition hover:bg-muted hover:text-foreground"
               >
                 <ChevronLeft className="h-4 w-4" />
               </button>
@@ -324,7 +324,7 @@ export default function DashboardCalendar() {
               <button
                 type="button"
                 onClick={goToCurrentMonth}
-                className="min-w-[145px] rounded-lg px-3 py-2 text-center font-serif text-base font-semibold transition hover:bg-[#f1e9e2]"
+                className="min-w-[145px] rounded-lg px-3 py-2 text-center font-serif text-base font-semibold transition hover:bg-muted"
               >
                 {format(currentDate, "MMMM yyyy")}
               </button>
@@ -333,14 +333,14 @@ export default function DashboardCalendar() {
                 type="button"
                 onClick={goToNextMonth}
                 aria-label="Next month"
-                className="grid h-10 w-10 place-items-center rounded-lg text-[#746876] transition hover:bg-[#f1e9e2] hover:text-[#241629]"
+                className="grid h-10 w-10 place-items-center rounded-lg text-muted-foreground transition hover:bg-muted hover:text-foreground"
               >
                 <ChevronRight className="h-4 w-4" />
               </button>
             </div>
           </header>
 
-          <section className="grid border-b border-[#dfd1c4] sm:grid-cols-2 xl:grid-cols-4">
+          <section className="grid border-b border-border sm:grid-cols-2 xl:grid-cols-4">
             <ScheduleMetric
               icon={CalendarDays}
               label="Monthly deliveries"
@@ -371,14 +371,14 @@ export default function DashboardCalendar() {
               icon={Gauge}
               label="Daily capacity"
               value={`${maxOrders} orders`}
-              valueClass="text-[#632a73]"
+              valueClass="text-primary"
             />
           </section>
 
           <div className="mt-5 grid gap-4 xl:grid-cols-[minmax(0,1fr)_260px]">
             <main className="min-w-0">
-              <section className="overflow-hidden rounded-2xl border border-[#dfd1c4] bg-white/45">
-                <div className="flex flex-col gap-3 border-b border-[#dfd1c4] px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+              <section className="overflow-hidden rounded-2xl border border-border bg-white/45">
+                <div className="flex flex-col gap-3 border-b border-border px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <h2 className="font-serif text-xl font-semibold">
                       {format(
@@ -387,7 +387,7 @@ export default function DashboardCalendar() {
                       )}
                     </h2>
 
-                    <p className="mt-1 text-xs text-[#746876]">
+                    <p className="mt-1 text-xs text-muted-foreground">
                       Select any date to review its
                       orders and available capacity.
                     </p>
@@ -396,7 +396,7 @@ export default function DashboardCalendar() {
                   <button
                     type="button"
                     onClick={goToCurrentMonth}
-                    className="min-h-10 rounded-xl border border-[#dfd1c4] bg-[#fffaf6] px-4 text-xs font-semibold text-[#632a73] transition hover:bg-[#f1e9e2]"
+                    className="min-h-10 rounded-xl border border-border bg-card px-4 text-xs font-semibold text-primary transition hover:bg-muted"
                   >
                     Today
                   </button>
@@ -404,12 +404,12 @@ export default function DashboardCalendar() {
 
                 {isLoading && !orders ? (
                   <div className="space-y-3 p-4">
-                    <div className="h-[560px] animate-pulse rounded-2xl bg-[#f1e9e2]" />
+                    <div className="h-[560px] animate-pulse rounded-2xl bg-muted" />
                   </div>
                 ) : (
                   <>
                     <div className="md:hidden">
-                      <div className="grid grid-cols-7 border-b border-[#dfd1c4] bg-[#fffaf6]">
+                      <div className="grid grid-cols-7 border-b border-border bg-card">
                         {weekDays.map((weekday) => (
                           <div
                             key={weekday}
@@ -463,7 +463,7 @@ export default function DashboardCalendar() {
                                   ? ", blocked"
                                   : ""
                               }`}
-                              className={`relative flex min-h-14 flex-col items-center justify-center border-b border-r border-[#eadfd5] px-1 py-2 transition ${
+                              className={`relative flex min-h-14 flex-col items-center justify-center border-b border-r border-border px-1 py-2 transition ${
                                 currentMonth
                                   ? "bg-white/30"
                                   : "bg-[#f3ece6] text-[#b3a8b3]"
@@ -476,7 +476,7 @@ export default function DashboardCalendar() {
                               <span
                                 className={`grid h-6 w-6 place-items-center rounded-full text-[10px] font-semibold ${
                                   today
-                                    ? "bg-[#632a73] text-white"
+                                    ? "bg-primary text-white"
                                     : blocked
                                       ? "text-[#a7313b]"
                                       : ""
@@ -495,7 +495,7 @@ export default function DashboardCalendar() {
                                       className={`h-1.5 w-1.5 rounded-full ${
                                         full
                                           ? "bg-[#b86a24]"
-                                          : "bg-[#c24f7a]"
+                                          : "bg-secondary"
                                       }`}
                                     />
 
@@ -514,7 +514,7 @@ export default function DashboardCalendar() {
                     </div>
 
                     <div className="hidden md:block">
-                      <div className="grid grid-cols-7 border-b border-[#dfd1c4] bg-[#fffaf6]">
+                      <div className="grid grid-cols-7 border-b border-border bg-card">
                         {weekDays.map((weekday) => (
                           <div
                             key={weekday}
@@ -568,7 +568,7 @@ export default function DashboardCalendar() {
                                   ? ", blocked"
                                   : ""
                               }`}
-                              className={`group relative flex min-h-[132px] flex-col border-b border-r border-[#eadfd5] p-2.5 text-left transition focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#c24f7a] ${
+                              className={`group relative flex min-h-[132px] flex-col border-b border-r border-border p-2.5 text-left transition focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#c24f7a] ${
                                 currentMonth
                                   ? "bg-white/25 hover:bg-[#fff8f3]"
                                   : "bg-[#f3ece6]/70 text-[#afa3af]"
@@ -582,11 +582,11 @@ export default function DashboardCalendar() {
                                 <span
                                   className={`grid h-7 min-w-7 place-items-center rounded-full px-1 text-xs font-semibold ${
                                     today
-                                      ? "bg-[#632a73] text-white"
+                                      ? "bg-primary text-white"
                                       : blocked
                                         ? "text-[#a7313b]"
                                         : currentMonth
-                                          ? "text-[#241629]"
+                                          ? "text-foreground"
                                           : ""
                                   }`}
                                 >
@@ -604,7 +604,7 @@ export default function DashboardCalendar() {
                                     className={`rounded-lg px-2 py-1 text-[8px] font-semibold ${
                                       full
                                         ? "bg-[#fff0dd] text-[#b86a24]"
-                                        : "bg-[#f1dde5] text-[#8e345c]"
+                                        : "bg-accent text-[#8e345c]"
                                     }`}
                                   >
                                     {full
@@ -627,7 +627,7 @@ export default function DashboardCalendar() {
                                   .map((order) => (
                                     <span
                                       key={order.id}
-                                      className="flex min-w-0 items-center gap-2 rounded-lg bg-[#fffaf6] px-2 py-1.5"
+                                      className="flex min-w-0 items-center gap-2 rounded-lg bg-card px-2 py-1.5"
                                     >
                                       <span
                                         className={`h-2 w-2 shrink-0 rounded-full ${statusDot(
@@ -645,7 +645,7 @@ export default function DashboardCalendar() {
                                   ))}
 
                                 {dayOrders.length > 2 ? (
-                                  <span className="block px-1 text-[9px] font-semibold text-[#c24f7a]">
+                                  <span className="block px-1 text-[9px] font-semibold text-secondary">
                                     +
                                     {dayOrders.length - 2}{" "}
                                     more
@@ -653,7 +653,7 @@ export default function DashboardCalendar() {
                                 ) : null}
                               </div>
 
-                              <span className="mt-2 text-[9px] font-semibold text-[#c24f7a] opacity-0 transition group-hover:opacity-100">
+                              <span className="mt-2 text-[9px] font-semibold text-secondary opacity-0 transition group-hover:opacity-100">
                                 Review day
                               </span>
                             </button>
@@ -667,12 +667,12 @@ export default function DashboardCalendar() {
             </main>
 
             <aside className="space-y-4">
-              <section className="rounded-2xl border border-[#dfd1c4] bg-white/45 p-4">
+              <section className="rounded-2xl border border-border bg-white/45 p-4">
                 <h2 className="font-serif text-xl font-semibold">
                   Month summary
                 </h2>
 
-                <p className="mt-1 text-xs leading-5 text-[#746876]">
+                <p className="mt-1 text-xs leading-5 text-muted-foreground">
                   Capacity and availability for{" "}
                   {format(currentDate, "MMMM")}.
                 </p>
@@ -704,14 +704,14 @@ export default function DashboardCalendar() {
                 </div>
               </section>
 
-              <section className="rounded-2xl border border-[#e5cfd9] bg-[#fff0f5] p-4">
-                <Sparkles className="h-5 w-5 text-[#c24f7a]" />
+              <section className="rounded-2xl border border-[#e5cfd9] bg-accent p-4">
+                <Sparkles className="h-5 w-5 text-secondary" />
 
                 <h2 className="mt-3 font-serif text-xl font-semibold">
                   Capacity guide
                 </h2>
 
-                <p className="mt-2 text-xs leading-5 text-[#746876]">
+                <p className="mt-2 text-xs leading-5 text-muted-foreground">
                   A day is marked at capacity once it
                   reaches {maxOrders} scheduled orders.
                   Blocked dates come from your bakery
@@ -719,7 +719,7 @@ export default function DashboardCalendar() {
                 </p>
               </section>
 
-              <section className="rounded-2xl border border-[#dfd1c4] bg-white/45 p-4">
+              <section className="rounded-2xl border border-border bg-white/45 p-4">
                 <h2 className="font-serif text-xl font-semibold">
                   Order status
                 </h2>
@@ -727,7 +727,7 @@ export default function DashboardCalendar() {
                 <div className="mt-4 space-y-3">
                   <StatusLegend
                     label="New / confirmed"
-                    dotClass="bg-[#632a73]"
+                    dotClass="bg-primary"
                   />
 
                   <StatusLegend
@@ -737,7 +737,7 @@ export default function DashboardCalendar() {
 
                   <StatusLegend
                     label="Ready"
-                    dotClass="bg-[#c24f7a]"
+                    dotClass="bg-secondary"
                   />
 
                   <StatusLegend
@@ -768,10 +768,10 @@ export default function DashboardCalendar() {
           aria-modal="true"
           aria-labelledby="day-orders-title"
         >
-          <div className="max-h-[88vh] w-full max-w-2xl overflow-hidden rounded-3xl border border-[#dfd1c4] bg-[#fbf6ee] text-[#241629] shadow-2xl">
-            <div className="flex items-start justify-between border-b border-[#dfd1c4] px-5 py-5 sm:px-6">
+          <div className="max-h-[88vh] w-full max-w-2xl overflow-hidden rounded-3xl border border-border bg-background text-foreground shadow-2xl">
+            <div className="flex items-start justify-between border-b border-border px-5 py-5 sm:px-6">
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#c24f7a]">
+                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-secondary">
                   Delivery schedule
                 </p>
 
@@ -785,7 +785,7 @@ export default function DashboardCalendar() {
                   )}
                 </h2>
 
-                <p className="mt-2 text-sm text-[#746876]">
+                <p className="mt-2 text-sm text-muted-foreground">
                   {selectedDayOrders.length}{" "}
                   {selectedDayOrders.length === 1
                     ? "order"
@@ -800,13 +800,13 @@ export default function DashboardCalendar() {
                   setSelectedDay(null)
                 }
                 aria-label="Close daily schedule"
-                className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-[#dfd1c4] bg-white/60"
+                className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-border bg-white/60"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
 
-            <div className="border-b border-[#dfd1c4] px-5 py-4 sm:px-6">
+            <div className="border-b border-border px-5 py-4 sm:px-6">
               {selectedDayBlocked ? (
                 <div className="flex gap-3 rounded-2xl border border-[#efc3c0] bg-[#fff0ee] px-4 py-3">
                   <Ban className="mt-0.5 h-5 w-5 shrink-0 text-[#a7313b]" />
@@ -816,7 +816,7 @@ export default function DashboardCalendar() {
                       This date is blocked
                     </p>
 
-                    <p className="mt-1 text-xs leading-5 text-[#746876]">
+                    <p className="mt-1 text-xs leading-5 text-muted-foreground">
                       Your bakery availability settings
                       currently prevent new bookings on
                       this date.
@@ -830,7 +830,7 @@ export default function DashboardCalendar() {
                       Daily capacity
                     </span>
 
-                    <span className="font-mono text-[#746876]">
+                    <span className="font-mono text-muted-foreground">
                       {selectedDayOrders.length}/
                       {maxOrders} orders
                     </span>
@@ -842,7 +842,7 @@ export default function DashboardCalendar() {
                         selectedDayOrders.length >=
                         maxOrders
                           ? "bg-[#b86a24]"
-                          : "bg-[#c24f7a]"
+                          : "bg-secondary"
                       }`}
                       style={{
                         width: `${selectedCapacityPercentage}%`,
@@ -857,7 +857,7 @@ export default function DashboardCalendar() {
               {selectedDayOrders.length === 0 ? (
                 <div className="grid min-h-[260px] place-items-center text-center">
                   <div>
-                    <span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-[#f1dde5] text-[#c24f7a]">
+                    <span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-accent text-secondary">
                       <CalendarDays className="h-6 w-6" />
                     </span>
 
@@ -865,7 +865,7 @@ export default function DashboardCalendar() {
                       No deliveries scheduled
                     </h3>
 
-                    <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-[#746876]">
+                    <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-muted-foreground">
                       This date is currently free for
                       new orders.
                     </p>
@@ -882,9 +882,9 @@ export default function DashboardCalendar() {
                           setSelectedOrder(order);
                           setSelectedDay(null);
                         }}
-                        className="grid w-full gap-4 rounded-2xl border border-[#dfd1c4] bg-[#fffaf6] p-4 text-left transition hover:border-[#d5a8bb] hover:bg-white sm:grid-cols-[44px_minmax(0,1fr)_auto] sm:items-center"
+                        className="grid w-full gap-4 rounded-2xl border border-border bg-card p-4 text-left transition hover:border-[#d5a8bb] hover:bg-white sm:grid-cols-[44px_minmax(0,1fr)_auto] sm:items-center"
                       >
-                        <span className="grid h-11 w-11 place-items-center rounded-2xl bg-[#f1dde5] text-[#632a73]">
+                        <span className="grid h-11 w-11 place-items-center rounded-2xl bg-accent text-primary">
                           <ShoppingBag className="h-5 w-5" />
                         </span>
 
@@ -894,7 +894,7 @@ export default function DashboardCalendar() {
                             {order.buyerName}
                           </span>
 
-                          <span className="mt-1 block truncate text-xs text-[#746876]">
+                          <span className="mt-1 block truncate text-xs text-muted-foreground">
                             {order.buyerArea ||
                               "Area not recorded"}{" "}
                             Â·{" "}
@@ -938,10 +938,10 @@ export default function DashboardCalendar() {
           aria-modal="true"
           aria-labelledby="order-details-title"
         >
-          <div className="max-h-[90vh] w-full max-w-xl overflow-hidden rounded-3xl border border-[#dfd1c4] bg-[#fbf6ee] text-[#241629] shadow-2xl">
-            <div className="flex items-start justify-between border-b border-[#dfd1c4] px-5 py-5 sm:px-6">
+          <div className="max-h-[90vh] w-full max-w-xl overflow-hidden rounded-3xl border border-border bg-background text-foreground shadow-2xl">
+            <div className="flex items-start justify-between border-b border-border px-5 py-5 sm:px-6">
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#c24f7a]">
+                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-secondary">
                   Delivery details
                 </p>
 
@@ -969,7 +969,7 @@ export default function DashboardCalendar() {
                   setSelectedOrder(null)
                 }
                 aria-label="Close order details"
-                className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-[#dfd1c4] bg-white/60"
+                className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-border bg-white/60"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -1051,7 +1051,7 @@ export default function DashboardCalendar() {
               {selectedOrder.flavour ||
               selectedOrder.textOnCake ||
               selectedOrder.specialInstructions ? (
-                <section className="mt-5 rounded-2xl border border-[#dfd1c4] bg-[#fffaf6] p-4">
+                <section className="mt-5 rounded-2xl border border-border bg-card p-4">
                   <h3 className="font-serif text-xl font-semibold">
                     Customization
                   </h3>
@@ -1076,7 +1076,7 @@ export default function DashboardCalendar() {
                     ) : null}
 
                     {selectedOrder.specialInstructions ? (
-                      <div className="rounded-xl bg-[#f1e9e2] px-4 py-3">
+                      <div className="rounded-xl bg-muted px-4 py-3">
                         <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-[#9b8d9c]">
                           Special instructions
                         </p>
@@ -1093,14 +1093,14 @@ export default function DashboardCalendar() {
               ) : null}
 
               {selectedOrder.requireAdvance ? (
-                <section className="mt-5 rounded-2xl border border-[#dfd1c4] bg-[#fffaf6] p-4">
+                <section className="mt-5 rounded-2xl border border-border bg-card p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <h3 className="font-serif text-xl font-semibold">
                         Advance payment
                       </h3>
 
-                      <p className="mt-1 text-xs text-[#746876]">
+                      <p className="mt-1 text-xs text-muted-foreground">
                         Deposit requirement for this
                         order.
                       </p>
@@ -1120,7 +1120,7 @@ export default function DashboardCalendar() {
                   </div>
 
                   {selectedOrder.paymentScreenshotUrl ? (
-                    <div className="mt-4 overflow-hidden rounded-xl border border-[#dfd1c4] bg-white">
+                    <div className="mt-4 overflow-hidden rounded-xl border border-border bg-white">
                       {selectedOrder.paymentScreenshotUrl.startsWith(
                         "http",
                       ) ? (
@@ -1149,7 +1149,7 @@ export default function DashboardCalendar() {
                           </span>
                         </a>
                       ) : (
-                        <p className="select-all break-all p-3 font-mono text-xs text-[#746876]">
+                        <p className="select-all break-all p-3 font-mono text-xs text-muted-foreground">
                           {
                             selectedOrder.paymentScreenshotUrl
                           }
@@ -1161,13 +1161,13 @@ export default function DashboardCalendar() {
               ) : null}
             </div>
 
-            <div className="border-t border-[#dfd1c4] px-5 py-4 sm:px-6">
+            <div className="border-t border-border px-5 py-4 sm:px-6">
               <button
                 type="button"
                 onClick={() =>
                   setSelectedOrder(null)
                 }
-                className="min-h-11 w-full rounded-xl bg-[#632a73] px-5 text-sm font-semibold text-white"
+                className="min-h-11 w-full rounded-xl bg-primary px-5 text-sm font-semibold text-white"
               >
                 Close details
               </button>
@@ -1191,9 +1191,9 @@ function ScheduleMetric({
   valueClass?: string;
 }) {
   return (
-    <div className="border-[#dfd1c4] px-4 py-5 sm:border-r sm:last:border-r-0 lg:px-5">
-      <div className="flex items-center gap-2 text-[#746876]">
-        <Icon className="h-5 w-5 text-[#c24f7a]" />
+    <div className="border-border px-4 py-5 sm:border-r sm:last:border-r-0 lg:px-5">
+      <div className="flex items-center gap-2 text-muted-foreground">
+        <Icon className="h-5 w-5 text-secondary" />
 
         <span className="text-[11px] font-medium">
           {label}
@@ -1220,7 +1220,7 @@ function SummaryRow({
 }) {
   return (
     <div className="flex items-center justify-between gap-3">
-      <span className="text-xs text-[#746876]">
+      <span className="text-xs text-muted-foreground">
         {label}
       </span>
 
@@ -1228,7 +1228,7 @@ function SummaryRow({
         className={`rounded-lg px-2.5 py-1 font-mono text-[10px] font-semibold ${
           warning
             ? "bg-[#fff0dd] text-[#b86a24]"
-            : "bg-[#f1e9e2] text-[#632a73]"
+            : "bg-muted text-primary"
         }`}
       >
         {value.toString().padStart(2, "0")}
@@ -1250,7 +1250,7 @@ function StatusLegend({
         className={`h-2.5 w-2.5 rounded-full ${dotClass}`}
       />
 
-      <span className="text-xs text-[#746876]">
+      <span className="text-xs text-muted-foreground">
         {label}
       </span>
     </div>
@@ -1269,8 +1269,8 @@ function DetailCard({
   detail?: string;
 }) {
   return (
-    <div className="rounded-2xl border border-[#dfd1c4] bg-[#fffaf6] p-4">
-      <Icon className="h-4 w-4 text-[#c24f7a]" />
+    <div className="rounded-2xl border border-border bg-card p-4">
+      <Icon className="h-4 w-4 text-secondary" />
 
       <p className="mt-3 text-[9px] font-bold uppercase tracking-[0.1em] text-[#9b8d9c]">
         {label}
@@ -1281,7 +1281,7 @@ function DetailCard({
       </p>
 
       {detail ? (
-        <p className="mt-1 text-xs leading-5 text-[#746876]">
+        <p className="mt-1 text-xs leading-5 text-muted-foreground">
           {detail}
         </p>
       ) : null}
@@ -1300,7 +1300,7 @@ function DetailLine({
 }) {
   return (
     <div className="flex items-start gap-3">
-      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[#f1dde5] text-[#c24f7a]">
+      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-accent text-secondary">
         <Icon className="h-4 w-4" />
       </span>
 

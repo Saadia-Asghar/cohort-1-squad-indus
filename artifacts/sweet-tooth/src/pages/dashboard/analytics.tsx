@@ -57,6 +57,7 @@ import {
   liveDashboardQuery,
 } from "@/lib/dashboard-query";
 import { exportAnalyticsPDF } from "@/lib/pdf-export";
+import { BRAND_HEX } from "@/lib/brand";
 
 type Period = "daily" | "weekly" | "monthly";
 type Tab = "sales" | "marketing";
@@ -92,15 +93,15 @@ const periods: {
 ];
 
 const sourceColors = [
-  "#632a73",
-  "#c24f7a",
-  "#d8a846",
+  BRAND_HEX.plum,
+  BRAND_HEX.pink,
+  BRAND_HEX.gold,
   "#168a55",
   "#746876",
 ];
 
 const inputClass =
-  "min-h-11 w-full rounded-xl border border-[#dfd1c4] bg-[#fffaf6] px-3.5 text-sm text-[#241629] outline-none transition placeholder:text-[#a99ca9] focus:border-[#c24f7a]/60 focus:ring-4 focus:ring-[#c24f7a]/10";
+  "min-h-11 w-full rounded-xl border border-border bg-card px-3.5 text-sm text-foreground outline-none transition placeholder:text-muted-foreground focus:border-secondary/60 focus:ring-4 focus:ring-secondary/10";
 
 function buildCampaignSegments(
   customers: Array<{
@@ -499,11 +500,11 @@ export default function DashboardAnalytics() {
 
   return (
     <DashboardLayout>
-      <div className="min-h-screen bg-[#fbf6ee] px-4 py-5 text-[#241629] sm:px-6 lg:px-7">
+      <div className="min-h-screen bg-background px-4 py-5 text-foreground sm:px-6 lg:px-7">
         <div className="mx-auto max-w-[1480px]">
-          <header className="flex flex-col gap-5 border-b border-[#dfd1c4] pb-5 lg:flex-row lg:items-end lg:justify-between">
+          <header className="flex flex-col gap-5 border-b border-border pb-5 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#c24f7a]">
+              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-secondary">
                 Business intelligence
               </p>
 
@@ -511,7 +512,7 @@ export default function DashboardAnalytics() {
                 Analytics
               </h1>
 
-              <p className="mt-3 max-w-2xl text-sm leading-6 text-[#746876]">
+              <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">
                 Understand revenue, customer
                 behaviour, service quality and
                 marketing opportunities using your
@@ -520,7 +521,7 @@ export default function DashboardAnalytics() {
             </div>
 
             <div className="flex flex-col gap-2 sm:flex-row">
-              <div className="flex rounded-xl border border-[#dfd1c4] bg-[#f4eae1] p-1">
+              <div className="flex rounded-xl border border-border bg-[#f4eae1] p-1">
                 <button
                   type="button"
                   onClick={() =>
@@ -528,8 +529,8 @@ export default function DashboardAnalytics() {
                   }
                   className={`min-h-10 rounded-lg px-4 text-xs font-semibold transition ${
                     activeTab === "sales"
-                      ? "bg-white text-[#632a73] shadow-sm"
-                      : "text-[#746876]"
+                      ? "bg-white text-primary shadow-sm"
+                      : "text-muted-foreground"
                   }`}
                 >
                   Performance
@@ -542,8 +543,8 @@ export default function DashboardAnalytics() {
                   }
                   className={`min-h-10 rounded-lg px-4 text-xs font-semibold transition ${
                     activeTab === "marketing"
-                      ? "bg-white text-[#632a73] shadow-sm"
-                      : "text-[#746876]"
+                      ? "bg-white text-primary shadow-sm"
+                      : "text-muted-foreground"
                   }`}
                 >
                   Customer outreach
@@ -551,7 +552,7 @@ export default function DashboardAnalytics() {
               </div>
 
               {activeTab === "sales" ? (
-                <div className="flex rounded-xl border border-[#dfd1c4] bg-[#fffaf6] p-1">
+                <div className="flex rounded-xl border border-border bg-card p-1">
                   {periods.map((item) => (
                     <button
                       key={item.id}
@@ -561,8 +562,8 @@ export default function DashboardAnalytics() {
                       }
                       className={`min-h-10 rounded-lg px-3 text-xs font-semibold transition ${
                         period === item.id
-                          ? "bg-[#632a73] text-white"
-                          : "text-[#746876]"
+                          ? "bg-primary text-white"
+                          : "text-muted-foreground"
                       }`}
                     >
                       {item.label}
@@ -585,14 +586,14 @@ export default function DashboardAnalytics() {
                   )
                 }
                 disabled={isLoading || !analytics}
-                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-[#dfd1c4] bg-[#632a73] px-4 text-xs font-bold text-white transition hover:bg-[#c24f7a] disabled:opacity-50"
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-border bg-primary px-4 text-xs font-bold text-white transition hover:bg-secondary disabled:opacity-50"
               >
                 <Download className="h-4 w-4" /> Download PDF
               </button>
             </div>
           </header>
 
-          <section className="grid border-b border-[#dfd1c4] sm:grid-cols-2 xl:grid-cols-5">
+          <section className="grid border-b border-border sm:grid-cols-2 xl:grid-cols-5">
             <AnalyticsMetric
               icon={CircleDollarSign}
               label="Revenue"
@@ -616,7 +617,7 @@ export default function DashboardAnalytics() {
               value={`PKR ${(
                 analytics?.avgOrderValue ?? 0
               ).toLocaleString()}`}
-              valueClass="text-[#632a73]"
+              valueClass="text-primary"
             />
 
             <AnalyticsMetric
@@ -625,7 +626,7 @@ export default function DashboardAnalytics() {
               value={(analytics?.newCustomers ?? 0)
                 .toString()
                 .padStart(2, "0")}
-              valueClass="text-[#c24f7a]"
+              valueClass="text-secondary"
             />
 
             <AnalyticsMetric
@@ -642,10 +643,10 @@ export default function DashboardAnalytics() {
 
           {isLoading && !analytics ? (
             <div className="mt-5 space-y-4">
-              <div className="h-40 animate-pulse rounded-2xl bg-[#f1e9e2]" />
+              <div className="h-40 animate-pulse rounded-2xl bg-muted" />
               <div className="grid gap-4 lg:grid-cols-2">
-                <div className="h-80 animate-pulse rounded-2xl bg-[#f1e9e2]" />
-                <div className="h-80 animate-pulse rounded-2xl bg-[#f1e9e2]" />
+                <div className="h-80 animate-pulse rounded-2xl bg-muted" />
+                <div className="h-80 animate-pulse rounded-2xl bg-muted" />
               </div>
             </div>
           ) : activeTab === "sales" ? (
@@ -686,7 +687,7 @@ export default function DashboardAnalytics() {
           aria-modal="true"
           aria-labelledby="campaign-title"
         >
-          <div className="max-h-[92vh] w-full max-w-xl overflow-hidden rounded-3xl border border-[#dfd1c4] bg-[#fbf6ee] text-[#241629] shadow-2xl">
+          <div className="max-h-[92vh] w-full max-w-xl overflow-hidden rounded-3xl border border-border bg-background text-foreground shadow-2xl">
             {campaignSentSuccess ? (
               <div className="grid min-h-[420px] place-items-center p-8 text-center">
                 <div>
@@ -698,7 +699,7 @@ export default function DashboardAnalytics() {
                     Campaign sent
                   </h2>
 
-                  <p className="mx-auto mt-3 max-w-sm text-sm leading-6 text-[#746876]">
+                  <p className="mx-auto mt-3 max-w-sm text-sm leading-6 text-muted-foreground">
                     The broadcast was processed for
                     the selected customer group.
                   </p>
@@ -712,9 +713,9 @@ export default function DashboardAnalytics() {
               </div>
             ) : (
               <>
-                <div className="flex items-start justify-between border-b border-[#dfd1c4] px-5 py-5 sm:px-6">
+                <div className="flex items-start justify-between border-b border-border px-5 py-5 sm:px-6">
                   <div>
-                    <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#c24f7a]">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-secondary">
                       WhatsApp outreach
                     </p>
 
@@ -725,7 +726,7 @@ export default function DashboardAnalytics() {
                       Create campaign
                     </h2>
 
-                    <p className="mt-2 text-sm text-[#746876]">
+                    <p className="mt-2 text-sm text-muted-foreground">
                       {selectedSegment.name} ·{" "}
                       {selectedSegment.count}{" "}
                       customers
@@ -736,14 +737,14 @@ export default function DashboardAnalytics() {
                     type="button"
                     onClick={closeCampaign}
                     aria-label="Close campaign composer"
-                    className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-[#dfd1c4] bg-white/60"
+                    className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-border bg-white/60"
                   >
                     <X className="h-4 w-4" />
                   </button>
                 </div>
 
                 <div className="max-h-[68vh] overflow-y-auto px-5 py-5 sm:px-6">
-                  <div className="grid grid-cols-3 gap-1 rounded-xl border border-[#dfd1c4] bg-[#f4eae1] p-1">
+                  <div className="grid grid-cols-3 gap-1 rounded-xl border border-border bg-[#f4eae1] p-1">
                     <CampaignTypeButton
                       active={
                         campaignType === "launch"
@@ -800,15 +801,15 @@ export default function DashboardAnalytics() {
                       }
                       rows={5}
                       maxLength={900}
-                      className="w-full resize-none rounded-2xl border border-[#dfd1c4] bg-[#fffaf6] p-4 text-sm leading-6 outline-none transition focus:border-[#c24f7a]/60 focus:ring-4 focus:ring-[#c24f7a]/10"
+                      className="w-full resize-none rounded-2xl border border-border bg-card p-4 text-sm leading-6 outline-none transition focus:border-secondary/60 focus:ring-4 focus:ring-secondary/10"
                     />
                   </label>
 
-                  <div className="mt-2 flex justify-end text-[10px] text-[#746876]">
+                  <div className="mt-2 flex justify-end text-[10px] text-muted-foreground">
                     {campaignMessage.length}/900
                   </div>
 
-                  <section className="mt-5 rounded-2xl border border-[#dfd1c4] bg-[#f1e9e2] p-4">
+                  <section className="mt-5 rounded-2xl border border-border bg-muted p-4">
                     <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-[#9b8d9c]">
                       WhatsApp preview
                     </p>
@@ -834,12 +835,12 @@ export default function DashboardAnalytics() {
                     </div>
                   </section>
 
-                  <section className="mt-5 rounded-2xl border border-[#dfd1c4] bg-[#fffaf6] p-4">
+                  <section className="mt-5 rounded-2xl border border-border bg-card p-4">
                     <p className="text-sm font-semibold">
                       Test message
                     </p>
 
-                    <p className="mt-1 text-xs leading-5 text-[#746876]">
+                    <p className="mt-1 text-xs leading-5 text-muted-foreground">
                       Send the campaign to one phone
                       number before broadcasting it.
                     </p>
@@ -866,7 +867,7 @@ export default function DashboardAnalytics() {
                           !campaignMessage.trim() ||
                           !testPhone.trim()
                         }
-                        className="min-h-11 rounded-xl border border-[#dcb8c8] bg-[#fff0f5] px-4 text-xs font-semibold text-[#632a73] disabled:opacity-40"
+                        className="min-h-11 rounded-xl border border-accent bg-accent px-4 text-xs font-semibold text-primary disabled:opacity-40"
                       >
                         Send test
                       </button>
@@ -892,7 +893,7 @@ export default function DashboardAnalytics() {
                     </p>
                   ) : null}
 
-                  <p className="mt-4 text-[10px] leading-5 text-[#746876]">
+                  <p className="mt-4 text-[10px] leading-5 text-muted-foreground">
                     A connected WhatsApp Business
                     number is required in Agent Hub.
                     Campaigns use real CRM customer
@@ -900,7 +901,7 @@ export default function DashboardAnalytics() {
                   </p>
                 </div>
 
-                <div className="border-t border-[#dfd1c4] px-5 py-4 sm:px-6">
+                <div className="border-t border-border px-5 py-4 sm:px-6">
                   <button
                     type="button"
                     onClick={
@@ -910,7 +911,7 @@ export default function DashboardAnalytics() {
                       isSending ||
                       !campaignMessage.trim()
                     }
-                    className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#632a73] px-5 text-sm font-semibold text-white disabled:opacity-50"
+                    className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary px-5 text-sm font-semibold text-white disabled:opacity-50"
                   >
                     <Send className="h-4 w-4" />
 
@@ -965,10 +966,10 @@ function PerformanceView({
   return (
     <div className="mt-5 space-y-4">
       {weeklyReport ? (
-        <section className="overflow-hidden rounded-2xl border border-[#dfd1c4] bg-white/45">
-          <div className="flex flex-col gap-3 border-b border-[#dfd1c4] px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+        <section className="overflow-hidden rounded-2xl border border-border bg-white/45">
+          <div className="flex flex-col gap-3 border-b border-border px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#c24f7a]">
+              <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-secondary">
                 Seven-day report
               </p>
 
@@ -1021,15 +1022,15 @@ function PerformanceView({
       ) : null}
 
       {feedbackStats ? (
-        <section className="grid gap-4 rounded-2xl border border-[#dfd1c4] bg-white/45 p-4 lg:grid-cols-[minmax(0,1fr)_1.2fr]">
+        <section className="grid gap-4 rounded-2xl border border-border bg-white/45 p-4 lg:grid-cols-[minmax(0,1fr)_1.2fr]">
           <div>
-            <Heart className="h-5 w-5 text-[#c24f7a]" />
+            <Heart className="h-5 w-5 text-secondary" />
 
             <h2 className="mt-3 font-serif text-2xl font-semibold">
               Service quality
             </h2>
 
-            <p className="mt-2 max-w-md text-xs leading-5 text-[#746876]">
+            <p className="mt-2 max-w-md text-xs leading-5 text-muted-foreground">
               Feedback requested after orders are
               marked as delivered.
             </p>
@@ -1269,8 +1270,8 @@ function PerformanceView({
           )}
         </ChartPanel>
 
-        <section className="rounded-2xl border border-[#dfd1c4] bg-white/45 p-4 sm:p-5">
-          <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#c24f7a]">
+        <section className="rounded-2xl border border-border bg-white/45 p-4 sm:p-5">
+          <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-secondary">
             Product performance
           </p>
 
@@ -1293,7 +1294,7 @@ function PerformanceView({
                     key={`${product.name}-${index}`}
                     className="grid grid-cols-[32px_minmax(0,1fr)_auto] items-center gap-3 py-3 first:pt-0"
                   >
-                    <span className="font-mono text-xs font-semibold text-[#c24f7a]">
+                    <span className="font-mono text-xs font-semibold text-secondary">
                       {(index + 1)
                         .toString()
                         .padStart(2, "0")}
@@ -1304,12 +1305,12 @@ function PerformanceView({
                         {product.name}
                       </p>
 
-                      <p className="mt-1 text-[10px] text-[#746876]">
+                      <p className="mt-1 text-[10px] text-muted-foreground">
                         {product.orders} orders
                       </p>
                     </div>
 
-                    <p className="font-mono text-xs font-semibold text-[#632a73]">
+                    <p className="font-mono text-xs font-semibold text-primary">
                       PKR{" "}
                       {product.revenue.toLocaleString()}
                     </p>
@@ -1329,7 +1330,7 @@ function PerformanceView({
           title="Next seven days"
           icon={TrendingUp}
         >
-          <p className="font-mono text-2xl font-semibold text-[#632a73]">
+          <p className="font-mono text-2xl font-semibold text-primary">
             PKR{" "}
             {(
               analytics?.salesForecast
@@ -1337,7 +1338,7 @@ function PerformanceView({
             ).toLocaleString()}
           </p>
 
-          <p className="mt-2 text-xs leading-5 text-[#746876]">
+          <p className="mt-2 text-xs leading-5 text-muted-foreground">
             Approximately{" "}
             {analytics?.salesForecast
               ?.next7DaysOrders ?? 0}{" "}
@@ -1431,7 +1432,7 @@ function PerformanceView({
               ?.total ?? 0}
           </p>
 
-          <p className="mt-2 text-xs leading-5 text-[#746876]">
+          <p className="mt-2 text-xs leading-5 text-muted-foreground">
             {analytics?.cancellationAnalytics
               ?.rate ?? 0}
             % of recorded orders.
@@ -1495,8 +1496,8 @@ function PerformanceView({
         </InsightCard>
       </section>
 
-      <section className="rounded-2xl border border-[#dfd1c4] bg-white/45 p-4 sm:p-5">
-        <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#c24f7a]">
+      <section className="rounded-2xl border border-border bg-white/45 p-4 sm:p-5">
+        <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-secondary">
           Delivery demand
         </p>
 
@@ -1504,7 +1505,7 @@ function PerformanceView({
           Most requested areas
         </h2>
 
-        <p className="mt-2 text-xs leading-5 text-[#746876]">
+        <p className="mt-2 text-xs leading-5 text-muted-foreground">
           Based on customer checkout locations.
         </p>
 
@@ -1517,10 +1518,10 @@ function PerformanceView({
               }) => (
                 <span
                   key={item.area}
-                  className="rounded-xl border border-[#e5cfd9] bg-[#fff0f5] px-4 py-3 text-xs font-semibold text-[#632a73]"
+                  className="rounded-xl border border-[#e5cfd9] bg-accent px-4 py-3 text-xs font-semibold text-primary"
                 >
                   {item.area}
-                  <span className="ml-2 font-mono text-[10px] text-[#746876]">
+                  <span className="ml-2 font-mono text-[10px] text-muted-foreground">
                     {item.orders} orders
                   </span>
                 </span>
@@ -1575,9 +1576,9 @@ function OutreachView({
           />
         </section>
 
-        <section className="overflow-hidden rounded-2xl border border-[#dfd1c4] bg-white/45">
-          <div className="border-b border-[#dfd1c4] px-4 py-4 sm:px-5">
-            <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#c24f7a]">
+        <section className="overflow-hidden rounded-2xl border border-border bg-white/45">
+          <div className="border-b border-border px-4 py-4 sm:px-5">
+            <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-secondary">
               Smart campaigns
             </p>
 
@@ -1585,7 +1586,7 @@ function OutreachView({
               Customer segments
             </h2>
 
-            <p className="mt-2 max-w-2xl text-xs leading-5 text-[#746876]">
+            <p className="mt-2 max-w-2xl text-xs leading-5 text-muted-foreground">
               Choose a meaningful customer group,
               review the message and test it before
               broadcasting.
@@ -1598,7 +1599,7 @@ function OutreachView({
                 key={segment.id}
                 className="grid gap-4 p-4 transition hover:bg-[#fff8f3] sm:grid-cols-[44px_minmax(0,1fr)_auto] sm:items-center sm:p-5"
               >
-                <span className="grid h-11 w-11 place-items-center rounded-2xl bg-[#f1dde5] text-[#c24f7a]">
+                <span className="grid h-11 w-11 place-items-center rounded-2xl bg-accent text-secondary">
                   <Users className="h-5 w-5" />
                 </span>
 
@@ -1608,12 +1609,12 @@ function OutreachView({
                       {segment.name}
                     </h3>
 
-                    <span className="rounded-lg bg-[#f1e9e2] px-2.5 py-1 font-mono text-[9px] font-semibold text-[#632a73]">
+                    <span className="rounded-lg bg-muted px-2.5 py-1 font-mono text-[9px] font-semibold text-primary">
                       {segment.count} customers
                     </span>
                   </div>
 
-                  <p className="mt-2 text-xs leading-5 text-[#746876]">
+                  <p className="mt-2 text-xs leading-5 text-muted-foreground">
                     {segment.description}
                   </p>
                 </div>
@@ -1624,7 +1625,7 @@ function OutreachView({
                     onOpenCampaign(segment)
                   }
                   disabled={segment.count === 0}
-                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#632a73] px-4 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40"
+                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-primary px-4 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   <Megaphone className="h-4 w-4" />
                   Create campaign
@@ -1636,14 +1637,14 @@ function OutreachView({
       </main>
 
       <aside className="space-y-4">
-        <section className="rounded-2xl border border-[#dfd1c4] bg-white/45 p-4">
-          <Users className="h-5 w-5 text-[#c24f7a]" />
+        <section className="rounded-2xl border border-border bg-white/45 p-4">
+          <Users className="h-5 w-5 text-secondary" />
 
           <h2 className="mt-3 font-serif text-xl font-semibold">
             Audience overview
           </h2>
 
-          <p className="mt-2 text-xs leading-5 text-[#746876]">
+          <p className="mt-2 text-xs leading-5 text-muted-foreground">
             Customer groups are created from actual
             order and CRM activity.
           </p>
@@ -1664,28 +1665,28 @@ function OutreachView({
           </div>
         </section>
 
-        <section className="rounded-2xl border border-[#e5cfd9] bg-[#fff0f5] p-4">
-          <Sparkles className="h-5 w-5 text-[#c24f7a]" />
+        <section className="rounded-2xl border border-[#e5cfd9] bg-accent p-4">
+          <Sparkles className="h-5 w-5 text-secondary" />
 
           <h2 className="mt-3 font-serif text-xl font-semibold">
             Better outreach
           </h2>
 
-          <p className="mt-2 text-xs leading-5 text-[#746876]">
+          <p className="mt-2 text-xs leading-5 text-muted-foreground">
             Keep messages relevant, avoid excessive
             broadcasts and test every campaign before
             sending it to customers.
           </p>
         </section>
 
-        <section className="rounded-2xl border border-[#dfd1c4] bg-white/45 p-4">
-          <Megaphone className="h-5 w-5 text-[#c24f7a]" />
+        <section className="rounded-2xl border border-border bg-white/45 p-4">
+          <Megaphone className="h-5 w-5 text-secondary" />
 
           <h2 className="mt-3 font-serif text-xl font-semibold">
             Delivery requirement
           </h2>
 
-          <p className="mt-2 text-xs leading-5 text-[#746876]">
+          <p className="mt-2 text-xs leading-5 text-muted-foreground">
             Real broadcasts require a connected
             WhatsApp Business number in Agent Hub.
           </p>
@@ -1707,9 +1708,9 @@ function AnalyticsMetric({
   valueClass?: string;
 }) {
   return (
-    <div className="border-[#dfd1c4] px-4 py-5 sm:border-r sm:last:border-r-0 lg:px-5">
-      <div className="flex items-center gap-2 text-[#746876]">
-        <Icon className="h-5 w-5 text-[#c24f7a]" />
+    <div className="border-border px-4 py-5 sm:border-r sm:last:border-r-0 lg:px-5">
+      <div className="flex items-center gap-2 text-muted-foreground">
+        <Icon className="h-5 w-5 text-secondary" />
 
         <span className="text-[11px] font-medium">
           {label}
@@ -1740,7 +1741,7 @@ function TrendBadge({
           ? "bg-[#e4f3e8] text-[#168a55]"
           : negative
             ? "bg-[#f8dddd] text-[#a7313b]"
-            : "bg-[#f1e9e2] text-[#746876]"
+            : "bg-muted text-muted-foreground"
       }`}
     >
       {positive ? (
@@ -1767,7 +1768,7 @@ function CompactStat({
   warning?: boolean;
 }) {
   return (
-    <div className="border-b border-[#dfd1c4] px-4 py-5 sm:border-b-0 sm:border-r sm:last:border-r-0">
+    <div className="border-b border-border px-4 py-5 sm:border-b-0 sm:border-r sm:last:border-r-0">
       <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-[#9b8d9c]">
         {label}
       </p>
@@ -1776,13 +1777,13 @@ function CompactStat({
         className={`mt-2 font-mono text-2xl font-semibold ${
           warning
             ? "text-[#b86a24]"
-            : "text-[#241629]"
+            : "text-foreground"
         }`}
       >
         {value}
       </p>
 
-      <p className="mt-1 text-[10px] leading-5 text-[#746876]">
+      <p className="mt-1 text-[10px] leading-5 text-muted-foreground">
         {detail}
       </p>
     </div>
@@ -1805,7 +1806,7 @@ function FeedbackPill({
           ? "bg-[#e4f3e8] text-[#168a55]"
           : tone === "warning"
             ? "bg-[#fff0dd] text-[#b86a24]"
-            : "bg-[#f1e9e2] text-[#632a73]"
+            : "bg-muted text-primary"
       }`}
     >
       {label}: {value}
@@ -1825,7 +1826,7 @@ function MiniValue({
   warning?: boolean;
 }) {
   return (
-    <div className="rounded-2xl bg-[#fffaf6] p-3">
+    <div className="rounded-2xl bg-card p-3">
       <p className="text-[9px] font-bold uppercase tracking-[0.08em] text-[#9b8d9c]">
         {label}
       </p>
@@ -1836,7 +1837,7 @@ function MiniValue({
             ? "text-[#168a55]"
             : warning
               ? "text-[#b86a24]"
-              : "text-[#241629]"
+              : "text-foreground"
         }`}
       >
         {value}
@@ -1855,12 +1856,12 @@ function ChartPanel({
   children: React.ReactNode;
 }) {
   return (
-    <section className="min-w-0 rounded-2xl border border-[#dfd1c4] bg-white/45 p-4 sm:p-5">
+    <section className="min-w-0 rounded-2xl border border-border bg-white/45 p-4 sm:p-5">
       <h2 className="font-serif text-2xl font-semibold">
         {title}
       </h2>
 
-      <p className="mt-1 text-xs leading-5 text-[#746876]">
+      <p className="mt-1 text-xs leading-5 text-muted-foreground">
         {description}
       </p>
 
@@ -1875,7 +1876,7 @@ function ChartEmpty() {
   return (
     <div className="grid h-[280px] place-items-center text-center">
       <div>
-        <span className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-[#f1dde5] text-[#c24f7a]">
+        <span className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-accent text-secondary">
           <TrendingUp className="h-5 w-5" />
         </span>
 
@@ -1883,7 +1884,7 @@ function ChartEmpty() {
           No chart data yet
         </p>
 
-        <p className="mt-1 text-xs text-[#746876]">
+        <p className="mt-1 text-xs text-muted-foreground">
           Activity will appear after orders are
           recorded.
         </p>
@@ -1898,7 +1899,7 @@ function EmptyMessage({
   text: string;
 }) {
   return (
-    <p className="text-xs leading-5 text-[#746876]">
+    <p className="text-xs leading-5 text-muted-foreground">
       {text}
     </p>
   );
@@ -1916,11 +1917,11 @@ function InsightCard({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-2xl border border-[#dfd1c4] bg-white/45 p-4 sm:p-5">
+    <section className="rounded-2xl border border-border bg-white/45 p-4 sm:p-5">
       <div className="flex items-center gap-2">
-        <Icon className="h-4 w-4 text-[#c24f7a]" />
+        <Icon className="h-4 w-4 text-secondary" />
 
-        <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-[#c24f7a]">
+        <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-secondary">
           {eyebrow}
         </p>
       </div>
@@ -1955,7 +1956,7 @@ function InsightRow({
         </p>
 
         {detail ? (
-          <p className="mt-1 text-[10px] text-[#746876]">
+          <p className="mt-1 text-[10px] text-muted-foreground">
             {detail}
           </p>
         ) : null}
@@ -1967,7 +1968,7 @@ function InsightRow({
             ? "text-[#168a55]"
             : warning
               ? "text-[#a7313b]"
-              : "text-[#632a73]"
+              : "text-primary"
         }`}
       >
         {value}
@@ -1986,16 +1987,16 @@ function RetentionCard({
   detail: string;
 }) {
   return (
-    <section className="rounded-2xl border border-[#dfd1c4] bg-white/45 p-4">
+    <section className="rounded-2xl border border-border bg-white/45 p-4">
       <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-[#9b8d9c]">
         {label}
       </p>
 
-      <p className="mt-2 font-mono text-2xl font-semibold text-[#632a73]">
+      <p className="mt-2 font-mono text-2xl font-semibold text-primary">
         {value}
       </p>
 
-      <p className="mt-2 text-[10px] leading-5 text-[#746876]">
+      <p className="mt-2 text-[10px] leading-5 text-muted-foreground">
         {detail}
       </p>
     </section>
@@ -2011,11 +2012,11 @@ function SideValue({
 }) {
   return (
     <div className="flex items-center justify-between gap-3">
-      <span className="text-xs text-[#746876]">
+      <span className="text-xs text-muted-foreground">
         {label}
       </span>
 
-      <span className="rounded-lg bg-[#f1e9e2] px-2.5 py-1 font-mono text-[10px] font-semibold text-[#632a73]">
+      <span className="rounded-lg bg-muted px-2.5 py-1 font-mono text-[10px] font-semibold text-primary">
         {value.toString().padStart(2, "0")}
       </span>
     </div>
@@ -2039,8 +2040,8 @@ function CampaignTypeButton({
       onClick={onClick}
       className={`inline-flex min-h-10 items-center justify-center gap-1.5 rounded-lg px-2 text-[10px] font-semibold transition ${
         active
-          ? "bg-white text-[#632a73] shadow-sm"
-          : "text-[#746876]"
+          ? "bg-white text-primary shadow-sm"
+          : "text-muted-foreground"
       }`}
     >
       <Icon className="h-3.5 w-3.5" />

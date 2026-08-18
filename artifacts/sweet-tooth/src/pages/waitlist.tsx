@@ -4,10 +4,10 @@ import { ArrowRight, Check } from "lucide-react";
 import { BuyerLayout } from "@/components/layout/buyer-layout";
 
 const faces = [
-  { initials: "S", name: "Sana", color: "bg-[#632a73]" },
-  { initials: "A", name: "Ayesha", color: "bg-[#c24f7a]" },
-  { initials: "H", name: "Hira", color: "bg-[#d97706]" },
-  { initials: "M", name: "Maham", color: "bg-[#1d1033]" },
+  { initials: "S", name: "Sana", color: "bg-primary" },
+  { initials: "A", name: "Ayesha", color: "bg-secondary" },
+  { initials: "H", name: "Hira", color: "bg-gold" },
+  { initials: "M", name: "Maham", color: "bg-plum-deep" },
 ];
 
 export default function Waitlist() {
@@ -64,16 +64,16 @@ export default function Waitlist() {
 
   return (
     <BuyerLayout>
-      <section className="relative overflow-hidden bg-[#f8f5ef] px-4 py-16 sm:px-6 sm:py-24">
-        <div aria-hidden="true" className="pointer-events-none absolute -right-24 top-10 h-72 w-72 rounded-full bg-[#c24f7a]/10 blur-3xl" />
-        <div aria-hidden="true" className="pointer-events-none absolute -left-16 bottom-0 h-64 w-64 rounded-full bg-[#f1a93b]/20 blur-3xl" />
+      <section className="relative overflow-hidden bg-background px-4 py-16 sm:px-6 sm:py-24">
+        <div aria-hidden="true" className="pointer-events-none absolute -right-24 top-10 h-72 w-72 rounded-full bg-secondary/10 blur-3xl" />
+        <div aria-hidden="true" className="pointer-events-none absolute -left-16 bottom-0 h-64 w-64 rounded-full bg-gold/20 blur-3xl" />
 
         <div className="relative mx-auto grid max-w-5xl items-center gap-12 lg:grid-cols-[1.05fr_0.95fr]">
           <div>
-            <p className="inline-flex rounded-full border border-[#eadfce] bg-white px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-primary">
+            <p className="inline-flex rounded-full border border-border bg-white px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-primary">
               Closed beta · Pakistan
             </p>
-            <h1 className="mt-6 font-serif text-4xl font-bold leading-[0.95] tracking-[-0.04em] text-[#241532] sm:text-6xl">
+            <h1 className="mt-6 font-serif text-4xl font-bold leading-[0.95] tracking-[-0.04em] text-foreground sm:text-6xl">
               Join the Sweet Tooth waitlist
             </h1>
             <p className="mt-5 max-w-lg text-base leading-7 text-muted-foreground">
@@ -92,7 +92,7 @@ export default function Waitlist() {
                   </span>
                 ))}
               </div>
-              <p className="text-sm font-semibold text-[#382b43]">
+              <p className="text-sm font-semibold text-foreground">
                 {count && count > 0
                   ? `${count} baker${count === 1 ? "y" : "ies"} already on the list`
                   : "Be among the first bakeries we invite"}
@@ -100,13 +100,13 @@ export default function Waitlist() {
             </div>
           </div>
 
-          <div className="rounded-3xl border border-[#eadfce] bg-white p-6 shadow-[0_24px_60px_rgba(47,24,55,0.08)] sm:p-8">
+          <div className="rounded-3xl border border-border bg-white p-6 shadow-[0_24px_60px_rgba(47,24,55,0.08)] sm:p-8">
             {joined ? (
               <div className="space-y-4 py-6 text-center">
                 <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-50 text-emerald-700">
                   <Check className="h-6 w-6" />
                 </span>
-                <h2 className="font-serif text-3xl font-bold text-[#241532]">
+                <h2 className="font-serif text-3xl font-bold text-foreground">
                   {alreadyJoined ? "You are already on the list" : "You are on the list"}
                 </h2>
                 <p className="text-sm leading-6 text-muted-foreground">
@@ -119,46 +119,46 @@ export default function Waitlist() {
             ) : (
               <form onSubmit={(event) => void handleSubmit(event)} className="space-y-4">
                 <div>
-                  <h2 className="font-serif text-2xl font-bold text-[#241532]">Request early access</h2>
+                  <h2 className="font-serif text-2xl font-bold text-foreground">Request early access</h2>
                   <p className="mt-1 text-sm text-muted-foreground">Bakery name, email, and WhatsApp only. We do not sell this list.</p>
                 </div>
-                <label className="block space-y-1.5 text-xs font-bold uppercase tracking-wider text-[#746876]">
+                <label className="block space-y-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground">
                   Bakery name
                   <input
                     required
                     value={bakerName}
                     onChange={(e) => setBakerName(e.target.value)}
-                    className="min-h-12 w-full rounded-xl border border-[#dfd1c4] bg-[#fffaf6] px-3.5 text-sm font-semibold normal-case text-[#241629] outline-none focus:border-[#c24f7a]/60 focus:ring-4 focus:ring-[#c24f7a]/10"
+                    className="min-h-12 w-full rounded-xl border border-border bg-card px-3.5 text-sm font-semibold normal-case text-foreground outline-none focus:border-secondary/60 focus:ring-4 focus:ring-secondary/10"
                     placeholder="e.g. Sana's Kitchen"
                   />
                 </label>
-                <label className="block space-y-1.5 text-xs font-bold uppercase tracking-wider text-[#746876]">
+                <label className="block space-y-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground">
                   Email
                   <input
                     required
                     type="email"
                     value={bakerEmail}
                     onChange={(e) => setBakerEmail(e.target.value)}
-                    className="min-h-12 w-full rounded-xl border border-[#dfd1c4] bg-[#fffaf6] px-3.5 text-sm font-semibold normal-case text-[#241629] outline-none focus:border-[#c24f7a]/60 focus:ring-4 focus:ring-[#c24f7a]/10"
+                    className="min-h-12 w-full rounded-xl border border-border bg-card px-3.5 text-sm font-semibold normal-case text-foreground outline-none focus:border-secondary/60 focus:ring-4 focus:ring-secondary/10"
                     placeholder="you@bakery.com"
                   />
                 </label>
-                <label className="block space-y-1.5 text-xs font-bold uppercase tracking-wider text-[#746876]">
+                <label className="block space-y-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground">
                   WhatsApp number
                   <input
                     required
                     value={whatsappNumber}
                     onChange={(e) => setWhatsappNumber(e.target.value)}
-                    className="min-h-12 w-full rounded-xl border border-[#dfd1c4] bg-[#fffaf6] px-3.5 text-sm font-semibold normal-case text-[#241629] outline-none focus:border-[#c24f7a]/60 focus:ring-4 focus:ring-[#c24f7a]/10"
+                    className="min-h-12 w-full rounded-xl border border-border bg-card px-3.5 text-sm font-semibold normal-case text-foreground outline-none focus:border-secondary/60 focus:ring-4 focus:ring-secondary/10"
                     placeholder="03XX XXXXXXX"
                   />
                 </label>
-                <label className="block space-y-1.5 text-xs font-bold uppercase tracking-wider text-[#746876]">
+                <label className="block space-y-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground">
                   City <span className="font-medium normal-case tracking-normal text-muted-foreground">(optional)</span>
                   <input
                     value={city}
                     onChange={(e) => setCity(e.target.value)}
-                    className="min-h-12 w-full rounded-xl border border-[#dfd1c4] bg-[#fffaf6] px-3.5 text-sm font-semibold normal-case text-[#241629] outline-none focus:border-[#c24f7a]/60 focus:ring-4 focus:ring-[#c24f7a]/10"
+                    className="min-h-12 w-full rounded-xl border border-border bg-card px-3.5 text-sm font-semibold normal-case text-foreground outline-none focus:border-secondary/60 focus:ring-4 focus:ring-secondary/10"
                     placeholder="Lahore, Karachi, Islamabad…"
                   />
                 </label>

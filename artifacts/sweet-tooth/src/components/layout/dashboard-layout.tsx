@@ -128,7 +128,7 @@ function DesktopNavLink({
       href={item.href}
       className={`group flex min-h-10 items-center gap-3 rounded-lg px-3 py-2 text-[13px] transition-all ${
         active
-          ? "bg-gradient-to-r from-[#7b2d70] to-[#c24f7a] font-semibold text-white shadow-[0_9px_24px_rgba(14,5,19,0.22)]"
+          ? "sweet-gradient font-semibold text-white shadow-[0_9px_24px_rgba(14,5,19,0.22)]"
           : "text-white/[0.72] hover:bg-white/[0.08] hover:text-white"
       }`}
     >
@@ -143,7 +143,7 @@ function DesktopNavLink({
       <span className="min-w-0 flex-1 truncate">{item.label}</span>
 
       {item.label === "Orders" ? (
-        <span className="grid h-5 min-w-5 place-items-center rounded-full bg-[#d64f82] px-1 text-[9px] font-bold text-white">
+        <span className="grid h-5 min-w-5 place-items-center rounded-full bg-secondary px-1 text-[9px] font-bold text-white">
           3
         </span>
       ) : null}
@@ -264,15 +264,18 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
   };
 
   return (
-    <div className="min-h-dvh bg-[#f7f2ec] text-foreground">
-      <aside className="fixed inset-y-0 left-0 z-40 hidden w-[12.75rem] flex-col overflow-hidden border-r border-white/10 bg-gradient-to-b from-[#32173b] via-[#291330] to-[#211027] text-white shadow-[22px_0_65px_rgba(39,20,47,0.14)] xl:flex">        <div className="px-5 pb-5 pt-6">
+    <div className="min-h-dvh bg-background font-sans text-foreground">
+      <aside className="fixed inset-y-0 left-0 z-40 hidden w-[12.75rem] flex-col overflow-hidden border-r border-white/10 bg-gradient-to-b from-plum-deep via-plum-deep to-primary text-white shadow-[22px_0_65px_rgba(39,20,47,0.14)] xl:flex">        <div className="px-5 pb-5 pt-6">
           <Link
             href="/dashboard"
             aria-label="Sweet Tooth dashboard"
-            className="inline-block font-serif text-[1.85rem] font-semibold leading-[0.82] tracking-[-0.045em] text-[#d2a25a]"
+            className="inline-flex items-center rounded-2xl bg-white px-2.5 py-2 shadow-sm"
           >
-            <span className="block">Sweet</span>
-            <span className="mt-1 block">Tooth</span>
+            <img
+              src="/sweet-tooth-logo.png"
+              alt="Sweet Tooth"
+              className="h-10 w-auto max-w-[148px] object-contain"
+            />
           </Link>
         </div>
 
@@ -342,7 +345,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
               aria-expanded={profileOpen}
               className="flex min-h-12 w-full items-center gap-2 rounded-lg px-1 py-1.5 text-left transition hover:bg-white/[0.07]"
             >
-              <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[#fff6ee] text-[10px] font-bold text-[#4d2354]">
+              <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-card text-[10px] font-bold text-primary">
                 {businessInitials}
               </span>
 
@@ -364,7 +367,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
             </button>
 
             {profileOpen ? (
-              <div className="absolute bottom-[calc(100%+0.5rem)] left-0 right-0 overflow-hidden rounded-xl border border-white/15 bg-[#37183f] p-1.5 shadow-2xl">
+              <div className="absolute bottom-[calc(100%+0.5rem)] left-0 right-0 overflow-hidden rounded-xl border border-white/15 bg-plum-deep p-1.5 shadow-2xl">
                 <button
                   type="button"
                   onClick={() => {
@@ -413,7 +416,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
       </aside>
 
       <main className="min-w-0 pb-24 xl:pl-[12.75rem] xl:pb-0">
-        <header className="sticky top-0 z-30 flex min-h-16 items-center justify-between gap-3 border-b border-[#dfd3c7] bg-[#fbf7f2]/[0.92] px-4 backdrop-blur-xl xl:hidden">
+        <header className="sticky top-0 z-30 flex min-h-16 items-center justify-between gap-3 border-b border-border bg-background/90 px-4 backdrop-blur-xl xl:hidden">
           <div className="min-w-0">
             <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-secondary">
               Sweet Tooth
@@ -449,7 +452,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
         {trial?.isFree &&
         trial.active &&
         typeof trial.daysLeft === "number" ? (
-          <div className="border-b border-[#dfd3c7] bg-[#efe0e7] px-4 py-2.5 text-xs text-foreground sm:px-6 sm:text-sm xl:px-8">
+          <div className="border-b border-border bg-accent px-4 py-2.5 text-xs text-foreground sm:px-6 sm:text-sm xl:px-8">
             <span className="font-semibold">Launch Free trial</span>
             {" Â· "}
             {trial.daysLeft} day{trial.daysLeft === 1 ? "" : "s"} left.{" "}
@@ -467,7 +470,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
       </main>
 
       <nav
-        className="fixed inset-x-0 bottom-0 z-40 border-t border-[#dfd3c7] bg-[#fffaf5]/[0.96] px-2 pb-[calc(env(safe-area-inset-bottom)+0.35rem)] pt-2 shadow-[0_-14px_38px_rgba(60,31,66,0.09)] backdrop-blur-xl xl:hidden"
+        className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card/95 px-2 pb-[calc(env(safe-area-inset-bottom)+0.35rem)] pt-2 shadow-[0_-14px_38px_rgba(60,31,66,0.09)] backdrop-blur-xl xl:hidden"
         aria-label="Mobile dashboard navigation"
       >
         <div className="mx-auto grid max-w-lg grid-cols-5 gap-1">
@@ -516,12 +519,12 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
           <button
             type="button"
             aria-label="Close more menu"
-            className="absolute inset-0 bg-[#24122b]/[0.42] backdrop-blur-sm"
+            className="absolute inset-0 bg-plum-deep/42 backdrop-blur-sm"
             onClick={() => setMoreOpen(false)}
           />
 
-          <section className="absolute inset-x-0 bottom-0 max-h-[84dvh] overflow-y-auto rounded-t-[1.75rem] border-t border-[#dfd3c7] bg-[#fffaf5] px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-3 shadow-2xl">
-            <div className="mx-auto mb-3 h-1.5 w-12 rounded-full bg-[#d8c9bc]" />
+          <section className="absolute inset-x-0 bottom-0 max-h-[84dvh] overflow-y-auto rounded-t-[1.75rem] border-t border-border bg-card px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-3 shadow-2xl">
+            <div className="mx-auto mb-3 h-1.5 w-12 rounded-full bg-border" />
 
             <div className="mx-auto max-w-lg">
               <div className="flex items-start justify-between gap-4 px-1 pb-4">
@@ -541,7 +544,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
                   type="button"
                   aria-label="Close more menu"
                   onClick={() => setMoreOpen(false)}
-                  className="rounded-full border border-[#dfd3c7] bg-white p-2.5 text-muted-foreground shadow-sm"
+                  className="rounded-full border border-border bg-white p-2.5 text-muted-foreground shadow-sm"
                 >
                   <X className="h-5 w-5" />
                 </button>
@@ -559,7 +562,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
                       className={`flex min-h-24 flex-col justify-between rounded-2xl border p-4 transition-colors ${
                         active
                           ? "border-primary/25 bg-primary/[0.08] text-primary"
-                          : "border-[#dfd3c7] bg-white text-foreground hover:border-primary/20 hover:bg-[#fbf4ed]"
+                          : "border-border bg-white text-foreground hover:border-primary/20 hover:bg-muted"
                       }`}
                     >
                       <Icon className="h-5 w-5" />
@@ -571,14 +574,14 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
                 })}
               </div>
 
-              <div className="mt-4 space-y-2 border-t border-[#dfd3c7] pt-4">
+              <div className="mt-4 space-y-2 border-t border-border pt-4">
                 <button
                   type="button"
                   onClick={() => {
                     setMoreOpen(false);
                     setBrowserUrl(window.location.origin);
                   }}
-                  className="flex min-h-12 w-full items-center gap-3 rounded-xl border border-[#dfd3c7] bg-white px-4 text-left text-sm font-semibold"
+                  className="flex min-h-12 w-full items-center gap-3 rounded-xl border border-border bg-white px-4 text-left text-sm font-semibold"
                 >
                   <Globe className="h-5 w-5 text-primary" />
                   Preview storefront
@@ -590,7 +593,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
                     setMoreOpen(false);
                     openFeedback();
                   }}
-                  className="flex min-h-12 w-full items-center gap-3 rounded-xl border border-[#dfd3c7] bg-white px-4 text-left text-sm font-semibold"
+                  className="flex min-h-12 w-full items-center gap-3 rounded-xl border border-border bg-white px-4 text-left text-sm font-semibold"
                 >
                   <MessageSquareText className="h-5 w-5 text-primary" />
                   Share feedback

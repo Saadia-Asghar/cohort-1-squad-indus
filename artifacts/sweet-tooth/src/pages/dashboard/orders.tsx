@@ -83,7 +83,7 @@ function statusTone(status: string): string {
     case "confirmed":
       return "bg-[#f7edcf] text-[#8b641e]";
     case "in_production":
-      return "bg-[#efe1f3] text-[#632a73]";
+      return "bg-[#efe1f3] text-primary";
     case "out_for_delivery":
       return "bg-[#e2f3f1] text-[#19736e]";
     case "delivered":
@@ -91,7 +91,7 @@ function statusTone(status: string): string {
     case "cancelled":
       return "bg-[#f8dddd] text-[#a7313b]";
     default:
-      return "bg-[#eee8ee] text-[#746876]";
+      return "bg-[#eee8ee] text-muted-foreground";
   }
 }
 
@@ -483,11 +483,11 @@ export default function DashboardOrders() {
 
   return (
     <DashboardLayout>
-      <div className="min-h-screen bg-[#fbf6ee] px-4 py-5 text-[#241629] sm:px-6 lg:px-7">
+      <div className="min-h-screen bg-background px-4 py-5 text-foreground sm:px-6 lg:px-7">
         <div className="mx-auto max-w-[1480px]">
-          <header className="flex flex-col gap-5 border-b border-[#dfd1c4] pb-5 lg:flex-row lg:items-end lg:justify-between">
+          <header className="flex flex-col gap-5 border-b border-border pb-5 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#c24f7a]">
+              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-secondary">
                 Order operations
               </p>
 
@@ -495,7 +495,7 @@ export default function DashboardOrders() {
                 Orders
               </h1>
 
-              <p className="mt-3 max-w-2xl text-sm leading-6 text-[#746876]">
+              <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">
                 Review customer requests, production progress,
                 payments and delivery handovers from one workspace.
               </p>
@@ -504,9 +504,9 @@ export default function DashboardOrders() {
             <div className="flex flex-col gap-2 sm:flex-row">
               <Link
                 href="/dashboard/calendar"
-                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-[#dfd1c4] bg-white/55 px-4 text-sm font-semibold transition hover:bg-white"
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-border bg-white/55 px-4 text-sm font-semibold transition hover:bg-white"
               >
-                <CalendarDays className="h-4 w-4 text-[#c24f7a]" />
+                <CalendarDays className="h-4 w-4 text-secondary" />
                 Order schedule
               </Link>
 
@@ -519,7 +519,7 @@ export default function DashboardOrders() {
                   )
                 }
                 disabled={isLoading || filteredOrders.length === 0}
-                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-[#dfd1c4] bg-white px-4 text-sm font-semibold text-[#632a73] transition hover:bg-[#f4eae1] disabled:opacity-50"
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-border bg-white px-4 text-sm font-semibold text-primary transition hover:bg-muted disabled:opacity-50"
               >
                 <Download className="h-4 w-4" /> Download Log
               </button>
@@ -527,7 +527,7 @@ export default function DashboardOrders() {
               <button
                 type="button"
                 onClick={openManualOrder}
-                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#632a73] px-5 text-sm font-semibold text-white shadow-[0_10px_25px_rgba(47,24,55,0.12)] transition hover:bg-[#542261]"
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-primary px-5 text-sm font-semibold text-white shadow-[0_10px_25px_rgba(47,24,55,0.12)] transition hover:bg-[#542261]"
               >
                 <Plus className="h-4 w-4" />
                 Add order
@@ -535,7 +535,7 @@ export default function DashboardOrders() {
             </div>
           </header>
 
-          <section className="grid border-b border-[#dfd1c4] sm:grid-cols-2 xl:grid-cols-4">
+          <section className="grid border-b border-border sm:grid-cols-2 xl:grid-cols-4">
             <OrderMetric
               icon={ShoppingBag}
               label="All orders"
@@ -563,8 +563,8 @@ export default function DashboardOrders() {
 
           <div className="mt-5 grid gap-4 xl:grid-cols-[minmax(0,1fr)_250px]">
             <main className="min-w-0">
-              <section className="overflow-hidden rounded-2xl border border-[#dfd1c4] bg-white/45">
-                <div className="border-b border-[#dfd1c4] p-4">
+              <section className="overflow-hidden rounded-2xl border border-border bg-white/45">
+                <div className="border-b border-border p-4">
                   <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                     <div className="relative min-w-0 flex-1 lg:max-w-sm">
                       <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9b8d9c]" />
@@ -575,13 +575,13 @@ export default function DashboardOrders() {
                           setSearchQuery(event.target.value)
                         }
                         placeholder="Search orders, customers or phone numbers"
-                        className="min-h-11 w-full rounded-xl border border-[#dfd1c4] bg-[#fffaf6] pl-10 pr-4 text-sm outline-none transition placeholder:text-[#a99ca9] focus:border-[#c24f7a]/60 focus:ring-4 focus:ring-[#c24f7a]/10"
+                        className="min-h-11 w-full rounded-xl border border-border bg-card pl-10 pr-4 text-sm outline-none transition placeholder:text-muted-foreground focus:border-secondary/60 focus:ring-4 focus:ring-secondary/10"
                       />
                     </div>
 
-                    <p className="text-xs text-[#746876]">
+                    <p className="text-xs text-muted-foreground">
                       Showing{" "}
-                      <strong className="text-[#241629]">
+                      <strong className="text-foreground">
                         {filteredOrders.length}
                       </strong>{" "}
                       of {allOrders.length} orders
@@ -600,8 +600,8 @@ export default function DashboardOrders() {
                           aria-pressed={active}
                           className={`min-h-9 shrink-0 rounded-lg px-3.5 text-xs font-semibold transition ${
                             active
-                              ? "bg-[#632a73] text-white"
-                              : "border border-[#dfd1c4] bg-[#fffaf6] text-[#746876] hover:text-[#241629]"
+                              ? "bg-primary text-white"
+                              : "border border-border bg-card text-muted-foreground hover:text-foreground"
                           }`}
                         >
                           {filter.label}
@@ -616,7 +616,7 @@ export default function DashboardOrders() {
                     {[0, 1, 2, 3].map((item) => (
                       <div
                         key={item}
-                        className="h-20 animate-pulse rounded-xl bg-[#f1e9e2]"
+                        className="h-20 animate-pulse rounded-xl bg-muted"
                       />
                     ))}
                   </div>
@@ -624,7 +624,7 @@ export default function DashboardOrders() {
                   <>
                     <div className="hidden overflow-x-auto md:block">
                       <table className="w-full min-w-[940px] text-left text-xs">
-                        <thead className="border-b border-[#eadfd5] text-[10px] uppercase tracking-[0.08em] text-[#746876]">
+                        <thead className="border-b border-border text-[10px] uppercase tracking-[0.08em] text-muted-foreground">
                           <tr>
                             <th className="px-4 py-3">Order</th>
                             <th className="px-4 py-3">Customer</th>
@@ -659,12 +659,12 @@ export default function DashboardOrders() {
                                     #{order.id}
                                   </p>
 
-                                  <p className="mt-1 max-w-[190px] truncate text-[11px] text-[#746876]">
+                                  <p className="mt-1 max-w-[190px] truncate text-[11px] text-muted-foreground">
                                     {orderSummary(order)}
                                   </p>
 
                                   {order.source === "custom_quote" ? (
-                                    <span className="mt-2 inline-flex rounded-lg bg-[#f1dde5] px-2 py-1 text-[9px] font-semibold text-[#9b2c5a]">
+                                    <span className="mt-2 inline-flex rounded-lg bg-accent px-2 py-1 text-[9px] font-semibold text-[#9b2c5a]">
                                       Custom-cake request
                                     </span>
                                   ) : null}
@@ -675,7 +675,7 @@ export default function DashboardOrders() {
                                     {order.buyerName}
                                   </p>
 
-                                  <div className="mt-1 flex items-center gap-2 text-[11px] text-[#746876]">
+                                  <div className="mt-1 flex items-center gap-2 text-[11px] text-muted-foreground">
                                     <span>{order.buyerWhatsapp}</span>
 
                                     {whatsapp ? (
@@ -699,7 +699,7 @@ export default function DashboardOrders() {
                                     )}
                                   </p>
 
-                                  <p className="mt-1 max-w-[180px] text-[11px] leading-5 text-[#746876]">
+                                  <p className="mt-1 max-w-[180px] text-[11px] leading-5 text-muted-foreground">
                                     {operations.deliveryTimeSlot ||
                                       "Time not assigned"}
 
@@ -715,7 +715,7 @@ export default function DashboardOrders() {
                                     {order.totalPkr.toLocaleString()}
                                   </p>
 
-                                  <p className="mt-1 text-[10px] text-[#746876]">
+                                  <p className="mt-1 text-[10px] text-muted-foreground">
                                     {order.requireAdvance
                                       ? order.advancePaid
                                         ? "Advance verified"
@@ -770,7 +770,7 @@ export default function DashboardOrders() {
                                         disabled={
                                           approvingQuoteId === order.id
                                         }
-                                        className="rounded-lg bg-[#632a73] px-3 py-2 text-[10px] font-semibold text-white disabled:opacity-50"
+                                        className="rounded-lg bg-primary px-3 py-2 text-[10px] font-semibold text-white disabled:opacity-50"
                                       >
                                         {approvingQuoteId === order.id
                                           ? "Saving…"
@@ -783,7 +783,7 @@ export default function DashboardOrders() {
                                       onClick={() =>
                                         setChecklistOrder(order)
                                       }
-                                      className="rounded-lg border border-[#dfd1c4] bg-[#fffaf6] px-3 py-2 text-[10px] font-semibold hover:bg-white"
+                                      className="rounded-lg border border-border bg-card px-3 py-2 text-[10px] font-semibold hover:bg-white"
                                     >
                                       Prep checklist
                                     </button>
@@ -793,7 +793,7 @@ export default function DashboardOrders() {
                                       onClick={() =>
                                         void saveDispatch(operations)
                                       }
-                                      className="rounded-lg border border-[#dfd1c4] bg-[#fffaf6] px-3 py-2 text-[10px] font-semibold hover:bg-white"
+                                      className="rounded-lg border border-border bg-card px-3 py-2 text-[10px] font-semibold hover:bg-white"
                                     >
                                       Dispatch
                                     </button>
@@ -847,7 +847,7 @@ export default function DashboardOrders() {
                           <article key={order.id} className="p-4">
                             <div className="flex items-start justify-between gap-3">
                               <div className="min-w-0">
-                                <p className="font-mono text-xs font-semibold text-[#c24f7a]">
+                                <p className="font-mono text-xs font-semibold text-secondary">
                                   #{order.id}
                                 </p>
 
@@ -855,7 +855,7 @@ export default function DashboardOrders() {
                                   {order.buyerName}
                                 </h2>
 
-                                <p className="mt-1 line-clamp-2 text-xs leading-5 text-[#746876]">
+                                <p className="mt-1 line-clamp-2 text-xs leading-5 text-muted-foreground">
                                   {orderSummary(order)}
                                 </p>
                               </div>
@@ -869,7 +869,7 @@ export default function DashboardOrders() {
                               </span>
                             </div>
 
-                            <div className="mt-4 grid grid-cols-2 gap-3 rounded-xl bg-[#fffaf6] p-3">
+                            <div className="mt-4 grid grid-cols-2 gap-3 rounded-xl bg-card p-3">
                               <div>
                                 <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-[#9b8d9c]">
                                   Delivery
@@ -903,7 +903,7 @@ export default function DashboardOrders() {
                                 )
                               }
                               disabled={updateStatus.isPending}
-                              className="mt-3 min-h-10 w-full rounded-xl border border-[#dfd1c4] bg-white px-3 text-xs font-semibold outline-none"
+                              className="mt-3 min-h-10 w-full rounded-xl border border-border bg-white px-3 text-xs font-semibold outline-none"
                             >
                               <option value="new">New</option>
                               <option value="confirmed">
@@ -929,7 +929,7 @@ export default function DashboardOrders() {
                                 onClick={() =>
                                   setChecklistOrder(order)
                                 }
-                                className="min-h-10 rounded-xl border border-[#dfd1c4] bg-[#fffaf6] text-[11px] font-semibold"
+                                className="min-h-10 rounded-xl border border-border bg-card text-[11px] font-semibold"
                               >
                                 Prep checklist
                               </button>
@@ -939,7 +939,7 @@ export default function DashboardOrders() {
                                 onClick={() =>
                                   void saveDispatch(operations)
                                 }
-                                className="min-h-10 rounded-xl border border-[#dfd1c4] bg-[#fffaf6] text-[11px] font-semibold"
+                                className="min-h-10 rounded-xl border border-border bg-card text-[11px] font-semibold"
                               >
                                 Dispatch
                               </button>
@@ -966,7 +966,7 @@ export default function DashboardOrders() {
                                   disabled={
                                     approvingQuoteId === order.id
                                   }
-                                  className="col-span-2 min-h-10 rounded-xl bg-[#632a73] text-[11px] font-semibold text-white"
+                                  className="col-span-2 min-h-10 rounded-xl bg-primary text-[11px] font-semibold text-white"
                                 >
                                   {approvingQuoteId === order.id
                                     ? "Saving…"
@@ -996,7 +996,7 @@ export default function DashboardOrders() {
                 ) : (
                   <div className="grid min-h-[340px] place-items-center p-6 text-center">
                     <div>
-                      <span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-[#f1dde5] text-[#c24f7a]">
+                      <span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-accent text-secondary">
                         <ShoppingBag className="h-6 w-6" />
                       </span>
 
@@ -1004,7 +1004,7 @@ export default function DashboardOrders() {
                         No matching orders
                       </h2>
 
-                      <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-[#746876]">
+                      <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-muted-foreground">
                         Adjust the search or filter, or create a
                         manual order for a phone, walk-in or social
                         customer.
@@ -1013,7 +1013,7 @@ export default function DashboardOrders() {
                       <button
                         type="button"
                         onClick={openManualOrder}
-                        className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#632a73] px-5 text-sm font-semibold text-white"
+                        className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-xl bg-primary px-5 text-sm font-semibold text-white"
                       >
                         <Plus className="h-4 w-4" />
                         Add order
@@ -1025,12 +1025,12 @@ export default function DashboardOrders() {
             </main>
 
             <aside className="space-y-4">
-              <section className="rounded-2xl border border-[#dfd1c4] bg-white/45 p-4">
+              <section className="rounded-2xl border border-border bg-white/45 p-4">
                 <h2 className="font-serif text-xl font-semibold">
                   Order pipeline
                 </h2>
 
-                <p className="mt-1 text-xs leading-5 text-[#746876]">
+                <p className="mt-1 text-xs leading-5 text-muted-foreground">
                   Current workload across every operational stage.
                 </p>
 
@@ -1049,7 +1049,7 @@ export default function DashboardOrders() {
                           onClick={() =>
                             setStatusFilter(filter.value)
                           }
-                          className="flex min-h-10 w-full items-center justify-between rounded-xl px-3 text-left transition hover:bg-[#fffaf6]"
+                          className="flex min-h-10 w-full items-center justify-between rounded-xl px-3 text-left transition hover:bg-card"
                         >
                           <span className="flex items-center gap-2 text-xs font-semibold">
                             <span
@@ -1065,7 +1065,7 @@ export default function DashboardOrders() {
                             {filter.label}
                           </span>
 
-                          <span className="font-mono text-xs font-semibold text-[#746876]">
+                          <span className="font-mono text-xs font-semibold text-muted-foreground">
                             {count.toString().padStart(2, "0")}
                           </span>
                         </button>
@@ -1074,21 +1074,21 @@ export default function DashboardOrders() {
                 </div>
               </section>
 
-              <section className="rounded-2xl border border-[#e5cfd9] bg-[#fff0f5] p-4">
-                <Truck className="h-5 w-5 text-[#c24f7a]" />
+              <section className="rounded-2xl border border-[#e5cfd9] bg-accent p-4">
+                <Truck className="h-5 w-5 text-secondary" />
 
                 <h2 className="mt-3 font-serif text-xl font-semibold">
                   Delivery handover
                 </h2>
 
-                <p className="mt-2 text-xs leading-5 text-[#746876]">
+                <p className="mt-2 text-xs leading-5 text-muted-foreground">
                   Add the delivery window and rider details before
                   moving an order to out for delivery.
                 </p>
 
                 <Link
                   href="/dashboard/calendar"
-                  className="mt-4 inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-xl border border-[#dcb8c8] bg-white/55 text-xs font-semibold text-[#632a73]"
+                  className="mt-4 inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-xl border border-accent bg-white/55 text-xs font-semibold text-primary"
                 >
                   <CalendarDays className="h-4 w-4" />
                   Open schedule
@@ -1101,12 +1101,12 @@ export default function DashboardOrders() {
 
       <dialog
         id="manual-order-dialog"
-        className="w-[min(94vw,48rem)] rounded-3xl border border-[#dfd1c4] bg-[#fbf6ee] p-0 text-[#241629] shadow-2xl backdrop:bg-[#241629]/55"
+        className="w-[min(94vw,48rem)] rounded-3xl border border-border bg-background p-0 text-foreground shadow-2xl backdrop:bg-[#241629]/55"
       >
         <form onSubmit={submitManualOrder}>
-          <div className="flex items-start justify-between border-b border-[#dfd1c4] px-5 py-5 sm:px-6">
+          <div className="flex items-start justify-between border-b border-border px-5 py-5 sm:px-6">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#c24f7a]">
+              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-secondary">
                 New customer order
               </p>
 
@@ -1114,7 +1114,7 @@ export default function DashboardOrders() {
                 Add manual order
               </h2>
 
-              <p className="mt-2 text-sm text-[#746876]">
+              <p className="mt-2 text-sm text-muted-foreground">
                 Payment remains pending until it is verified.
               </p>
             </div>
@@ -1123,7 +1123,7 @@ export default function DashboardOrders() {
               type="button"
               onClick={closeManualOrder}
               aria-label="Close manual order"
-              className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-[#dfd1c4] bg-white/60"
+              className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-border bg-white/60"
             >
               <X className="h-4 w-4" />
             </button>
@@ -1318,18 +1318,18 @@ export default function DashboardOrders() {
             ) : null}
           </div>
 
-          <div className="flex justify-end gap-3 border-t border-[#dfd1c4] px-5 py-4 sm:px-6">
+          <div className="flex justify-end gap-3 border-t border-border px-5 py-4 sm:px-6">
             <button
               type="button"
               onClick={closeManualOrder}
-              className="min-h-11 rounded-xl border border-[#dfd1c4] bg-white/55 px-5 text-sm font-semibold"
+              className="min-h-11 rounded-xl border border-border bg-white/55 px-5 text-sm font-semibold"
             >
               Cancel
             </button>
 
             <button
               disabled={savingManualOrder}
-              className="min-h-11 rounded-xl bg-[#632a73] px-5 text-sm font-semibold text-white disabled:opacity-50"
+              className="min-h-11 rounded-xl bg-primary px-5 text-sm font-semibold text-white disabled:opacity-50"
             >
               {savingManualOrder
                 ? "Saving order…"
@@ -1346,10 +1346,10 @@ export default function DashboardOrders() {
           aria-modal="true"
           aria-labelledby="production-checklist-title"
         >
-          <div className="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-3xl border border-[#dfd1c4] bg-[#fbf6ee] text-[#241629] shadow-2xl">
-            <div className="flex items-start justify-between border-b border-[#dfd1c4] px-5 py-5 sm:px-6">
+          <div className="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-3xl border border-border bg-background text-foreground shadow-2xl">
+            <div className="flex items-start justify-between border-b border-border px-5 py-5 sm:px-6">
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#c24f7a]">
+                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-secondary">
                   Order #{checklistOrder.id}
                 </p>
 
@@ -1360,7 +1360,7 @@ export default function DashboardOrders() {
                   Production checklist
                 </h2>
 
-                <p className="mt-2 text-sm text-[#746876]">
+                <p className="mt-2 text-sm text-muted-foreground">
                   {checklistOrder.buyerName}
                 </p>
               </div>
@@ -1369,7 +1369,7 @@ export default function DashboardOrders() {
                 type="button"
                 onClick={() => setChecklistOrder(null)}
                 aria-label="Close production checklist"
-                className="grid h-10 w-10 place-items-center rounded-xl border border-[#dfd1c4] bg-white/55"
+                className="grid h-10 w-10 place-items-center rounded-xl border border-border bg-white/55"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -1476,7 +1476,7 @@ export default function DashboardOrders() {
                 }
               />
 
-              <p className="rounded-xl bg-[#f1e9e2] px-4 py-3 text-xs leading-5 text-[#746876]">
+              <p className="rounded-xl bg-muted px-4 py-3 text-xs leading-5 text-muted-foreground">
                 This checklist uses the live order, payment,
                 production and delivery records. It does not create
                 separate checklist data.
@@ -1499,9 +1499,9 @@ function OrderMetric({
   value: number;
 }) {
   return (
-    <div className="border-[#dfd1c4] px-4 py-5 sm:border-r sm:last:border-r-0 lg:px-5">
-      <div className="flex items-center gap-2 text-[#746876]">
-        <Icon className="h-5 w-5 text-[#c24f7a]" />
+    <div className="border-border px-4 py-5 sm:border-r sm:last:border-r-0 lg:px-5">
+      <div className="flex items-center gap-2 text-muted-foreground">
+        <Icon className="h-5 w-5 text-secondary" />
 
         <span className="text-[11px] font-medium">{label}</span>
       </div>
@@ -1542,7 +1542,7 @@ function ChecklistItem({
   const Icon = ready ? CheckCircle2 : CircleAlert;
 
   return (
-    <div className="flex gap-3 rounded-2xl border border-[#dfd1c4] bg-white/45 p-4">
+    <div className="flex gap-3 rounded-2xl border border-border bg-white/45 p-4">
       <Icon
         className={`mt-0.5 h-5 w-5 shrink-0 ${
           ready ? "text-[#168a55]" : "text-[#b86a24]"
@@ -1552,7 +1552,7 @@ function ChecklistItem({
       <div>
         <p className="text-sm font-semibold">{label}</p>
 
-        <p className="mt-1 text-sm leading-6 text-[#746876]">
+        <p className="mt-1 text-sm leading-6 text-muted-foreground">
           {value}
         </p>
       </div>

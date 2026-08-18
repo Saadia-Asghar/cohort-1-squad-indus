@@ -376,7 +376,7 @@ export function BakeryQuest() {
       ) : null}
 
       <aside
-        className="fixed bottom-[5.7rem] right-3 z-[80] w-[calc(100%-1.5rem)] max-w-[22rem] overflow-hidden rounded-2xl border border-[#d7b56c]/45 bg-[#fffaf5] text-[#241629] shadow-[0_24px_70px_rgba(29,13,34,0.28)] xl:bottom-6 xl:right-6"
+        className="fixed bottom-[5.7rem] right-3 z-[80] w-[calc(100%-1.5rem)] max-w-[22rem] overflow-hidden rounded-2xl border border-[#d7b56c]/45 bg-[#fffaf5] text-foreground shadow-[0_24px_70px_rgba(29,13,34,0.28)] xl:bottom-6 xl:right-6"
         aria-live="polite"
       >
         <div className="bg-gradient-to-r from-[#32173b] via-[#4a2053] to-[#632a73] px-4 py-3.5 text-white">
@@ -414,11 +414,11 @@ export function BakeryQuest() {
 
         <div className="p-4">
           <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-[0.12em]">
-            <span className="text-[#746876]">
+            <span className="text-muted-foreground">
               Experience
             </span>
 
-            <span className="text-[#c24f7a]">
+            <span className="text-secondary">
               {xp} / 100 XP
             </span>
           </div>
@@ -442,21 +442,21 @@ export function BakeryQuest() {
                 Display stocked
               </h2>
 
-              <p className="mt-2 text-xs leading-5 text-[#746876]">
+              <p className="mt-2 text-xs leading-5 text-muted-foreground">
                 Your first product is ready. You earned 25 XP.
               </p>
 
               <button
                 type="button"
                 onClick={dismissQuest}
-                className="mt-4 inline-flex min-h-10 w-full items-center justify-center rounded-xl border border-[#dfd1c4] bg-white px-4 text-xs font-semibold text-[#632a73]"
+                className="mt-4 inline-flex min-h-10 w-full items-center justify-center rounded-xl border border-border bg-white px-4 text-xs font-semibold text-primary"
               >
                 Close quest log
               </button>
             </div>
           ) : (
             <div className="mt-4">
-              <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#c24f7a]">
+              <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-secondary">
                 Current objective
               </p>
 
@@ -464,7 +464,7 @@ export function BakeryQuest() {
                 Stock the display
               </h2>
 
-              <p className="mt-2 text-xs leading-5 text-[#746876]">
+              <p className="mt-2 text-xs leading-5 text-muted-foreground">
                 Create one real menu product to earn your first 25 XP.
               </p>
 
@@ -484,7 +484,7 @@ export function BakeryQuest() {
                 <button
                   type="button"
                   onClick={startQuest}
-                  className="mt-4 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#632a73] px-4 text-xs font-semibold text-white transition hover:bg-[#542261]"
+                  className="mt-4 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 text-xs font-semibold text-white transition hover:bg-[#542261]"
                 >
                   {active
                     ? "Continue quest"
@@ -497,7 +497,7 @@ export function BakeryQuest() {
               <button
                 type="button"
                 onClick={dismissQuest}
-                className="mt-2 w-full py-1.5 text-[11px] font-semibold text-[#8b7d89] transition hover:text-[#241629]"
+                className="mt-2 w-full py-1.5 text-[11px] font-semibold text-[#8b7d89] transition hover:text-foreground"
               >
                 Skip tutorial
               </button>
@@ -531,7 +531,7 @@ export function BakeryQuest() {
               <Trophy className="h-8 w-8 animate-bounce" />
             </span>
 
-            <p className="mt-5 text-[10px] font-bold uppercase tracking-[0.18em] text-[#c24f7a]">
+            <p className="mt-5 text-[10px] font-bold uppercase tracking-[0.18em] text-secondary">
               Mission complete
             </p>
 
@@ -539,7 +539,7 @@ export function BakeryQuest() {
               +25 XP
             </h2>
 
-            <p className="mt-2 text-sm text-[#746876]">
+            <p className="mt-2 text-sm text-muted-foreground">
               Your first product has joined the display.
             </p>
           </div>

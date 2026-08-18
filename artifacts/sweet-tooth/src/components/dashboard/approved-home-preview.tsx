@@ -66,7 +66,7 @@ const productionItems = [
     product: "Red Velvet Cake",
     customer: "Ayesha Khan",
     status: "In production",
-    tone: "bg-[#efe1f3] text-[#632a73]",
+    tone: "bg-[#efe1f3] text-primary",
   },
   {
     time: "11:30 AM",
@@ -101,7 +101,7 @@ const recentOrders = [
     payment: "Paid",
     paymentTone: "bg-[#e4f3e8] text-[#168a55]",
     status: "In production",
-    statusTone: "bg-[#efe1f3] text-[#632a73]",
+    statusTone: "bg-[#efe1f3] text-primary",
     action: "View",
   },
   {
@@ -146,13 +146,13 @@ export function ApprovedHomePreview() {
   const { bakerId } = useBuyerSession();
 
   return (
-    <div className="min-h-screen bg-[#fbf6ee] px-4 py-5 text-[#241629] sm:px-6 lg:px-6 xl:px-5">
+    <div className="min-h-screen bg-background px-4 py-5 text-foreground sm:px-6 lg:px-6 xl:px-5">
       <div className="mx-auto max-w-[1480px]">
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_264px]">
           <main className="min-w-0">
-            <header className="flex flex-col gap-5 border-b border-[#dfd1c4] pb-5 sm:flex-row sm:items-start sm:justify-between">
+            <header className="flex flex-col gap-5 border-b border-border pb-5 sm:flex-row sm:items-start sm:justify-between">
               <div>
-                <p className="text-xs font-medium text-[#746876]">
+                <p className="text-xs font-medium text-muted-foreground">
                   Monday, 3 August
                 </p>
 
@@ -160,7 +160,7 @@ export function ApprovedHomePreview() {
                   Good morning, Sana.
                 </h1>
 
-                <p className="mt-3 text-sm text-[#746876] sm:text-base">
+                <p className="mt-3 text-sm text-muted-foreground sm:text-base">
                   Two orders and one payment need your attention today.
                 </p>
               </div>
@@ -171,7 +171,7 @@ export function ApprovedHomePreview() {
                       href={bakerMenuHref(bakerId)}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#632a73] px-4 text-sm font-semibold text-white shadow-[0_8px_24px_rgba(47,24,55,0.05)] transition hover:-translate-y-0.5"
+                      className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-white shadow-[0_8px_24px_rgba(47,24,55,0.05)] transition hover:-translate-y-0.5"
                     >
                       Open menu
                       <ExternalLink className="h-4 w-4" />
@@ -181,7 +181,7 @@ export function ApprovedHomePreview() {
                       onClick={() => {
                         void navigator.clipboard.writeText(bakerMenuHref(bakerId));
                       }}
-                      className="inline-flex min-h-11 items-center justify-center rounded-xl border border-[#dfd1c4] bg-white/65 px-4 text-sm font-semibold"
+                      className="inline-flex min-h-11 items-center justify-center rounded-xl border border-border bg-white/65 px-4 text-sm font-semibold"
                     >
                       Copy link
                     </button>
@@ -189,14 +189,14 @@ export function ApprovedHomePreview() {
                 ) : null}
 
                 {bakerId ? (
-                  <div className="hidden rounded-xl border border-[#dfd1c4] bg-white/65 shadow-[0_8px_24px_rgba(47,24,55,0.05)] xl:block">
+                  <div className="hidden rounded-xl border border-border bg-white/65 shadow-[0_8px_24px_rgba(47,24,55,0.05)] xl:block">
                     <NotificationBell bakerId={bakerId} />
                   </div>
                 ) : null}
               </div>
             </header>
 
-            <section className="grid border-b border-[#dfd1c4] sm:grid-cols-2 lg:grid-cols-5">
+            <section className="grid border-b border-border sm:grid-cols-2 lg:grid-cols-5">
               <Metric
                 label="Orders today"
                 value="04"
@@ -240,13 +240,13 @@ export function ApprovedHomePreview() {
             </section>
 
             <div className="mt-4 grid gap-4 lg:grid-cols-2">
-              <section className="overflow-hidden rounded-2xl border border-[#dfd1c4] bg-white/45">
-                <div className="flex items-center gap-2 border-b border-[#dfd1c4] px-4 py-3.5">
+              <section className="overflow-hidden rounded-2xl border border-border bg-white/45">
+                <div className="flex items-center gap-2 border-b border-border px-4 py-3.5">
                   <h2 className="font-serif text-xl font-semibold">
                     Needs your attention
                   </h2>
 
-                  <span className="rounded-full bg-[#c24f7a] px-2 py-0.5 text-xs font-bold text-white">
+                  <span className="rounded-full bg-secondary px-2 py-0.5 text-xs font-bold text-white">
                     5
                   </span>
                 </div>
@@ -261,7 +261,7 @@ export function ApprovedHomePreview() {
                         href={item.href}
                         className="group flex min-h-[57px] items-center gap-3 px-4 py-3 transition hover:bg-[#fff8f3]"
                       >
-                        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-[#eadfd5] bg-[#fffaf6] text-[#c24f7a]">
+                        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-border bg-card text-secondary">
                           <Icon className="h-4 w-4" />
                         </span>
 
@@ -270,12 +270,12 @@ export function ApprovedHomePreview() {
                             {item.title}
                           </span>
 
-                          <span className="mt-0.5 block truncate text-xs text-[#746876]">
+                          <span className="mt-0.5 block truncate text-xs text-muted-foreground">
                             {item.detail}
                           </span>
                         </span>
 
-                        <span className="flex items-center gap-1 text-xs font-semibold text-[#c24f7a]">
+                        <span className="flex items-center gap-1 text-xs font-semibold text-secondary">
                           {item.action}
                           <ArrowRight className="h-3.5 w-3.5 transition group-hover:translate-x-0.5" />
                         </span>
@@ -285,8 +285,8 @@ export function ApprovedHomePreview() {
                 </div>
               </section>
 
-              <section className="overflow-hidden rounded-2xl border border-[#dfd1c4] bg-white/45">
-                <div className="border-b border-[#dfd1c4] px-4 py-3.5">
+              <section className="overflow-hidden rounded-2xl border border-border bg-white/45">
+                <div className="border-b border-border px-4 py-3.5">
                   <h2 className="font-serif text-xl font-semibold">
                     Today&apos;s production
                   </h2>
@@ -299,18 +299,18 @@ export function ApprovedHomePreview() {
                       href="/dashboard/orders"
                       className="grid min-h-[57px] grid-cols-[72px_10px_minmax(0,1fr)_auto] items-center gap-3 px-4 py-3 transition hover:bg-[#fff8f3]"
                     >
-                      <span className="text-xs font-medium text-[#746876]">
+                      <span className="text-xs font-medium text-muted-foreground">
                         {item.time}
                       </span>
 
-                      <span className="h-2 w-2 rounded-full bg-[#632a73]" />
+                      <span className="h-2 w-2 rounded-full bg-primary" />
 
                       <span className="min-w-0">
                         <span className="block truncate text-sm font-semibold">
                           {item.product}
                         </span>
 
-                        <span className="mt-0.5 block truncate text-xs text-[#746876]">
+                        <span className="mt-0.5 block truncate text-xs text-muted-foreground">
                           {item.customer}
                         </span>
                       </span>
@@ -326,15 +326,15 @@ export function ApprovedHomePreview() {
               </section>
             </div>
 
-            <section className="mt-4 overflow-hidden rounded-2xl border border-[#dfd1c4] bg-white/45">
-              <div className="flex items-center justify-between border-b border-[#dfd1c4] px-4 py-3.5">
+            <section className="mt-4 overflow-hidden rounded-2xl border border-border bg-white/45">
+              <div className="flex items-center justify-between border-b border-border px-4 py-3.5">
                 <h2 className="font-serif text-xl font-semibold">
                   Recent orders
                 </h2>
 
                 <Link
                   href="/dashboard/orders"
-                  className="flex items-center gap-1 text-xs font-semibold text-[#c24f7a]"
+                  className="flex items-center gap-1 text-xs font-semibold text-secondary"
                 >
                   View all orders
                   <ArrowRight className="h-3.5 w-3.5" />
@@ -343,7 +343,7 @@ export function ApprovedHomePreview() {
 
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[760px] text-left text-xs">
-                  <thead className="border-b border-[#eadfd5] text-[10px] uppercase tracking-[0.08em] text-[#746876]">
+                  <thead className="border-b border-border text-[10px] uppercase tracking-[0.08em] text-muted-foreground">
                     <tr>
                       <th className="px-4 py-3">Order</th>
                       <th className="px-4 py-3">Customer</th>
@@ -396,7 +396,7 @@ export function ApprovedHomePreview() {
                         <td className="px-4 py-3 text-right">
                           <Link
                             href="/dashboard/orders"
-                            className="font-semibold text-[#c24f7a]"
+                            className="font-semibold text-secondary"
                           >
                             {order.action}
                           </Link>
@@ -410,7 +410,7 @@ export function ApprovedHomePreview() {
           </main>
 
           <aside className="space-y-4">
-            <section className="rounded-2xl border border-[#dfd1c4] bg-white/45 p-4">
+            <section className="rounded-2xl border border-border bg-white/45 p-4">
               <h2 className="font-serif text-lg font-semibold">
                 Quick actions
               </h2>
@@ -489,9 +489,9 @@ function Metric({
   valueClass?: string;
 }) {
   return (
-    <div className="border-[#dfd1c4] px-4 py-5 sm:border-r sm:last:border-r-0 lg:px-5">
-      <div className="flex items-center gap-2 text-[#746876]">
-        <Icon className="h-5 w-5 text-[#c24f7a]" />
+    <div className="border-border px-4 py-5 sm:border-r sm:last:border-r-0 lg:px-5">
+      <div className="flex items-center gap-2 text-muted-foreground">
+        <Icon className="h-5 w-5 text-secondary" />
 
         <span className="whitespace-nowrap text-[10px] font-medium">{label}</span>
       </div>
@@ -504,7 +504,7 @@ function Metric({
 
       <Link
         href={href}
-        className="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold text-[#c24f7a]"
+        className="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold text-secondary"
       >
         {action}
         <ArrowRight className="h-3 w-3" />
@@ -525,12 +525,12 @@ function QuickAction({
   external?: boolean;
 }) {
   const className =
-    "group flex min-h-[72px] flex-col items-center justify-center rounded-xl border border-[#eadfd5] bg-[#fffaf6] px-1.5 text-center transition hover:border-[#c24f7a]/35 hover:bg-white";
+    "group flex min-h-[72px] flex-col items-center justify-center rounded-xl border border-border bg-card px-1.5 text-center transition hover:border-[#c24f7a]/35 hover:bg-white";
 
   if (external) {
     return (
       <a href={href} target="_blank" rel="noopener noreferrer" className={className}>
-        <Icon className="h-4 w-4 text-[#c24f7a]" />
+        <Icon className="h-4 w-4 text-secondary" />
         <span className="mt-2 text-[9px] font-semibold leading-tight">{label}</span>
       </a>
     );
@@ -538,7 +538,7 @@ function QuickAction({
 
   return (
     <Link href={href} className={className}>
-      <Icon className="h-4 w-4 text-[#c24f7a]" />
+      <Icon className="h-4 w-4 text-secondary" />
       <span className="mt-2 text-[9px] font-semibold leading-tight">{label}</span>
     </Link>
   );

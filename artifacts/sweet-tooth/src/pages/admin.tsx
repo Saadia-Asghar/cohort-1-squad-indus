@@ -52,12 +52,12 @@ type WaitlistEntry = {
 };
 
 const inputClass =
-  "w-full min-h-11 rounded-xl border border-[#dfd1c4] bg-[#fffaf6] px-3.5 text-sm text-[#241629] outline-none transition placeholder:text-[#a99ca9] focus:border-[#c24f7a]/60 focus:ring-4 focus:ring-[#c24f7a]/10";
-const cardClass = "rounded-2xl border border-[#eadfce] bg-white p-6 shadow-sm";
+  "w-full min-h-11 rounded-xl border border-border bg-card px-3.5 text-sm text-foreground outline-none transition placeholder:text-muted-foreground focus:border-secondary/60 focus:ring-4 focus:ring-secondary/10";
+const cardClass = "rounded-2xl border border-border bg-white p-6 shadow-sm";
 const primaryBtn =
   "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-bold text-primary-foreground transition hover:bg-primary/90 disabled:opacity-50";
 const ghostBtn =
-  "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-[#dfd1c4] bg-white px-4 text-sm font-semibold text-[#382b43] transition hover:bg-[#fbf6ee]";
+  "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-border bg-white px-4 text-sm font-semibold text-foreground transition hover:bg-background";
 
 function adminHeaders(token: string, json = false): HeadersInit {
   return {
@@ -84,7 +84,7 @@ function FlagButton({
       type="button"
       disabled={disabled}
       onClick={onClick}
-      className={`rounded-full px-3 py-1 text-xs font-bold ${on ? "bg-green-100 text-green-800" : "bg-[#f1dde5] text-[#632a73]"}`}
+      className={`rounded-full px-3 py-1 text-xs font-bold ${on ? "bg-green-100 text-green-800" : "bg-accent text-primary"}`}
     >
       {on ? onLabel : offLabel}
     </button>
@@ -335,11 +335,11 @@ export default function AdminPortal() {
         description="Same cream workspace as the baker dashboard. Plan, listing, and channel changes save to Postgres."
       >
         <form onSubmit={handleLogin} className="space-y-4">
-          <label className="block text-sm font-bold text-[#382b43]">
+          <label className="block text-sm font-bold text-foreground">
             Email
             <input id="admin-email" type="email" required autoComplete="email" value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} className={`${inputClass} mt-2 bg-white`} />
           </label>
-          <label className="block text-sm font-bold text-[#382b43]">
+          <label className="block text-sm font-bold text-foreground">
             Password
             <div className="relative mt-2">
               <input type={showPassword ? "text" : "password"} required autoComplete="current-password" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} className={`${inputClass} bg-white pr-12`} />
@@ -358,14 +358,14 @@ export default function AdminPortal() {
   }
 
   return (
-    <main className="min-h-screen bg-[#f8f5ef] text-[#241629]">
+    <main className="min-h-screen bg-background text-foreground">
       <div className="mx-auto max-w-[1480px] px-4 py-8 sm:px-6 lg:px-8">
-        <header className="flex flex-col gap-4 border-b border-[#eadfce] pb-6 sm:flex-row sm:items-center sm:justify-between">
+        <header className="flex flex-col gap-4 border-b border-border pb-6 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
             <img src="/sweet-tooth-logo.png" alt="Sweet Tooth" className="h-12 w-auto object-contain" />
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.18em] text-primary/70">Platform admin</p>
-              <h1 className="font-serif text-3xl font-bold text-[#241532]">Bakery control</h1>
+              <h1 className="font-serif text-3xl font-bold text-foreground">Bakery control</h1>
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -399,7 +399,7 @@ export default function AdminPortal() {
             { label: "Public menus", value: bakers.filter((baker) => baker.marketplaceVisible).length, icon: Users },
             { label: "Paid plans", value: bakers.filter((baker) => baker.subscriptionPlan !== "free").length, icon: CreditCard },
           ].map((stat) => (
-            <div key={stat.label} className="rounded-2xl border border-[#eadfce] bg-white p-5">
+            <div key={stat.label} className="rounded-2xl border border-border bg-white p-5">
               <div className="flex items-center justify-between text-sm text-muted-foreground">
                 {stat.label}
                 <stat.icon className="h-4 w-4 text-primary" />
@@ -447,7 +447,7 @@ export default function AdminPortal() {
             </p>
             <div className="mt-4 space-y-3">
               {bakers.filter((baker) => baker.pendingPlanId).map((baker) => (
-                <div key={baker.id} className="flex flex-col gap-3 rounded-xl border border-[#eadfce] bg-[#fbf6ee] p-4 sm:flex-row sm:items-center sm:justify-between">
+                <div key={baker.id} className="flex flex-col gap-3 rounded-xl border border-border bg-background p-4 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <p className="font-bold">{baker.businessName} <span className="font-mono text-xs text-muted-foreground">#{baker.id}</span></p>
                     <p className="text-sm text-muted-foreground">
@@ -474,7 +474,7 @@ export default function AdminPortal() {
         )}
 
         <section className={`${cardClass} mt-8 overflow-hidden p-0`}>
-          <div className="flex flex-col gap-4 border-b border-[#eadfce] p-5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-4 border-b border-border p-5 sm:flex-row sm:items-center sm:justify-between">
             <h2 className="font-serif text-xl font-bold">Bakeries</h2>
             <div className="relative w-full max-w-xs">
               <Search className="absolute left-3 top-3 h-4 w-4 text-[#a99ca9]" />
@@ -483,7 +483,7 @@ export default function AdminPortal() {
           </div>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[1280px] text-left text-sm">
-              <thead className="bg-[#fbf6ee] text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              <thead className="bg-background text-xs font-bold uppercase tracking-wider text-muted-foreground">
                 <tr>
                   <th className="px-4 py-3">Bakery</th>
                   <th className="px-4 py-3">Plan</th>
@@ -498,13 +498,13 @@ export default function AdminPortal() {
               </thead>
               <tbody>
                 {filteredBakers.map((baker) => (
-                  <tr key={baker.id} className="border-t border-[#eadfce]">
+                  <tr key={baker.id} className="border-t border-border">
                     <td className="px-4 py-4">
                       <p className="font-bold">
                         {baker.businessName || "Unnamed"}{" "}
                         <span className="font-mono text-xs text-muted-foreground">#{baker.id}</span>
                         {baker.pendingPlanId && (
-                          <span className="ml-2 rounded-full bg-[#f4bd62]/30 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#632a73]">
+                          <span className="ml-2 rounded-full bg-[#f4bd62]/30 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-primary">
                             {baker.pendingPlanId} pending
                           </span>
                         )}
@@ -583,13 +583,13 @@ export default function AdminPortal() {
         </section>
 
         <section className={`${cardClass} mt-8 overflow-hidden p-0`}>
-          <div className="border-b border-[#eadfce] p-5">
+          <div className="border-b border-border p-5">
             <h2 className="font-serif text-xl font-bold">Baker waitlist</h2>
             <p className="mt-1 text-sm text-muted-foreground">Launch page and WhatsApp-agent requests. Approve, then invite them to create an account.</p>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[900px] text-left text-sm">
-              <thead className="bg-[#fbf6ee] text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              <thead className="bg-background text-xs font-bold uppercase tracking-wider text-muted-foreground">
                 <tr>
                   <th className="px-4 py-3">Name</th>
                   <th className="px-4 py-3">Contact</th>
@@ -599,7 +599,7 @@ export default function AdminPortal() {
               </thead>
               <tbody>
                 {waitlist.map((entry) => (
-                  <tr key={entry.id} className="border-t border-[#eadfce]">
+                  <tr key={entry.id} className="border-t border-border">
                     <td className="px-4 py-4 font-semibold">
                       {entry.bakerName}
                       {entry.city ? <p className="text-xs font-normal text-muted-foreground">{entry.city}</p> : null}

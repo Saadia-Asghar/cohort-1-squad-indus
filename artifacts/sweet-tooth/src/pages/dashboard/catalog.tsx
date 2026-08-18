@@ -54,7 +54,7 @@ const DIETARY_AND_ALLERGEN_LABELS = [
 ];
 
 const inputClass =
-  "min-h-11 w-full rounded-xl border border-[#dfd1c4] bg-[#fffaf6] px-3.5 text-sm text-[#241629] outline-none transition placeholder:text-[#a99ca9] focus:border-[#c24f7a]/60 focus:ring-4 focus:ring-[#c24f7a]/10";
+  "min-h-11 w-full rounded-xl border border-border bg-card px-3.5 text-sm text-foreground outline-none transition placeholder:text-muted-foreground focus:border-secondary/60 focus:ring-4 focus:ring-secondary/10";
 
 type CatalogSort =
   | "name_asc"
@@ -432,11 +432,11 @@ export default function DashboardCatalog() {
 
   return (
     <DashboardLayout>
-      <div className="min-h-screen bg-[#fbf6ee] px-4 py-5 text-[#241629] sm:px-6 lg:px-7">
+      <div className="min-h-screen bg-background px-4 py-5 text-foreground sm:px-6 lg:px-7">
         <div className="mx-auto max-w-[1480px]">
-          <header className="flex flex-col gap-5 border-b border-[#dfd1c4] pb-5 lg:flex-row lg:items-end lg:justify-between">
+          <header className="flex flex-col gap-5 border-b border-border pb-5 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#c24f7a]">
+              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-secondary">
                 Menu operations
               </p>
 
@@ -444,7 +444,7 @@ export default function DashboardCatalog() {
                 Catalog
               </h1>
 
-              <p className="mt-3 max-w-2xl text-sm leading-6 text-[#746876]">
+              <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">
                 Manage the products, prices, availability
                 and dietary information your assistant
                 shares with customers.
@@ -452,14 +452,14 @@ export default function DashboardCatalog() {
             </div>
 
             <div className="flex flex-col gap-2 sm:flex-row">
-              <div className="flex rounded-xl border border-[#dfd1c4] bg-[#f4eae1] p-1">
+              <div className="flex rounded-xl border border-border bg-[#f4eae1] p-1">
                 <button
                   type="button"
                   onClick={() => setActiveTab("items")}
                   className={`min-h-10 rounded-lg px-4 text-xs font-semibold transition ${
                     activeTab === "items"
-                      ? "bg-white text-[#632a73] shadow-sm"
-                      : "text-[#746876]"
+                      ? "bg-white text-primary shadow-sm"
+                      : "text-muted-foreground"
                   }`}
                 >
                   Menu items
@@ -470,8 +470,8 @@ export default function DashboardCatalog() {
                   onClick={() => setActiveTab("drops")}
                   className={`min-h-10 rounded-lg px-4 text-xs font-semibold transition ${
                     activeTab === "drops"
-                      ? "bg-white text-[#632a73] shadow-sm"
-                      : "text-[#746876]"
+                      ? "bg-white text-primary shadow-sm"
+                      : "text-muted-foreground"
                   }`}
                 >
                   Flash drops
@@ -483,7 +483,7 @@ export default function DashboardCatalog() {
                   type="button"
                   data-quest="add-product"
                   onClick={() => setShowCreate(true)}
-                  className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[#632a73] px-5 text-sm font-semibold text-white shadow-[0_10px_25px_rgba(47,24,55,0.12)] transition hover:bg-[#542261]"
+                  className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-primary px-5 text-sm font-semibold text-white shadow-[0_10px_25px_rgba(47,24,55,0.12)] transition hover:bg-[#542261]"
                 >
                   <Plus className="h-4 w-4" />
                   Add product
@@ -492,7 +492,7 @@ export default function DashboardCatalog() {
             </div>
           </header>
 
-          <section className="grid border-b border-[#dfd1c4] sm:grid-cols-2 xl:grid-cols-4">
+          <section className="grid border-b border-border sm:grid-cols-2 xl:grid-cols-4">
             <CatalogMetric
               icon={Package}
               label="Menu items"
@@ -524,8 +524,8 @@ export default function DashboardCatalog() {
             <div className="mt-5 grid gap-4 xl:grid-cols-[minmax(0,1fr)_250px]">
               <main className="min-w-0">
                 {allProducts.length > 0 ? (
-                  <section className="overflow-hidden rounded-2xl border border-[#dfd1c4] bg-white/45">
-                    <div className="border-b border-[#dfd1c4] p-4">
+                  <section className="overflow-hidden rounded-2xl border border-border bg-white/45">
+                    <div className="border-b border-border p-4">
                       <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_190px_180px]">
                         <div className="relative">
                           <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9b8d9c]" />
@@ -593,9 +593,9 @@ export default function DashboardCatalog() {
                         </div>
                       </div>
 
-                      <p className="mt-3 text-xs text-[#746876]">
+                      <p className="mt-3 text-xs text-muted-foreground">
                         Showing{" "}
-                        <strong className="text-[#241629]">
+                        <strong className="text-foreground">
                           {filteredProducts.length}
                         </strong>{" "}
                         of {allProducts.length} products
@@ -608,7 +608,7 @@ export default function DashboardCatalog() {
                           (item) => (
                             <div
                               key={item}
-                              className="h-[380px] animate-pulse rounded-2xl bg-[#f1e9e2]"
+                              className="h-[380px] animate-pulse rounded-2xl bg-muted"
                             />
                           ),
                         )}
@@ -627,9 +627,9 @@ export default function DashboardCatalog() {
                             return (
                               <article
                                 key={product.id}
-                                className="group flex min-w-0 flex-col overflow-hidden rounded-2xl border border-[#dfd1c4] bg-[#fffaf6] transition hover:-translate-y-0.5 hover:shadow-[0_16px_36px_rgba(47,24,55,0.08)]"
+                                className="group flex min-w-0 flex-col overflow-hidden rounded-2xl border border-border bg-card transition hover:-translate-y-0.5 hover:shadow-[0_16px_36px_rgba(47,24,55,0.08)]"
                               >
-                                <div className="relative h-44 overflow-hidden bg-[#f1dde5]">
+                                <div className="relative h-44 overflow-hidden bg-accent">
                                   {product.photoUrl ? (
                                     <img
                                       src={product.photoUrl}
@@ -639,7 +639,7 @@ export default function DashboardCatalog() {
                                   ) : (
                                     <div className="grid h-full place-items-center bg-[radial-gradient(circle_at_top_left,#fff7fa_0,#f1dde5_55%,#ead0dc_100%)]">
                                       <div className="text-center">
-                                        <span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl border border-white/70 bg-white/45 text-[#c24f7a] shadow-sm">
+                                        <span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl border border-white/70 bg-white/45 text-secondary shadow-sm">
                                           <ImageIcon className="h-6 w-6" />
                                         </span>
 
@@ -650,7 +650,7 @@ export default function DashboardCatalog() {
                                     </div>
                                   )}
 
-                                  <span className="absolute left-3 top-3 rounded-lg border border-white/60 bg-white/85 px-2.5 py-1 text-[10px] font-semibold text-[#632a73] backdrop-blur">
+                                  <span className="absolute left-3 top-3 rounded-lg border border-white/60 bg-white/85 px-2.5 py-1 text-[10px] font-semibold text-primary backdrop-blur">
                                     {product.category ||
                                       "Uncategorised"}
                                   </span>
@@ -687,7 +687,7 @@ export default function DashboardCatalog() {
                                         {product.name}
                                       </h2>
 
-                                      <p className="mt-1 font-mono text-sm font-semibold text-[#632a73]">
+                                      <p className="mt-1 font-mono text-sm font-semibold text-primary">
                                         PKR{" "}
                                         {product.basePricePkr.toLocaleString()}
                                       </p>
@@ -701,13 +701,13 @@ export default function DashboardCatalog() {
                                         )
                                       }
                                       aria-label={`Manage ${product.name}`}
-                                      className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-[#dfd1c4] bg-white text-[#632a73] transition hover:bg-[#f4eae1]"
+                                      className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-border bg-white text-primary transition hover:bg-muted"
                                     >
                                       <Settings2 className="h-4 w-4" />
                                     </button>
                                   </div>
 
-                                  <p className="mt-3 line-clamp-2 min-h-10 text-xs leading-5 text-[#746876]">
+                                  <p className="mt-3 line-clamp-2 min-h-10 text-xs leading-5 text-muted-foreground">
                                     {product.description ||
                                       "Add a short product description so customers and your assistant understand this item."}
                                   </p>
@@ -721,14 +721,14 @@ export default function DashboardCatalog() {
                                       .map((label) => (
                                         <span
                                           key={label}
-                                          className="rounded-lg bg-[#f1dde5] px-2 py-1 text-[9px] font-semibold text-[#8e345c]"
+                                          className="rounded-lg bg-accent px-2 py-1 text-[9px] font-semibold text-[#8e345c]"
                                         >
                                           {label}
                                         </span>
                                       ))}
 
                                     {labels.length > 4 ? (
-                                      <span className="rounded-lg bg-[#eee8ee] px-2 py-1 text-[9px] font-semibold text-[#746876]">
+                                      <span className="rounded-lg bg-[#eee8ee] px-2 py-1 text-[9px] font-semibold text-muted-foreground">
                                         +{labels.length - 4}
                                       </span>
                                     ) : null}
@@ -740,7 +740,7 @@ export default function DashboardCatalog() {
                                     ) : null}
                                   </div>
 
-                                  <div className="mt-4 border-t border-[#eadfd5] pt-4">
+                                  <div className="mt-4 border-t border-border pt-4">
                                     <button
                                       type="button"
                                       onClick={() =>
@@ -753,7 +753,7 @@ export default function DashboardCatalog() {
                                       aria-expanded={
                                         labelEditorOpen
                                       }
-                                      className="inline-flex min-h-9 items-center gap-2 text-[11px] font-semibold text-[#c24f7a]"
+                                      className="inline-flex min-h-9 items-center gap-2 text-[11px] font-semibold text-secondary"
                                     >
                                       <Tag className="h-3.5 w-3.5" />
 
@@ -763,8 +763,8 @@ export default function DashboardCatalog() {
                                     </button>
 
                                     {labelEditorOpen ? (
-                                      <fieldset className="mt-3 rounded-xl border border-[#dfd1c4] bg-white/60 p-3">
-                                        <legend className="px-1 text-[10px] font-bold uppercase tracking-[0.1em] text-[#746876]">
+                                      <fieldset className="mt-3 rounded-xl border border-border bg-white/60 p-3">
+                                        <legend className="px-1 text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
                                           Dietary and allergen labels
                                         </legend>
 
@@ -781,8 +781,8 @@ export default function DashboardCatalog() {
                                                   key={label}
                                                   className={`flex min-h-9 cursor-pointer items-center gap-2 rounded-lg border px-2.5 text-[10px] font-medium transition ${
                                                     checked
-                                                      ? "border-[#c24f7a]/40 bg-[#f1dde5] text-[#632a73]"
-                                                      : "border-[#eadfd5] bg-[#fffaf6] text-[#746876]"
+                                                      ? "border-[#c24f7a]/40 bg-accent text-primary"
+                                                      : "border-border bg-card text-muted-foreground"
                                                   }`}
                                                 >
                                                   <input
@@ -820,7 +820,7 @@ export default function DashboardCatalog() {
                                         product,
                                       )
                                     }
-                                    className="mt-4 min-h-10 w-full rounded-xl border border-[#dfd1c4] bg-white text-xs font-semibold text-[#632a73] transition hover:bg-[#f4eae1]"
+                                    className="mt-4 min-h-10 w-full rounded-xl border border-border bg-white text-xs font-semibold text-primary transition hover:bg-muted"
                                   >
                                     Manage product
                                   </button>
@@ -833,7 +833,7 @@ export default function DashboardCatalog() {
                     ) : (
                       <div className="grid min-h-[360px] place-items-center p-6 text-center">
                         <div>
-                          <span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-[#f1dde5] text-[#c24f7a]">
+                          <span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-accent text-secondary">
                             <Search className="h-6 w-6" />
                           </span>
 
@@ -841,7 +841,7 @@ export default function DashboardCatalog() {
                             No matching products
                           </h2>
 
-                          <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-[#746876]">
+                          <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-muted-foreground">
                             Change the search, category or
                             sorting options to find another
                             menu item.
@@ -853,7 +853,7 @@ export default function DashboardCatalog() {
                               setSearchQuery("");
                               setCategoryFilter("all");
                             }}
-                            className="mt-5 min-h-11 rounded-xl bg-[#632a73] px-5 text-sm font-semibold text-white"
+                            className="mt-5 min-h-11 rounded-xl bg-primary px-5 text-sm font-semibold text-white"
                           >
                             Clear filters
                           </button>
@@ -866,20 +866,20 @@ export default function DashboardCatalog() {
                     {[1, 2, 3].map((item) => (
                       <div
                         key={item}
-                        className="h-[380px] animate-pulse rounded-2xl bg-[#f1e9e2]"
+                        className="h-[380px] animate-pulse rounded-2xl bg-muted"
                       />
                     ))}
                   </div>
                 ) : (
-                  <section className="overflow-hidden rounded-2xl border border-[#dfd1c4] bg-white/45">
+                  <section className="overflow-hidden rounded-2xl border border-border bg-white/45">
                     <div className="grid lg:grid-cols-[minmax(0,1.25fr)_minmax(280px,0.75fr)]">
                       <div className="flex min-h-[390px] items-center p-7 sm:p-10">
                         <div className="max-w-xl">
-                          <span className="grid h-14 w-14 place-items-center rounded-2xl bg-[#f1dde5] text-[#c24f7a]">
+                          <span className="grid h-14 w-14 place-items-center rounded-2xl bg-accent text-secondary">
                             <Package className="h-6 w-6" />
                           </span>
 
-                          <p className="mt-6 text-[10px] font-bold uppercase tracking-[0.14em] text-[#c24f7a]">
+                          <p className="mt-6 text-[10px] font-bold uppercase tracking-[0.14em] text-secondary">
                             Start your menu
                           </p>
 
@@ -887,7 +887,7 @@ export default function DashboardCatalog() {
                             Add the first item customers can order.
                           </h2>
 
-                          <p className="mt-4 max-w-lg text-sm leading-7 text-[#746876]">
+                          <p className="mt-4 max-w-lg text-sm leading-7 text-muted-foreground">
                             Product names, prices,
                             availability and dietary details
                             help your storefront and AI
@@ -900,7 +900,7 @@ export default function DashboardCatalog() {
                             onClick={() =>
                               setShowCreate(true)
                             }
-                            className="mt-6 inline-flex min-h-12 items-center gap-2 rounded-xl bg-[#632a73] px-5 text-sm font-semibold text-white"
+                            className="mt-6 inline-flex min-h-12 items-center gap-2 rounded-xl bg-primary px-5 text-sm font-semibold text-white"
                           >
                             <Plus className="h-4 w-4" />
                             Add first product
@@ -908,8 +908,8 @@ export default function DashboardCatalog() {
                         </div>
                       </div>
 
-                      <div className="border-t border-[#dfd1c4] bg-[#fff0f5] p-7 lg:border-l lg:border-t-0">
-                        <Sparkles className="h-6 w-6 text-[#c24f7a]" />
+                      <div className="border-t border-border bg-accent p-7 lg:border-l lg:border-t-0">
+                        <Sparkles className="h-6 w-6 text-secondary" />
 
                         <h3 className="mt-5 font-serif text-2xl font-semibold">
                           What your assistant needs
@@ -947,12 +947,12 @@ export default function DashboardCatalog() {
               </main>
 
               <aside className="space-y-4">
-                <section className="rounded-2xl border border-[#dfd1c4] bg-white/45 p-4">
+                <section className="rounded-2xl border border-border bg-white/45 p-4">
                   <h2 className="font-serif text-xl font-semibold">
                     Catalog health
                   </h2>
 
-                  <p className="mt-1 text-xs leading-5 text-[#746876]">
+                  <p className="mt-1 text-xs leading-5 text-muted-foreground">
                     Keep customer-facing information
                     complete and accurate.
                   </p>
@@ -1006,14 +1006,14 @@ export default function DashboardCatalog() {
                   </div>
                 </section>
 
-                <section className="rounded-2xl border border-[#e5cfd9] bg-[#fff0f5] p-4">
-                  <Sparkles className="h-5 w-5 text-[#c24f7a]" />
+                <section className="rounded-2xl border border-[#e5cfd9] bg-accent p-4">
+                  <Sparkles className="h-5 w-5 text-secondary" />
 
                   <h2 className="mt-3 font-serif text-xl font-semibold">
                     Assistant knowledge
                   </h2>
 
-                  <p className="mt-2 text-xs leading-5 text-[#746876]">
+                  <p className="mt-2 text-xs leading-5 text-muted-foreground">
                     Catalog edits update the product
                     information available to customer
                     conversations.
@@ -1022,7 +1022,7 @@ export default function DashboardCatalog() {
                   <button
                     type="button"
                     onClick={() => setShowCreate(true)}
-                    className="mt-4 inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-xl border border-[#dcb8c8] bg-white/55 text-xs font-semibold text-[#632a73]"
+                    className="mt-4 inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-xl border border-accent bg-white/55 text-xs font-semibold text-primary"
                   >
                     <Plus className="h-4 w-4" />
                     Add menu item
@@ -1032,8 +1032,8 @@ export default function DashboardCatalog() {
             </div>
           ) : (
             <div className="mt-5 grid gap-4 xl:grid-cols-[360px_minmax(0,1fr)]">
-              <section className="h-fit rounded-2xl border border-[#e5cfd9] bg-[#fff0f5] p-5 sm:p-6">
-                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/70 text-[#c24f7a]">
+              <section className="h-fit rounded-2xl border border-[#e5cfd9] bg-accent p-5 sm:p-6">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/70 text-secondary">
                   <Sparkles className="h-5 w-5" />
                 </div>
 
@@ -1041,7 +1041,7 @@ export default function DashboardCatalog() {
                   Schedule a flash drop
                 </h2>
 
-                <p className="mt-2 text-sm leading-6 text-[#746876]">
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">
                   Create a limited pre-order release
                   with a launch date, time and maximum
                   number of slots.
@@ -1131,7 +1131,7 @@ export default function DashboardCatalog() {
                   <button
                     type="submit"
                     disabled={updateBaker.isPending}
-                    className="min-h-11 w-full rounded-xl bg-[#632a73] px-5 text-sm font-semibold text-white disabled:opacity-50"
+                    className="min-h-11 w-full rounded-xl bg-primary px-5 text-sm font-semibold text-white disabled:opacity-50"
                   >
                     {updateBaker.isPending
                       ? "Scheduling drop…"
@@ -1140,9 +1140,9 @@ export default function DashboardCatalog() {
                 </form>
               </section>
 
-              <section className="overflow-hidden rounded-2xl border border-[#dfd1c4] bg-white/45">
-                <div className="border-b border-[#dfd1c4] px-5 py-4">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#c24f7a]">
+              <section className="overflow-hidden rounded-2xl border border-border bg-white/45">
+                <div className="border-b border-border px-5 py-4">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-secondary">
                     Upcoming releases
                   </p>
 
@@ -1158,7 +1158,7 @@ export default function DashboardCatalog() {
                         key={drop.id}
                         className="flex flex-col gap-4 px-5 py-5 transition hover:bg-[#fff8f3] sm:flex-row sm:items-center"
                       >
-                        <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[#f1dde5] text-[#c24f7a]">
+                        <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-accent text-secondary">
                           <Sparkles className="h-5 w-5" />
                         </span>
 
@@ -1167,19 +1167,19 @@ export default function DashboardCatalog() {
                             {drop.productName}
                           </h3>
 
-                          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-2 text-[11px] text-[#746876]">
+                          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-2 text-[11px] text-muted-foreground">
                             <span className="flex items-center gap-1.5">
-                              <Calendar className="h-3.5 w-3.5 text-[#c24f7a]" />
+                              <Calendar className="h-3.5 w-3.5 text-secondary" />
                               {drop.releaseDate}
                             </span>
 
                             <span className="flex items-center gap-1.5">
-                              <Clock3 className="h-3.5 w-3.5 text-[#c24f7a]" />
+                              <Clock3 className="h-3.5 w-3.5 text-secondary" />
                               {drop.releaseTime}
                             </span>
 
                             <span className="flex items-center gap-1.5">
-                              <Tag className="h-3.5 w-3.5 text-[#c24f7a]" />
+                              <Tag className="h-3.5 w-3.5 text-secondary" />
                               {drop.limitStock} slots
                             </span>
                           </div>
@@ -1191,7 +1191,7 @@ export default function DashboardCatalog() {
                             handleDeleteDrop(drop.id)
                           }
                           title="Cancel flash drop"
-                          className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-[#dfd1c4] bg-[#fffaf6] text-[#b83a42] transition hover:bg-[#f8dddd]"
+                          className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-border bg-card text-[#b83a42] transition hover:bg-[#f8dddd]"
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
@@ -1201,7 +1201,7 @@ export default function DashboardCatalog() {
                 ) : (
                   <div className="grid min-h-[380px] place-items-center p-6 text-center">
                     <div>
-                      <span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-[#f1dde5] text-[#c24f7a]">
+                      <span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-accent text-secondary">
                         <Calendar className="h-6 w-6" />
                       </span>
 
@@ -1209,7 +1209,7 @@ export default function DashboardCatalog() {
                         No drops scheduled
                       </h3>
 
-                      <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-[#746876]">
+                      <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-muted-foreground">
                         Choose an available product and
                         schedule a limited pre-order
                         release.
@@ -1233,11 +1233,11 @@ export default function DashboardCatalog() {
           <form
             data-quest="product-form"
             onSubmit={handleCreateProduct}
-            className="w-full max-w-xl overflow-hidden rounded-3xl border border-[#dfd1c4] bg-[#fbf6ee] text-[#241629] shadow-2xl"
+            className="w-full max-w-xl overflow-hidden rounded-3xl border border-border bg-background text-foreground shadow-2xl"
           >
-            <div className="flex items-start justify-between border-b border-[#dfd1c4] px-5 py-5 sm:px-6">
+            <div className="flex items-start justify-between border-b border-border px-5 py-5 sm:px-6">
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#c24f7a]">
+                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-secondary">
                   New menu item
                 </p>
 
@@ -1248,7 +1248,7 @@ export default function DashboardCatalog() {
                   Add product
                 </h2>
 
-                <p className="mt-2 text-sm text-[#746876]">
+                <p className="mt-2 text-sm text-muted-foreground">
                   Start with the essentials. More
                   product options can be added through
                   Manage product.
@@ -1259,7 +1259,7 @@ export default function DashboardCatalog() {
                 type="button"
                 onClick={closeCreate}
                 aria-label="Close new product form"
-                className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-[#dfd1c4] bg-white/60"
+                className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-border bg-white/60"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -1343,11 +1343,11 @@ export default function DashboardCatalog() {
               ) : null}
             </div>
 
-            <div className="flex justify-end gap-3 border-t border-[#dfd1c4] px-5 py-4 sm:px-6">
+            <div className="flex justify-end gap-3 border-t border-border px-5 py-4 sm:px-6">
               <button
                 type="button"
                 onClick={closeCreate}
-                className="min-h-11 rounded-xl border border-[#dfd1c4] bg-white/55 px-5 text-sm font-semibold"
+                className="min-h-11 rounded-xl border border-border bg-white/55 px-5 text-sm font-semibold"
               >
                 Cancel
               </button>
@@ -1356,7 +1356,7 @@ export default function DashboardCatalog() {
                 type="submit"
                 data-quest="save-product"
                 disabled={createProduct.isPending}
-                className="min-h-11 rounded-xl bg-[#632a73] px-5 text-sm font-semibold text-white disabled:opacity-50"
+                className="min-h-11 rounded-xl bg-primary px-5 text-sm font-semibold text-white disabled:opacity-50"
               >
                 {createProduct.isPending
                   ? "Saving product…"
@@ -1395,9 +1395,9 @@ function CatalogMetric({
   valueClass?: string;
 }) {
   return (
-    <div className="border-[#dfd1c4] px-4 py-5 sm:border-r sm:last:border-r-0 lg:px-5">
-      <div className="flex items-center gap-2 text-[#746876]">
-        <Icon className="h-5 w-5 text-[#c24f7a]" />
+    <div className="border-border px-4 py-5 sm:border-r sm:last:border-r-0 lg:px-5">
+      <div className="flex items-center gap-2 text-muted-foreground">
+        <Icon className="h-5 w-5 text-secondary" />
 
         <span className="text-[11px] font-medium">
           {label}
@@ -1439,14 +1439,14 @@ function EmptyRequirement({
 }) {
   return (
     <div className="flex gap-3 border-b border-[#e5cfd9] pb-4 last:border-0 last:pb-0">
-      <span className="font-mono text-[10px] font-semibold text-[#c24f7a]">
+      <span className="font-mono text-[10px] font-semibold text-secondary">
         {number}
       </span>
 
       <div>
         <p className="text-sm font-semibold">{title}</p>
 
-        <p className="mt-1 text-xs leading-5 text-[#746876]">
+        <p className="mt-1 text-xs leading-5 text-muted-foreground">
           {description}
         </p>
       </div>
@@ -1465,7 +1465,7 @@ function HealthRow({
 }) {
   return (
     <div className="flex items-center justify-between gap-3">
-      <span className="text-xs text-[#746876]">
+      <span className="text-xs text-muted-foreground">
         {label}
       </span>
 
@@ -1473,7 +1473,7 @@ function HealthRow({
         className={`rounded-lg px-2.5 py-1 font-mono text-[10px] font-semibold ${
           complete
             ? "bg-[#e4f3e8] text-[#168a55]"
-            : "bg-[#f1e9e2] text-[#746876]"
+            : "bg-muted text-muted-foreground"
         }`}
       >
         {value}

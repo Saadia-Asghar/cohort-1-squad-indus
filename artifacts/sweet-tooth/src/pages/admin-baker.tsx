@@ -117,12 +117,12 @@ const PLAN_LABELS: Record<string, string> = {
 };
 
 const inputClass =
-  "w-full min-h-11 rounded-xl border border-[#dfd1c4] bg-[#fffaf6] px-3.5 text-sm text-[#241629] outline-none transition placeholder:text-[#a99ca9] focus:border-[#c24f7a]/60 focus:ring-4 focus:ring-[#c24f7a]/10";
-const cardClass = "rounded-2xl border border-[#eadfce] bg-white p-6 shadow-sm";
+  "w-full min-h-11 rounded-xl border border-border bg-card px-3.5 text-sm text-foreground outline-none transition placeholder:text-muted-foreground focus:border-secondary/60 focus:ring-4 focus:ring-secondary/10";
+const cardClass = "rounded-2xl border border-border bg-white p-6 shadow-sm";
 const primaryBtn =
   "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-bold text-primary-foreground transition hover:bg-primary/90 disabled:opacity-50";
 const ghostBtn =
-  "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-[#dfd1c4] bg-white px-4 text-sm font-semibold text-[#382b43] transition hover:bg-[#fbf6ee]";
+  "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-border bg-white px-4 text-sm font-semibold text-foreground transition hover:bg-background";
 
 function adminHeaders(token: string, json = false): HeadersInit {
   return {
@@ -150,9 +150,9 @@ function speakerLabel(role: string): string {
 }
 
 function bubbleClass(role: string): string {
-  if (role === "user") return "bg-[#fbf6ee]";
-  if (role === "human") return "ml-auto bg-[#632a73] text-white";
-  return "ml-auto bg-[#f1dde5]";
+  if (role === "user") return "bg-background";
+  if (role === "human") return "ml-auto bg-primary text-white";
+  return "ml-auto bg-accent";
 }
 
 export default function AdminBakerMonitor() {
@@ -262,7 +262,7 @@ export default function AdminBakerMonitor() {
 
   if (!token) {
     return (
-      <main className="min-h-screen bg-[#f8f5ef] px-4 py-16 text-center">
+      <main className="min-h-screen bg-background px-4 py-16 text-center">
         <p className="text-sm text-muted-foreground">{error || "Admin sign-in required."}</p>
         <Link href="/admin" className={`${primaryBtn} mt-6`}>Go to admin</Link>
       </main>
@@ -272,15 +272,15 @@ export default function AdminBakerMonitor() {
   const baker = data?.baker;
 
   return (
-    <main className="min-h-screen bg-[#f8f5ef] text-[#241629]">
+    <main className="min-h-screen bg-background text-foreground">
       <div className="mx-auto max-w-[1480px] px-4 py-8 sm:px-6 lg:px-8">
-        <header className="flex flex-col gap-4 border-b border-[#eadfce] pb-6 sm:flex-row sm:items-center sm:justify-between">
+        <header className="flex flex-col gap-4 border-b border-border pb-6 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <Link href="/admin" className="inline-flex items-center gap-2 text-sm font-bold text-muted-foreground hover:text-primary">
               <ArrowLeft className="h-4 w-4" /> All bakeries
             </Link>
             <p className="mt-3 text-xs font-bold uppercase tracking-[0.18em] text-primary/70">Bakery monitor</p>
-            <h1 className="font-serif text-3xl font-bold text-[#241532]">{baker?.businessName || (loading ? "Loading…" : "Bakery")}</h1>
+            <h1 className="font-serif text-3xl font-bold text-foreground">{baker?.businessName || (loading ? "Loading…" : "Bakery")}</h1>
             {baker && (
               <p className="mt-1 text-sm text-muted-foreground">
                 {baker.ownerName} · {baker.city}{baker.area ? `, ${baker.area}` : ""} · {baker.whatsappNumber} · #{baker.id}
@@ -305,7 +305,7 @@ export default function AdminBakerMonitor() {
                 { label: "AI replies", value: meterLabel(data.usage.aiReplies), icon: MessageCircle },
                 { label: "This month", value: meterLabel(data.usage.ordersThisMonth), icon: Store },
               ].map((stat) => (
-                <div key={stat.label} className="rounded-2xl border border-[#eadfce] bg-white p-5">
+                <div key={stat.label} className="rounded-2xl border border-border bg-white p-5">
                   <p className="text-sm text-muted-foreground">{stat.label}</p>
                   <p className="mt-2 font-serif text-2xl font-bold">{stat.value}</p>
                 </div>
@@ -318,7 +318,7 @@ export default function AdminBakerMonitor() {
                 No JazzCash or bank merchant is connected. When a baker sends a transfer screenshot on WhatsApp, confirm it here and turn their plan on in the database.
               </p>
               {baker.pendingPlanId && (
-                <p className="mt-3 rounded-xl bg-[#fbf6ee] px-3 py-2 text-sm font-medium text-[#632a73]">
+                <p className="mt-3 rounded-xl bg-background px-3 py-2 text-sm font-medium text-primary">
                   Pending request: {PLAN_LABELS[baker.pendingPlanId] || baker.pendingPlanId}
                   {baker.billingRequestedAt ? ` · ${new Date(baker.billingRequestedAt).toLocaleString()}` : ""}
                   {baker.billingNote ? ` · ${baker.billingNote}` : ""}
@@ -405,7 +405,7 @@ export default function AdminBakerMonitor() {
                           key={session.sessionId}
                           type="button"
                           onClick={() => setSessionId(session.sessionId)}
-                          className={`w-full border-b border-[#eadfce] px-4 py-3 text-left ${visibleSession?.sessionId === session.sessionId ? "bg-[#fbf6ee]" : "bg-white"}`}
+                          className={`w-full border-b border-border px-4 py-3 text-left ${visibleSession?.sessionId === session.sessionId ? "bg-background" : "bg-white"}`}
                         >
                           <p className="text-xs font-bold uppercase tracking-wide text-primary/70">
                             {kind === "human_agent" ? "Human agent" : "AI agent"} · {session.channel}
@@ -426,7 +426,7 @@ export default function AdminBakerMonitor() {
                     {!visibleSession && <p className="text-sm text-muted-foreground">Select a conversation.</p>}
                     {visibleSession && (
                       <>
-                        <div className="mb-4 rounded-xl border border-[#eadfce] bg-[#fbf6ee] px-4 py-3">
+                        <div className="mb-4 rounded-xl border border-border bg-background px-4 py-3">
                           <p className="text-sm font-bold">
                             {sessionKind(visibleSession) === "human_agent" ? "Human agent" : "AI agent"} · {visibleSession.channel}
                           </p>
@@ -465,7 +465,7 @@ export default function AdminBakerMonitor() {
 
             {tab === "orders" && (
               <section className={`${cardClass} mt-4 overflow-hidden p-0`}>
-                <div className="flex items-center justify-end border-b border-[#eadfce] p-4">
+                <div className="flex items-center justify-end border-b border-border p-4">
                   <select className={`${inputClass} max-w-xs`} value={orderFilter} onChange={(e) => setOrderFilter(e.target.value)}>
                     <option value="all">All statuses</option>
                     <option value="new">New</option>
@@ -478,7 +478,7 @@ export default function AdminBakerMonitor() {
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full min-w-[900px] text-left text-sm">
-                    <thead className="bg-[#fbf6ee] text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                    <thead className="bg-background text-xs font-bold uppercase tracking-wider text-muted-foreground">
                       <tr>
                         <th className="px-4 py-3">Order</th>
                         <th className="px-4 py-3">Buyer</th>
@@ -490,7 +490,7 @@ export default function AdminBakerMonitor() {
                     </thead>
                     <tbody>
                       {filteredOrders.map((order) => (
-                        <tr key={order.id} className="border-t border-[#eadfce]">
+                        <tr key={order.id} className="border-t border-border">
                           <td className="px-4 py-3 font-mono">#{order.id}</td>
                           <td className="px-4 py-3">{order.buyerName}<p className="text-xs text-muted-foreground">{order.buyerWhatsapp}</p></td>
                           <td className="px-4 py-3 font-semibold">PKR {order.totalPkr.toLocaleString()}</td>
@@ -512,7 +512,7 @@ export default function AdminBakerMonitor() {
               <section className={`${cardClass} mt-4 overflow-hidden p-0`}>
                 <div className="overflow-x-auto">
                   <table className="w-full min-w-[800px] text-left text-sm">
-                    <thead className="bg-[#fbf6ee] text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                    <thead className="bg-background text-xs font-bold uppercase tracking-wider text-muted-foreground">
                       <tr>
                         <th className="px-4 py-3">Customer</th>
                         <th className="px-4 py-3">Orders</th>
@@ -522,7 +522,7 @@ export default function AdminBakerMonitor() {
                     </thead>
                     <tbody>
                       {data.customers.map((customer) => (
-                        <tr key={customer.id} className="border-t border-[#eadfce]">
+                        <tr key={customer.id} className="border-t border-border">
                           <td className="px-4 py-3">
                             <p className="font-semibold">{customer.name} {customer.isRegular ? "· regular" : ""}{customer.isAtRisk ? " · at risk" : ""}</p>
                             <p className="text-xs text-muted-foreground">{customer.whatsappNumber} · {customer.city || customer.preferredArea || "—"}</p>
@@ -545,7 +545,7 @@ export default function AdminBakerMonitor() {
               <section className={`${cardClass} mt-4 overflow-hidden p-0`}>
                 <div className="overflow-x-auto">
                   <table className="w-full min-w-[700px] text-left text-sm">
-                    <thead className="bg-[#fbf6ee] text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                    <thead className="bg-background text-xs font-bold uppercase tracking-wider text-muted-foreground">
                       <tr>
                         <th className="px-4 py-3">Item</th>
                         <th className="px-4 py-3">Category</th>
@@ -555,7 +555,7 @@ export default function AdminBakerMonitor() {
                     </thead>
                     <tbody>
                       {data.products.map((product) => (
-                        <tr key={product.id} className="border-t border-[#eadfce]">
+                        <tr key={product.id} className="border-t border-border">
                           <td className="px-4 py-3 font-semibold">{product.name} {!product.isAvailable && <span className="text-xs text-muted-foreground">hidden</span>}</td>
                           <td className="px-4 py-3">{product.category}</td>
                           <td className="px-4 py-3">PKR {product.basePricePkr.toLocaleString()}</td>
@@ -577,7 +577,7 @@ export default function AdminBakerMonitor() {
                   <h3 className="font-serif text-lg font-bold">Buyer memory</h3>
                   <div className="mt-4 space-y-3">
                     {data.memories.map((memory) => (
-                      <div key={memory.id} className="rounded-xl border border-[#eadfce] p-3">
+                      <div key={memory.id} className="rounded-xl border border-border p-3">
                         <p className="font-semibold">{memory.buyerName || `Buyer #${memory.buyerId}`}</p>
                         <p className="text-sm text-muted-foreground">{memory.summary || "No summary yet."}</p>
                         <p className="mt-1 text-xs text-muted-foreground">{memory.messageCount} messages · {new Date(memory.lastActiveAt).toLocaleString()}</p>
@@ -590,7 +590,7 @@ export default function AdminBakerMonitor() {
                   <h3 className="font-serif text-lg font-bold">Reviews</h3>
                   <div className="mt-4 space-y-3">
                     {data.reviews.map((review) => (
-                      <div key={review.id} className="rounded-xl border border-[#eadfce] p-3">
+                      <div key={review.id} className="rounded-xl border border-border p-3">
                         <p className="font-semibold">{review.buyerName} · {review.rating}/5</p>
                         <p className="text-sm">{review.reviewText || review.productName || "No comment"}</p>
                       </div>

@@ -42,7 +42,7 @@ type CustomerFilter =
   | "cancelled";
 
 const inputClass =
-  "min-h-11 w-full rounded-xl border border-[#dfd1c4] bg-[#fffaf6] px-3.5 text-sm text-[#241629] outline-none transition placeholder:text-[#a99ca9] focus:border-[#c24f7a]/60 focus:ring-4 focus:ring-[#c24f7a]/10";
+  "min-h-11 w-full rounded-xl border border-border bg-card px-3.5 text-sm text-foreground outline-none transition placeholder:text-muted-foreground focus:border-secondary/60 focus:ring-4 focus:ring-secondary/10";
 
 function safeDate(value?: string | null): string {
   if (!value) {
@@ -314,11 +314,11 @@ export default function DashboardCustomers() {
 
   return (
     <DashboardLayout>
-      <div className="min-h-screen bg-[#fbf6ee] px-4 py-5 text-[#241629] sm:px-6 lg:px-7">
+      <div className="min-h-screen bg-background px-4 py-5 text-foreground sm:px-6 lg:px-7">
         <div className="mx-auto max-w-[1480px]">
-          <header className="flex flex-col gap-5 border-b border-[#dfd1c4] pb-5 lg:flex-row lg:items-end lg:justify-between">
+          <header className="flex flex-col gap-5 border-b border-border pb-5 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#c24f7a]">
+              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-secondary">
                 Customer relationships
               </p>
 
@@ -326,7 +326,7 @@ export default function DashboardCustomers() {
                 Customers
               </h1>
 
-              <p className="mt-3 max-w-2xl text-sm leading-6 text-[#746876]">
+              <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">
                 Understand loyal buyers, notice customers
                 at risk and send relevant personalized
                 offers without losing the human touch.
@@ -343,7 +343,7 @@ export default function DashboardCustomers() {
                   )
                 }
                 disabled={isLoading || !customers || customers.length === 0}
-                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-[#dfd1c4] bg-white px-5 text-sm font-semibold text-[#632a73] transition hover:bg-[#fbf6ee] disabled:opacity-50"
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-border bg-white px-5 text-sm font-semibold text-primary transition hover:bg-background disabled:opacity-50"
               >
                 <Download className="h-4 w-4" /> Export PDF
               </button>
@@ -352,7 +352,7 @@ export default function DashboardCustomers() {
                 type="button"
                 onClick={openComposer}
                 disabled={selectedIds.length === 0}
-                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[#632a73] px-5 text-sm font-semibold text-white shadow-[0_10px_25px_rgba(47,24,55,0.12)] transition hover:bg-[#542261] disabled:cursor-not-allowed disabled:opacity-40"
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-primary px-5 text-sm font-semibold text-white shadow-[0_10px_25px_rgba(47,24,55,0.12)] transition hover:bg-[#542261] disabled:cursor-not-allowed disabled:opacity-40"
               >
                 <Send className="h-4 w-4" />
 
@@ -364,7 +364,7 @@ export default function DashboardCustomers() {
             </div>
           </header>
 
-          <section className="grid border-b border-[#dfd1c4] sm:grid-cols-2 xl:grid-cols-4">
+          <section className="grid border-b border-border sm:grid-cols-2 xl:grid-cols-4">
             <CustomerMetric
               icon={Users}
               label="Total customers"
@@ -379,7 +379,7 @@ export default function DashboardCustomers() {
               value={regularCustomers.length
                 .toString()
                 .padStart(2, "0")}
-              valueClass="text-[#c24f7a]"
+              valueClass="text-secondary"
             />
 
             <CustomerMetric
@@ -405,8 +405,8 @@ export default function DashboardCustomers() {
 
           <div className="mt-5 grid gap-4 xl:grid-cols-[minmax(0,1fr)_260px]">
             <main className="min-w-0">
-              <section className="overflow-hidden rounded-2xl border border-[#dfd1c4] bg-white/45">
-                <div className="border-b border-[#dfd1c4] p-4">
+              <section className="overflow-hidden rounded-2xl border border-border bg-white/45">
+                <div className="border-b border-border p-4">
                   <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                     <div className="relative min-w-0 flex-1 lg:max-w-md">
                       <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9b8d9c]" />
@@ -421,9 +421,9 @@ export default function DashboardCustomers() {
                       />
                     </div>
 
-                    <p className="text-xs text-[#746876]">
+                    <p className="text-xs text-muted-foreground">
                       Showing{" "}
-                      <strong className="text-[#241629]">
+                      <strong className="text-foreground">
                         {visibleCustomers.length}
                       </strong>{" "}
                       of {allCustomers.length} customers
@@ -445,8 +445,8 @@ export default function DashboardCustomers() {
                           aria-pressed={active}
                           className={`min-h-9 shrink-0 rounded-lg px-3.5 text-xs font-semibold transition ${
                             active
-                              ? "bg-[#632a73] text-white"
-                              : "border border-[#dfd1c4] bg-[#fffaf6] text-[#746876] hover:text-[#241629]"
+                              ? "bg-primary text-white"
+                              : "border border-border bg-card text-muted-foreground hover:text-foreground"
                           }`}
                         >
                           {group.label} · {group.count}
@@ -456,19 +456,19 @@ export default function DashboardCustomers() {
                   </div>
                 </div>
 
-                <div className="flex flex-col gap-3 border-b border-[#dfd1c4] bg-[#fffaf6] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex flex-col gap-3 border-b border-border bg-card px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                   <button
                     type="button"
                     onClick={selectVisible}
                     disabled={
                       visibleCustomers.length === 0
                     }
-                    className="inline-flex min-h-9 items-center gap-2 text-xs font-semibold text-[#c24f7a] disabled:opacity-40"
+                    className="inline-flex min-h-9 items-center gap-2 text-xs font-semibold text-secondary disabled:opacity-40"
                   >
                     <span
                       className={`grid h-5 w-5 place-items-center rounded-md border ${
                         everyVisibleSelected
-                          ? "border-[#632a73] bg-[#632a73] text-white"
+                          ? "border-[#632a73] bg-primary text-white"
                           : "border-[#cdbfc8] bg-white"
                       }`}
                     >
@@ -482,7 +482,7 @@ export default function DashboardCustomers() {
                       : "Select all shown"}
                   </button>
 
-                  <p className="text-xs text-[#746876]">
+                  <p className="text-xs text-muted-foreground">
                     {selectedIds.length} selected
                   </p>
                 </div>
@@ -492,7 +492,7 @@ export default function DashboardCustomers() {
                     {[1, 2, 3, 4].map((item) => (
                       <div
                         key={item}
-                        className="h-28 animate-pulse rounded-2xl bg-[#f1e9e2]"
+                        className="h-28 animate-pulse rounded-2xl bg-muted"
                       />
                     ))}
                   </div>
@@ -522,7 +522,7 @@ export default function DashboardCustomers() {
                 ) : (
                   <div className="grid min-h-[380px] place-items-center p-6 text-center">
                     <div>
-                      <span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-[#f1dde5] text-[#c24f7a]">
+                      <span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-accent text-secondary">
                         <UserRound className="h-6 w-6" />
                       </span>
 
@@ -530,7 +530,7 @@ export default function DashboardCustomers() {
                         No matching customers
                       </h2>
 
-                      <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-[#746876]">
+                      <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-muted-foreground">
                         Change the search or customer
                         group to view another segment.
                       </p>
@@ -541,7 +541,7 @@ export default function DashboardCustomers() {
                           setSearch("");
                           setFilter("all");
                         }}
-                        className="mt-5 min-h-11 rounded-xl bg-[#632a73] px-5 text-sm font-semibold text-white"
+                        className="mt-5 min-h-11 rounded-xl bg-primary px-5 text-sm font-semibold text-white"
                       >
                         Clear filters
                       </button>
@@ -552,12 +552,12 @@ export default function DashboardCustomers() {
             </main>
 
             <aside className="space-y-4">
-              <section className="rounded-2xl border border-[#dfd1c4] bg-white/45 p-4">
+              <section className="rounded-2xl border border-border bg-white/45 p-4">
                 <h2 className="font-serif text-xl font-semibold">
                   Customer health
                 </h2>
 
-                <p className="mt-1 text-xs leading-5 text-[#746876]">
+                <p className="mt-1 text-xs leading-5 text-muted-foreground">
                   A quick view of the relationships behind
                   your order activity.
                 </p>
@@ -596,14 +596,14 @@ export default function DashboardCustomers() {
                 </div>
               </section>
 
-              <section className="rounded-2xl border border-[#e5cfd9] bg-[#fff0f5] p-4">
-                <Sparkles className="h-5 w-5 text-[#c24f7a]" />
+              <section className="rounded-2xl border border-[#e5cfd9] bg-accent p-4">
+                <Sparkles className="h-5 w-5 text-secondary" />
 
                 <h2 className="mt-3 font-serif text-xl font-semibold">
                   Relevant outreach
                 </h2>
 
-                <p className="mt-2 text-xs leading-5 text-[#746876]">
+                <p className="mt-2 text-xs leading-5 text-muted-foreground">
                   Select a meaningful customer segment
                   before sending an offer. Avoid sending
                   the same promotion to everyone.
@@ -613,14 +613,14 @@ export default function DashboardCustomers() {
                   type="button"
                   onClick={openComposer}
                   disabled={selectedIds.length === 0}
-                  className="mt-4 inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-xl border border-[#dcb8c8] bg-white/55 text-xs font-semibold text-[#632a73] disabled:opacity-40"
+                  className="mt-4 inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-xl border border-accent bg-white/55 text-xs font-semibold text-primary disabled:opacity-40"
                 >
                   <Send className="h-4 w-4" />
                   Compose message
                 </button>
               </section>
 
-              <section className="rounded-2xl border border-[#dfd1c4] bg-white/45 p-4">
+              <section className="rounded-2xl border border-border bg-white/45 p-4">
                 <h2 className="font-serif text-xl font-semibold">
                   Customer groups
                 </h2>
@@ -637,13 +637,13 @@ export default function DashboardCustomers() {
                         onClick={() =>
                           setFilter(group.id)
                         }
-                        className="flex min-h-10 w-full items-center justify-between rounded-xl px-3 text-left transition hover:bg-[#fffaf6]"
+                        className="flex min-h-10 w-full items-center justify-between rounded-xl px-3 text-left transition hover:bg-card"
                       >
                         <span className="text-xs font-semibold">
                           {group.label}
                         </span>
 
-                        <span className="rounded-lg bg-[#f1e9e2] px-2.5 py-1 font-mono text-[10px] font-semibold text-[#632a73]">
+                        <span className="rounded-lg bg-muted px-2.5 py-1 font-mono text-[10px] font-semibold text-primary">
                           {group.count
                             .toString()
                             .padStart(2, "0")}
@@ -664,10 +664,10 @@ export default function DashboardCustomers() {
           aria-modal="true"
           aria-labelledby="offer-title"
         >
-          <div className="w-full max-w-xl overflow-hidden rounded-3xl border border-[#dfd1c4] bg-[#fbf6ee] text-[#241629] shadow-2xl">
-            <div className="flex items-start justify-between border-b border-[#dfd1c4] px-5 py-5 sm:px-6">
+          <div className="w-full max-w-xl overflow-hidden rounded-3xl border border-border bg-background text-foreground shadow-2xl">
+            <div className="flex items-start justify-between border-b border-border px-5 py-5 sm:px-6">
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#c24f7a]">
+                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-secondary">
                   Personalized outreach
                 </p>
 
@@ -681,7 +681,7 @@ export default function DashboardCustomers() {
                     : "customers"}
                 </h2>
 
-                <p className="mt-2 text-sm text-[#746876]">
+                <p className="mt-2 text-sm text-muted-foreground">
                   Each selected customer receives their
                   own personalized message.
                 </p>
@@ -693,16 +693,16 @@ export default function DashboardCustomers() {
                   setComposerOpen(false)
                 }
                 aria-label="Close message composer"
-                className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-[#dfd1c4] bg-white/60"
+                className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-border bg-white/60"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
 
             <div className="px-5 py-5 sm:px-6">
-              <div className="rounded-2xl border border-[#e5cfd9] bg-[#fff0f5] px-4 py-3 text-xs leading-5 text-[#746876]">
+              <div className="rounded-2xl border border-[#e5cfd9] bg-accent px-4 py-3 text-xs leading-5 text-muted-foreground">
                 Use{" "}
-                <code className="rounded-md bg-white px-1.5 py-1 font-mono font-semibold text-[#632a73]">
+                <code className="rounded-md bg-white px-1.5 py-1 font-mono font-semibold text-primary">
                   {"{{name}}"}
                 </code>{" "}
                 to insert each customer&apos;s name
@@ -721,11 +721,11 @@ export default function DashboardCustomers() {
                   }
                   rows={7}
                   maxLength={900}
-                  className="w-full resize-none rounded-2xl border border-[#dfd1c4] bg-[#fffaf6] p-4 text-sm leading-6 outline-none transition focus:border-[#c24f7a]/60 focus:ring-4 focus:ring-[#c24f7a]/10"
+                  className="w-full resize-none rounded-2xl border border-border bg-card p-4 text-sm leading-6 outline-none transition focus:border-secondary/60 focus:ring-4 focus:ring-secondary/10"
                 />
               </label>
 
-              <div className="mt-2 flex flex-col gap-1 text-[10px] text-[#746876] sm:flex-row sm:justify-between">
+              <div className="mt-2 flex flex-col gap-1 text-[10px] text-muted-foreground sm:flex-row sm:justify-between">
                 <span>
                   WhatsApp Business connection required
                 </span>
@@ -736,20 +736,20 @@ export default function DashboardCustomers() {
               {sendResult ? (
                 <p
                   role="status"
-                  className="mt-4 rounded-xl border border-[#dfd1c4] bg-[#f1e9e2] px-4 py-3 text-sm"
+                  className="mt-4 rounded-xl border border-border bg-muted px-4 py-3 text-sm"
                 >
                   {sendResult}
                 </p>
               ) : null}
             </div>
 
-            <div className="flex justify-end gap-3 border-t border-[#dfd1c4] px-5 py-4 sm:px-6">
+            <div className="flex justify-end gap-3 border-t border-border px-5 py-4 sm:px-6">
               <button
                 type="button"
                 onClick={() =>
                   setComposerOpen(false)
                 }
-                className="min-h-11 rounded-xl border border-[#dfd1c4] bg-white/55 px-5 text-sm font-semibold"
+                className="min-h-11 rounded-xl border border-border bg-white/55 px-5 text-sm font-semibold"
               >
                 Close
               </button>
@@ -762,7 +762,7 @@ export default function DashboardCustomers() {
                   message.trim().length < 5
                 }
                 onClick={sendOffer}
-                className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#632a73] px-5 text-sm font-semibold text-white disabled:opacity-50"
+                className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-primary px-5 text-sm font-semibold text-white disabled:opacity-50"
               >
                 <Send className="h-4 w-4" />
 
@@ -790,9 +790,9 @@ function CustomerMetric({
   valueClass?: string;
 }) {
   return (
-    <div className="border-[#dfd1c4] px-4 py-5 sm:border-r sm:last:border-r-0 lg:px-5">
-      <div className="flex items-center gap-2 text-[#746876]">
-        <Icon className="h-5 w-5 text-[#c24f7a]" />
+    <div className="border-border px-4 py-5 sm:border-r sm:last:border-r-0 lg:px-5">
+      <div className="flex items-center gap-2 text-muted-foreground">
+        <Icon className="h-5 w-5 text-secondary" />
 
         <span className="text-[11px] font-medium">
           {label}
@@ -875,7 +875,7 @@ function CustomerRecord({
     <article
       className={`grid gap-4 px-4 py-4 transition sm:px-5 lg:grid-cols-[40px_minmax(0,1.35fr)_minmax(170px,0.75fr)_minmax(145px,0.55fr)] lg:items-center ${
         selected
-          ? "bg-[#fff0f5]"
+          ? "bg-accent"
           : "hover:bg-[#fff8f3]"
       }`}
     >
@@ -888,8 +888,8 @@ function CustomerRecord({
         aria-pressed={selected}
         className={`grid h-8 w-8 place-items-center rounded-xl border transition ${
           selected
-            ? "border-[#632a73] bg-[#632a73] text-white"
-            : "border-[#dfd1c4] bg-[#fffaf6] text-transparent"
+            ? "border-[#632a73] bg-primary text-white"
+            : "border-border bg-card text-transparent"
         }`}
       >
         <Check className="h-4 w-4" />
@@ -900,7 +900,7 @@ function CustomerRecord({
         onClick={onToggle}
         className="flex min-w-0 items-center gap-3 text-left"
       >
-        <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-[#f1dde5] text-xs font-bold text-[#632a73]">
+        <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-accent text-xs font-bold text-primary">
           {initials(customer.name)}
         </span>
 
@@ -931,13 +931,13 @@ function CustomerRecord({
             ) : null}
           </span>
 
-          <span className="mt-1 block truncate text-xs text-[#746876]">
+          <span className="mt-1 block truncate text-xs text-muted-foreground">
             {customer.whatsappNumber}
           </span>
         </span>
       </button>
 
-      <div className="grid grid-cols-2 gap-3 rounded-xl bg-[#fffaf6] p-3 lg:grid-cols-1 lg:bg-transparent lg:p-0">
+      <div className="grid grid-cols-2 gap-3 rounded-xl bg-card p-3 lg:grid-cols-1 lg:bg-transparent lg:p-0">
         <div>
           <p className="flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-[0.1em] text-[#9b8d9c]">
             <MapPin className="h-3 w-3" />
@@ -968,13 +968,13 @@ function CustomerRecord({
             Lifetime spend
           </p>
 
-          <p className="mt-1 font-mono text-sm font-semibold text-[#632a73]">
+          <p className="mt-1 font-mono text-sm font-semibold text-primary">
             PKR{" "}
             {customer.totalSpentPkr.toLocaleString()}
           </p>
         </div>
 
-        <p className="text-xs text-[#746876] lg:mt-1">
+        <p className="text-xs text-muted-foreground lg:mt-1">
           {customer.totalOrders}{" "}
           {customer.totalOrders === 1
             ? "order"
@@ -982,24 +982,24 @@ function CustomerRecord({
         </p>
       </div>
 
-      <div className="lg:col-span-4 rounded-xl border border-[#eadfd5] bg-[#fffaf6] p-3">
-        <button type="button" onClick={() => void loadMemory()} className="text-xs font-bold text-[#632a73]">
+      <div className="lg:col-span-4 rounded-xl border border-border bg-card p-3">
+        <button type="button" onClick={() => void loadMemory()} className="text-xs font-bold text-primary">
           {loaded ? "Agent memory" : "Load what the agent remembers"}
         </button>
         {loaded && (
           <div className="mt-2 space-y-2">
-            {summary && <p className="text-xs text-[#746876]">{summary}</p>}
+            {summary && <p className="text-xs text-muted-foreground">{summary}</p>}
             <label className="flex items-center gap-2 text-xs font-semibold">
               <input type="checkbox" checked={eggless} onChange={(e) => setEggless(e.target.checked)} />
               Pin eggless
             </label>
             <input
-              className="h-10 w-full rounded-lg border border-[#dfd1c4] bg-white px-3 text-xs"
+              className="h-10 w-full rounded-lg border border-border bg-white px-3 text-xs"
               placeholder="Baker note the agent must honour"
               value={note}
               onChange={(e) => setNote(e.target.value)}
             />
-            <button type="button" disabled={saving} onClick={() => void saveMemory()} className="rounded-lg bg-[#632a73] px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50">
+            <button type="button" disabled={saving} onClick={() => void saveMemory()} className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50">
               {saving ? "Saving…" : "Save memory"}
             </button>
           </div>
@@ -1020,7 +1020,7 @@ function HealthRow({
 }) {
   return (
     <div className="flex items-center justify-between gap-3">
-      <span className="text-xs text-[#746876]">
+      <span className="text-xs text-muted-foreground">
         {label}
       </span>
 
@@ -1028,7 +1028,7 @@ function HealthRow({
         className={`rounded-lg px-2.5 py-1 font-mono text-[10px] font-semibold ${
           warning
             ? "bg-[#fff0dd] text-[#b86a24]"
-            : "bg-[#f1e9e2] text-[#632a73]"
+            : "bg-muted text-primary"
         }`}
       >
         {value.toString().padStart(2, "0")}

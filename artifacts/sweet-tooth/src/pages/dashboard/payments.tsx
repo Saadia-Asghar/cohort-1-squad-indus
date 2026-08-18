@@ -37,7 +37,7 @@ type OcrResult = {
 type PaymentView = "outstanding" | "collected";
 
 const inputClass =
-  "min-h-11 w-full rounded-xl border border-[#dfd1c4] bg-[#fffaf6] px-3.5 text-sm text-[#241629] outline-none transition placeholder:text-[#a99ca9] focus:border-[#c24f7a]/60 focus:ring-4 focus:ring-[#c24f7a]/10";
+  "min-h-11 w-full rounded-xl border border-border bg-card px-3.5 text-sm text-foreground outline-none transition placeholder:text-muted-foreground focus:border-secondary/60 focus:ring-4 focus:ring-secondary/10";
 
 function orderStatusLabel(status: string): string {
   return status
@@ -393,11 +393,11 @@ export default function DashboardPayments() {
 
   return (
     <DashboardLayout>
-      <div className="min-h-screen bg-[#fbf6ee] px-4 py-5 text-[#241629] sm:px-6 lg:px-7">
+      <div className="min-h-screen bg-background px-4 py-5 text-foreground sm:px-6 lg:px-7">
         <div className="mx-auto max-w-[1480px]">
-          <header className="flex flex-col gap-5 border-b border-[#dfd1c4] pb-5 lg:flex-row lg:items-end lg:justify-between">
+          <header className="flex flex-col gap-5 border-b border-border pb-5 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#c24f7a]">
+              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-secondary">
                 Financial operations
               </p>
 
@@ -405,7 +405,7 @@ export default function DashboardPayments() {
                 Payments
               </h1>
 
-              <p className="mt-3 max-w-2xl text-sm leading-6 text-[#746876]">
+              <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">
                 Review outstanding balances, inspect
                 customer receipts and confirm collected
                 payments without giving automation control
@@ -413,7 +413,7 @@ export default function DashboardPayments() {
               </p>
             </div>
 
-            <div className="flex rounded-xl border border-[#dfd1c4] bg-[#f4eae1] p-1">
+            <div className="flex rounded-xl border border-border bg-[#f4eae1] p-1">
               <button
                 type="button"
                 onClick={() =>
@@ -421,8 +421,8 @@ export default function DashboardPayments() {
                 }
                 className={`min-h-10 rounded-lg px-4 text-xs font-semibold transition ${
                   activeView === "outstanding"
-                    ? "bg-white text-[#632a73] shadow-sm"
-                    : "text-[#746876]"
+                    ? "bg-white text-primary shadow-sm"
+                    : "text-muted-foreground"
                 }`}
               >
                 Outstanding
@@ -435,8 +435,8 @@ export default function DashboardPayments() {
                 }
                 className={`min-h-10 rounded-lg px-4 text-xs font-semibold transition ${
                   activeView === "collected"
-                    ? "bg-white text-[#632a73] shadow-sm"
-                    : "text-[#746876]"
+                    ? "bg-white text-primary shadow-sm"
+                    : "text-muted-foreground"
                 }`}
               >
                 Collected
@@ -444,7 +444,7 @@ export default function DashboardPayments() {
             </div>
           </header>
 
-          <section className="grid border-b border-[#dfd1c4] sm:grid-cols-2 xl:grid-cols-4">
+          <section className="grid border-b border-border sm:grid-cols-2 xl:grid-cols-4">
             <PaymentMetric
               icon={AlertCircle}
               label="Outstanding"
@@ -498,8 +498,8 @@ export default function DashboardPayments() {
 
           <div className="mt-5 grid gap-4 xl:grid-cols-[minmax(0,1fr)_260px]">
             <main className="min-w-0">
-              <section className="overflow-hidden rounded-2xl border border-[#dfd1c4] bg-white/45">
-                <div className="border-b border-[#dfd1c4] p-4">
+              <section className="overflow-hidden rounded-2xl border border-border bg-white/45">
+                <div className="border-b border-border p-4">
                   <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                     <div className="relative min-w-0 flex-1 lg:max-w-md">
                       <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9b8d9c]" />
@@ -516,7 +516,7 @@ export default function DashboardPayments() {
                       />
                     </div>
 
-                    <p className="text-xs text-[#746876]">
+                    <p className="text-xs text-muted-foreground">
                       {activeView === "outstanding"
                         ? `${filteredPendingOrders.length} payments awaiting review`
                         : `${filteredPaidOrders.length} collected payments`}
@@ -529,7 +529,7 @@ export default function DashboardPayments() {
                     {[1, 2, 3].map((item) => (
                       <div
                         key={item}
-                        className="h-40 animate-pulse rounded-2xl bg-[#f1e9e2]"
+                        className="h-40 animate-pulse rounded-2xl bg-muted"
                       />
                     ))}
                   </div>
@@ -566,11 +566,11 @@ export default function DashboardPayments() {
                               <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                                 <div className="min-w-0">
                                   <div className="flex flex-wrap items-center gap-2">
-                                    <span className="font-mono text-xs font-semibold text-[#c24f7a]">
+                                    <span className="font-mono text-xs font-semibold text-secondary">
                                       #{order.id}
                                     </span>
 
-                                    <span className="rounded-lg bg-[#f1dde5] px-2 py-1 text-[9px] font-semibold text-[#8e345c]">
+                                    <span className="rounded-lg bg-accent px-2 py-1 text-[9px] font-semibold text-[#8e345c]">
                                       {orderStatusLabel(
                                         order.status,
                                       )}
@@ -581,7 +581,7 @@ export default function DashboardPayments() {
                                     {order.buyerName}
                                   </h2>
 
-                                  <p className="mt-2 text-xs leading-5 text-[#746876]">
+                                  <p className="mt-2 text-xs leading-5 text-muted-foreground">
                                     {order.buyerArea ??
                                       order.buyerAddress ??
                                       "Location not recorded"}
@@ -596,7 +596,7 @@ export default function DashboardPayments() {
                                 </div>
 
                                 <div className="shrink-0 lg:text-right">
-                                  <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#746876]">
+                                  <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
                                     Amount due
                                   </p>
 
@@ -628,9 +628,9 @@ export default function DashboardPayments() {
                                 </div>
                               </div>
 
-                              <div className="mt-5 rounded-2xl border border-[#dfd1c4] bg-[#fffaf6] p-4">
+                              <div className="mt-5 rounded-2xl border border-border bg-card p-4">
                                 <div className="flex items-start gap-3">
-                                  <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#f1dde5] text-[#c24f7a]">
+                                  <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-accent text-secondary">
                                     <UploadCloud className="h-5 w-5" />
                                   </span>
 
@@ -639,7 +639,7 @@ export default function DashboardPayments() {
                                       Customer receipt
                                     </p>
 
-                                    <p className="mt-1 text-xs leading-5 text-[#746876]">
+                                    <p className="mt-1 text-xs leading-5 text-muted-foreground">
                                       Upload a JPEG, PNG or
                                       WebP screenshot under
                                       4 MB.
@@ -648,7 +648,7 @@ export default function DashboardPayments() {
                                 </div>
 
                                 <div className="mt-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
-                                  <label className="flex min-h-11 cursor-pointer items-center gap-3 rounded-xl border border-dashed border-[#dcb8c8] bg-white/65 px-3 text-xs font-semibold text-[#632a73] transition hover:bg-white">
+                                  <label className="flex min-h-11 cursor-pointer items-center gap-3 rounded-xl border border-dashed border-accent bg-white/65 px-3 text-xs font-semibold text-primary transition hover:bg-white">
                                     <UploadCloud className="h-4 w-4 shrink-0" />
 
                                     <span className="min-w-0 truncate">
@@ -684,7 +684,7 @@ export default function DashboardPayments() {
                                       verifyingId ===
                                       order.id
                                     }
-                                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-[#dfd1c4] bg-white px-4 text-xs font-semibold text-[#632a73] transition hover:bg-[#f4eae1] disabled:opacity-50"
+                                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-border bg-white px-4 text-xs font-semibold text-primary transition hover:bg-muted disabled:opacity-50"
                                   >
                                     <ScanLine className="h-4 w-4" />
 
@@ -695,7 +695,7 @@ export default function DashboardPayments() {
                                 </div>
 
                                 <details className="mt-3">
-                                  <summary className="cursor-pointer text-xs font-semibold text-[#c24f7a]">
+                                  <summary className="cursor-pointer text-xs font-semibold text-secondary">
                                     Use an HTTPS image URL instead
                                   </summary>
 
@@ -720,7 +720,7 @@ export default function DashboardPayments() {
                                 {existingUrl &&
                                 !screenshotUrls[order.id] &&
                                 !receiptReady ? (
-                                  <p className="mt-3 flex items-center gap-2 text-xs text-[#746876]">
+                                  <p className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
                                     <FileCheck2 className="h-4 w-4 text-[#168a55]" />
                                     A saved receipt is already
                                     attached to this order.
@@ -741,7 +741,7 @@ export default function DashboardPayments() {
                                     className={`mt-3 rounded-xl border px-4 py-3 ${
                                       ocr.verified
                                         ? "border-[#e7c98e] bg-[#fff8e9]"
-                                        : "border-[#dfd1c4] bg-[#f1e9e2]"
+                                        : "border-border bg-muted"
                                     }`}
                                   >
                                     <div className="flex items-center gap-2">
@@ -749,7 +749,7 @@ export default function DashboardPayments() {
                                         className={`h-4 w-4 ${
                                           ocr.verified
                                             ? "text-[#b86a24]"
-                                            : "text-[#746876]"
+                                            : "text-muted-foreground"
                                         }`}
                                       />
 
@@ -758,7 +758,7 @@ export default function DashboardPayments() {
                                       </p>
                                     </div>
 
-                                    <p className="mt-2 text-xs leading-5 text-[#746876]">
+                                    <p className="mt-2 text-xs leading-5 text-muted-foreground">
                                       {ocr.message}
                                     </p>
 
@@ -793,7 +793,7 @@ export default function DashboardPayments() {
                   <>
                     <div className="hidden overflow-x-auto md:block">
                       <table className="w-full min-w-[720px] text-left text-xs">
-                        <thead className="border-b border-[#eadfd5] text-[10px] uppercase tracking-[0.08em] text-[#746876]">
+                        <thead className="border-b border-border text-[10px] uppercase tracking-[0.08em] text-muted-foreground">
                           <tr>
                             <th className="px-4 py-3">
                               Order
@@ -824,7 +824,7 @@ export default function DashboardPayments() {
                                 key={order.id}
                                 className="transition hover:bg-[#fff8f3]"
                               >
-                                <td className="px-4 py-4 font-mono font-semibold text-[#c24f7a]">
+                                <td className="px-4 py-4 font-mono font-semibold text-secondary">
                                   #{order.id}
                                 </td>
 
@@ -833,12 +833,12 @@ export default function DashboardPayments() {
                                     {order.buyerName}
                                   </p>
 
-                                  <p className="mt-1 text-[10px] text-[#746876]">
+                                  <p className="mt-1 text-[10px] text-muted-foreground">
                                     {order.buyerWhatsapp}
                                   </p>
                                 </td>
 
-                                <td className="px-4 py-4 text-[#746876]">
+                                <td className="px-4 py-4 text-muted-foreground">
                                   {formatOrderDate(
                                     order.deliveryDate,
                                   )}
@@ -873,7 +873,7 @@ export default function DashboardPayments() {
                           >
                             <div className="flex items-start justify-between gap-3">
                               <div>
-                                <p className="font-mono text-xs font-semibold text-[#c24f7a]">
+                                <p className="font-mono text-xs font-semibold text-secondary">
                                   #{order.id}
                                 </p>
 
@@ -881,7 +881,7 @@ export default function DashboardPayments() {
                                   {order.buyerName}
                                 </h2>
 
-                                <p className="mt-1 text-xs text-[#746876]">
+                                <p className="mt-1 text-xs text-muted-foreground">
                                   {formatOrderDate(
                                     order.deliveryDate,
                                   )}
@@ -893,7 +893,7 @@ export default function DashboardPayments() {
                               </span>
                             </div>
 
-                            <div className="mt-4 rounded-xl bg-[#fffaf6] p-3">
+                            <div className="mt-4 rounded-xl bg-card p-3">
                               <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-[#9b8d9c]">
                                 Amount received
                               </p>
@@ -930,14 +930,14 @@ export default function DashboardPayments() {
             </main>
 
             <aside className="space-y-4">
-              <section className="rounded-2xl border border-[#dfd1c4] bg-white/45 p-4">
-                <ShieldCheck className="h-5 w-5 text-[#c24f7a]" />
+              <section className="rounded-2xl border border-border bg-white/45 p-4">
+                <ShieldCheck className="h-5 w-5 text-secondary" />
 
                 <h2 className="mt-3 font-serif text-xl font-semibold">
                   Confirmation checklist
                 </h2>
 
-                <p className="mt-2 text-xs leading-5 text-[#746876]">
+                <p className="mt-2 text-xs leading-5 text-muted-foreground">
                   Check these details before confirming
                   any payment as received.
                 </p>
@@ -969,21 +969,21 @@ export default function DashboardPayments() {
                 </div>
               </section>
 
-              <section className="rounded-2xl border border-[#e5cfd9] bg-[#fff0f5] p-4">
-                <ScanLine className="h-5 w-5 text-[#c24f7a]" />
+              <section className="rounded-2xl border border-[#e5cfd9] bg-accent p-4">
+                <ScanLine className="h-5 w-5 text-secondary" />
 
                 <h2 className="mt-3 font-serif text-xl font-semibold">
                   About receipt OCR
                 </h2>
 
-                <p className="mt-2 text-xs leading-5 text-[#746876]">
+                <p className="mt-2 text-xs leading-5 text-muted-foreground">
                   OCR can help identify visible text, but
                   screenshots can be edited or reused. It
                   will never confirm payment automatically.
                 </p>
               </section>
 
-              <section className="rounded-2xl border border-[#dfd1c4] bg-white/45 p-4">
+              <section className="rounded-2xl border border-border bg-white/45 p-4">
                 <h2 className="font-serif text-xl font-semibold">
                   Payment activity
                 </h2>
@@ -1025,9 +1025,9 @@ function PaymentMetric({
   valueClass?: string;
 }) {
   return (
-    <div className="border-[#dfd1c4] px-4 py-5 sm:border-r sm:last:border-r-0 lg:px-5">
-      <div className="flex items-center gap-2 text-[#746876]">
-        <Icon className="h-5 w-5 text-[#c24f7a]" />
+    <div className="border-border px-4 py-5 sm:border-r sm:last:border-r-0 lg:px-5">
+      <div className="flex items-center gap-2 text-muted-foreground">
+        <Icon className="h-5 w-5 text-secondary" />
 
         <span className="text-[11px] font-medium">
           {label}
@@ -1055,7 +1055,7 @@ function PaymentEmptyState({
   return (
     <div className="grid min-h-[390px] place-items-center p-6 text-center">
       <div>
-        <span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-[#f1dde5] text-[#c24f7a]">
+        <span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-accent text-secondary">
           <Icon className="h-6 w-6" />
         </span>
 
@@ -1063,7 +1063,7 @@ function PaymentEmptyState({
           {title}
         </h2>
 
-        <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-[#746876]">
+        <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-muted-foreground">
           {description}
         </p>
       </div>
@@ -1081,15 +1081,15 @@ function SafetyItem({
   description: string;
 }) {
   return (
-    <div className="flex gap-3 border-b border-[#eadfd5] pb-4 last:border-0 last:pb-0">
-      <span className="font-mono text-[10px] font-semibold text-[#c24f7a]">
+    <div className="flex gap-3 border-b border-border pb-4 last:border-0 last:pb-0">
+      <span className="font-mono text-[10px] font-semibold text-secondary">
         {number}
       </span>
 
       <div>
         <p className="text-xs font-semibold">{title}</p>
 
-        <p className="mt-1 text-[11px] leading-5 text-[#746876]">
+        <p className="mt-1 text-[11px] leading-5 text-muted-foreground">
           {description}
         </p>
       </div>
@@ -1106,11 +1106,11 @@ function ActivityRow({
 }) {
   return (
     <div className="flex items-center justify-between gap-3">
-      <span className="text-xs text-[#746876]">
+      <span className="text-xs text-muted-foreground">
         {label}
       </span>
 
-      <span className="rounded-lg bg-[#f1e9e2] px-2.5 py-1 font-mono text-[10px] font-semibold text-[#632a73]">
+      <span className="rounded-lg bg-muted px-2.5 py-1 font-mono text-[10px] font-semibold text-primary">
         {value.toString().padStart(2, "0")}
       </span>
     </div>

@@ -44,6 +44,8 @@
   --font-sans: var(--app-font-sans);
   --font-serif: var(--app-font-serif);
   --font-mono: var(--app-font-mono);
+  --color-plum-deep: #2f1837;
+  --color-gold: #c99855;
 
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -191,12 +193,20 @@
   html {
     scroll-behavior: smooth;
     background: hsl(var(--background));
+    font-family: var(--app-font-sans);
+    color: hsl(var(--foreground));
   }
 
   body {
     @apply bg-background font-sans text-foreground antialiased;
+    font-family: var(--app-font-sans);
     min-width: 320px;
     overflow-x: hidden;
+  }
+
+  #root {
+    @apply min-h-dvh bg-background font-sans text-foreground;
+    font-family: var(--app-font-sans);
   }
 
   h1,
@@ -218,6 +228,7 @@
   input,
   textarea,
   select {
+    font-family: inherit;
     -webkit-tap-highlight-color: transparent;
   }
 

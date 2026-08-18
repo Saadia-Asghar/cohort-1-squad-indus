@@ -123,7 +123,7 @@ const periodOptions: Array<{
 ];
 
 const inputClass =
-  "min-h-11 w-full rounded-xl border border-[#dfd1c4] bg-[#fffaf6] px-3.5 text-sm text-[#241629] outline-none transition placeholder:text-[#a99ca9] focus:border-[#c24f7a]/60 focus:ring-4 focus:ring-[#c24f7a]/10";
+  "min-h-11 w-full rounded-xl border border-border bg-card px-3.5 text-sm text-foreground outline-none transition placeholder:text-muted-foreground focus:border-secondary/60 focus:ring-4 focus:ring-secondary/10";
 
 function money(value?: number | null): string {
   return `PKR ${(value ?? 0).toLocaleString()}`;
@@ -443,11 +443,11 @@ export default function DashboardKhata() {
 
   return (
     <DashboardLayout>
-      <div className="min-h-screen bg-[#fbf6ee] px-4 py-5 text-[#241629] sm:px-6 lg:px-7">
+      <div className="min-h-screen bg-background px-4 py-5 text-foreground sm:px-6 lg:px-7">
         <div className="mx-auto max-w-[1480px]">
-          <header className="flex flex-col gap-5 border-b border-[#dfd1c4] pb-5 lg:flex-row lg:items-end lg:justify-between">
+          <header className="flex flex-col gap-5 border-b border-border pb-5 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#c24f7a]">
+              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-secondary">
                 Financial control
               </p>
 
@@ -455,7 +455,7 @@ export default function DashboardKhata() {
                 Khata
               </h1>
 
-              <p className="mt-3 max-w-2xl text-sm leading-6 text-[#746876]">
+              <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">
                 Compare order revenue with expenses,
                 monitor product margins and keep
                 ingredient stock records in one
@@ -464,7 +464,7 @@ export default function DashboardKhata() {
             </div>
 
             <div className="flex flex-col gap-2 sm:flex-row">
-              <div className="flex rounded-xl border border-[#dfd1c4] bg-[#f4eae1] p-1">
+              <div className="flex rounded-xl border border-border bg-[#f4eae1] p-1">
                 {periodOptions.map((item) => (
                   <button
                     key={item.id}
@@ -476,8 +476,8 @@ export default function DashboardKhata() {
                     className={`min-h-10 rounded-lg px-3 text-xs font-semibold transition ${
                       !selectedMonth &&
                       period === item.id
-                        ? "bg-white text-[#632a73] shadow-sm"
-                        : "text-[#746876]"
+                        ? "bg-white text-primary shadow-sm"
+                        : "text-muted-foreground"
                     }`}
                   >
                     {item.label}
@@ -485,8 +485,8 @@ export default function DashboardKhata() {
                 ))}
               </div>
 
-              <label className="flex min-h-12 items-center gap-2 rounded-xl border border-[#dfd1c4] bg-[#fffaf6] px-3">
-                <CalendarDays className="h-4 w-4 shrink-0 text-[#c24f7a]" />
+              <label className="flex min-h-12 items-center gap-2 rounded-xl border border-border bg-card px-3">
+                <CalendarDays className="h-4 w-4 shrink-0 text-secondary" />
 
                 <span className="sr-only">
                   Select financial month
@@ -530,17 +530,17 @@ export default function DashboardKhata() {
                   )
                 }
                 disabled={khataQuery.isLoading || !khataQuery.data}
-                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-[#dfd1c4] bg-[#632a73] px-4 text-xs font-bold text-white transition hover:bg-[#c24f7a] disabled:opacity-50"
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-border bg-primary px-4 text-xs font-bold text-white transition hover:bg-secondary disabled:opacity-50"
               >
                 <Download className="h-4 w-4" /> Download PDF
               </button>
             </div>
           </header>
 
-          <div className="flex flex-col gap-1 border-b border-[#dfd1c4] py-3 text-xs text-[#746876] sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-1 border-b border-border py-3 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
             <p>
               Showing{" "}
-              <strong className="text-[#241629]">
+              <strong className="text-foreground">
                 {data?.label ??
                   "current financial period"}
               </strong>
@@ -553,7 +553,7 @@ export default function DashboardKhata() {
             ) : null}
           </div>
 
-          <section className="grid border-b border-[#dfd1c4] sm:grid-cols-2 xl:grid-cols-6">
+          <section className="grid border-b border-border sm:grid-cols-2 xl:grid-cols-6">
             <KhataMetric
               icon={CircleDollarSign}
               label="Order revenue"
@@ -610,30 +610,30 @@ export default function DashboardKhata() {
                   ? `${data.profitMargin}%`
                   : "—"
               }
-              valueClass="text-[#632a73]"
+              valueClass="text-primary"
             />
           </section>
 
           {khataQuery.isLoading && !data ? (
             <div className="mt-5 space-y-4">
-              <div className="h-40 animate-pulse rounded-2xl bg-[#f1e9e2]" />
+              <div className="h-40 animate-pulse rounded-2xl bg-muted" />
 
               <div className="grid gap-4 lg:grid-cols-2">
-                <div className="h-96 animate-pulse rounded-2xl bg-[#f1e9e2]" />
-                <div className="h-96 animate-pulse rounded-2xl bg-[#f1e9e2]" />
+                <div className="h-96 animate-pulse rounded-2xl bg-muted" />
+                <div className="h-96 animate-pulse rounded-2xl bg-muted" />
               </div>
             </div>
           ) : (
             <div className="mt-5 space-y-4">
-              <section className="grid gap-4 rounded-2xl border border-[#dfd1c4] bg-white/45 p-4 lg:grid-cols-[0.9fr_1.4fr]">
+              <section className="grid gap-4 rounded-2xl border border-border bg-white/45 p-4 lg:grid-cols-[0.9fr_1.4fr]">
                 <div>
-                  <WalletCards className="h-5 w-5 text-[#c24f7a]" />
+                  <WalletCards className="h-5 w-5 text-secondary" />
 
                   <h2 className="mt-3 font-serif text-2xl font-semibold">
                     Orders versus expenses
                   </h2>
 
-                  <p className="mt-2 max-w-md text-xs leading-5 text-[#746876]">
+                  <p className="mt-2 max-w-md text-xs leading-5 text-muted-foreground">
                     Order revenue is recorded
                     automatically. Manual expenses
                     come from the ledger entries you
@@ -674,9 +674,9 @@ export default function DashboardKhata() {
 
               {(monthsQuery.data?.length ?? 0) >
               0 ? (
-                <section className="overflow-hidden rounded-2xl border border-[#dfd1c4] bg-white/45">
-                  <div className="border-b border-[#dfd1c4] px-4 py-4 sm:px-5">
-                    <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#c24f7a]">
+                <section className="overflow-hidden rounded-2xl border border-border bg-white/45">
+                  <div className="border-b border-border px-4 py-4 sm:px-5">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-secondary">
                       Financial history
                     </p>
 
@@ -684,7 +684,7 @@ export default function DashboardKhata() {
                       Monthly overview
                     </h2>
 
-                    <p className="mt-2 text-xs leading-5 text-[#746876]">
+                    <p className="mt-2 text-xs leading-5 text-muted-foreground">
                       Select a month to review its
                       detailed Khata records.
                     </p>
@@ -714,9 +714,9 @@ export default function DashboardKhata() {
 
               {(data?.productMargins?.length ??
                 0) > 0 ? (
-                <section className="overflow-hidden rounded-2xl border border-[#dfd1c4] bg-white/45">
-                  <div className="border-b border-[#dfd1c4] px-4 py-4 sm:px-5">
-                    <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#c24f7a]">
+                <section className="overflow-hidden rounded-2xl border border-border bg-white/45">
+                  <div className="border-b border-border px-4 py-4 sm:px-5">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-secondary">
                       Product profitability
                     </p>
 
@@ -724,7 +724,7 @@ export default function DashboardKhata() {
                       Margin per product
                     </h2>
 
-                    <p className="mt-2 text-xs leading-5 text-[#746876]">
+                    <p className="mt-2 text-xs leading-5 text-muted-foreground">
                       Recipe costs are managed from
                       Catalog. Margin equals revenue
                       minus estimated recipe cost.
@@ -733,7 +733,7 @@ export default function DashboardKhata() {
 
                   <div className="hidden overflow-x-auto md:block">
                     <table className="w-full min-w-[760px] text-left text-xs">
-                      <thead className="border-b border-[#eadfd5] text-[9px] uppercase tracking-[0.08em] text-[#746876]">
+                      <thead className="border-b border-border text-[9px] uppercase tracking-[0.08em] text-muted-foreground">
                         <tr>
                           <th className="px-4 py-3">
                             Product
@@ -782,7 +782,7 @@ export default function DashboardKhata() {
                                 )}
                               </td>
 
-                              <td className="px-4 py-4 font-mono text-[#746876]">
+                              <td className="px-4 py-4 font-mono text-muted-foreground">
                                 {row.recipeCostPkr !==
                                 null
                                   ? money(
@@ -806,7 +806,7 @@ export default function DashboardKhata() {
 
                                 {row.marginPercent !==
                                 null ? (
-                                  <p className="mt-1 text-[10px] text-[#746876]">
+                                  <p className="mt-1 text-[10px] text-muted-foreground">
                                     {
                                       row.marginPercent
                                     }
@@ -834,7 +834,7 @@ export default function DashboardKhata() {
                                 {row.productName}
                               </h3>
 
-                              <p className="mt-1 text-xs text-[#746876]">
+                              <p className="mt-1 text-xs text-muted-foreground">
                                 {row.unitsSold} units
                                 sold
                               </p>
@@ -853,7 +853,7 @@ export default function DashboardKhata() {
                             </p>
                           </div>
 
-                          <div className="mt-4 grid grid-cols-2 gap-3 rounded-xl bg-[#fffaf6] p-3 text-xs">
+                          <div className="mt-4 grid grid-cols-2 gap-3 rounded-xl bg-card p-3 text-xs">
                             <div>
                               <p className="text-[9px] font-bold uppercase tracking-[0.08em] text-[#9b8d9c]">
                                 Revenue
@@ -889,7 +889,7 @@ export default function DashboardKhata() {
               ) : null}
 
               <div className="grid gap-4 xl:grid-cols-2">
-                <section className="overflow-hidden rounded-2xl border border-[#dfd1c4] bg-white/45">
+                <section className="overflow-hidden rounded-2xl border border-border bg-white/45">
                   <SectionHeader
                     icon={Boxes}
                     eyebrow="Stock control"
@@ -899,10 +899,10 @@ export default function DashboardKhata() {
 
                   <form
                     onSubmit={submitInventory}
-                    className="grid gap-3 border-b border-[#dfd1c4] bg-[#fffaf6] p-4 sm:grid-cols-2"
+                    className="grid gap-3 border-b border-border bg-card p-4 sm:grid-cols-2"
                   >
                     <label className="grid gap-1.5 sm:col-span-2">
-                      <span className="text-[10px] font-semibold text-[#746876]">
+                      <span className="text-[10px] font-semibold text-muted-foreground">
                         Item name
                       </span>
 
@@ -925,7 +925,7 @@ export default function DashboardKhata() {
                     </label>
 
                     <label className="grid gap-1.5">
-                      <span className="text-[10px] font-semibold text-[#746876]">
+                      <span className="text-[10px] font-semibold text-muted-foreground">
                         Unit
                       </span>
 
@@ -948,7 +948,7 @@ export default function DashboardKhata() {
                     </label>
 
                     <label className="grid gap-1.5">
-                      <span className="text-[10px] font-semibold text-[#746876]">
+                      <span className="text-[10px] font-semibold text-muted-foreground">
                         Quantity in stock
                       </span>
 
@@ -973,7 +973,7 @@ export default function DashboardKhata() {
                     </label>
 
                     <label className="grid gap-1.5">
-                      <span className="text-[10px] font-semibold text-[#746876]">
+                      <span className="text-[10px] font-semibold text-muted-foreground">
                         Reorder level
                       </span>
 
@@ -998,7 +998,7 @@ export default function DashboardKhata() {
                     </label>
 
                     <label className="grid gap-1.5">
-                      <span className="text-[10px] font-semibold text-[#746876]">
+                      <span className="text-[10px] font-semibold text-muted-foreground">
                         Unit cost in PKR
                       </span>
 
@@ -1028,7 +1028,7 @@ export default function DashboardKhata() {
                         addInventory.isPending ||
                         !inventoryForm.name.trim()
                       }
-                      className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#632a73] px-4 text-sm font-semibold text-white disabled:opacity-40 sm:col-span-2"
+                      className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-white disabled:opacity-40 sm:col-span-2"
                     >
                       <PackagePlus className="h-4 w-4" />
 
@@ -1071,7 +1071,7 @@ export default function DashboardKhata() {
                   </div>
                 </section>
 
-                <section className="overflow-hidden rounded-2xl border border-[#dfd1c4] bg-white/45">
+                <section className="overflow-hidden rounded-2xl border border-border bg-white/45">
                   <SectionHeader
                     icon={ReceiptText}
                     eyebrow="Manual records"
@@ -1081,10 +1081,10 @@ export default function DashboardKhata() {
 
                   <form
                     onSubmit={submitLedger}
-                    className="grid gap-3 border-b border-[#dfd1c4] bg-[#fffaf6] p-4 sm:grid-cols-2"
+                    className="grid gap-3 border-b border-border bg-card p-4 sm:grid-cols-2"
                   >
                     <label className="grid gap-1.5">
-                      <span className="text-[10px] font-semibold text-[#746876]">
+                      <span className="text-[10px] font-semibold text-muted-foreground">
                         Entry type
                       </span>
 
@@ -1116,7 +1116,7 @@ export default function DashboardKhata() {
                     </label>
 
                     <label className="grid gap-1.5">
-                      <span className="text-[10px] font-semibold text-[#746876]">
+                      <span className="text-[10px] font-semibold text-muted-foreground">
                         Category
                       </span>
 
@@ -1139,7 +1139,7 @@ export default function DashboardKhata() {
                     </label>
 
                     <label className="grid gap-1.5">
-                      <span className="text-[10px] font-semibold text-[#746876]">
+                      <span className="text-[10px] font-semibold text-muted-foreground">
                         Amount in PKR
                       </span>
 
@@ -1165,7 +1165,7 @@ export default function DashboardKhata() {
                     </label>
 
                     <label className="grid gap-1.5">
-                      <span className="text-[10px] font-semibold text-[#746876]">
+                      <span className="text-[10px] font-semibold text-muted-foreground">
                         Entry date
                       </span>
 
@@ -1188,7 +1188,7 @@ export default function DashboardKhata() {
                     </label>
 
                     <label className="grid gap-1.5 sm:col-span-2">
-                      <span className="text-[10px] font-semibold text-[#746876]">
+                      <span className="text-[10px] font-semibold text-muted-foreground">
                         Description
                       </span>
 
@@ -1216,7 +1216,7 @@ export default function DashboardKhata() {
                         addLedger.isPending ||
                         !ledgerForm.amountPkr
                       }
-                      className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#632a73] px-4 text-sm font-semibold text-white disabled:opacity-40 sm:col-span-2"
+                      className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-white disabled:opacity-40 sm:col-span-2"
                     >
                       <Plus className="h-4 w-4" />
 
@@ -1262,15 +1262,15 @@ export default function DashboardKhata() {
                 </section>
               </div>
 
-              <section className="grid gap-4 rounded-2xl border border-[#dfd1c4] bg-white/45 p-4 lg:grid-cols-[0.8fr_1.4fr]">
+              <section className="grid gap-4 rounded-2xl border border-border bg-white/45 p-4 lg:grid-cols-[0.8fr_1.4fr]">
                 <div>
-                  <Scale className="h-5 w-5 text-[#c24f7a]" />
+                  <Scale className="h-5 w-5 text-secondary" />
 
                   <h2 className="mt-3 font-serif text-2xl font-semibold">
                     Financial summary
                   </h2>
 
-                  <p className="mt-2 max-w-md text-xs leading-5 text-[#746876]">
+                  <p className="mt-2 max-w-md text-xs leading-5 text-muted-foreground">
                     Stock value and delivery costs
                     help complete the operating view
                     for this period.
@@ -1337,9 +1337,9 @@ function KhataMetric({
   valueClass?: string;
 }) {
   return (
-    <div className="border-[#dfd1c4] px-4 py-5 sm:border-r sm:last:border-r-0 lg:px-5">
-      <div className="flex items-center gap-2 text-[#746876]">
-        <Icon className="h-5 w-5 text-[#c24f7a]" />
+    <div className="border-border px-4 py-5 sm:border-r sm:last:border-r-0 lg:px-5">
+      <div className="flex items-center gap-2 text-muted-foreground">
+        <Icon className="h-5 w-5 text-secondary" />
 
         <span className="text-[11px] font-medium">
           {label}
@@ -1368,7 +1368,7 @@ function FinancialBlock({
     | "warning";
 }) {
   return (
-    <div className="rounded-2xl bg-[#fffaf6] p-4">
+    <div className="rounded-2xl bg-card p-4">
       <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-[#9b8d9c]">
         {label}
       </p>
@@ -1403,8 +1403,8 @@ function MonthCard({
       onClick={onClick}
       className={`rounded-2xl border p-4 text-left transition ${
         active
-          ? "border-[#c24f7a] bg-[#fff0f5]"
-          : "border-[#dfd1c4] bg-[#fffaf6] hover:border-[#d5a8bb]"
+          ? "border-[#c24f7a] bg-accent"
+          : "border-border bg-card hover:border-[#d5a8bb]"
       }`}
     >
       <div className="flex items-start justify-between gap-3">
@@ -1413,7 +1413,7 @@ function MonthCard({
             {monthLabel(month.month)}
           </p>
 
-          <p className="mt-1 text-xs text-[#746876]">
+          <p className="mt-1 text-xs text-muted-foreground">
             {month.orders}{" "}
             {month.orders === 1
               ? "order"
@@ -1471,14 +1471,14 @@ function SectionHeader({
   description: string;
 }) {
   return (
-    <div className="border-b border-[#dfd1c4] px-4 py-4 sm:px-5">
+    <div className="border-b border-border px-4 py-4 sm:px-5">
       <div className="flex items-start gap-3">
-        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#f1dde5] text-[#c24f7a]">
+        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-accent text-secondary">
           <Icon className="h-5 w-5" />
         </span>
 
         <div>
-          <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-[#c24f7a]">
+          <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-secondary">
             {eyebrow}
           </p>
 
@@ -1486,7 +1486,7 @@ function SectionHeader({
             {title}
           </h2>
 
-          <p className="mt-1 text-xs leading-5 text-[#746876]">
+          <p className="mt-1 text-xs leading-5 text-muted-foreground">
             {description}
           </p>
         </div>
@@ -1523,13 +1523,13 @@ function InventoryRecord({
           ) : null}
         </div>
 
-        <p className="mt-1 text-xs text-[#746876]">
+        <p className="mt-1 text-xs text-muted-foreground">
           {item.qtyInStock.toLocaleString()}{" "}
           {item.unit} in stock · reorder at{" "}
           {item.reorderLevel.toLocaleString()}
         </p>
 
-        <p className="mt-1 font-mono text-[10px] text-[#632a73]">
+        <p className="mt-1 font-mono text-[10px] text-primary">
           {money(item.unitCostPkr)} per{" "}
           {item.unit}
         </p>
@@ -1540,7 +1540,7 @@ function InventoryRecord({
         onClick={onDelete}
         disabled={deleting}
         aria-label={`Delete ${item.name}`}
-        className="grid h-9 w-9 place-items-center rounded-xl border border-[#dfd1c4] bg-[#fffaf6] text-[#746876] transition hover:border-[#efc3c0] hover:bg-[#fff0ee] hover:text-[#a7313b] disabled:opacity-40"
+        className="grid h-9 w-9 place-items-center rounded-xl border border-border bg-card text-muted-foreground transition hover:border-[#efc3c0] hover:bg-[#fff0ee] hover:text-[#a7313b] disabled:opacity-40"
       >
         <Trash2 className="h-4 w-4" />
       </button>
@@ -1565,12 +1565,12 @@ function LedgerRecord({
             {entry.category}
           </h3>
 
-          <span className="rounded-lg bg-[#f1e9e2] px-2 py-1 text-[9px] font-semibold text-[#632a73]">
+          <span className="rounded-lg bg-muted px-2 py-1 text-[9px] font-semibold text-primary">
             {ledgerTypeLabel(entry.type)}
           </span>
         </div>
 
-        <p className="mt-1 text-xs text-[#746876]">
+        <p className="mt-1 text-xs text-muted-foreground">
           {entry.entryDate}
           {entry.description
             ? ` · ${entry.description}`
@@ -1588,7 +1588,7 @@ function LedgerRecord({
           onClick={onDelete}
           disabled={deleting}
           aria-label={`Delete ${entry.category} ledger entry`}
-          className="grid h-9 w-9 place-items-center rounded-xl border border-[#dfd1c4] bg-[#fffaf6] text-[#746876] transition hover:border-[#efc3c0] hover:bg-[#fff0ee] hover:text-[#a7313b] disabled:opacity-40"
+          className="grid h-9 w-9 place-items-center rounded-xl border border-border bg-card text-muted-foreground transition hover:border-[#efc3c0] hover:bg-[#fff0ee] hover:text-[#a7313b] disabled:opacity-40"
         >
           <Trash2 className="h-4 w-4" />
         </button>
@@ -1611,7 +1611,7 @@ function EmptyPanel({
   return (
     <div className="grid min-h-[220px] place-items-center p-6 text-center">
       <div>
-        <span className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-[#f1dde5] text-[#c24f7a]">
+        <span className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-accent text-secondary">
           <Icon className="h-5 w-5" />
         </span>
 
@@ -1619,7 +1619,7 @@ function EmptyPanel({
           {title}
         </h3>
 
-        <p className="mx-auto mt-2 max-w-xs text-xs leading-5 text-[#746876]">
+        <p className="mx-auto mt-2 max-w-xs text-xs leading-5 text-muted-foreground">
           {description}
         </p>
       </div>
@@ -1639,7 +1639,7 @@ function SummaryCard({
   warning?: boolean;
 }) {
   return (
-    <div className="rounded-2xl bg-[#fffaf6] p-4">
+    <div className="rounded-2xl bg-card p-4">
       <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-[#9b8d9c]">
         {label}
       </p>
@@ -1648,7 +1648,7 @@ function SummaryCard({
         className={`mt-2 font-mono text-xl font-semibold ${
           warning
             ? "text-[#b86a24]"
-            : "text-[#241629]"
+            : "text-foreground"
         }`}
       >
         {value}
@@ -1659,7 +1659,7 @@ function SummaryCard({
           className={`mt-2 text-[10px] leading-5 ${
             warning
               ? "text-[#b86a24]"
-              : "text-[#746876]"
+              : "text-muted-foreground"
           }`}
         >
           {detail}

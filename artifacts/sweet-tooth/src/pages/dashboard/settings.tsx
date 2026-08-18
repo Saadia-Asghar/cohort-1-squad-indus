@@ -167,7 +167,7 @@ export default function DashboardSettings() {
   if (isLoading && !baker) {
     return (
       <DashboardLayout>
-        <div className="mx-auto min-h-screen max-w-[1480px] animate-pulse space-y-4 bg-[#fbf6ee] px-4 py-5 sm:px-6 lg:px-7">
+        <div className="mx-auto min-h-screen max-w-[1480px] animate-pulse space-y-4 bg-background px-4 py-5 sm:px-6 lg:px-7">
           <div className="h-10 w-64 bg-muted rounded-lg" />
           <div className="h-40 bg-muted rounded-xl" />
         </div>
@@ -185,9 +185,9 @@ export default function DashboardSettings() {
 
   return (
     <DashboardLayout>
-      <div className="mx-auto min-h-screen max-w-[1480px] bg-[#fbf6ee] px-4 py-5 text-[#241629] sm:px-6 lg:px-7">
+      <div className="mx-auto min-h-screen max-w-[1480px] bg-background px-4 py-5 text-foreground sm:px-6 lg:px-7">
         {/* Header with quick save */}
-        <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-[#dfd1c4]/60 pb-5">
+        <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-border/60 pb-5">
           <div>
             <h1 className="text-4xl font-bold font-serif text-primary">Your kitchen, your rules.</h1>
             <p className="text-muted-foreground mt-1">Manage your profile, delivery areas, and policies.</p>
@@ -196,7 +196,7 @@ export default function DashboardSettings() {
             <button
               onClick={handleSave}
               disabled={updateBaker.isPending}
-              className="min-h-11 rounded-xl bg-[#632a73] px-6 text-sm font-bold text-white shadow-md transition hover:bg-[#542261] disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
+              className="min-h-11 rounded-xl bg-primary px-6 text-sm font-bold text-white shadow-md transition hover:bg-[#542261] disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
             >
               {updateBaker.isPending ? "Saving..." : "Save All Changes"}
             </button>
@@ -210,36 +210,36 @@ export default function DashboardSettings() {
           <div className="space-y-6">
             
             {/* Kitchen Details */}
-            <div className="space-y-4 rounded-2xl border border-[#dfd1c4] bg-white/70 p-5 shadow-sm">
+            <div className="space-y-4 rounded-2xl border border-border bg-white/70 p-5 shadow-sm">
               <div className="flex items-center gap-2 border-b border-border/50 pb-2">
                 <Store className="w-5 h-5 text-primary" />
-                <h3 className="font-serif text-xl font-semibold tracking-[-0.02em] text-[#241629]">Kitchen Details</h3>
+                <h3 className="font-serif text-xl font-semibold tracking-[-0.02em] text-foreground">Kitchen Details</h3>
               </div>
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <label className="text-xs font-semibold text-[#746876] uppercase tracking-wider">Business Name</label>
+                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Business Name</label>
                   <input 
                     type="text" 
-                    className="min-h-11 w-full rounded-xl border border-[#dfd1c4] bg-[#fffaf6] px-3.5 text-sm text-[#241629] outline-none transition focus:border-[#c24f7a]/60 focus:ring-4 focus:ring-[#c24f7a]/10" 
+                    className="min-h-11 w-full rounded-xl border border-border bg-card px-3.5 text-sm text-foreground outline-none transition focus:border-secondary/60 focus:ring-4 focus:ring-secondary/10" 
                     value={businessName}
                     onChange={e => setBusinessName(e.target.value)}
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-xs font-semibold text-[#746876] uppercase tracking-wider">WhatsApp Number</label>
+                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">WhatsApp Number</label>
                   <input 
                     type="text" 
-                    className="min-h-11 w-full rounded-xl border border-[#dfd1c4] bg-[#fffaf6] px-3.5 text-sm text-[#241629] outline-none transition focus:border-[#c24f7a]/60 focus:ring-4 focus:ring-[#c24f7a]/10" 
+                    className="min-h-11 w-full rounded-xl border border-border bg-card px-3.5 text-sm text-foreground outline-none transition focus:border-secondary/60 focus:ring-4 focus:ring-secondary/10" 
                     value={whatsappNumber}
                     onChange={e => setWhatsappNumber(e.target.value)}
                   />
                 </div>
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-semibold text-[#746876] uppercase tracking-wider">Tagline</label>
+                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Tagline</label>
                 <input 
                   type="text" 
-                  className="min-h-11 w-full rounded-xl border border-[#dfd1c4] bg-[#fffaf6] px-3.5 text-sm text-[#241629] outline-none transition focus:border-[#c24f7a]/60 focus:ring-4 focus:ring-[#c24f7a]/10" 
+                  className="min-h-11 w-full rounded-xl border border-border bg-card px-3.5 text-sm text-foreground outline-none transition focus:border-secondary/60 focus:ring-4 focus:ring-secondary/10" 
                   value={tagline}
                   onChange={e => setTagline(e.target.value)}
                 />
@@ -247,16 +247,16 @@ export default function DashboardSettings() {
             </div>
 
             {/* Share Menu */}
-            <div className="space-y-4 rounded-2xl border border-[#dfd1c4] bg-white/70 p-5 shadow-sm">
+            <div className="space-y-4 rounded-2xl border border-border bg-white/70 p-5 shadow-sm">
               <div className="flex items-center gap-2 border-b border-border/50 pb-2">
                 <QrCode className="w-5 h-5 text-primary" />
-                <h3 className="font-serif text-xl font-semibold tracking-[-0.02em] text-[#241629]">Share your menu</h3>
+                <h3 className="font-serif text-xl font-semibold tracking-[-0.02em] text-foreground">Share your menu</h3>
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-semibold text-[#746876] uppercase tracking-wider">Delivery sectors / areas</label>
+                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Delivery sectors / areas</label>
                 <input
                   type="text"
-                  className="min-h-11 w-full rounded-xl border border-[#dfd1c4] bg-[#fffaf6] px-3.5 text-sm text-[#241629] outline-none transition focus:border-[#c24f7a]/60 focus:ring-4 focus:ring-[#c24f7a]/10"
+                  className="min-h-11 w-full rounded-xl border border-border bg-card px-3.5 text-sm text-foreground outline-none transition focus:border-secondary/60 focus:ring-4 focus:ring-secondary/10"
                   placeholder="e.g. Gulberg, DHA Phase 5, Model Town"
                   value={deliveryAreasText}
                   onChange={e => setDeliveryAreasText(e.target.value)}
@@ -264,13 +264,13 @@ export default function DashboardSettings() {
                 <p className="text-xs text-muted-foreground">Separate sectors with commas. Your menu assistant uses these areas when answering delivery questions.</p>
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
-                <label className="space-y-2 text-xs font-semibold text-[#746876] uppercase tracking-wider block">
+                <label className="space-y-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider block">
                   <span className="flex items-center gap-2"><Instagram className="h-4 w-4" /> Instagram profile link</span>
-                  <input type="url" className="min-h-11 w-full rounded-xl border border-[#dfd1c4] bg-[#fffaf6] px-3.5 text-sm text-[#241629] normal-case outline-none transition focus:border-[#c24f7a]/60 focus:ring-4 focus:ring-[#c24f7a]/10" placeholder="https://instagram.com/yourbakery" value={instagramUrl} onChange={(e) => setInstagramUrl(e.target.value)} />
+                  <input type="url" className="min-h-11 w-full rounded-xl border border-border bg-card px-3.5 text-sm text-foreground normal-case outline-none transition focus:border-secondary/60 focus:ring-4 focus:ring-secondary/10" placeholder="https://instagram.com/yourbakery" value={instagramUrl} onChange={(e) => setInstagramUrl(e.target.value)} />
                 </label>
-                <label className="space-y-2 text-xs font-semibold text-[#746876] uppercase tracking-wider block">
+                <label className="space-y-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider block">
                   <span className="flex items-center gap-2"><Facebook className="h-4 w-4" /> Facebook page link</span>
-                  <input type="url" className="min-h-11 w-full rounded-xl border border-[#dfd1c4] bg-[#fffaf6] px-3.5 text-sm text-[#241629] normal-case outline-none transition focus:border-[#c24f7a]/60 focus:ring-4 focus:ring-[#c24f7a]/10" placeholder="https://facebook.com/yourbakery" value={facebookUrl} onChange={(e) => setFacebookUrl(e.target.value)} />
+                  <input type="url" className="min-h-11 w-full rounded-xl border border-border bg-card px-3.5 text-sm text-foreground normal-case outline-none transition focus:border-secondary/60 focus:ring-4 focus:ring-secondary/10" placeholder="https://facebook.com/yourbakery" value={facebookUrl} onChange={(e) => setFacebookUrl(e.target.value)} />
                 </label>
               </div>
               <p className="text-xs text-muted-foreground mt-2">
@@ -305,20 +305,20 @@ export default function DashboardSettings() {
             </div>
 
             {/* Occasion Orders */}
-            <div className="space-y-4 rounded-2xl border border-[#dfd1c4] bg-white/70 p-5 shadow-sm">
+            <div className="space-y-4 rounded-2xl border border-border bg-white/70 p-5 shadow-sm">
               <div className="flex items-center gap-2 border-b border-border/50 pb-2">
                 <Calendar className="w-5 h-5 text-primary" />
-                <h3 className="font-serif text-xl font-semibold tracking-[-0.02em] text-[#241629]">Occasion orders (Eid & special dates)</h3>
+                <h3 className="font-serif text-xl font-semibold tracking-[-0.02em] text-foreground">Occasion orders (Eid & special dates)</h3>
               </div>
               <p className="text-xs text-muted-foreground">
                 Choose how your menu behaves during Eid or a custom rush. Shown as a banner on your shared menu link.
               </p>
               <div className="space-y-2">
-                <label className="text-xs font-semibold text-[#746876] uppercase tracking-wider">Occasion mode</label>
+                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Occasion mode</label>
                 <select
                   value={occasionPreset}
                   onChange={(e) => setOccasionPreset(e.target.value as OccasionPreset)}
-                  className="min-h-11 w-full rounded-xl border border-[#dfd1c4] bg-[#fffaf6] px-3.5 text-sm text-[#241629] outline-none transition focus:border-[#c24f7a]/60 focus:ring-4 focus:ring-[#c24f7a]/10"
+                  className="min-h-11 w-full rounded-xl border border-border bg-card px-3.5 text-sm text-foreground outline-none transition focus:border-secondary/60 focus:ring-4 focus:ring-secondary/10"
                 >
                   {OCCASION_PRESET_OPTIONS.map((opt) => (
                     <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -327,10 +327,10 @@ export default function DashboardSettings() {
               </div>
               {occasionPreset === "custom" && (
                 <div className="space-y-2">
-                  <label className="text-xs font-semibold text-[#746876] uppercase tracking-wider">Custom occasion name</label>
+                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Custom occasion name</label>
                   <input
                     type="text"
-                    className="min-h-11 w-full rounded-xl border border-[#dfd1c4] bg-[#fffaf6] px-3.5 text-sm text-[#241629] outline-none transition focus:border-[#c24f7a]/60 focus:ring-4 focus:ring-[#c24f7a]/10"
+                    className="min-h-11 w-full rounded-xl border border-border bg-card px-3.5 text-sm text-foreground outline-none transition focus:border-secondary/60 focus:ring-4 focus:ring-secondary/10"
                     placeholder="e.g. Ramadan pre-orders, Wedding season"
                     value={occasionCustomLabel}
                     onChange={(e) => setOccasionCustomLabel(e.target.value)}
@@ -341,28 +341,28 @@ export default function DashboardSettings() {
                 <>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <label className="text-xs font-semibold text-[#746876] uppercase tracking-wider">Last date to accept orders</label>
+                      <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Last date to accept orders</label>
                       <input
                         type="date"
-                        className="min-h-11 w-full rounded-xl border border-[#dfd1c4] bg-[#fffaf6] px-3.5 text-sm text-[#241629] outline-none transition focus:border-[#c24f7a]/60 focus:ring-4 focus:ring-[#c24f7a]/10"
+                        className="min-h-11 w-full rounded-xl border border-border bg-card px-3.5 text-sm text-foreground outline-none transition focus:border-secondary/60 focus:ring-4 focus:ring-secondary/10"
                         value={occasionOrderDeadline}
                         onChange={(e) => setOccasionOrderDeadline(e.target.value)}
                       />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-xs font-semibold text-[#746876] uppercase tracking-wider">Baked fresh (days before delivery)</label>
+                      <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Baked fresh (days before delivery)</label>
                       <input
                         type="number"
                         min={0}
                         max={14}
-                        className="min-h-11 w-full rounded-xl border border-[#dfd1c4] bg-[#fffaf6] px-3.5 text-sm text-[#241629] outline-none transition focus:border-[#c24f7a]/60 focus:ring-4 focus:ring-[#c24f7a]/10"
+                        className="min-h-11 w-full rounded-xl border border-border bg-card px-3.5 text-sm text-foreground outline-none transition focus:border-secondary/60 focus:ring-4 focus:ring-secondary/10"
                         value={occasionFreshDays}
                         onChange={(e) => setOccasionFreshDays(e.target.value)}
                       />
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-semibold text-[#746876] uppercase tracking-wider">Note for customers (optional)</label>
+                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Note for customers (optional)</label>
                     <textarea
                       className="w-full px-3 py-2 border border-border rounded-md bg-background min-h-[72px]"
                       placeholder="e.g. Eid boxes available for pickup only. Order early — slots fill fast."
@@ -375,17 +375,17 @@ export default function DashboardSettings() {
             </div>
 
             {/* Capacity & Date Blocking */}
-            <div className="space-y-4 rounded-2xl border border-[#dfd1c4] bg-white/70 p-5 shadow-sm">
+            <div className="space-y-4 rounded-2xl border border-border bg-white/70 p-5 shadow-sm">
               <div className="flex items-center gap-2 border-b border-border/50 pb-2">
                 <Calendar className="w-5 h-5 text-primary" />
-                <h3 className="font-serif text-xl font-semibold tracking-[-0.02em] text-[#241629]">📅 Calendar Capacity & Date Blocking</h3>
+                <h3 className="font-serif text-xl font-semibold tracking-[-0.02em] text-foreground">📅 Calendar Capacity & Date Blocking</h3>
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-semibold text-[#746876] uppercase tracking-wider">Maximum orders per day</label>
+                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Maximum orders per day</label>
                 <input 
                   type="number"
                   min="1"
-                  className="min-h-11 w-full rounded-xl border border-[#dfd1c4] bg-[#fffaf6] px-3.5 text-sm text-[#241629] outline-none transition focus:border-[#c24f7a]/60 focus:ring-4 focus:ring-[#c24f7a]/10" 
+                  className="min-h-11 w-full rounded-xl border border-border bg-card px-3.5 text-sm text-foreground outline-none transition focus:border-secondary/60 focus:ring-4 focus:ring-secondary/10" 
                   value={maxOrdersPerDay}
                   onChange={e => setMaxOrdersPerDay(Number(e.target.value))}
                 />
@@ -393,7 +393,7 @@ export default function DashboardSettings() {
               </div>
 
               <div className="space-y-3 pt-4 border-t border-border/50">
-                <label className="text-xs font-semibold text-[#746876] uppercase tracking-wider block">Block custom dates (e.g. Vacations or Holidays)</label>
+                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">Block custom dates (e.g. Vacations or Holidays)</label>
                 <div className="flex gap-2">
                   <input 
                     type="date"
@@ -439,10 +439,10 @@ export default function DashboardSettings() {
           <div className="space-y-6">
             
             {/* Payment Options */}
-            <div className="space-y-4 rounded-2xl border border-[#dfd1c4] bg-white/70 p-5 shadow-sm">
+            <div className="space-y-4 rounded-2xl border border-border bg-white/70 p-5 shadow-sm">
               <div className="flex items-center gap-2 border-b border-border/50 pb-2">
                 <CreditCard className="w-5 h-5 text-primary" />
-                <h3 className="font-serif text-xl font-semibold tracking-[-0.02em] text-[#241629]">Payment options for customers</h3>
+                <h3 className="font-serif text-xl font-semibold tracking-[-0.02em] text-foreground">Payment options for customers</h3>
               </div>
               <p className="text-xs text-muted-foreground">Select how buyers pay. This appears on your menu and at checkout.</p>
               <div className="space-y-3">
@@ -467,21 +467,21 @@ export default function DashboardSettings() {
               {paymentMode === "partial_advance" && (
                 <div className="grid grid-cols-2 gap-4 pt-2 border-t border-border/50">
                   <div className="space-y-2">
-                    <label className="text-xs font-semibold text-[#746876] uppercase tracking-wider">Minimum order (PKR) for advance</label>
+                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Minimum order (PKR) for advance</label>
                     <input
                       type="number"
-                      className="min-h-11 w-full rounded-xl border border-[#dfd1c4] bg-[#fffaf6] px-3.5 text-sm text-[#241629] outline-none transition focus:border-[#c24f7a]/60 focus:ring-4 focus:ring-[#c24f7a]/10"
+                      className="min-h-11 w-full rounded-xl border border-border bg-card px-3.5 text-sm text-foreground outline-none transition focus:border-secondary/60 focus:ring-4 focus:ring-secondary/10"
                       value={advanceThresholdPkr}
                       onChange={(e) => setAdvanceThresholdPkr(Number(e.target.value))}
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-semibold text-[#746876] uppercase tracking-wider">Advance percentage (%)</label>
+                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Advance percentage (%)</label>
                     <input
                       type="number"
                       min={1}
                       max={99}
-                      className="min-h-11 w-full rounded-xl border border-[#dfd1c4] bg-[#fffaf6] px-3.5 text-sm text-[#241629] outline-none transition focus:border-[#c24f7a]/60 focus:ring-4 focus:ring-[#c24f7a]/10"
+                      className="min-h-11 w-full rounded-xl border border-border bg-card px-3.5 text-sm text-foreground outline-none transition focus:border-secondary/60 focus:ring-4 focus:ring-secondary/10"
                       value={advancePercentage}
                       onChange={(e) => setAdvancePercentage(Number(e.target.value))}
                     />
@@ -491,7 +491,7 @@ export default function DashboardSettings() {
 
               {paymentMode !== "cod" && (
                 <div className="space-y-2">
-                  <label className="text-xs font-semibold text-[#746876] uppercase tracking-wider">Payment account details</label>
+                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Payment account details</label>
                   <textarea
                     className="w-full px-3 py-2 border border-border rounded-md bg-background min-h-[80px]"
                     placeholder="e.g. Easypaisa: 0300-1234567 (Sana Asghar) · Bank: HBL ..."
@@ -504,7 +504,7 @@ export default function DashboardSettings() {
 
               {paymentMode === "cod" && (
                 <div className="space-y-2 pt-2 border-t border-border/50">
-                  <label className="text-xs font-semibold text-[#746876] uppercase tracking-wider">Cash on delivery policy (shown on menu)</label>
+                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Cash on delivery policy (shown on menu)</label>
                   <textarea
                     className="w-full px-3 py-2 border border-border rounded-md bg-background min-h-[80px]"
                     value={codPolicy}
@@ -516,10 +516,10 @@ export default function DashboardSettings() {
             </div>
 
             {/* Kitchen Policies */}
-            <div className="space-y-4 rounded-2xl border border-[#dfd1c4] bg-white/70 p-5 shadow-sm">
+            <div className="space-y-4 rounded-2xl border border-border bg-white/70 p-5 shadow-sm">
               <div className="flex items-center gap-2 border-b border-border/50 pb-2">
                 <Store className="w-5 h-5 text-primary" />
-                <h3 className="font-serif text-xl font-semibold tracking-[-0.02em] text-[#241629]">Kitchen policies (agent uses these)</h3>
+                <h3 className="font-serif text-xl font-semibold tracking-[-0.02em] text-foreground">Kitchen policies (agent uses these)</h3>
               </div>
               <p className="text-xs text-muted-foreground">Delivery, pickup, and cancellation rules are shared with buyers via your AI assistant.</p>
               
@@ -535,18 +535,18 @@ export default function DashboardSettings() {
               </div>
 
               {allowPickup && (
-                <label className="block text-xs font-semibold text-[#746876] uppercase tracking-wider">
+                <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                   Pickup address (shown to buyers)
                   <input
                     value={pickupAddress}
                     onChange={(e) => setPickupAddress(e.target.value)}
                     placeholder="e.g. House 12, Street 5, Gulberg III, Lahore"
-                    className="mt-1.5 w-full min-h-11 rounded-xl border border-[#dfd1c4] bg-[#fffaf6] px-3.5 text-sm text-[#241629] normal-case outline-none transition focus:border-[#c24f7a]/60 focus:ring-4 focus:ring-[#c24f7a]/10"
+                    className="mt-1.5 w-full min-h-11 rounded-xl border border-border bg-card px-3.5 text-sm text-foreground normal-case outline-none transition focus:border-secondary/60 focus:ring-4 focus:ring-secondary/10"
                   />
                 </label>
               )}
 
-              <div className="pt-2 border-t border-[#dfd1c4]/50">
+              <div className="pt-2 border-t border-border/50">
                 <label className="flex items-center gap-2 text-sm font-semibold cursor-pointer">
                   <input type="checkbox" checked={cancellationAllowed} onChange={(e) => setCancellationAllowed(e.target.checked)} className="rounded text-primary" />
                   Allow order cancellations
@@ -554,19 +554,19 @@ export default function DashboardSettings() {
               </div>
 
               {cancellationAllowed && (
-                <label className="block text-xs font-semibold text-[#746876] uppercase tracking-wider max-w-xs">
+                <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider max-w-xs">
                   Cancel at least how many hours before delivery?
                   <input
                     type="number"
                     min={0}
                     value={cancellationHoursBefore}
                     onChange={(e) => setCancellationHoursBefore(e.target.value)}
-                    className="mt-1.5 w-full min-h-11 rounded-xl border border-[#dfd1c4] bg-[#fffaf6] px-3.5 text-sm text-[#241629] normal-case outline-none transition focus:border-[#c24f7a]/60 focus:ring-4 focus:ring-[#c24f7a]/10"
+                    className="mt-1.5 w-full min-h-11 rounded-xl border border-border bg-card px-3.5 text-sm text-foreground normal-case outline-none transition focus:border-secondary/60 focus:ring-4 focus:ring-secondary/10"
                   />
                 </label>
               )}
 
-              <label className="block text-xs font-semibold text-[#746876] uppercase tracking-wider">
+              <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                 Cancellation policy (plain language)
                 <textarea
                   rows={3}
@@ -580,10 +580,10 @@ export default function DashboardSettings() {
 
             {/* Staff & Team */}
             {bakerId > 0 && (
-              <div className="rounded-2xl border border-[#dfd1c4] bg-white/70 p-5 shadow-sm space-y-4">
+              <div className="rounded-2xl border border-border bg-white/70 p-5 shadow-sm space-y-4">
                 <div className="flex items-center gap-2 border-b border-border/50 pb-2">
                   <Users className="w-5 h-5 text-primary" />
-                  <h3 className="font-serif text-xl font-semibold tracking-[-0.02em] text-[#241629]">Staff & Team Access</h3>
+                  <h3 className="font-serif text-xl font-semibold tracking-[-0.02em] text-foreground">Staff & Team Access</h3>
                 </div>
                 <TeamAccessPanel bakerId={bakerId} />
               </div>
@@ -591,16 +591,16 @@ export default function DashboardSettings() {
 
             {/* Subscription & Billing */}
             {baker && (
-              <div className="rounded-2xl border border-[#dfd1c4] bg-white/70 p-5 shadow-sm space-y-4">
+              <div className="rounded-2xl border border-border bg-white/70 p-5 shadow-sm space-y-4">
                 <div className="flex items-center gap-2 border-b border-border/50 pb-2">
                   <Zap className="w-5 h-5 text-primary" />
-                  <h3 className="font-serif text-xl font-semibold tracking-[-0.02em] text-[#241629]">Subscription & Billing</h3>
+                  <h3 className="font-serif text-xl font-semibold tracking-[-0.02em] text-foreground">Subscription & Billing</h3>
                 </div>
                 <div>
                   <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Your package</p>
                   <div className="mt-2 flex items-center gap-2">
                     <PlanBadge planId={baker.subscriptionPlan} />
-                    <span className="text-sm text-[#241629] font-semibold">
+                    <span className="text-sm text-foreground font-semibold">
                       {getPlanById(baker.subscriptionPlan)?.tagline}
                     </span>
                   </div>
@@ -615,7 +615,7 @@ export default function DashboardSettings() {
                     const plan = getPlanById(baker.subscriptionPlan) ?? getPlanById("free")!;
                     const price = displayPrice(plan, FOUNDER_OFFER_ACTIVE ? "quarterly" : "monthly");
                     return (
-                      <div className="mt-3 space-y-2 border-t border-[#dfd1c4]/40 pt-3">
+                      <div className="mt-3 space-y-2 border-t border-border/40 pt-3">
                         {plan.monthlyPkr > 0 && (
                           <p className="text-sm font-semibold text-foreground">
                             {price.primary} <span className="font-normal text-muted-foreground">{price.suffix}</span>
@@ -644,11 +644,11 @@ export default function DashboardSettings() {
         </div>
 
         {/* Big save changes button at bottom */}
-        <div className="mt-6 border-t border-[#dfd1c4]/60 pt-6">
+        <div className="mt-6 border-t border-border/60 pt-6">
           <button
             onClick={handleSave}
             disabled={updateBaker.isPending}
-            className="w-full min-h-12 rounded-xl bg-[#632a73] px-6 text-sm font-bold text-white shadow-md transition hover:bg-[#542261] disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
+            className="w-full min-h-12 rounded-xl bg-primary px-6 text-sm font-bold text-white shadow-md transition hover:bg-[#542261] disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
           >
             {updateBaker.isPending ? "Saving..." : "Save All Changes"}
           </button>

@@ -45,7 +45,7 @@ export default function BakerForgotPassword() {
 
         {sent ? (
           <div className="space-y-4">
-            <p className="text-sm font-medium text-[#382b43]">
+            <p className="text-sm font-medium text-foreground">
               If a Sweet Tooth account exists with that email address, you will receive a password reset link shortly.
             </p>
             <Link href="/dashboard/login" className="inline-flex h-12 w-full items-center justify-center rounded-xl bg-primary text-sm font-bold text-white shadow-lg shadow-primary/15 hover:bg-primary/90">
@@ -55,7 +55,7 @@ export default function BakerForgotPassword() {
         ) : (
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label htmlFor="forgot-email" className="mb-2 block text-sm font-bold text-[#382b43]">Email address</label>
+              <label htmlFor="forgot-email" className="mb-2 block text-sm font-bold text-foreground">Email address</label>
               <div className="relative">
                 <Mail className="absolute left-3.5 top-4 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -65,7 +65,7 @@ export default function BakerForgotPassword() {
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
                   autoComplete="email"
-                  className="h-12 rounded-xl border-[#ded6ca] bg-white pl-10 text-sm shadow-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/15"
+                  className="h-12 rounded-xl border-border bg-white pl-10 text-sm shadow-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/15"
                   required
                 />
               </div>

@@ -81,7 +81,7 @@ export default function BakerResetPassword() {
         ) : (
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label htmlFor="reset-password" className="mb-2 block text-sm font-bold text-[#382b43]">New password</label>
+              <label htmlFor="reset-password" className="mb-2 block text-sm font-bold text-foreground">New password</label>
               <div className="relative">
                 <Lock className="absolute left-3.5 top-4 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -92,14 +92,14 @@ export default function BakerResetPassword() {
                   onChange={(event) => setPassword(event.target.value)}
                   autoComplete="new-password"
                   minLength={12}
-                  className="h-12 rounded-xl border-[#ded6ca] bg-white pl-10 text-sm shadow-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/15"
+                  className="h-12 rounded-xl border-border bg-white pl-10 text-sm shadow-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/15"
                   required
                 />
               </div>
             </div>
 
             <div>
-              <label htmlFor="confirm-password" className="mb-2 block text-sm font-bold text-[#382b43]">Confirm new password</label>
+              <label htmlFor="confirm-password" className="mb-2 block text-sm font-bold text-foreground">Confirm new password</label>
               <div className="relative">
                 <Lock className="absolute left-3.5 top-4 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -110,7 +110,7 @@ export default function BakerResetPassword() {
                   onChange={(event) => setConfirmPassword(event.target.value)}
                   autoComplete="new-password"
                   minLength={12}
-                  className="h-12 rounded-xl border-[#ded6ca] bg-white pl-10 text-sm shadow-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/15"
+                  className="h-12 rounded-xl border-border bg-white pl-10 text-sm shadow-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/15"
                   required
                 />
               </div>

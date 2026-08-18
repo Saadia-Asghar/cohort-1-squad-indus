@@ -21,7 +21,7 @@ function AuthField({
   return (
     <div>
       <div className="flex items-center justify-between">
-        <label htmlFor={id} className="mb-2 block text-sm font-bold text-[#382b43]">{label}</label>
+        <label htmlFor={id} className="mb-2 block text-sm font-bold text-foreground">{label}</label>
         {labelRight && <div className="mb-2">{labelRight}</div>}
       </div>
       <div className="relative">
@@ -29,7 +29,7 @@ function AuthField({
         <Input
           id={id}
           {...props}
-          className={`h-12 rounded-xl border-[#ded6ca] bg-white text-sm shadow-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/15 ${Icon ? "pl-10" : ""}`}
+          className={`h-12 rounded-xl border-border bg-white text-sm shadow-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/15 ${Icon ? "pl-10" : ""}`}
         />
       </div>
     </div>
@@ -49,8 +49,8 @@ function AuthError({ message }: { message: string }) {
 function GoogleDivider() {
   return (
     <div className="relative pt-3 text-center">
-      <span className="absolute inset-x-0 top-6 border-t border-[#ded6ca]" />
-      <span className="relative bg-[#f8f5ef] px-3 text-xs font-semibold text-muted-foreground">or</span>
+      <span className="absolute inset-x-0 top-6 border-t border-border" />
+      <span className="relative bg-background px-3 text-xs font-semibold text-muted-foreground">or</span>
     </div>
   );
 }
@@ -195,7 +195,7 @@ export default function BakerLogin({ initialTab = "login" }: { initialTab?: "log
           {isFirebaseConfigured() && (
             <div>
               <GoogleDivider />
-              <button type="button" onClick={() => void continueWithGoogle(false)} disabled={loading} className="mt-4 h-12 w-full rounded-xl border border-[#ded6ca] bg-white px-4 text-sm font-bold text-[#382b43] transition-colors hover:border-primary/40 hover:bg-primary/5 disabled:opacity-50">Continue with Google</button>
+              <button type="button" onClick={() => void continueWithGoogle(false)} disabled={loading} className="mt-4 h-12 w-full rounded-xl border border-border bg-white px-4 text-sm font-bold text-foreground transition-colors hover:border-primary/40 hover:bg-primary/5 disabled:opacity-50">Continue with Google</button>
             </div>
           )}
           <div className="pt-1 text-center">
@@ -226,7 +226,7 @@ export default function BakerLogin({ initialTab = "login" }: { initialTab?: "log
           {isFirebaseConfigured() && (
             <div>
               <GoogleDivider />
-              <button type="button" onClick={() => void continueWithGoogle(true)} disabled={loading} className="mt-4 h-12 w-full rounded-xl border border-[#ded6ca] bg-white px-4 text-sm font-bold text-[#382b43] transition-colors hover:border-primary/40 hover:bg-primary/5 disabled:opacity-50">Create account with Google</button>
+              <button type="button" onClick={() => void continueWithGoogle(true)} disabled={loading} className="mt-4 h-12 w-full rounded-xl border border-border bg-white px-4 text-sm font-bold text-foreground transition-colors hover:border-primary/40 hover:bg-primary/5 disabled:opacity-50">Create account with Google</button>
             </div>
           )}
         </TabsContent>

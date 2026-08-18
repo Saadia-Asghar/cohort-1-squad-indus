@@ -266,10 +266,10 @@ export default function AgentHub() {
 
   return (
     <DashboardLayout>
-      <div className="mx-auto min-h-screen max-w-[1480px] overflow-x-hidden bg-[#fbf6ee] px-4 py-5 text-[#241629] sm:px-6 lg:px-7">
-        <header className="flex flex-col gap-5 border-b border-[#dfd1c4] pb-5 xl:flex-row xl:items-end xl:justify-between">
+      <div className="mx-auto min-h-screen max-w-[1480px] overflow-x-hidden bg-background px-4 py-5 text-foreground sm:px-6 lg:px-7">
+        <header className="flex flex-col gap-5 border-b border-border pb-5 xl:flex-row xl:items-end xl:justify-between">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#c24f7a]">
+            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-secondary">
               Customer assistant
             </p>
 
@@ -277,21 +277,21 @@ export default function AgentHub() {
               Agent Hub
             </h1>
 
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-[#746876]">
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">
               Test your shop assistant, connect customer channels and decide when a conversation needs your attention.
             </p>
           </div>
 
           <Link
             href={`/bakers/${bakerId}`}
-            className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-[#dfd1c4] bg-[#fffaf6] px-4 text-sm font-semibold text-[#632a73] transition hover:bg-white sm:w-fit"
+            className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-border bg-card px-4 text-sm font-semibold text-primary transition hover:bg-white sm:w-fit"
           >
             <ExternalLink className="h-4 w-4" />
             Preview customer view
           </Link>
         </header>
 
-        <div className="grid border-b border-[#dfd1c4] sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid border-b border-border sm:grid-cols-2 xl:grid-cols-4">
           <StatusPill
             label="Shop assistant"
             value={merged.agentActive !== false ? "On" : "Off"}
@@ -315,7 +315,7 @@ export default function AgentHub() {
         </div>
 
         {/* Tab bar */}
-        <div className="mt-5 flex gap-2 overflow-x-auto rounded-2xl border border-[#dfd1c4] bg-white/45 p-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="mt-5 flex gap-2 overflow-x-auto rounded-2xl border border-border bg-white/45 p-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {tabs.map(t => {
             const Icon = t.icon;
             return (
@@ -324,8 +324,8 @@ export default function AgentHub() {
                 onClick={() => setActiveTab(t.id)}
                 className={`inline-flex min-h-11 shrink-0 items-center gap-2 rounded-xl px-4 text-xs font-semibold transition whitespace-nowrap ${
                   activeTab === t.id
-                    ? "bg-[#632a73] text-white shadow-sm"
-                    : "text-[#746876] hover:bg-[#fffaf6] hover:text-[#241629]"
+                    ? "bg-primary text-white shadow-sm"
+                    : "text-muted-foreground hover:bg-card hover:text-foreground"
                 }`}
               >
                 <Icon className="w-4 h-4" />
@@ -414,10 +414,10 @@ export default function AgentHub() {
                 placeholder={`Assalam-o-Alaikum! Welcome to your baker's shop. How can I help you today?`}
                 className="w-full px-3 py-2 border border-border rounded-lg bg-background text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/30"
               />
-            </div>        <details className="overflow-hidden rounded-2xl border border-[#dfd1c4] bg-white/45">
+            </div>        <details className="overflow-hidden rounded-2xl border border-border bg-white/45">
           <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 [&::-webkit-details-marker]:hidden">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#c24f7a]">
+              <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-secondary">
                 Optional controls
               </p>
 
@@ -425,15 +425,15 @@ export default function AgentHub() {
                 Advanced settings
               </h2>
 
-              <p className="mt-1 text-xs text-[#746876]">
+              <p className="mt-1 text-xs text-muted-foreground">
                 Languages, delivery areas, saved replies and assistant safety rules.
               </p>
             </div>
 
-            <Settings className="h-5 w-5 shrink-0 text-[#632a73]" />
+            <Settings className="h-5 w-5 shrink-0 text-primary" />
           </summary>
 
-          <div className="space-y-4 border-t border-[#dfd1c4] p-4 sm:p-5">
+          <div className="space-y-4 border-t border-border p-4 sm:p-5">
 
 
             <div className="p-5 rounded-xl border border-border bg-card shadow-sm space-y-3">
@@ -759,7 +759,7 @@ export default function AgentHub() {
             {/* Waitlist option */}
             <div className="p-5 rounded-xl border border-border bg-card shadow-sm space-y-4">
               <h3 className="font-semibold flex items-center gap-2">
-                <Clock className="w-4 h-4 text-[#c24f7a]" />
+                <Clock className="w-4 h-4 text-secondary" />
                 Join the WhatsApp Agent Waitlist
               </h3>
               <p className="text-xs text-muted-foreground">
@@ -797,7 +797,7 @@ export default function AgentHub() {
                   <button
                     type="submit"
                     disabled={joiningWaitlist}
-                    className="min-h-10 px-4 rounded-lg bg-[#632a73] font-semibold text-white text-xs hover:bg-[#542261] disabled:opacity-50"
+                    className="min-h-10 px-4 rounded-lg bg-primary font-semibold text-white text-xs hover:bg-[#542261] disabled:opacity-50"
                   >
                     {joiningWaitlist ? "Joining..." : "Join Waitlist"}
                   </button>
@@ -1058,7 +1058,7 @@ function StatusPill({
   ok: boolean;
 }) {
   return (
-    <div className="border-[#dfd1c4] px-4 py-5 sm:border-r sm:last:border-r-0 lg:px-5">
+    <div className="border-border px-4 py-5 sm:border-r sm:last:border-r-0 lg:px-5">
       <div className="flex items-center gap-2">
         <span
           className={`h-2.5 w-2.5 rounded-full ${
@@ -1066,14 +1066,14 @@ function StatusPill({
           }`}
         />
 
-        <p className="text-[10px] font-bold uppercase tracking-[0.09em] text-[#746876]">
+        <p className="text-[10px] font-bold uppercase tracking-[0.09em] text-muted-foreground">
           {label}
         </p>
       </div>
 
       <p
         className={`mt-2 font-mono text-lg font-semibold ${
-          ok ? "text-[#168a55]" : "text-[#241629]"
+          ok ? "text-[#168a55]" : "text-foreground"
         }`}
       >
         {value}

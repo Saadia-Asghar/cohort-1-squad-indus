@@ -10,8 +10,8 @@ export function GuestMenuShell({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-[#f8f5ef] text-[#241629]">
-      <header className="border-b border-[#eadfce] bg-white">
+    <div className="min-h-screen bg-background font-sans text-foreground">
+      <header className="border-b border-border bg-card">
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-3">
           <p className="truncate font-serif text-lg font-bold">{bakerName || "Bakery menu"}</p>
           <nav className="flex shrink-0 items-center gap-4 text-sm font-semibold">
