@@ -52,6 +52,8 @@ export const bakersTable = sweetTooth.table("bakers", {
     pendingPlanId?: string;
     billingRequestedAt?: string;
     billingNote?: string | null;
+    lastPlanActivatedAt?: string;
+    lastPlanActivationNote?: string | null;
   }>().default({}),
   whatsappAgentEnabled: boolean("whatsapp_agent_enabled").notNull().default(false),
   instagramAgentEnabled: boolean("instagram_agent_enabled").notNull().default(false),

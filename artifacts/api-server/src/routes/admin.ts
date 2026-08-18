@@ -374,7 +374,7 @@ router.post("/admin/activate-plan", async (req, res): Promise<void> => {
     return;
   }
 
-  const prevConfig = (baker.agentConfig ?? {}) as Record<string, unknown>;
+  const prevConfig = baker.agentConfig ?? {};
   const { pendingPlanId: _p, billingRequestedAt: _t, billingNote: _n, ...rest } = prevConfig;
   const nextConfig = {
     ...rest,
