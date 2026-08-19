@@ -4,6 +4,8 @@ import { Link } from "wouter";
 import {
   BAKER_SIZE_OPTIONS,
   CHANNEL_BUNDLE_OPTIONS,
+  bakerMonthCostLabel,
+  estimatePlanCosts,
   formatPkr,
   getOffersForFilters,
   getPlanById,
@@ -32,6 +34,7 @@ export function PlanPicker({ registerHref = "/dashboard/register" }: { registerH
 
   const offer = getOffersForFilters(suggestion.size, suggestion.channelBundle)[0];
   const plan = getPlanById(suggestion.planId)!;
+  const estimate = estimatePlanCosts(plan);
   const sizeLabel = BAKER_SIZE_OPTIONS.find((o) => o.value === suggestion.size)?.label;
   const channelLabel = CHANNEL_BUNDLE_OPTIONS.find((o) => o.value === suggestion.channelBundle)?.label;
 
@@ -92,8 +95,16 @@ export function PlanPicker({ registerHref = "/dashboard/register" }: { registerH
       </div>
 
       <div className="mt-6 rounded-xl border border-border bg-muted/40 p-5">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-sm text-muted-foreground">Suggested:</span>
+        <p className="text-xs font-bold uppercase tracking-[0.16em] text-primary">This month you get</p>
+        {offer ? (
+          <ul className="mt-2 space-y-1 text-sm">
+            {estimate.included.map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+          </ul>
+        ) : null}
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          <span className="text-sm text-muted-foreground">That’s this plan:</span>
           <span className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-bold text-primary">
             {offer?.name ?? plan.name}
           </span>
@@ -115,11 +126,21 @@ export function PlanPicker({ registerHref = "/dashboard/register" }: { registerH
                 Included: <strong>{offer.chatNote}</strong>
               </div>
               <div>
-                From: <strong>{formatPkr(offer.monthlyPkr)}</strong>/mo
+                Your month: <strong>{bakerMonthCostLabel(plan)}</strong>
               </div>
             </>
           )}
         </div>
+        <dl className="mt-4 grid gap-1 text-xs text-muted-foreground sm:grid-cols-2">
+          <div className="flex justify-between gap-3 rounded-lg bg-background/80 px-3 py-2">
+            <dt>Our cost on localhost</dt>
+            <dd className="font-semibold text-foreground">{formatPkr(estimate.localhostPkr)}</dd>
+          </div>
+          <div className="flex justify-between gap-3 rounded-lg bg-background/80 px-3 py-2">
+            <dt>Our cost on production</dt>
+            <dd className="font-semibold text-foreground">~{formatPkr(estimate.productionPkr)}</dd>
+          </div>
+        </dl>
         <div className="mt-4 flex flex-wrap items-center gap-3">
           <Link
             href="/waitlist"

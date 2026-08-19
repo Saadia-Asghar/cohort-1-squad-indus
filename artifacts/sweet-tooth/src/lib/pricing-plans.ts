@@ -20,6 +20,7 @@ export interface PricingPlan {
   extraReplyPkr: number;
   aiRepliesPerMonth: number;
   whatsappConversationsPerMonth: number;
+  instagramConversationsPerMonth: number;
   maxOrdersPerMonth: number;
   maxProducts: number | null;
   staffLogins: number;
@@ -406,6 +407,7 @@ export const PRICING_PLANS: PricingPlan[] = [
     extraReplyPkr: 15,
     aiRepliesPerMonth: 50,
     whatsappConversationsPerMonth: 0,
+    instagramConversationsPerMonth: 0,
     maxOrdersPerMonth: 20,
     maxProducts: 8,
     staffLogins: 1,
@@ -436,6 +438,7 @@ export const PRICING_PLANS: PricingPlan[] = [
     extraReplyPkr: 10,
     aiRepliesPerMonth: 250,
     whatsappConversationsPerMonth: 40,
+    instagramConversationsPerMonth: 0,
     maxOrdersPerMonth: 80,
     maxProducts: 25,
     staffLogins: 1,
@@ -468,6 +471,7 @@ export const PRICING_PLANS: PricingPlan[] = [
     extraReplyPkr: 8,
     aiRepliesPerMonth: 800,
     whatsappConversationsPerMonth: 150,
+    instagramConversationsPerMonth: 80,
     maxOrdersPerMonth: 300,
     maxProducts: null,
     staffLogins: 1,
@@ -499,6 +503,7 @@ export const PRICING_PLANS: PricingPlan[] = [
     extraReplyPkr: 6,
     aiRepliesPerMonth: 1500,
     whatsappConversationsPerMonth: 350,
+    instagramConversationsPerMonth: 200,
     maxOrdersPerMonth: 600,
     maxProducts: null,
     staffLogins: 2,
@@ -529,9 +534,9 @@ export const MARKET_COMPARISON = {
 };
 
 export const PRICING_COST_BASIS = [
-  "Hosting, database, and auth run 24/7 even when you sleep — unlike a free Instagram page.",
-  "Each agent reply may use menu rules, memory, RAG search, or AI fallback — heavy chatters cost real API fees.",
-  "WhatsApp / Instagram messages are billed by Meta; chat caps protect your margin and ours.",
+  "Localhost costs us PKR 0 — Node, Postgres, and local embeddings run on the laptop. No Meta send, no Vercel invoice.",
+  "Production hosting is still mostly free-tier (Vercel Hobby + managed Postgres). If we leave free tiers at ~50 bakeries, shared stack is about PKR 330 per bakery (Vercel Pro + Neon + Resend).",
+  "Each agent reply on Gemini Flash is a fraction of a rupee. WhatsApp Pakistan utility messages are USD 0.01 each outside the free 24-hour window (Meta rate card, 2026).",
   "Listing sites charge PKR 750–1,000/mo for photos only. We charge for agents that answer and take orders.",
 ];
 
@@ -709,4 +714,111 @@ export function suggestPlan(input: {
 }
 
 export const UNIT_ECONOMICS_NOTE =
-  "Offers scale by bakery size and which agents you activate. Prepaid 6-month / yearly rates cover hosting, DB, auth, and Meta chat costs with margin.";
+  "Each card shows this month’s included bundle first, then the plan name and price. Localhost is PKR 0 to run; production cost is Gemini + Meta chats + a share of hosting once we leave free tiers.";
+
+/** Planning FX for vendor USD invoices. Rounded; not a live rate. */
+export const PKR_PER_USD = 280;
+export const COST_ESTIMATE_AS_OF = "August 2026";
+/** Shared Vercel Pro + Neon + Resend if we leave free tiers, split across paying bakeries. */
+const SCALED_STACK_USD = 20 + 19 + 20;
+const SCALED_BAKERY_COUNT = 50;
+/** Gemini 1.5 Flash-class reply with a little RAG overhead. */
+const AI_USD_PER_REPLY = 0.0002;
+/** Pakistan WhatsApp/Instagram utility message (Meta rate card, 2026). */
+const META_UTILITY_USD = 0.01;
+/** Utility/reminder messages that fall outside the free 24-hour service window. */
+const META_MSGS_OUTSIDE_WINDOW = 2;
+
+export type PlanCostLine = { label: string; pkr: number; note: string };
+
+export type PlanCostEstimate = {
+  included: string[];
+  bakerSubscriptionPkr: number;
+  bakerCommissionUpToPkr: number;
+  bakerMonthUpToPkr: number;
+  localhostPkr: number;
+  productionPkr: number;
+  productionLines: PlanCostLine[];
+};
+
+export function monthlyIncludedLines(plan: PricingPlan): string[] {
+  const lines = [
+    plan.maxProducts == null
+      ? "Unlimited menu items"
+      : `Up to ${plan.maxProducts} menu items`,
+    `Up to ${plan.maxOrdersPerMonth.toLocaleString("en-PK")} orders`,
+    `${plan.aiRepliesPerMonth.toLocaleString("en-PK")} agent replies`,
+  ];
+  if (plan.whatsappConversationsPerMonth > 0) {
+    lines.push(`${plan.whatsappConversationsPerMonth.toLocaleString("en-PK")} WhatsApp chats`);
+  } else {
+    lines.push("Web chat only — no WhatsApp agent");
+  }
+  if (plan.instagramConversationsPerMonth > 0) {
+    lines.push(`${plan.instagramConversationsPerMonth.toLocaleString("en-PK")} Instagram chats`);
+  }
+  if (plan.staffLogins > 1) {
+    lines.push(`${plan.staffLogins} dashboard logins`);
+  }
+  return lines;
+}
+
+function usdToPkr(usd: number): number {
+  return Math.round(usd * PKR_PER_USD);
+}
+
+export function estimatePlanCosts(plan: PricingPlan): PlanCostEstimate {
+  const aiPkr = usdToPkr(plan.aiRepliesPerMonth * AI_USD_PER_REPLY);
+  const whatsappPkr = usdToPkr(
+    plan.whatsappConversationsPerMonth * META_MSGS_OUTSIDE_WINDOW * META_UTILITY_USD,
+  );
+  const instagramPkr = usdToPkr(
+    plan.instagramConversationsPerMonth * META_MSGS_OUTSIDE_WINDOW * META_UTILITY_USD,
+  );
+  const sharedHostingPkr = usdToPkr(SCALED_STACK_USD / SCALED_BAKERY_COUNT);
+  const productionLines: PlanCostLine[] = [
+    {
+      label: "Agent replies (Gemini)",
+      pkr: aiPkr,
+      note: "Flash-class model at this plan’s reply cap",
+    },
+    {
+      label: "WhatsApp utility messages",
+      pkr: whatsappPkr,
+      note: "Pakistan USD 0.01/msg outside the free 24-hour window",
+    },
+    {
+      label: "Instagram utility messages",
+      pkr: instagramPkr,
+      note: "Same Meta utility rate as WhatsApp when DMs are included",
+    },
+    {
+      label: "Shared hosting (if we leave free tiers)",
+      pkr: sharedHostingPkr,
+      note: `Vercel Pro + Neon + Resend ≈ $${SCALED_STACK_USD}/mo ÷ ${SCALED_BAKERY_COUNT} bakeries`,
+    },
+  ].filter((line) => line.pkr > 0 || line.label.startsWith("Shared"));
+
+  const productionPkr = productionLines.reduce((sum, line) => sum + line.pkr, 0);
+
+  return {
+    included: monthlyIncludedLines(plan),
+    bakerSubscriptionPkr: plan.monthlyPkr,
+    bakerCommissionUpToPkr: plan.commissionCapPkr,
+    bakerMonthUpToPkr: plan.monthlyPkr + plan.commissionCapPkr,
+    localhostPkr: 0,
+    productionPkr,
+    productionLines,
+  };
+}
+
+export function bakerMonthCostLabel(plan: PricingPlan): string {
+  const estimate = estimatePlanCosts(plan);
+  if (estimate.bakerSubscriptionPkr === 0) {
+    return "PKR 0 plan · 0% commission";
+  }
+  if (estimate.bakerCommissionUpToPkr <= 0) {
+    return `${formatPkr(estimate.bakerSubscriptionPkr)} / month`;
+  }
+  return `${formatPkr(estimate.bakerSubscriptionPkr)} plan + up to ${formatPkr(estimate.bakerCommissionUpToPkr)} commission`;
+}

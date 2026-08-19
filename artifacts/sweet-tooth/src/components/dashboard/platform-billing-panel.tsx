@@ -5,9 +5,13 @@ import {
 } from "@workspace/api-client-react";
 import { Check, Copy, MessageCircle, Sparkles } from "lucide-react";
 import {
+  COST_ESTIMATE_AS_OF,
   FOUNDER_OFFER_ACTIVE,
   PRICING_PLANS,
+  bakerMonthCostLabel,
   displayPrice,
+  estimatePlanCosts,
+  formatPkr,
   getPlanById,
   type PricingPlan,
 } from "@/lib/pricing-plans";
@@ -143,11 +147,21 @@ export function PlatformBillingPanel({
               className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-background px-4 py-3"
             >
               <div>
-                <p className="font-semibold text-foreground">{plan.name}</p>
+                <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-primary">This month you get</p>
+                <ul className="mt-1 text-xs text-muted-foreground">
+                  {estimatePlanCosts(plan).included.slice(0, 4).map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+                <p className="mt-2 font-semibold text-foreground">That’s {plan.name}</p>
                 <p className="text-xs text-muted-foreground">{plan.tagline}</p>
                 <p className="mt-1 text-sm font-medium">
                   {price.primary}
                   <span className="font-normal text-muted-foreground"> {price.suffix}</span>
+                </p>
+                <p className="text-xs text-muted-foreground">{bakerMonthCostLabel(plan)}</p>
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  Our cost: localhost {formatPkr(0)} · production ~{formatPkr(estimatePlanCosts(plan).productionPkr)} ({COST_ESTIMATE_AS_OF})
                 </p>
               </div>
               <button

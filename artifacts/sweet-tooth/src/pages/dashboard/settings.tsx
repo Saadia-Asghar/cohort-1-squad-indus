@@ -5,7 +5,7 @@ import { useGetBaker, useUpdateBaker, getGetBakerQueryKey } from "@workspace/api
 import { useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
 import { Copy, ExternalLink, Facebook, Instagram, QrCode, Share2, Sparkles, ArrowRight, Store, CreditCard, Calendar, Users, Zap, KeyRound } from "lucide-react";
-import { getPlanById, FOUNDER_OFFER_ACTIVE, formatExtraReplyPkr, getFounderOfferLines, displayPrice } from "@/lib/pricing-plans";
+import { getPlanById, FOUNDER_OFFER_ACTIVE, formatExtraReplyPkr, displayPrice, bakerMonthCostLabel, estimatePlanCosts, formatPkr } from "@/lib/pricing-plans";
 import { PlatformBillingPanel } from "@/components/dashboard/platform-billing-panel";
 import { TeamAccessPanel } from "@/components/dashboard/team-access-panel";
 import {
@@ -763,18 +763,26 @@ export default function DashboardSettings() {
                   {(() => {
                     const plan = getPlanById(baker.subscriptionPlan) ?? getPlanById("free")!;
                     const price = displayPrice(plan, FOUNDER_OFFER_ACTIVE ? "quarterly" : "monthly");
+                    const estimate = estimatePlanCosts(plan);
                     return (
                       <div className="mt-3 space-y-2 border-t border-border/40 pt-3">
+                        <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-primary">This month you get</p>
+                        <ul className="text-xs text-muted-foreground">
+                          {estimate.included.map((item) => (
+                            <li key={item}>{item}</li>
+                          ))}
+                        </ul>
+                        <p className="text-sm font-semibold text-foreground">That’s {plan.name}</p>
                         {plan.monthlyPkr > 0 && (
                           <p className="text-sm font-semibold text-foreground">
                             {price.primary} <span className="font-normal text-muted-foreground">{price.suffix}</span>
                           </p>
                         )}
                         <p className="text-xs text-muted-foreground">
-                          {plan.commissionPercent > 0
-                            ? `${plan.commissionPercent}% commission on checkout orders (max ${plan.commissionCapPkr.toLocaleString()} PKR/mo) · `
-                            : "0% commission · "}
-                          Replies: {plan.limits.aiReplies} replies/mo included · {plan.limits.whatsappChats}
+                          Your month: {bakerMonthCostLabel(plan)}. Extra replies {formatExtraReplyPkr(plan.extraReplyPkr)} each.
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Our cost at this quota: localhost {formatPkr(estimate.localhostPkr)} · production ~{formatPkr(estimate.productionPkr)}.
                         </p>
                       </div>
                     );
