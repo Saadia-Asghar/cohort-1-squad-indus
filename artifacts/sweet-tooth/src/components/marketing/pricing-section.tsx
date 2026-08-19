@@ -3,7 +3,6 @@ import { ArrowRight, CheckCircle2 } from "lucide-react";
 import { PlanPicker } from "@/components/marketing/plan-picker";
 import {
   PRICING_PLANS,
-  bakerMonthCostLabel,
   displayPrice,
   estimatePlanCosts,
   type PlanId,
@@ -46,9 +45,6 @@ function PlanOfferCard({ plan }: { plan: PricingPlan }) {
           <span className={`ml-1 text-sm font-medium ${featured ? "text-white/75" : "text-muted-foreground"}`}>
             {price.suffix}
           </span>
-        </p>
-        <p className={`mt-2 text-sm ${featured ? "text-white/85" : "text-foreground"}`}>
-          Your month: {bakerMonthCostLabel(plan)}
         </p>
       </div>
 

@@ -4,7 +4,6 @@ import { Link } from "wouter";
 import {
   BAKER_SIZE_OPTIONS,
   CHANNEL_BUNDLE_OPTIONS,
-  bakerMonthCostLabel,
   estimatePlanCosts,
   getOffersForFilters,
   getPlanById,
@@ -126,9 +125,6 @@ export function PlanPicker({ registerHref = "/dashboard/register" }: { registerH
             <>
               <div>
                 Included: <strong>{offer.chatNote}</strong>
-              </div>
-              <div>
-                Your month: <strong>{bakerMonthCostLabel(plan)}</strong>
               </div>
             </>
           )}

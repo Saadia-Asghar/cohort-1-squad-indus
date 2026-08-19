@@ -110,7 +110,7 @@ export const BILLING_MULTIPLIERS: Record<"monthly" | "semiannual" | "yearly", { 
 export const FOUNDER_OFFER_ACTIVE = true;
 export const FOUNDER_OFFER_LABEL = "Founder rate — first 100 bakeries";
 export const FOUNDER_OFFER_NOTE =
-  "6-month and yearly prepaid lock a lower rate. First month 0% commission on checkout orders. JazzCash / Easypaisa / bank transfer.";
+  "6-month and yearly prepaid lock a lower rate. JazzCash / Easypaisa / bank transfer.";
 
 /**
  * Offers matrix: size × channel.
@@ -423,7 +423,6 @@ export const PRICING_PLANS: PricingPlan[] = [
       "Basic order inbox",
       "Eggless & delivery area settings",
       "Payment proof review (COD / transfer)",
-      "0% commission — you keep full cake price",
     ],
   },
   {
@@ -455,7 +454,6 @@ export const PRICING_PLANS: PricingPlan[] = [
       "Sales analytics & weekly summary",
       "Urdu / Roman Urdu agent mode",
       "WhatsApp agent (capped chats)",
-      "2% checkout commission (invoiced with plan — not auto-deducted; max PKR 450/mo)",
     ],
   },
   {
@@ -488,7 +486,6 @@ export const PRICING_PLANS: PricingPlan[] = [
       "Flash drops & customer broadcast",
       "Khata, inventory & recipe margin tracking",
       "Advance payment WhatsApp reminders",
-      "1.5% checkout commission (invoiced with plan — not auto-deducted; max PKR 750/mo)",
     ],
   },
   {
@@ -519,7 +516,6 @@ export const PRICING_PLANS: PricingPlan[] = [
       "2 dashboard logins (owner + staff)",
       "Highest WhatsApp conversation bundle · Instagram coming soon",
       "Priority support & onboarding call",
-      "1% checkout commission (invoiced with plan — not auto-deducted)",
     ],
   },
 ];
@@ -818,10 +814,7 @@ export function estimatePlanCosts(plan: PricingPlan): PlanCostEstimate {
 export function bakerMonthCostLabel(plan: PricingPlan): string {
   const estimate = estimatePlanCosts(plan);
   if (estimate.bakerSubscriptionPkr === 0) {
-    return "PKR 0 plan · 0% commission";
+    return "PKR 0 / month";
   }
-  if (estimate.bakerCommissionUpToPkr <= 0) {
-    return `${formatPkr(estimate.bakerSubscriptionPkr)} / month`;
-  }
-  return `${formatPkr(estimate.bakerSubscriptionPkr)} plan + up to ${formatPkr(estimate.bakerCommissionUpToPkr)} commission`;
+  return `${formatPkr(estimate.bakerSubscriptionPkr)} / month`;
 }
