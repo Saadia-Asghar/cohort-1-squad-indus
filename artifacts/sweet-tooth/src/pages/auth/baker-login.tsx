@@ -251,7 +251,7 @@ export default function BakerLogin({ initialTab = "login" }: { initialTab?: "log
           </div>
           {selectedPlan && selectedPlan.id !== "free" && (
             <div className="rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-muted-foreground">
-              You selected <strong className="text-primary">{selectedPlan.name}</strong>. Start free and upgrade after your first orders. See the <Link href="/#pricing" className="font-semibold text-primary hover:underline">pricing details</Link>.
+              You selected <strong className="text-primary">{selectedPlan.name}</strong>. Start free and upgrade after your first orders. See the <a href="/#pricing" className="font-semibold text-primary hover:underline">pricing details</a>.
             </div>
           )}
           <AuthError message={error} />

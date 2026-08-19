@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type MouseEvent } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Link } from "wouter";
 import {
@@ -9,6 +9,7 @@ import {
   X,
 } from "lucide-react";
 
+import { goToHomeSection, sectionIdFromHref } from "@/lib/home-section-nav";
 import { SUPPORT_EMAIL, whatsappSupportLink } from "@/lib/support";
 
 const navigation = [
@@ -27,6 +28,14 @@ export function BuyerLayout({
 
   function closeMobileMenu() {
     setMobileMenuOpen(false);
+  }
+
+  function onHomeSectionClick(event: MouseEvent<HTMLAnchorElement>, href: string, afterMenuClose = false) {
+    const sectionId = sectionIdFromHref(href);
+    if (!sectionId) return;
+    event.preventDefault();
+    if (afterMenuClose) closeMobileMenu();
+    goToHomeSection(sectionId, { delayMs: afterMenuClose ? 280 : 0 });
   }
 
   return (
@@ -51,6 +60,7 @@ export function BuyerLayout({
               <a
                 key={item.label}
                 href={item.href}
+                onClick={(event) => onHomeSectionClick(event, item.href)}
                 className="text-sm font-semibold text-muted-foreground transition-colors hover:text-primary"
               >
                 {item.label}
@@ -65,7 +75,7 @@ export function BuyerLayout({
             </Link>
           </div>
 
-          <div className="hidden items-center gap-3 sm:flex">
+          <div className="hidden items-center gap-3 lg:flex">
             <Link
               href="/dashboard/login"
               className="px-3 py-2 text-sm font-bold text-foreground transition-colors hover:text-primary"
@@ -95,7 +105,7 @@ export function BuyerLayout({
               mobileMenuOpen ? "Close navigation menu" : "Open navigation menu"
             }
             aria-expanded={mobileMenuOpen}
-            className="flex h-11 w-11 items-center justify-center rounded-xl border border-border bg-white text-foreground shadow-sm sm:hidden"
+            className="flex h-11 w-11 items-center justify-center rounded-xl border border-border bg-white text-foreground shadow-sm lg:hidden"
           >
             {mobileMenuOpen ? (
               <X className="h-5 w-5" />
@@ -112,14 +122,14 @@ export function BuyerLayout({
               animate={{ height: "auto", opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
               transition={{ duration: 0.25 }}
-              className="overflow-hidden border-t border-border bg-background sm:hidden"
+              className="overflow-hidden border-t border-border bg-background lg:hidden"
             >
               <div className="space-y-2 px-4 py-5">
                 {navigation.map((item, index) => (
                   <motion.a
                     key={item.label}
                     href={item.href}
-                    onClick={closeMobileMenu}
+                    onClick={(event) => onHomeSectionClick(event, item.href, true)}
                     initial={{ opacity: 0, x: -12 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: index * 0.04 }}
@@ -217,6 +227,7 @@ export function BuyerLayout({
                 { label: "Pricing", href: "/#pricing" },
                 { label: "FAQ", href: "/#faq" },
               ]}
+              onHomeSectionClick={onHomeSectionClick}
             />
 
             <FooterColumn
@@ -271,6 +282,7 @@ export function BuyerLayout({
 function FooterColumn({
   title,
   links,
+  onHomeSectionClick,
 }: {
   title: string;
   links: Array<{
@@ -278,6 +290,7 @@ function FooterColumn({
     href: string;
     external?: boolean;
   }>;
+  onHomeSectionClick?: (event: MouseEvent<HTMLAnchorElement>, href: string) => void;
 }) {
   return (
     <div>
@@ -292,6 +305,15 @@ function FooterColumn({
               target="_blank"
               rel="noopener noreferrer"
               className="block text-sm text-muted-foreground transition-colors hover:text-primary"
+            >
+              {link.label}
+            </a>
+          ) : sectionIdFromHref(link.href) && onHomeSectionClick ? (
+            <a
+              key={link.label}
+              href={link.href}
+              onClick={(event) => onHomeSectionClick(event, link.href)}
+              className="block min-h-11 py-2 text-sm text-muted-foreground transition-colors hover:text-primary"
             >
               {link.label}
             </a>

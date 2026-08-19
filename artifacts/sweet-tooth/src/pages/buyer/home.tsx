@@ -23,6 +23,7 @@ import {
 
 import { BuyerLayout } from "@/components/layout/buyer-layout";
 import { PricingSection } from "@/components/marketing/pricing-section";
+import { scrollToHomeSection, sectionIdFromHref } from "@/lib/home-section-nav";
 import { WORKSPACE_CAPABILITIES } from "@/lib/workspace-capabilities";
 import { whatsappSupportLink } from "@/lib/support";
 
@@ -91,6 +92,24 @@ const workflow = [
 const capabilities = WORKSPACE_CAPABILITIES;
 
 export default function Home() {
+  useEffect(() => {
+    const jumpToHash = () => {
+      const id = sectionIdFromHref(window.location.hash);
+      if (!id) return;
+      window.setTimeout(() => {
+        scrollToHomeSection(id);
+      }, 80);
+    };
+
+    jumpToHash();
+    window.addEventListener("hashchange", jumpToHash);
+    window.addEventListener("popstate", jumpToHash);
+    return () => {
+      window.removeEventListener("hashchange", jumpToHash);
+      window.removeEventListener("popstate", jumpToHash);
+    };
+  }, []);
+
   return (
     <BuyerLayout>
       <HeroSection />
@@ -848,7 +867,7 @@ function HowItWorksSection() {
   return (
     <section
       id="how-it-works"
-      className="scroll-mt-20 bg-background px-4 py-16 text-foreground sm:px-7 sm:py-20 md:px-10 md:py-28 lg:px-20"
+      className="scroll-mt-24 bg-background px-4 py-16 text-foreground sm:px-7 sm:py-20 md:px-10 md:py-28 lg:px-20"
     >
       <div className="mx-auto max-w-[1380px]">
         <motion.div
@@ -1136,7 +1155,7 @@ function CapabilitiesSection() {
   return (
     <section
       id="features"
-      className="scroll-mt-20 overflow-hidden bg-muted/45 px-4 py-16 text-foreground sm:px-7 sm:py-20 md:px-10 md:py-28 lg:px-20"
+      className="scroll-mt-24 overflow-hidden bg-muted/45 px-4 py-16 text-foreground sm:px-7 sm:py-20 md:px-10 md:py-28 lg:px-20"
     >
       <div className="mx-auto max-w-[1380px]">
         <motion.div
@@ -1703,7 +1722,7 @@ function FAQSection() {
   return (
     <section
       id="faq"
-      className="scroll-mt-20 overflow-hidden bg-background px-4 py-16 text-foreground sm:px-7 sm:py-20 md:px-10 md:py-28 lg:px-20"
+      className="scroll-mt-24 overflow-hidden bg-background px-4 py-16 text-foreground sm:px-7 sm:py-20 md:px-10 md:py-28 lg:px-20"
     >
       <div className="mx-auto grid max-w-[1380px] gap-10 lg:grid-cols-[0.82fr_1.18fr] lg:gap-16">
         <motion.div
