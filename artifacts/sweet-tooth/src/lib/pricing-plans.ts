@@ -524,6 +524,7 @@ export const PRICING_PLANS: PricingPlan[] = [
   },
 ];
 
+/** Internal research only — do not render on baker or buyer pages. */
 export const MARKET_COMPARISON = {
   competitor: "HomeBakersPK",
   listingOnly:
@@ -533,6 +534,7 @@ export const MARKET_COMPARISON = {
     "Sweet Tooth includes an AI order agent + dashboard — start with a 3-day Launch Free trial, then from PKR 1,799/mo.",
 };
 
+/** Internal research only — do not render on baker or buyer pages. */
 export const PRICING_COST_BASIS = [
   "Localhost costs us PKR 0 — Node, Postgres, and local embeddings run on the laptop. No Meta send, no Vercel invoice.",
   "Production hosting is still mostly free-tier (Vercel Hobby + managed Postgres). If we leave free tiers at ~50 bakeries, shared stack is about PKR 330 per bakery (Vercel Pro + Neon + Resend).",
@@ -713,6 +715,7 @@ export function suggestPlan(input: {
   };
 }
 
+/** Internal research only — do not render on baker or buyer pages. */
 export const UNIT_ECONOMICS_NOTE =
   "Each card shows this month’s included bundle first, then the plan name and price. Localhost is PKR 0 to run; production cost is Gemini + Meta chats + a share of hosting once we leave free tiers.";
 

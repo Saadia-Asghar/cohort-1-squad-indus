@@ -2,14 +2,10 @@ import { Link } from "wouter";
 import { ArrowRight, CheckCircle2 } from "lucide-react";
 import { PlanPicker } from "@/components/marketing/plan-picker";
 import {
-  COST_ESTIMATE_AS_OF,
-  PRICING_COST_BASIS,
   PRICING_PLANS,
-  UNIT_ECONOMICS_NOTE,
   bakerMonthCostLabel,
   displayPrice,
   estimatePlanCosts,
-  formatPkr,
   type PlanId,
   type PricingPlan,
 } from "@/lib/pricing-plans";
@@ -56,20 +52,6 @@ function PlanOfferCard({ plan }: { plan: PricingPlan }) {
         </p>
       </div>
 
-      <div className={`mt-4 space-y-1 rounded-xl px-3 py-3 text-xs ${featured ? "bg-white/10" : "bg-muted/60"}`}>
-        <p className="flex items-start justify-between gap-3">
-          <span className={featured ? "text-white/75" : "text-muted-foreground"}>Our cost on localhost</span>
-          <span className="font-semibold">{formatPkr(estimate.localhostPkr)}</span>
-        </p>
-        <p className="flex items-start justify-between gap-3">
-          <span className={featured ? "text-white/75" : "text-muted-foreground"}>Our cost on production</span>
-          <span className="text-right font-semibold">~{formatPkr(estimate.productionPkr)}</span>
-        </p>
-        <p className={featured ? "text-white/65" : "text-muted-foreground"}>
-          At this plan’s monthly cap · {COST_ESTIMATE_AS_OF}
-        </p>
-      </div>
-
       <Link
         href={ctaHref}
         className={`mt-auto inline-flex items-center justify-center gap-2 rounded-md px-4 py-3 text-sm font-bold transition-colors ${
@@ -91,8 +73,10 @@ export function PricingSection({ compact = false }: { compact?: boolean }) {
     <section id="pricing" className="scroll-mt-24 bg-muted px-4 py-16 md:py-20">
       <div className="mx-auto max-w-6xl">
         <div className="mx-auto max-w-2xl text-center">
-          <h2 className="font-serif text-4xl font-bold">This much, this month — then this is the plan</h2>
-          <p className="mt-3 text-muted-foreground">{UNIT_ECONOMICS_NOTE}</p>
+          <h2 className="font-serif text-4xl font-bold">Plans for your kitchen</h2>
+          <p className="mt-3 text-muted-foreground">
+            See what is included this month, then the plan name and price.
+          </p>
         </div>
         <div className={`mx-auto mt-10 grid gap-5 ${compact ? "max-w-4xl md:grid-cols-2" : "lg:grid-cols-2 xl:grid-cols-4"}`}>
           {plans.map((plan) => (
@@ -100,16 +84,6 @@ export function PricingSection({ compact = false }: { compact?: boolean }) {
           ))}
         </div>
         <PlanPicker />
-        <div className="mx-auto mt-8 max-w-3xl rounded-2xl border border-border bg-card/80 p-5 text-sm text-muted-foreground">
-          <p className="font-semibold text-foreground">What these production numbers include</p>
-          <ul className="mt-3 space-y-2">
-            {PRICING_COST_BASIS.map((line) => (
-              <li key={line} className="leading-6">
-                {line}
-              </li>
-            ))}
-          </ul>
-        </div>
         <p className="mt-7 text-center text-sm text-muted-foreground">
           Want to start now?{" "}
           <Link href="/dashboard/register" className="font-semibold text-primary hover:underline">

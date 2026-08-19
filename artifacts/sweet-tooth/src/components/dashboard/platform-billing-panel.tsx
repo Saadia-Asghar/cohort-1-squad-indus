@@ -5,13 +5,11 @@ import {
 } from "@workspace/api-client-react";
 import { Check, Copy, MessageCircle, Sparkles } from "lucide-react";
 import {
-  COST_ESTIMATE_AS_OF,
   FOUNDER_OFFER_ACTIVE,
   PRICING_PLANS,
   bakerMonthCostLabel,
   displayPrice,
   estimatePlanCosts,
-  formatPkr,
   getPlanById,
   type PricingPlan,
 } from "@/lib/pricing-plans";
@@ -160,9 +158,6 @@ export function PlatformBillingPanel({
                   <span className="font-normal text-muted-foreground"> {price.suffix}</span>
                 </p>
                 <p className="text-xs text-muted-foreground">{bakerMonthCostLabel(plan)}</p>
-                <p className="mt-1 text-[11px] text-muted-foreground">
-                  Our cost: localhost {formatPkr(0)} · production ~{formatPkr(estimatePlanCosts(plan).productionPkr)} ({COST_ESTIMATE_AS_OF})
-                </p>
               </div>
               <button
                 type="button"

@@ -5,7 +5,7 @@ import { useGetBaker, useUpdateBaker, getGetBakerQueryKey } from "@workspace/api
 import { useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
 import { Copy, ExternalLink, Facebook, Instagram, QrCode, Share2, Sparkles, ArrowRight, Store, CreditCard, Calendar, Users, Zap, KeyRound } from "lucide-react";
-import { getPlanById, FOUNDER_OFFER_ACTIVE, formatExtraReplyPkr, displayPrice, bakerMonthCostLabel, estimatePlanCosts, formatPkr } from "@/lib/pricing-plans";
+import { getPlanById, FOUNDER_OFFER_ACTIVE, formatExtraReplyPkr, displayPrice, bakerMonthCostLabel, estimatePlanCosts } from "@/lib/pricing-plans";
 import { PlatformBillingPanel } from "@/components/dashboard/platform-billing-panel";
 import { TeamAccessPanel } from "@/components/dashboard/team-access-panel";
 import {
@@ -780,9 +780,6 @@ export default function DashboardSettings() {
                         )}
                         <p className="text-xs text-muted-foreground">
                           Your month: {bakerMonthCostLabel(plan)}. Extra replies {formatExtraReplyPkr(plan.extraReplyPkr)} each.
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          Our cost at this quota: localhost {formatPkr(estimate.localhostPkr)} · production ~{formatPkr(estimate.productionPkr)}.
                         </p>
                       </div>
                     );

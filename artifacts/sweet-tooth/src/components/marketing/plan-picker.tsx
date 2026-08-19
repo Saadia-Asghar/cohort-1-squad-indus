@@ -6,7 +6,6 @@ import {
   CHANNEL_BUNDLE_OPTIONS,
   bakerMonthCostLabel,
   estimatePlanCosts,
-  formatPkr,
   getOffersForFilters,
   getPlanById,
   suggestPlan,
@@ -134,16 +133,6 @@ export function PlanPicker({ registerHref = "/dashboard/register" }: { registerH
             </>
           )}
         </div>
-        <dl className="mt-4 grid gap-1 text-xs text-muted-foreground sm:grid-cols-2">
-          <div className="flex justify-between gap-3 rounded-lg bg-background/80 px-3 py-2">
-            <dt>Our cost on localhost</dt>
-            <dd className="font-semibold text-foreground">{formatPkr(estimate.localhostPkr)}</dd>
-          </div>
-          <div className="flex justify-between gap-3 rounded-lg bg-background/80 px-3 py-2">
-            <dt>Our cost on production</dt>
-            <dd className="font-semibold text-foreground">~{formatPkr(estimate.productionPkr)}</dd>
-          </div>
-        </dl>
         <div className="mt-4 flex flex-wrap items-center gap-3">
           <Link
             href="/waitlist"
