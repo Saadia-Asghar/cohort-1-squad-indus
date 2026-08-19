@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Bell, X, ShoppingBag, MessageSquare, AlertTriangle, DollarSign, CheckCircle } from "lucide-react";
+import { useLocation } from "wouter";
 import {
   useListNotifications,
   useMarkAllNotificationsRead,
@@ -9,6 +10,7 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { NOTIFICATIONS_POLL_MS } from "@/lib/dashboard-query";
+import { notificationHref } from "@/lib/notification-href";
 
 const TYPE_CONFIG: Record<string, { icon: React.ComponentType<{ className?: string }>; color: string }> = {
   new_order: { icon: ShoppingBag, color: "text-blue-600 bg-blue-50" },
@@ -22,6 +24,7 @@ export function NotificationBell({ bakerId }: { bakerId: number }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
+  const [, navigate] = useLocation();
 
   const { data: notifications } = useListNotifications(bakerId, {
     query: {
@@ -55,6 +58,12 @@ export function NotificationBell({ bakerId }: { bakerId: number }) {
     markOne.mutate({ bakerId, notifId }, {
       onSuccess: () => queryClient.invalidateQueries({ queryKey: getListNotificationsQueryKey(bakerId) }),
     });
+  };
+
+  const openNotification = (notification: NonNullable<typeof notifications>[number]) => {
+    if (!notification.isRead) handleMarkOne(notification.id);
+    setOpen(false);
+    navigate(notificationHref(notification));
   };
 
   return (
@@ -102,10 +111,11 @@ export function NotificationBell({ bakerId }: { bakerId: number }) {
                 const cfg = TYPE_CONFIG[n.type] ?? TYPE_CONFIG.new_message;
                 const Icon = cfg.icon;
                 return (
-                  <div
+                  <button
+                    type="button"
                     key={n.id}
-                    onClick={() => !n.isRead && handleMarkOne(n.id)}
-                    className={`flex gap-3 px-4 py-3 cursor-pointer hover:bg-muted/30 transition-colors ${!n.isRead ? "bg-primary/5" : ""}`}
+                    onClick={() => openNotification(n)}
+                    className={`flex w-full gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/30 ${!n.isRead ? "bg-primary/5" : ""}`}
                   >
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${cfg.color}`}>
                       <Icon className="w-4 h-4" />
@@ -116,7 +126,7 @@ export function NotificationBell({ bakerId }: { bakerId: number }) {
                       <p className="text-xs text-muted-foreground mt-0.5">{format(new Date(n.createdAt), "MMM d, h:mm a")}</p>
                     </div>
                     {!n.isRead && <div className="w-2 h-2 rounded-full bg-primary shrink-0 mt-2" />}
-                  </div>
+                  </button>
                 );
               })
             )}

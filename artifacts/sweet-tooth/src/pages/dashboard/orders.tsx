@@ -13,7 +13,7 @@ import {
 } from "@/lib/dashboard-query";
 import { useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
-import { useMemo, useState, type FormEvent } from "react";
+import { useMemo, useState, useEffect, type FormEvent } from "react";
 import { Link } from "wouter";
 import {
   CalendarDays,
@@ -161,6 +161,17 @@ export default function DashboardOrders() {
   const [checklistOrder, setChecklistOrder] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [highlightOrderId, setHighlightOrderId] = useState<number | null>(null);
+
+  useEffect(() => {
+    const orderId = Number.parseInt(new URLSearchParams(window.location.search).get("order") ?? "", 10);
+    if (!Number.isFinite(orderId) || orderId < 1) return;
+    setSearchQuery(String(orderId));
+    setHighlightOrderId(orderId);
+    window.setTimeout(() => {
+      document.getElementById(`order-${orderId}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 300);
+  }, []);
 
   const allOrders = orders ?? [];
 
@@ -704,7 +715,8 @@ export default function DashboardOrders() {
                             return (
                               <tr
                                 key={order.id}
-                                className="align-top transition hover:bg-[#fff8f3]"
+                                id={`order-${order.id}`}
+                                className={`align-top transition hover:bg-[#fff8f3] ${highlightOrderId === order.id ? "bg-primary/5" : ""}`}
                               >
                                 <td className="px-4 py-4">
                                   <p className="font-mono text-sm font-semibold">
@@ -896,7 +908,11 @@ export default function DashboardOrders() {
                         );
 
                         return (
-                          <article key={order.id} className="p-4">
+                          <article
+                            key={order.id}
+                            id={`order-${order.id}`}
+                            className={`p-4 ${highlightOrderId === order.id ? "bg-primary/5" : ""}`}
+                          >
                             <div className="flex items-start justify-between gap-3">
                               <div className="min-w-0">
                                 <p className="font-mono text-xs font-semibold text-secondary">

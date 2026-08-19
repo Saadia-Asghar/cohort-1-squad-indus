@@ -961,8 +961,8 @@ export async function processChatMessage(input: ProcessChatInput): Promise<Proce
       "chat_escalation",
       "Chat escalated",
       `A buyer flagged an issue: "${message.slice(0, 80)}"`,
-      undefined,
-      "chat",
+      buyerId ?? undefined,
+      `chat:${sid}`,
     );
   } else if (!memory || memory.messageCount === 0) {
     const channelLabel =
@@ -976,8 +976,8 @@ export async function processChatMessage(input: ProcessChatInput): Promise<Proce
       "new_message",
       "New chat message",
       `New conversation started on ${channelLabel}`,
-      undefined,
-      "chat",
+      buyerId ?? undefined,
+      `chat:${sid}`,
     );
   }
 

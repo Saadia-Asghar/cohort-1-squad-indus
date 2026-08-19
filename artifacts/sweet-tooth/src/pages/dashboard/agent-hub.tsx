@@ -30,6 +30,18 @@ import {
 } from "lucide-react";
 
 type Tab = "built-in" | "whatsapp" | "instagram" | "conversations";
+type HubConversation = {
+  buyerId: number;
+  buyerName: string;
+  lastMessage: string;
+  lastActiveAt: string;
+  sessionId?: string | null;
+  messageCount?: number;
+  needsBakerReply?: boolean;
+  unread?: boolean;
+  preferences?: Record<string, unknown> | null;
+};
+type ChatThreadMessage = { id: number; role: string; content: string; createdAt: string };
 type DeliveryZone = { id: string; name: string; feePkr: number; minimumOrderPkr?: number };
 const REPLY_TEMPLATES = [
   { trigger: "custom cake", response: "We would love to help with a custom cake. Please share your date, servings, flavour, theme and delivery area so the baker can confirm a quote." },
@@ -43,6 +55,8 @@ export default function AgentHub() {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<Tab>("built-in");
   const [selectedBuyerId, setSelectedBuyerId] = useState<number | null>(null);
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
+  const [sessionMessages, setSessionMessages] = useState<ChatThreadMessage[] | null>(null);
   const [newBlockedTopic, setNewBlockedTopic] = useState("");
   const [newKeyword, setNewKeyword] = useState("");
   const [newCustomTrigger, setNewCustomTrigger] = useState("");
@@ -55,6 +69,18 @@ export default function AgentHub() {
   const [reindexResult, setReindexResult] = useState<KnowledgeReindexResult | null>(null);
   const [reindexError, setReindexError] = useState<string | null>(null);
   const [whatsappConnected, setWhatsappConnected] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const tab = params.get("tab");
+    if (tab === "built-in" || tab === "whatsapp" || tab === "instagram" || tab === "conversations") {
+      setActiveTab(tab);
+    }
+    const buyer = Number.parseInt(params.get("buyer") ?? "", 10);
+    if (Number.isFinite(buyer) && buyer > 0) setSelectedBuyerId(buyer);
+    const session = params.get("session")?.trim();
+    if (session) setSelectedSessionId(session);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -151,6 +177,43 @@ export default function AgentHub() {
       refetchIntervalInBackground: false,
     },
   });
+
+  useEffect(() => {
+    if (!bakerId || !selectedSessionId || selectedBuyerId) {
+      setSessionMessages(null);
+      return;
+    }
+    let cancelled = false;
+    customFetch<ChatThreadMessage[]>(
+      `/api/chat/${bakerId}/session/${encodeURIComponent(selectedSessionId)}`,
+      { responseType: "json" },
+    )
+      .then((messages) => {
+        if (!cancelled) setSessionMessages(messages);
+      })
+      .catch(() => {
+        if (!cancelled) setSessionMessages([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [bakerId, selectedSessionId, selectedBuyerId]);
+
+  const hubConversations = (conversations ?? []) as HubConversation[];
+  const threadMessages = selectedBuyerId ? chatHistory : sessionMessages;
+  const showingThread = selectedBuyerId !== null || Boolean(selectedSessionId);
+
+  const openConversation = (conv: HubConversation) => {
+    setSelectedBuyerId(conv.buyerId > 0 ? conv.buyerId : null);
+    setSelectedSessionId(conv.sessionId ?? null);
+    setActiveTab("conversations");
+  };
+
+  const closeThread = () => {
+    setSelectedBuyerId(null);
+    setSelectedSessionId(null);
+    setSessionMessages(null);
+  };
 
   const updateConfig = useUpdateAgentConfig();
 
@@ -827,7 +890,7 @@ export default function AgentHub() {
                 <MessageSquare className="w-4 h-4 text-muted-foreground" />
                 Recent conversations
               </h3>
-              {!conversations || conversations.length === 0 ? (
+              {!hubConversations.length ? (
                 <div className="rounded-lg border border-dashed border-border bg-muted/30 px-4 py-6 text-center">
                   <Phone className="w-8 h-8 text-muted-foreground mx-auto mb-2 opacity-50" />
                   <p className="text-sm text-muted-foreground">
@@ -843,14 +906,11 @@ export default function AgentHub() {
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {conversations.slice(0, 8).map((conv) => (
+                  {hubConversations.slice(0, 8).map((conv) => (
                     <button
-                      key={conv.buyerId}
+                      key={conv.sessionId ?? conv.buyerId}
                       type="button"
-                      onClick={() => {
-                        setSelectedBuyerId(conv.buyerId);
-                        setActiveTab("conversations");
-                      }}
+                      onClick={() => openConversation(conv)}
                       className="w-full flex items-center gap-3 p-3 rounded-lg border border-border hover:bg-muted/30 transition-colors text-left"
                     >
                       <div className="w-9 h-9 rounded-full bg-green-100 flex items-center justify-center text-green-700 font-bold shrink-0">
@@ -868,13 +928,13 @@ export default function AgentHub() {
                       </p>
                     </button>
                   ))}
-                  {conversations.length > 8 && (
+                  {hubConversations.length > 8 && (
                     <button
                       type="button"
                       onClick={() => setActiveTab("conversations")}
                       className="text-sm font-medium text-primary hover:underline"
                     >
-                      View all {conversations.length} conversations
+                      View all {hubConversations.length} conversations
                     </button>
                   )}
                 </div>
@@ -969,10 +1029,10 @@ export default function AgentHub() {
         {/* ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ CONVERSATIONS ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ */}
         {activeTab === "conversations" && (
           <div className="mt-5">
-            {selectedBuyerId !== null ? (
+            {showingThread ? (
               <div>
                 <button
-                  onClick={() => setSelectedBuyerId(null)}
+                  onClick={closeThread}
                   className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-4 transition-colors"
                 >
                   <ArrowLeft className="w-4 h-4" />
@@ -980,11 +1040,15 @@ export default function AgentHub() {
                 </button>
                 <div className="rounded-xl border border-border bg-card overflow-hidden">
                   <div className="p-4 border-b border-border bg-muted/30">
-                    <p className="font-semibold">Buyer #{selectedBuyerId}</p>
-                    <p className="text-xs text-muted-foreground">{chatHistory?.length ?? 0} messages</p>
+                    <p className="font-semibold">
+                      {selectedBuyerId
+                        ? `Buyer #${selectedBuyerId}`
+                        : hubConversations.find((item) => item.sessionId === selectedSessionId)?.buyerName ?? "Website visitor"}
+                    </p>
+                    <p className="text-xs text-muted-foreground">{threadMessages?.length ?? 0} messages</p>
                   </div>
                   <div className="p-4 space-y-3 max-h-[500px] overflow-y-auto">
-                    {chatHistory?.map(msg => (
+                    {threadMessages?.map(msg => (
                       <div key={msg.id} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
                         <div className={`max-w-[75%] px-4 py-2.5 rounded-2xl text-sm ${
                           msg.role === "user"
@@ -1003,7 +1067,7 @@ export default function AgentHub() {
               </div>
             ) : (
               <div>
-                {!conversations || conversations.length === 0 ? (
+                {!hubConversations.length ? (
                   <div className="text-center py-16 text-muted-foreground">
                     <MessageSquare className="w-10 h-10 mx-auto mb-3 opacity-30" />
                     <p className="font-serif text-lg">No conversations yet</p>
@@ -1011,7 +1075,7 @@ export default function AgentHub() {
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    {conversations.map(conv => {
+                    {hubConversations.map(conv => {
                       const prefs = conv.preferences as Record<string, unknown> | null ?? {};
                       const prefTags = [
                         prefs.eggless ? "Eggless" : null,
@@ -1021,8 +1085,8 @@ export default function AgentHub() {
 
                       return (
                         <button
-                          key={conv.buyerId}
-                          onClick={() => setSelectedBuyerId(conv.buyerId)}
+                          key={conv.sessionId ?? conv.buyerId}
+                          onClick={() => openConversation(conv)}
                           className="w-full flex items-center gap-4 p-4 rounded-xl border border-border bg-card hover:bg-muted/30 transition-colors text-left"
                         >
                           <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold shrink-0">
@@ -1045,7 +1109,7 @@ export default function AgentHub() {
                           </div>
                           <div className="flex flex-col items-end gap-1 shrink-0">
                             <p className="text-xs text-muted-foreground">{format(new Date(conv.lastActiveAt), "MMM d")}</p>
-                            <p className="text-xs text-muted-foreground">{conv.messageCount} msgs</p>
+                            <p className="text-xs text-muted-foreground">{conv.messageCount ?? 0} msgs</p>
                             <ChevronRight className="w-4 h-4 text-muted-foreground" />
                           </div>
                         </button>

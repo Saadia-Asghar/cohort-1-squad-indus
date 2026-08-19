@@ -81942,8 +81942,8 @@ async function processChatMessage(input) {
       "chat_escalation",
       "Chat escalated",
       `A buyer flagged an issue: "${message.slice(0, 80)}"`,
-      void 0,
-      "chat"
+      buyerId ?? void 0,
+      `chat:${sid}`
     );
   } else if (!memory || memory.messageCount === 0) {
     const channelLabel = input.channel === "whatsapp" ? "WhatsApp" : input.channel === "instagram" ? "Instagram" : "your shop";
@@ -81952,8 +81952,8 @@ async function processChatMessage(input) {
       "new_message",
       "New chat message",
       `New conversation started on ${channelLabel}`,
-      void 0,
-      "chat"
+      buyerId ?? void 0,
+      `chat:${sid}`
     );
   }
   await sendN8nEvent(agentReply.escalated ? "chat.escalated" : "chat.received", {
@@ -82185,8 +82185,13 @@ router10.get("/chat/:bakerId/conversations", requireBakerAuth, requireBakerOwner
   }).from(chatMessagesTable).where(
     and(eq(chatMessagesTable.bakerId, bakerId), eq(chatMessagesTable.role, "user"))
   ).orderBy(chatMessagesTable.sessionId, desc(chatMessagesTable.createdAt));
+  const sessionByBuyer = /* @__PURE__ */ new Map();
+  for (const row of recentAnon) {
+    if (row.buyerId) sessionByBuyer.set(row.buyerId, row.sessionId);
+  }
   const conversations = memories.map((m) => ({
     buyerId: m.buyerId,
+    sessionId: sessionByBuyer.get(m.buyerId) ?? null,
     buyerName: m.buyerName ?? `Buyer #${m.buyerId}`,
     lastMessage: m.summary ?? "No messages yet",
     lastActiveAt: m.lastActiveAt.toISOString(),
@@ -82199,10 +82204,12 @@ router10.get("/chat/:bakerId/conversations", requireBakerAuth, requireBakerOwner
   const knownBuyerIds = new Set(memories.map((m) => m.buyerId));
   for (const msg of recentAnon) {
     if (msg.buyerId && knownBuyerIds.has(msg.buyerId)) continue;
-    if (!msg.buyerId) continue;
+    const isGuest = !msg.buyerId;
+    const sessionId = msg.sessionId;
     conversations.push({
-      buyerId: msg.buyerId,
-      buyerName: `Buyer #${msg.buyerId}`,
+      buyerId: msg.buyerId ?? 0,
+      sessionId,
+      buyerName: msg.buyerId ? `Buyer #${msg.buyerId}` : sessionId.startsWith("wa-") ? "WhatsApp visitor" : sessionId.startsWith("ig-") ? "Instagram visitor" : "Website visitor",
       lastMessage: msg.lastMessage,
       lastActiveAt: msg.lastActiveAt.toISOString(),
       messageCount: 0,
@@ -82211,8 +82218,19 @@ router10.get("/chat/:bakerId/conversations", requireBakerAuth, requireBakerOwner
       summary: null,
       needsBakerReply: false
     });
+    if (!isGuest && msg.buyerId) knownBuyerIds.add(msg.buyerId);
   }
   res.json(conversations);
+});
+router10.get("/chat/:bakerId/session/:sessionId", requireBakerAuth, requireBakerOwnership, async (req, res) => {
+  const bakerId = parseInt(String(req.params.bakerId), 10);
+  const sessionId = String(req.params.sessionId ?? "").trim();
+  if (isNaN(bakerId) || !sessionId || sessionId.length > 200) {
+    res.status(400).json({ error: "Invalid chat session." });
+    return;
+  }
+  const messages = await db.select().from(chatMessagesTable).where(and(eq(chatMessagesTable.bakerId, bakerId), eq(chatMessagesTable.sessionId, sessionId))).orderBy(chatMessagesTable.createdAt);
+  res.json(messages);
 });
 var chat_default = router10;
 

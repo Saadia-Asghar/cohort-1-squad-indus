@@ -236,8 +236,14 @@ router.get("/chat/:bakerId/conversations", requireBakerAuth, requireBakerOwnersh
     )
     .orderBy(chatMessagesTable.sessionId, desc(chatMessagesTable.createdAt));
 
+  const sessionByBuyer = new Map<number, string>();
+  for (const row of recentAnon) {
+    if (row.buyerId) sessionByBuyer.set(row.buyerId, row.sessionId);
+  }
+
   const conversations = memories.map((m) => ({
     buyerId: m.buyerId,
+    sessionId: sessionByBuyer.get(m.buyerId) ?? null,
     buyerName: m.buyerName ?? `Buyer #${m.buyerId}`,
     lastMessage: m.summary ?? "No messages yet",
     lastActiveAt: m.lastActiveAt.toISOString(),
@@ -251,10 +257,18 @@ router.get("/chat/:bakerId/conversations", requireBakerAuth, requireBakerOwnersh
   const knownBuyerIds = new Set(memories.map((m) => m.buyerId));
   for (const msg of recentAnon) {
     if (msg.buyerId && knownBuyerIds.has(msg.buyerId)) continue;
-    if (!msg.buyerId) continue;
+    const isGuest = !msg.buyerId;
+    const sessionId = msg.sessionId;
     conversations.push({
-      buyerId: msg.buyerId,
-      buyerName: `Buyer #${msg.buyerId}`,
+      buyerId: msg.buyerId ?? 0,
+      sessionId,
+      buyerName: msg.buyerId
+        ? `Buyer #${msg.buyerId}`
+        : sessionId.startsWith("wa-")
+          ? "WhatsApp visitor"
+          : sessionId.startsWith("ig-")
+            ? "Instagram visitor"
+            : "Website visitor",
       lastMessage: msg.lastMessage,
       lastActiveAt: msg.lastActiveAt.toISOString(),
       messageCount: 0,
@@ -263,9 +277,26 @@ router.get("/chat/:bakerId/conversations", requireBakerAuth, requireBakerOwnersh
       summary: null,
       needsBakerReply: false,
     });
+    if (!isGuest && msg.buyerId) knownBuyerIds.add(msg.buyerId);
   }
 
   res.json(conversations);
+});
+
+router.get("/chat/:bakerId/session/:sessionId", requireBakerAuth, requireBakerOwnership, async (req, res): Promise<void> => {
+  const bakerId = parseInt(String(req.params.bakerId), 10);
+  const sessionId = String(req.params.sessionId ?? "").trim();
+  if (isNaN(bakerId) || !sessionId || sessionId.length > 200) {
+    res.status(400).json({ error: "Invalid chat session." });
+    return;
+  }
+
+  const messages = await db
+    .select()
+    .from(chatMessagesTable)
+    .where(and(eq(chatMessagesTable.bakerId, bakerId), eq(chatMessagesTable.sessionId, sessionId)))
+    .orderBy(chatMessagesTable.createdAt);
+  res.json(messages);
 });
 
 export default router;
