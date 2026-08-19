@@ -80758,24 +80758,20 @@ function deriveCustomerInsights(orders) {
 // src/lib/agent-language.ts
 var ROMAN_URDU_FOOTERS = [
   {
-    match: /would you like to see our menu|see our menu/i,
+    match: /would you like to see the menu|see the menu\?/i,
     line: "Kya aap menu dekhna chahenge? Reply karein ya apni pasand bata dein."
   },
   {
-    match: /would you like to add|add it to your order/i,
-    line: "Order mein add karun? Quantity aur size bata dein."
+    match: /add it to your (bag|order)/i,
+    line: "Order bag mein add kar dein, ya quantity aur date likh dein."
   },
   {
-    match: /payment policy|cash on delivery|cod/i,
-    line: "Payment: advance ya delivery par cash \u2014 details upar hain."
+    match: /^Payment policy:/i,
+    line: "Payment ki details upar English mein hain."
   },
   {
-    match: /delivery|deliver to|pickup/i,
-    line: "Delivery area ya pickup confirm karne ke liye apna sector/area likhein."
-  },
-  {
-    match: /welcome|assalam|help you order/i,
-    line: "Main aap ki madad ke liye yahan hoon \u2014 menu, price, ya order ke liye likhein."
+    match: /delivers to:|which area —|which area are you/i,
+    line: "Apna area likhein \u2014 jaise Clifton ya Defence."
   }
 ];
 function normalizeAgentLanguage(value) {
@@ -81094,7 +81090,13 @@ function isMenuScopedMessage(message, productNames) {
   if (!normalized || normalized.length > 2e3) return false;
   if (PROMPT_INJECTION_PATTERNS.some((pattern) => pattern.test(normalized))) return false;
   if (productNames.some((name) => normalized.includes(name.toLowerCase()))) return true;
-  return MENU_SCOPE_KEYWORDS.some((keyword) => normalized.includes(keyword));
+  if (/\b(karachi|lahore|islamabad|rawalpindi|clifton|defence|dha)\b/i.test(normalized)) return true;
+  return MENU_SCOPE_KEYWORDS.some((keyword) => {
+    if (keyword.length <= 3 && /^[a-z]+$/i.test(keyword)) {
+      return new RegExp(`\\b${keyword}\\b`, "i").test(normalized);
+    }
+    return normalized.includes(keyword.toLowerCase());
+  });
 }
 function answerNeedsHumanConfirmation(answer) {
   return /(confirm (with|from) (the )?baker|ask (the )?baker|do not have|don't have|not (in|available from) (the )?(context|information)|cannot confirm|can't confirm)/i.test(answer);
@@ -81145,7 +81147,7 @@ var OCCASIONS = [
 function normalizeHaystack(value) {
   return value.toLowerCase().replace(/[-_]/g, " ").replace(/\s+e\s+/g, " ").replace(/\s+/g, " ").trim();
 }
-function extractPreferences(message, existing, deliveryAreas = []) {
+function extractPreferences(message, existing, deliveryAreas = [], productNames = []) {
   const prefs = { ...existing };
   const lowerMsg = normalizeHaystack(message);
   if (!prefs.pinEggless) {
@@ -81174,8 +81176,17 @@ function extractPreferences(message, existing, deliveryAreas = []) {
     const spoken = spokenHere[1].replace(/\b(please|thanks|karachi|lahore|islamabad)\b/g, "").trim();
     if (spoken.length >= 3) prefs.preferredArea = spoken;
   }
-  const lastItem = lowerMsg.match(/(?:order(?:ed|ing)?|want|need|looking for)\s+(?:a |an |the )?([a-z0-9 ]{3,40}(?:cake|cupcake|brownie|cookie|dessert|bento|box))/);
+  const lastItem = lowerMsg.match(
+    /(?:order(?:ed|ing)?|want|wnat|wanna|need|looking for|book)\s+(?:a |an |the )?([a-z0-9 ]{3,40}(?:cake|cupcake|brownie|cookie|dessert|bento|box))/
+  );
   if (lastItem?.[1]) prefs.lastItem = lastItem[1].trim();
+  for (const name of productNames) {
+    const needle = normalizeHaystack(name);
+    if (needle.length >= 4 && lowerMsg.includes(needle)) {
+      prefs.lastItem = name;
+      break;
+    }
+  }
   const allergyMatch = lowerMsg.match(/allerg(?:ic|y)(?:\s+hai)?(?:\s+to)\s+([a-z]{2,40})/) ?? lowerMsg.match(/\ballergy\s+([a-z]{2,40})/);
   if (allergyMatch?.[1]) {
     const allergies = Array.isArray(prefs.allergies) ? [...prefs.allergies] : [];
@@ -81201,9 +81212,9 @@ function extractPreferences(message, existing, deliveryAreas = []) {
   }
   return prefs;
 }
-function foldSessionPreferences(messages, existing = {}, deliveryAreas = []) {
+function foldSessionPreferences(messages, existing = {}, deliveryAreas = [], productNames = []) {
   return messages.reduce(
-    (prefs, text2) => extractPreferences(text2, prefs, deliveryAreas),
+    (prefs, text2) => extractPreferences(text2, prefs, deliveryAreas, productNames),
     { ...existing }
   );
 }
@@ -81245,6 +81256,83 @@ function buildMemorySummary(input) {
   return "Menu conversation in progress.";
 }
 
+// src/lib/agent-intent.ts
+var CITY_NAMES = [
+  "karachi",
+  "lahore",
+  "islamabad",
+  "rawalpindi",
+  "peshawar",
+  "quetta",
+  "faisalabad",
+  "multan",
+  "hyderabad"
+];
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+function hasWord(haystack, word) {
+  if (!word.trim()) return false;
+  return new RegExp(`\\b${escapeRegExp(word.trim())}\\b`, "i").test(haystack);
+}
+function hasGreetingIntent(message) {
+  return /\b(hi|hello|hey|salam|assalam|assalamualaikum|aoa)\b/i.test(message.trim());
+}
+function hasOrderIntent(message) {
+  return /\b(order|ordr|want|wnat|wanna|need|buy|book|checkout|confirm)\b/i.test(message) || /\b(chahiye|mangwa|order kar)\b/i.test(message);
+}
+function hasBookingConfirmIntent(message) {
+  const trimmed = message.trim();
+  return /^(yes|yeah|yep|ok|okay|haan|han|sure)\b/i.test(trimmed) || /\bbook( it)?\b/i.test(trimmed) || /\border( it)?\b/i.test(trimmed) || /\badd (it|that|this)\b/i.test(trimmed) || /\b(that one|this one|the cake|their cake|theri cake)\b/i.test(trimmed);
+}
+function hasFlavorIntent(message) {
+  return /\bflavo/i.test(message) || /\bfilling\b|\bsponge\b/i.test(message) || /\bwhat (cakes?|items?) (do you )?(have|offer|sell)\b/i.test(message);
+}
+function hasOrderStatusIntent(message) {
+  return /\b(order status|my order|track( my)? order|where is my order)\b/i.test(message) || /\bstatus\b/i.test(message) && /\b(order|payment|advance)\b/i.test(message);
+}
+function spokenCity(message) {
+  const hit = CITY_NAMES.find((city) => hasWord(message, city));
+  return hit ? hit[0].toUpperCase() + hit.slice(1) : null;
+}
+function findSpokenArea(message, areas) {
+  for (const area of areas) {
+    const needle = area.trim();
+    if (needle.length >= 3 && hasWord(message, needle.replace(/-/g, " "))) return area;
+    if (needle.length >= 3 && message.toLowerCase().includes(needle.toLowerCase())) return area;
+  }
+  return null;
+}
+function productsMentionedIn(text2, products) {
+  const lower = text2.toLowerCase();
+  return products.filter((product) => lower.includes(product.name.toLowerCase()));
+}
+function resolveFocusProduct(message, products, lastItem, lastAssistantText) {
+  const namedNow = productsMentionedIn(message, products);
+  if (namedNow.length === 1) return namedNow[0];
+  const last = lastItem?.trim().toLowerCase() ?? "";
+  if (last) {
+    const exact = products.find((product) => product.name.toLowerCase() === last);
+    if (exact) return exact;
+    const partial2 = products.find(
+      (product) => product.name.toLowerCase().includes(last) || last.includes(product.name.toLowerCase())
+    );
+    if (partial2) return partial2;
+  }
+  const namedBefore = lastAssistantText ? productsMentionedIn(lastAssistantText, products) : [];
+  if (namedBefore.length === 1) return namedBefore[0];
+  if (namedBefore.length > 1 && hasBookingConfirmIntent(message) && !/\b(the|their|theri|that|this) cake\b/i.test(message)) {
+    return null;
+  }
+  if (namedBefore.length > 0 && /\b(the|their|theri|that|this) cake\b/i.test(message)) {
+    return namedBefore[namedBefore.length - 1];
+  }
+  return null;
+}
+function greetingShouldYieldToTask(message, deliveryAreas = []) {
+  return hasOrderIntent(message) || hasFlavorIntent(message) || hasOrderStatusIntent(message) || hasBookingConfirmIntent(message) || Boolean(spokenCity(message)) || Boolean(findSpokenArea(message, deliveryAreas)) || /\b(deliver|delivery|pickup|menu|price|payment)\b/i.test(message) || /\bflavo/i.test(message);
+}
+
 // src/lib/chat-agent.ts
 function menuScopeRefusal(businessName) {
   return {
@@ -81267,6 +81355,26 @@ async function notify(bakerId, type, title, message, relatedId, relatedType) {
   } catch (e) {
     logger2.error({ err: e }, "Failed to create notification");
   }
+}
+function productPriceLine(product) {
+  const sizes = product.sizes ?? [];
+  return sizes.length ? sizes.map((size) => `${size.label} \u2014 PKR ${size.pricePkr.toLocaleString()}`).join(", ") : `PKR ${product.basePricePkr.toLocaleString()}`;
+}
+function productTasteLine(product) {
+  const ingredients = Array.isArray(product.ingredients) ? product.ingredients.filter((item) => typeof item === "string" && item.trim().length > 0) : [];
+  if (ingredients.length) return ingredients.slice(0, 4).join(", ");
+  const desc2 = String(product.description ?? "").split(/[.!]/)[0]?.trim() ?? "";
+  return desc2;
+}
+function checkoutReply(input) {
+  const lead = input.product.leadTimeDays > 0 ? ` Ready in ${input.product.leadTimeDays} day${input.product.leadTimeDays === 1 ? "" : "s"}.` : "";
+  const taste = productTasteLine(input.product);
+  const tasteBit = taste ? ` ${taste}.` : "";
+  if (!input.area) {
+    const areaHint = input.areas.length ? ` We deliver to ${input.areas.join(", ")}.` : "";
+    return `${input.product.name} \u2014 ${productPriceLine(input.product)}.${tasteBit}${lead}${areaHint} Which area should I use for delivery, or is this pickup?`;
+  }
+  return `${input.product.name} for ${input.area}: ${productPriceLine(input.product)}.${tasteBit}${lead} Payment: ${input.payment} Add it to your bag on this page, or tell me the quantity and the date you need it.`;
 }
 async function generateAgentReply(bakerId, buyerId, message, memory, historyPreferences = {}) {
   const [baker] = await db.select().from(bakersTable).where(eq(bakersTable.id, bakerId));
@@ -81339,45 +81447,51 @@ async function generateAgentReply(bakerId, buyerId, message, memory, historyPref
       escalated: false
     };
   }
-  if (buyerId && (lowerMsg.includes("status") || lowerMsg.includes("verify") || lowerMsg.includes("receipt") || lowerMsg.includes("screenshot") || lowerMsg.includes("payment") || lowerMsg.includes("advance"))) {
-    const [latestOrder] = await db.select().from(ordersTable).where(and(eq(ordersTable.buyerId, buyerId), eq(ordersTable.bakerId, bakerId))).orderBy(desc(ordersTable.createdAt)).limit(1);
-    if (latestOrder) {
-      const advancePct = baker.advancePercentage ?? 50;
-      const paymentMode = baker.agentConfig?.paymentMode;
-      const fullAdvance = paymentMode === "full_advance" || advancePct >= 100;
-      const advanceAmountPkr = fullAdvance ? latestOrder.totalPkr : Math.ceil(latestOrder.totalPkr * advancePct / 100);
-      const advanceLabel = fullAdvance ? "full advance payment" : `${advancePct}% advance deposit`;
-      if (latestOrder.requireAdvance) {
-        if (latestOrder.advancePaid) {
-          return {
-            reply: `I checked your Order #${latestOrder.id} status. Good news! Your ${advanceLabel} (PKR ${advanceAmountPkr.toLocaleString()}) has been successfully verified! We've already started preparing your order. Let me know if you need any tweaks.`,
-            action: null,
-            cartItemId: null,
-            escalated: false
-          };
-        } else if (latestOrder.paymentScreenshotUrl) {
-          return {
-            reply: `We've received the transfer receipt or transaction reference for Order #${latestOrder.id}. Payment stays pending until ${baker.businessName} manually confirms the transfer.`,
-            action: null,
-            cartItemId: null,
-            escalated: false
-          };
-        } else {
-          return {
-            reply: `Your Order #${latestOrder.id} is currently pending confirmation. Since the total is PKR ${latestOrder.totalPkr.toLocaleString()}, a ${advanceLabel} (PKR ${advanceAmountPkr.toLocaleString()}) is required. Please transfer using the payment details shared by ${baker.businessName}, then send a receipt screenshot or transaction ID. The baker will manually confirm it.`,
-            action: null,
-            cartItemId: null,
-            escalated: false
-          };
-        }
+  if (hasOrderStatusIntent(lowerMsg) || buyerId && (lowerMsg.includes("verify") || lowerMsg.includes("receipt") || lowerMsg.includes("screenshot"))) {
+    const [latestOrder] = buyerId ? await db.select().from(ordersTable).where(and(eq(ordersTable.buyerId, buyerId), eq(ordersTable.bakerId, bakerId))).orderBy(desc(ordersTable.createdAt)).limit(1) : [];
+    if (!latestOrder) {
+      return {
+        reply: `I don't have an order on this chat yet. Add items to your bag on this page, or tell me which cake you want and your delivery area.`,
+        action: null,
+        cartItemId: null,
+        escalated: false
+      };
+    }
+    const advancePct = baker.advancePercentage ?? 50;
+    const paymentMode2 = baker.agentConfig?.paymentMode;
+    const fullAdvance = paymentMode2 === "full_advance" || advancePct >= 100;
+    const advanceAmountPkr = fullAdvance ? latestOrder.totalPkr : Math.ceil(latestOrder.totalPkr * advancePct / 100);
+    const advanceLabel = fullAdvance ? "full advance payment" : `${advancePct}% advance deposit`;
+    if (latestOrder.requireAdvance) {
+      if (latestOrder.advancePaid) {
+        return {
+          reply: `I checked your Order #${latestOrder.id} status. Good news! Your ${advanceLabel} (PKR ${advanceAmountPkr.toLocaleString()}) has been successfully verified! We've already started preparing your order. Let me know if you need any tweaks.`,
+          action: null,
+          cartItemId: null,
+          escalated: false
+        };
+      } else if (latestOrder.paymentScreenshotUrl) {
+        return {
+          reply: `We've received the transfer receipt or transaction reference for Order #${latestOrder.id}. Payment stays pending until ${baker.businessName} manually confirms the transfer.`,
+          action: null,
+          cartItemId: null,
+          escalated: false
+        };
       } else {
         return {
-          reply: `Your Order #${latestOrder.id} is confirmed! Since the total is PKR ${latestOrder.totalPkr.toLocaleString()}, no advance deposit is required. You can pay the full amount via Cash on Delivery when it is delivered.`,
+          reply: `Your Order #${latestOrder.id} is currently pending confirmation. Since the total is PKR ${latestOrder.totalPkr.toLocaleString()}, a ${advanceLabel} (PKR ${advanceAmountPkr.toLocaleString()}) is required. Please transfer using the payment details shared by ${baker.businessName}, then send a receipt screenshot or transaction ID. The baker will manually confirm it.`,
           action: null,
           cartItemId: null,
           escalated: false
         };
       }
+    } else {
+      return {
+        reply: `Your Order #${latestOrder.id} is confirmed! Since the total is PKR ${latestOrder.totalPkr.toLocaleString()}, no advance deposit is required. You can pay the full amount via Cash on Delivery when it is delivered.`,
+        action: null,
+        cartItemId: null,
+        escalated: false
+      };
     }
   }
   if (agentConf.blockedTopics?.some((t) => lowerMsg.includes(t.toLowerCase()))) {
@@ -81423,6 +81537,10 @@ async function generateAgentReply(bakerId, buyerId, message, memory, historyPref
     ...memory?.preferences ?? {},
     ...historyPreferences
   };
+  const deliveryAreas = baker.deliveryAreas ?? [];
+  const lastAssistantText = typeof buyerPrefs.lastAssistantText === "string" ? buyerPrefs.lastAssistantText : "";
+  const paymentMode = baker.agentConfig?.paymentMode;
+  const paymentPolicy = paymentMode === "full_advance" ? "Full advance is required before your order is confirmed." : paymentMode === "partial_advance" ? `Partial advance (${baker.advancePercentage}%) on orders from PKR ${baker.advanceThresholdPkr.toLocaleString()}. Balance on delivery.` : baker.codPolicy ?? "Cash on delivery (COD) only. Full payment required at the time of delivery.";
   if (/(human|real person|team member|speak (to|with).*(baker|person)|ask (the )?baker|baker.*confirm|person.*confirm)/.test(lowerMsg)) {
     return {
       reply: `I have sent your question to ${baker.businessName}'s human team. A person can review the conversation and reply here without you repeating the details.`,
@@ -81444,7 +81562,37 @@ async function generateAgentReply(bakerId, buyerId, message, memory, historyPref
       escalated: false
     };
   }
-  if (/(custom (cake|order|design)|theme cake|birthday cake|wedding cake|photo cake|logo cake|sculpted cake|3d cake|fondant)/.test(lowerMsg)) {
+  const lastItem = typeof buyerPrefs.lastItem === "string" ? buyerPrefs.lastItem.toLowerCase().trim() : "";
+  const focusProduct = resolveFocusProduct(message, products, lastItem, lastAssistantText);
+  const mentionedProduct = products.find(
+    (product) => lowerMsg.includes(product.name.toLowerCase())
+  ) ?? (focusProduct ? products.find((product) => product.id === focusProduct.id) ?? products.find((product) => product.name === focusProduct.name) : void 0);
+  if (hasFlavorIntent(lowerMsg)) {
+    const available = products.filter((product) => product.isAvailable);
+    if (available.length === 0) {
+      return {
+        reply: `${baker.businessName} does not have cakes listed yet. Please ask the baker for flavours.`,
+        action: null,
+        cartItemId: null,
+        escalated: false
+      };
+    }
+    const list = available.map((product) => {
+      const taste = productTasteLine(product);
+      return `\u2022 *${product.name}* \u2014 ${productPriceLine(product)}${taste ? `. ${taste}` : ""}`;
+    }).join("\n");
+    return {
+      reply: `Here's what is on ${baker.businessName}'s menu (flavours are whatever the baker wrote for each cake \u2014 I don't invent extra ones):
+
+${list}
+
+Which cake would you like?`,
+      action: null,
+      cartItemId: null,
+      escalated: false
+    };
+  }
+  if (/(custom (cake|order|design)|theme cake|photo cake|logo cake|sculpted cake|3d cake)/.test(lowerMsg) && !mentionedProduct) {
     return {
       reply: `I can help ${baker.businessName} prepare a custom-order request. Please share the occasion/design, required date and time, number of servings, flavour, eggless/dietary needs, and delivery or pickup area. The baker will confirm the final price and availability.`,
       action: "escalate",
@@ -81452,10 +81600,6 @@ async function generateAgentReply(bakerId, buyerId, message, memory, historyPref
       escalated: true
     };
   }
-  const lastItem = typeof buyerPrefs.lastItem === "string" ? buyerPrefs.lastItem.toLowerCase().trim() : "";
-  const mentionedProduct = products.find(
-    (product) => lowerMsg.includes(product.name.toLowerCase())
-  ) ?? (lastItem && /(want|need|looking for|order|price|cake|bento|cupcake|brownie)/.test(lowerMsg) ? products.find((product) => product.name.toLowerCase().includes(lastItem)) : void 0);
   if (mentionedProduct) {
     if (!mentionedProduct.isAvailable) {
       const alternatives = products.filter(
@@ -81469,19 +81613,34 @@ async function generateAgentReply(bakerId, buyerId, message, memory, historyPref
         escalated: false
       };
     }
-    const sizes = mentionedProduct.sizes ?? [];
-    const price = sizes.length ? `Sizes and prices: ${sizes.map((size) => `${size.label} \u2014 PKR ${size.pricePkr.toLocaleString()}`).join(", ")}` : `Price: PKR ${mentionedProduct.basePricePkr.toLocaleString()}`;
+    const spokenArea2 = findSpokenArea(message, deliveryAreas) ?? (typeof buyerPrefs.preferredArea === "string" ? buyerPrefs.preferredArea : null);
+    if (hasOrderIntent(lowerMsg) || hasBookingConfirmIntent(lowerMsg)) {
+      return {
+        reply: checkoutReply({
+          product: mentionedProduct,
+          area: spokenArea2,
+          areas: deliveryAreas,
+          payment: paymentPolicy
+        }),
+        action: null,
+        cartItemId: mentionedProduct.id,
+        escalated: false
+      };
+    }
     const leadTime = mentionedProduct.leadTimeDays > 0 ? ` Preparation time: ${mentionedProduct.leadTimeDays} day${mentionedProduct.leadTimeDays === 1 ? "" : "s"}.` : "";
     const dietaryTags = mentionedProduct.dietaryTags ?? [];
     const dietary = dietaryTags.length ? ` Dietary labels: ${dietaryTags.join(", ")}.` : "";
     const eggless = mentionedProduct.isEgglessAvailable ? " An eggless version is available." : "";
+    const taste = productTasteLine(mentionedProduct);
     return {
-      reply: `${mentionedProduct.name} is available. ${price}.${leadTime}${eggless}${dietary} Would you like to order it, or check delivery for your area?`,
+      reply: `${mentionedProduct.name} is available. ${productPriceLine(mentionedProduct)}.${taste ? ` ${taste}.` : ""}${leadTime}${eggless}${dietary} Would you like to order it, or check delivery for your area?`,
       action: null,
-      cartItemId: null,
+      cartItemId: mentionedProduct.id,
       escalated: false
     };
   }
+  const spokenArea = findSpokenArea(message, deliveryAreas) ?? (typeof buyerPrefs.preferredArea === "string" ? buyerPrefs.preferredArea : null);
+  const city = spokenCity(message);
   const asksDelivery = lowerMsg.includes("deliver") || lowerMsg.includes("area") || lowerMsg.includes("location");
   if (lowerMsg.includes("price") && !asksDelivery || lowerMsg.includes("menu") || lowerMsg.includes("what do you have") || lowerMsg.includes("list")) {
     let available = products.filter((p) => p.isAvailable);
@@ -81537,7 +81696,7 @@ Would you like to order any of these?`,
       escalated: false
     };
   }
-  if (asksDelivery) {
+  if (asksDelivery || city) {
     const areas = (baker.deliveryAreas ?? []).join(", ");
     const agentConf2 = baker.agentConfig ?? {};
     if (agentConf2.allowDelivery === false) {
@@ -81553,33 +81712,39 @@ Would you like to order any of these?`,
     const matchedZone = findDeliveryZone(deliveryZones, message) ?? findDeliveryZone(deliveryZones, String(buyerPrefs.preferredArea ?? ""));
     const zonePricing = matchedZone ? ` Delivery to ${matchedZone.name} is PKR ${matchedZone.feePkr.toLocaleString()}${matchedZone.minimumOrderPkr ? ` (minimum order PKR ${matchedZone.minimumOrderPkr.toLocaleString()})` : ""}.` : deliveryZones.length ? ` Delivery zones and charges: ${deliveryZoneSummary(deliveryZones)}.` : "";
     const personalNote = buyerPrefs.preferredArea && areas.toLowerCase().includes(buyerPrefs.preferredArea.toLowerCase()) ? ` Great news \u2014 we deliver to ${buyerPrefs.preferredArea}!` : "";
-    const areaFollowUp = buyerPrefs.preferredArea ? " Pickup is also available." : " Pickup is also available. Which area are you in?";
+    const areaFollowUp = spokenArea || buyerPrefs.preferredArea ? " Pickup is also available." : " Pickup is also available. Which area are you in?";
+    const cityNote = city && baker.city && baker.city.toLowerCase() === city.toLowerCase() ? ` Yes \u2014 ${baker.businessName} is in ${baker.city}. Tell me the area (for example ${deliveryAreas.slice(0, 2).join(" or ") || "your sector"}).` : city && baker.city && baker.city.toLowerCase() !== city.toLowerCase() ? ` Published delivery is in ${baker.city}: ${areas || "ask the baker"}. I cannot confirm ${city} unless the baker lists it.` : "";
     return {
-      reply: areas ? `${baker.businessName} delivers to: ${areas}.${zonePricing || (deliveryPricing ? ` Delivery charges: ${deliveryPricing}.` : "")}${personalNote}${areaFollowUp}` : `${baker.businessName} has not published delivery areas yet. I cannot confirm delivery or invent a fee; please use the bakery's published contact details to ask the baker.`,
+      reply: areas ? `${baker.businessName} delivers to: ${areas}.${zonePricing || (deliveryPricing ? ` Delivery charges: ${deliveryPricing}.` : "")}${personalNote}${cityNote || areaFollowUp}` : `${baker.businessName} has not published delivery areas yet. I cannot confirm delivery or invent a fee; please use the bakery's published contact details to ask the baker.`,
       action: null,
       cartItemId: null,
       escalated: false
     };
   }
   if (lowerMsg.includes("pay") || lowerMsg.includes("payment") || lowerMsg.includes("cod") || lowerMsg.includes("cash") || lowerMsg.includes("advance")) {
-    const agentConf2 = baker.agentConfig ?? {};
-    const mode = agentConf2.paymentMode;
-    const policy = mode === "full_advance" ? "Full advance is required before your order is confirmed." : mode === "partial_advance" ? `Partial advance (${baker.advancePercentage}%) on orders from PKR ${baker.advanceThresholdPkr.toLocaleString()}. Balance on delivery.` : baker.codPolicy ?? "Cash on delivery (COD) only. Full payment required at the time of delivery.";
-    return { reply: `Payment policy: ${policy}`, action: null, cartItemId: null, escalated: false };
+    return { reply: `Payment policy: ${paymentPolicy}`, action: null, cartItemId: null, escalated: false };
   }
-  if (lowerMsg.includes("order") || lowerMsg.includes("want") || lowerMsg.includes("buy")) {
+  if (hasOrderIntent(lowerMsg) || hasBookingConfirmIntent(lowerMsg)) {
+    const available = products.filter((product) => product.isAvailable);
+    const names = available.map((product) => product.name).join(", ");
+    if (spokenArea && !focusProduct) {
+      return {
+        reply: `${spokenArea} is in ${baker.businessName}'s delivery areas. Which cake should I put down \u2014 ${names || "tell me the item from the menu"}?`,
+        action: null,
+        cartItemId: null,
+        escalated: false
+      };
+    }
     const favourites = buyerPrefs.favoriteProducts;
     const suggestion = favourites?.length ? ` Based on your past orders, you might want to try ${favourites[0]} again.` : "";
     return {
-      reply: `To place an order with ${baker.businessName}, tell me what you'd like and your delivery area.${suggestion}
-
-What would you like to order?`,
+      reply: `Which cake would you like from ${baker.businessName}? ${names ? `On the menu: ${names}.` : ""}${suggestion} Then tell me delivery area or pickup.`,
       action: null,
       cartItemId: null,
       escalated: false
     };
   }
-  if (lowerMsg.includes("hello") || lowerMsg.includes("hi") || lowerMsg.includes("salam") || lowerMsg.includes("assalam")) {
+  if (hasGreetingIntent(lowerMsg) && !greetingShouldYieldToTask(message, deliveryAreas)) {
     const greeting = agentConf.customGreeting ?? `Assalam-o-Alaikum! Welcome to ${baker.businessName}.`;
     let personalNote = "";
     if (memory) {
@@ -81758,11 +81923,22 @@ async function processChatMessage(input) {
     eq(chatMessagesTable.sessionId, sid),
     eq(chatMessagesTable.role, "user")
   )).orderBy(asc(chatMessagesTable.id)).limit(30);
+  const catalogNames = await db.select({ name: productsTable.name }).from(productsTable).where(eq(productsTable.bakerId, bakerId));
   historyPreferences = foldSessionPreferences(
     sessionTurns.map((turn) => turn.content),
     historyPreferences,
-    bakerForMemory?.deliveryAreas ?? []
+    bakerForMemory?.deliveryAreas ?? [],
+    catalogNames.map((row) => row.name)
   );
+  const assistantTurns = await db.select({ content: chatMessagesTable.content }).from(chatMessagesTable).where(and(
+    eq(chatMessagesTable.bakerId, bakerId),
+    eq(chatMessagesTable.sessionId, sid),
+    eq(chatMessagesTable.role, "assistant")
+  )).orderBy(desc(chatMessagesTable.id)).limit(8);
+  const lastSingleProductReply = assistantTurns.find(
+    (turn) => productsMentionedIn(turn.content, catalogNames).length === 1
+  );
+  historyPreferences.lastAssistantText = lastSingleProductReply?.content ?? assistantTurns[0]?.content ?? "";
   const [activeHandoff] = await db.select({ id: chatHandoffsTable.id }).from(chatHandoffsTable).where(and(
     eq(chatHandoffsTable.bakerId, bakerId),
     eq(chatHandoffsTable.sessionId, sid),
@@ -81907,8 +82083,10 @@ async function processChatMessage(input) {
         ...memory?.preferences ?? {},
         ...historyPreferences
       },
-      bakerRow2?.deliveryAreas ?? []
+      bakerRow2?.deliveryAreas ?? [],
+      catalogNames.map((row) => row.name)
     );
+    delete updatedPrefs.lastAssistantText;
     const newCount = (memory?.messageCount ?? 0) + 2;
     const newSummary = buildMemorySummary({
       previousSummary: memory?.summary,

@@ -2,24 +2,20 @@ export type AgentLanguage = "english" | "urdu" | "roman_urdu" | "bilingual";
 
 const ROMAN_URDU_FOOTERS: Array<{ match: RegExp; line: string }> = [
   {
-    match: /would you like to see our menu|see our menu/i,
+    match: /would you like to see the menu|see the menu\?/i,
     line: "Kya aap menu dekhna chahenge? Reply karein ya apni pasand bata dein.",
   },
   {
-    match: /would you like to add|add it to your order/i,
-    line: "Order mein add karun? Quantity aur size bata dein.",
+    match: /add it to your (bag|order)/i,
+    line: "Order bag mein add kar dein, ya quantity aur date likh dein.",
   },
   {
-    match: /payment policy|cash on delivery|cod/i,
-    line: "Payment: advance ya delivery par cash — details upar hain.",
+    match: /^Payment policy:/i,
+    line: "Payment ki details upar English mein hain.",
   },
   {
-    match: /delivery|deliver to|pickup/i,
-    line: "Delivery area ya pickup confirm karne ke liye apna sector/area likhein.",
-  },
-  {
-    match: /welcome|assalam|help you order/i,
-    line: "Main aap ki madad ke liye yahan hoon — menu, price, ya order ke liye likhein.",
+    match: /delivers to:|which area —|which area are you/i,
+    line: "Apna area likhein — jaise Clifton ya Defence.",
   },
 ];
 

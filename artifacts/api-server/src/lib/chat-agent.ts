@@ -23,6 +23,18 @@ import { callLlm } from "./llm.js";
 import { answerNeedsHumanConfirmation, isMenuScopedMessage } from "./agent-safety.js";
 import { logOrderActivity } from "./audit.js";
 import { extractPreferences, foldSessionPreferences, buildMemorySummary } from "./buyer-memory.js";
+import {
+  findSpokenArea,
+  greetingShouldYieldToTask,
+  hasBookingConfirmIntent,
+  hasFlavorIntent,
+  hasGreetingIntent,
+  hasOrderIntent,
+  hasOrderStatusIntent,
+  productsMentionedIn,
+  resolveFocusProduct,
+  spokenCity,
+} from "./agent-intent.js";
 
 export type AgentReply = {
   reply: string;
@@ -63,6 +75,40 @@ async function notify(
   } catch (e) {
     logger.error({ err: e }, "Failed to create notification");
   }
+}
+
+function productPriceLine(product: typeof productsTable.$inferSelect): string {
+  const sizes = (product.sizes as Array<{ label: string; pricePkr: number }> | null) ?? [];
+  return sizes.length
+    ? sizes.map((size) => `${size.label} — PKR ${size.pricePkr.toLocaleString()}`).join(", ")
+    : `PKR ${product.basePricePkr.toLocaleString()}`;
+}
+
+function productTasteLine(product: typeof productsTable.$inferSelect): string {
+  const ingredients = Array.isArray(product.ingredients)
+    ? (product.ingredients as unknown[]).filter((item): item is string => typeof item === "string" && item.trim().length > 0)
+    : [];
+  if (ingredients.length) return ingredients.slice(0, 4).join(", ");
+  const desc = String(product.description ?? "").split(/[.!]/)[0]?.trim() ?? "";
+  return desc;
+}
+
+function checkoutReply(input: {
+  product: typeof productsTable.$inferSelect;
+  area?: string | null;
+  areas: string[];
+  payment: string;
+}): string {
+  const lead = input.product.leadTimeDays > 0
+    ? ` Ready in ${input.product.leadTimeDays} day${input.product.leadTimeDays === 1 ? "" : "s"}.`
+    : "";
+  const taste = productTasteLine(input.product);
+  const tasteBit = taste ? ` ${taste}.` : "";
+  if (!input.area) {
+    const areaHint = input.areas.length ? ` We deliver to ${input.areas.join(", ")}.` : "";
+    return `${input.product.name} — ${productPriceLine(input.product)}.${tasteBit}${lead}${areaHint} Which area should I use for delivery, or is this pickup?`;
+  }
+  return `${input.product.name} for ${input.area}: ${productPriceLine(input.product)}.${tasteBit}${lead} Payment: ${input.payment} Add it to your bag on this page, or tell me the quantity and the date you need it.`;
 }
 
 export async function generateAgentReply(
@@ -170,15 +216,27 @@ export async function generateAgentReply(
   }
 
   // Rule-based handler for Order Status and Advance Payment verification queries
-  if (buyerId && (lowerMsg.includes("status") || lowerMsg.includes("verify") || lowerMsg.includes("receipt") || lowerMsg.includes("screenshot") || lowerMsg.includes("payment") || lowerMsg.includes("advance"))) {
-    const [latestOrder] = await db
-      .select()
-      .from(ordersTable)
-      .where(and(eq(ordersTable.buyerId, buyerId), eq(ordersTable.bakerId, bakerId)))
-      .orderBy(desc(ordersTable.createdAt))
-      .limit(1);
+  if (
+    hasOrderStatusIntent(lowerMsg)
+    || (buyerId && (lowerMsg.includes("verify") || lowerMsg.includes("receipt") || lowerMsg.includes("screenshot")))
+  ) {
+    const [latestOrder] = buyerId
+      ? await db
+          .select()
+          .from(ordersTable)
+          .where(and(eq(ordersTable.buyerId, buyerId), eq(ordersTable.bakerId, bakerId)))
+          .orderBy(desc(ordersTable.createdAt))
+          .limit(1)
+      : [];
 
-    if (latestOrder) {
+    if (!latestOrder) {
+      return {
+        reply: `I don't have an order on this chat yet. Add items to your bag on this page, or tell me which cake you want and your delivery area.`,
+        action: null,
+        cartItemId: null,
+        escalated: false,
+      };
+    }
       const advancePct = baker.advancePercentage ?? 50;
       const paymentMode = (baker.agentConfig as { paymentMode?: string } | null)?.paymentMode;
       const fullAdvance = paymentMode === "full_advance" || advancePct >= 100;
@@ -218,7 +276,6 @@ export async function generateAgentReply(
           escalated: false,
         };
       }
-    }
   }
 
   if (agentConf.blockedTopics?.some((t) => lowerMsg.includes(t.toLowerCase()))) {
@@ -266,6 +323,14 @@ export async function generateAgentReply(
     ...((memory?.preferences ?? {}) as Record<string, unknown>),
     ...historyPreferences,
   };
+  const deliveryAreas = baker.deliveryAreas ?? [];
+  const lastAssistantText = typeof buyerPrefs.lastAssistantText === "string" ? buyerPrefs.lastAssistantText : "";
+  const paymentMode = (baker.agentConfig as { paymentMode?: string } | null)?.paymentMode;
+  const paymentPolicy = paymentMode === "full_advance"
+    ? "Full advance is required before your order is confirmed."
+    : paymentMode === "partial_advance"
+      ? `Partial advance (${baker.advancePercentage}%) on orders from PKR ${baker.advanceThresholdPkr.toLocaleString()}. Balance on delivery.`
+      : baker.codPolicy ?? "Cash on delivery (COD) only. Full payment required at the time of delivery.";
   // Exact-first policy: the customer-facing answers below come from live
   // bakery records. Unknown questions fail closed to baker confirmation.
 
@@ -299,10 +364,45 @@ export async function generateAgentReply(
     };
   }
 
-  // A custom design cannot be priced safely from a generic message. Collect
-  // the key order details and explicitly notify the baker rather than inventing
-  // a quote, availability, or delivery promise.
-  if (/(custom (cake|order|design)|theme cake|birthday cake|wedding cake|photo cake|logo cake|sculpted cake|3d cake|fondant)/.test(lowerMsg)) {
+  // Published catalogue items win over the generic custom-cake form, so a
+  // "Fondant Wedding Cake" on the menu is never treated as an unpriced sketch.
+  const lastItem = typeof buyerPrefs.lastItem === "string" ? buyerPrefs.lastItem.toLowerCase().trim() : "";
+  const focusProduct = resolveFocusProduct(message, products, lastItem, lastAssistantText);
+  const mentionedProduct = products.find((product) =>
+    lowerMsg.includes(product.name.toLowerCase()),
+  ) ?? (focusProduct
+    ? products.find((product) => product.id === (focusProduct as { id?: number }).id)
+      ?? products.find((product) => product.name === focusProduct.name)
+    : undefined);
+
+  if (hasFlavorIntent(lowerMsg)) {
+    const available = products.filter((product) => product.isAvailable);
+    if (available.length === 0) {
+      return {
+        reply: `${baker.businessName} does not have cakes listed yet. Please ask the baker for flavours.`,
+        action: null,
+        cartItemId: null,
+        escalated: false,
+      };
+    }
+    const list = available
+      .map((product) => {
+        const taste = productTasteLine(product);
+        return `• *${product.name}* — ${productPriceLine(product)}${taste ? `. ${taste}` : ""}`;
+      })
+      .join("\n");
+    return {
+      reply: `Here's what is on ${baker.businessName}'s menu (flavours are whatever the baker wrote for each cake — I don't invent extra ones):\n\n${list}\n\nWhich cake would you like?`,
+      action: null,
+      cartItemId: null,
+      escalated: false,
+    };
+  }
+
+  if (
+    /(custom (cake|order|design)|theme cake|photo cake|logo cake|sculpted cake|3d cake)/.test(lowerMsg)
+    && !mentionedProduct
+  ) {
     return {
       reply: `I can help ${baker.businessName} prepare a custom-order request. Please share the occasion/design, required date and time, number of servings, flavour, eggless/dietary needs, and delivery or pickup area. The baker will confirm the final price and availability.`,
       action: "escalate",
@@ -314,12 +414,6 @@ export async function generateAgentReply(
   // Handle a named product before a generic "price" or "menu" request. This
   // prevents a customer asking "what is the price of Chocolate Cake?" from
   // receiving an unhelpful full catalogue instead of the exact product facts.
-  const lastItem = typeof buyerPrefs.lastItem === "string" ? buyerPrefs.lastItem.toLowerCase().trim() : "";
-  const mentionedProduct = products.find((product) =>
-    lowerMsg.includes(product.name.toLowerCase()),
-  ) ?? (lastItem && /(want|need|looking for|order|price|cake|bento|cupcake|brownie)/.test(lowerMsg)
-    ? products.find((product) => product.name.toLowerCase().includes(lastItem))
-    : undefined);
   if (mentionedProduct) {
     if (!mentionedProduct.isAvailable) {
       const alternatives = products.filter(
@@ -336,24 +430,40 @@ export async function generateAgentReply(
       };
     }
 
-    const sizes = (mentionedProduct.sizes as Array<{ label: string; pricePkr: number }>) ?? [];
-    const price = sizes.length
-      ? `Sizes and prices: ${sizes.map((size) => `${size.label} — PKR ${size.pricePkr.toLocaleString()}`).join(", ")}`
-      : `Price: PKR ${mentionedProduct.basePricePkr.toLocaleString()}`;
+    const spokenArea = findSpokenArea(message, deliveryAreas)
+      ?? (typeof buyerPrefs.preferredArea === "string" ? buyerPrefs.preferredArea : null);
+    if (hasOrderIntent(lowerMsg) || hasBookingConfirmIntent(lowerMsg)) {
+      return {
+        reply: checkoutReply({
+          product: mentionedProduct,
+          area: spokenArea,
+          areas: deliveryAreas,
+          payment: paymentPolicy,
+        }),
+        action: null,
+        cartItemId: mentionedProduct.id,
+        escalated: false,
+      };
+    }
+
     const leadTime = mentionedProduct.leadTimeDays > 0
       ? ` Preparation time: ${mentionedProduct.leadTimeDays} day${mentionedProduct.leadTimeDays === 1 ? "" : "s"}.`
       : "";
     const dietaryTags = (mentionedProduct.dietaryTags as string[] | null) ?? [];
     const dietary = dietaryTags.length ? ` Dietary labels: ${dietaryTags.join(", ")}.` : "";
     const eggless = mentionedProduct.isEgglessAvailable ? " An eggless version is available." : "";
+    const taste = productTasteLine(mentionedProduct);
     return {
-      reply: `${mentionedProduct.name} is available. ${price}.${leadTime}${eggless}${dietary} Would you like to order it, or check delivery for your area?`,
+      reply: `${mentionedProduct.name} is available. ${productPriceLine(mentionedProduct)}.${taste ? ` ${taste}.` : ""}${leadTime}${eggless}${dietary} Would you like to order it, or check delivery for your area?`,
       action: null,
-      cartItemId: null,
+      cartItemId: mentionedProduct.id,
       escalated: false,
     };
   }
 
+  const spokenArea = findSpokenArea(message, deliveryAreas)
+    ?? (typeof buyerPrefs.preferredArea === "string" ? buyerPrefs.preferredArea : null);
+  const city = spokenCity(message);
   const asksDelivery = lowerMsg.includes("deliver") || lowerMsg.includes("area") || lowerMsg.includes("location");
   if (
     (lowerMsg.includes("price") && !asksDelivery) ||
@@ -420,7 +530,7 @@ export async function generateAgentReply(
     };
   }
 
-  if (asksDelivery) {
+  if (asksDelivery || city) {
     const areas = (baker.deliveryAreas ?? []).join(", ");
     const agentConf = (baker.agentConfig ?? {}) as { deliveryPricing?: unknown; deliveryZones?: unknown; allowDelivery?: unknown };
     if (agentConf.allowDelivery === false) {
@@ -445,12 +555,17 @@ export async function generateAgentReply(
       areas.toLowerCase().includes((buyerPrefs.preferredArea as string).toLowerCase())
         ? ` Great news — we deliver to ${buyerPrefs.preferredArea}!`
         : "";
-    const areaFollowUp = buyerPrefs.preferredArea
+    const areaFollowUp = spokenArea || buyerPrefs.preferredArea
       ? " Pickup is also available."
       : " Pickup is also available. Which area are you in?";
+    const cityNote = city && baker.city && baker.city.toLowerCase() === city.toLowerCase()
+      ? ` Yes — ${baker.businessName} is in ${baker.city}. Tell me the area (for example ${deliveryAreas.slice(0, 2).join(" or ") || "your sector"}).`
+      : city && baker.city && baker.city.toLowerCase() !== city.toLowerCase()
+        ? ` Published delivery is in ${baker.city}: ${areas || "ask the baker"}. I cannot confirm ${city} unless the baker lists it.`
+        : "";
     return {
       reply: areas
-        ? `${baker.businessName} delivers to: ${areas}.${zonePricing || (deliveryPricing ? ` Delivery charges: ${deliveryPricing}.` : "")}${personalNote}${areaFollowUp}`
+        ? `${baker.businessName} delivers to: ${areas}.${zonePricing || (deliveryPricing ? ` Delivery charges: ${deliveryPricing}.` : "")}${personalNote}${cityNote || areaFollowUp}`
         : `${baker.businessName} has not published delivery areas yet. I cannot confirm delivery or invent a fee; please use the bakery's published contact details to ask the baker.`,
       action: null,
       cartItemId: null,
@@ -465,35 +580,33 @@ export async function generateAgentReply(
     lowerMsg.includes("cash") ||
     lowerMsg.includes("advance")
   ) {
-    const agentConf = (baker.agentConfig ?? {}) as { paymentMode?: string };
-    const mode = agentConf.paymentMode;
-    const policy = mode === "full_advance"
-      ? "Full advance is required before your order is confirmed."
-      : mode === "partial_advance"
-        ? `Partial advance (${baker.advancePercentage}%) on orders from PKR ${baker.advanceThresholdPkr.toLocaleString()}. Balance on delivery.`
-        : baker.codPolicy ?? "Cash on delivery (COD) only. Full payment required at the time of delivery.";
-    return { reply: `Payment policy: ${policy}`, action: null, cartItemId: null, escalated: false };
+    return { reply: `Payment policy: ${paymentPolicy}`, action: null, cartItemId: null, escalated: false };
   }
 
-  if (lowerMsg.includes("order") || lowerMsg.includes("want") || lowerMsg.includes("buy")) {
+  if (hasOrderIntent(lowerMsg) || hasBookingConfirmIntent(lowerMsg)) {
+    const available = products.filter((product) => product.isAvailable);
+    const names = available.map((product) => product.name).join(", ");
+    if (spokenArea && !focusProduct) {
+      return {
+        reply: `${spokenArea} is in ${baker.businessName}'s delivery areas. Which cake should I put down — ${names || "tell me the item from the menu"}?`,
+        action: null,
+        cartItemId: null,
+        escalated: false,
+      };
+    }
     const favourites = buyerPrefs.favoriteProducts as string[] | undefined;
     const suggestion = favourites?.length
       ? ` Based on your past orders, you might want to try ${favourites[0]} again.`
       : "";
     return {
-      reply: `To place an order with ${baker.businessName}, tell me what you'd like and your delivery area.${suggestion}\n\nWhat would you like to order?`,
+      reply: `Which cake would you like from ${baker.businessName}? ${names ? `On the menu: ${names}.` : ""}${suggestion} Then tell me delivery area or pickup.`,
       action: null,
       cartItemId: null,
       escalated: false,
     };
   }
 
-  if (
-    lowerMsg.includes("hello") ||
-    lowerMsg.includes("hi") ||
-    lowerMsg.includes("salam") ||
-    lowerMsg.includes("assalam")
-  ) {
+  if (hasGreetingIntent(lowerMsg) && !greetingShouldYieldToTask(message, deliveryAreas)) {
     const greeting = agentConf.customGreeting ?? `Assalam-o-Alaikum! Welcome to ${baker.businessName}.`;
     let personalNote = "";
     if (memory) {
@@ -729,11 +842,30 @@ export async function processChatMessage(input: ProcessChatInput): Promise<Proce
     ))
     .orderBy(asc(chatMessagesTable.id))
     .limit(30);
+  const catalogNames = await db
+    .select({ name: productsTable.name })
+    .from(productsTable)
+    .where(eq(productsTable.bakerId, bakerId));
   historyPreferences = foldSessionPreferences(
     sessionTurns.map((turn) => turn.content),
     historyPreferences,
     bakerForMemory?.deliveryAreas ?? [],
+    catalogNames.map((row) => row.name),
   );
+  const assistantTurns = await db
+    .select({ content: chatMessagesTable.content })
+    .from(chatMessagesTable)
+    .where(and(
+      eq(chatMessagesTable.bakerId, bakerId),
+      eq(chatMessagesTable.sessionId, sid),
+      eq(chatMessagesTable.role, "assistant"),
+    ))
+    .orderBy(desc(chatMessagesTable.id))
+    .limit(8);
+  const lastSingleProductReply = assistantTurns.find(
+    (turn) => productsMentionedIn(turn.content, catalogNames).length === 1,
+  );
+  historyPreferences.lastAssistantText = lastSingleProductReply?.content ?? assistantTurns[0]?.content ?? "";
 
   const [activeHandoff] = await db.select({ id: chatHandoffsTable.id })
     .from(chatHandoffsTable)
@@ -915,7 +1047,9 @@ export async function processChatMessage(input: ProcessChatInput): Promise<Proce
         ...historyPreferences,
       },
       bakerRow?.deliveryAreas ?? [],
+      catalogNames.map((row) => row.name),
     );
+    delete updatedPrefs.lastAssistantText;
     const newCount = (memory?.messageCount ?? 0) + 2;
     const newSummary = buildMemorySummary({
       previousSummary: memory?.summary,

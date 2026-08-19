@@ -20,6 +20,11 @@ describe("customer agent safety boundary", () => {
     expect(isMenuScopedMessage("cake ".repeat(501), products)).toBe(false);
   });
 
+  it("does not treat Karachi as hi, but still allows city and area messages", () => {
+    expect(isMenuScopedMessage("karachi", products)).toBe(true);
+    expect(isMenuScopedMessage("this is a random essay about philosophy", products)).toBe(false);
+  });
+
   it("routes uncertain generated answers to a person", () => {
     expect(answerNeedsHumanConfirmation("Please confirm with the baker before ordering.")).toBe(true);
     expect(answerNeedsHumanConfirmation("Chocolate cake costs PKR 2,500.")).toBe(false);

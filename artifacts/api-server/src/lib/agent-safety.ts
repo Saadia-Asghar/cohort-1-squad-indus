@@ -28,7 +28,13 @@ export function isMenuScopedMessage(message: string, productNames: string[]): bo
   if (!normalized || normalized.length > 2_000) return false;
   if (PROMPT_INJECTION_PATTERNS.some((pattern) => pattern.test(normalized))) return false;
   if (productNames.some((name) => normalized.includes(name.toLowerCase()))) return true;
-  return MENU_SCOPE_KEYWORDS.some((keyword) => normalized.includes(keyword));
+  if (/\b(karachi|lahore|islamabad|rawalpindi|clifton|defence|dha)\b/i.test(normalized)) return true;
+  return MENU_SCOPE_KEYWORDS.some((keyword) => {
+    if (keyword.length <= 3 && /^[a-z]+$/i.test(keyword)) {
+      return new RegExp(`\\b${keyword}\\b`, "i").test(normalized);
+    }
+    return normalized.includes(keyword.toLowerCase());
+  });
 }
 
 /** Detects an answer that admits the retrieved bakery facts are insufficient. */

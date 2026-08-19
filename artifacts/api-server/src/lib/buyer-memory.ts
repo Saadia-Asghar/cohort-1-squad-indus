@@ -56,6 +56,7 @@ export function extractPreferences(
   message: string,
   existing: Record<string, unknown>,
   deliveryAreas: string[] = [],
+  productNames: string[] = [],
 ): Record<string, unknown> {
   const prefs: Record<string, unknown> = { ...existing };
   const lowerMsg = normalizeHaystack(message);
@@ -88,8 +89,17 @@ export function extractPreferences(
     if (spoken.length >= 3) prefs.preferredArea = spoken;
   }
 
-  const lastItem = lowerMsg.match(/(?:order(?:ed|ing)?|want|need|looking for)\s+(?:a |an |the )?([a-z0-9 ]{3,40}(?:cake|cupcake|brownie|cookie|dessert|bento|box))/);
+  const lastItem = lowerMsg.match(
+    /(?:order(?:ed|ing)?|want|wnat|wanna|need|looking for|book)\s+(?:a |an |the )?([a-z0-9 ]{3,40}(?:cake|cupcake|brownie|cookie|dessert|bento|box))/,
+  );
   if (lastItem?.[1]) prefs.lastItem = lastItem[1].trim();
+  for (const name of productNames) {
+    const needle = normalizeHaystack(name);
+    if (needle.length >= 4 && lowerMsg.includes(needle)) {
+      prefs.lastItem = name;
+      break;
+    }
+  }
 
   const allergyMatch =
     lowerMsg.match(/allerg(?:ic|y)(?:\s+hai)?(?:\s+to)\s+([a-z]{2,40})/) ??
@@ -127,9 +137,10 @@ export function foldSessionPreferences(
   messages: string[],
   existing: Record<string, unknown> = {},
   deliveryAreas: string[] = [],
+  productNames: string[] = [],
 ): Record<string, unknown> {
   return messages.reduce(
-    (prefs, text) => extractPreferences(text, prefs, deliveryAreas),
+    (prefs, text) => extractPreferences(text, prefs, deliveryAreas, productNames),
     { ...existing },
   );
 }

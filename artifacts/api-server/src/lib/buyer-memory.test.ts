@@ -29,6 +29,11 @@ describe("extractPreferences", () => {
     expect(String(prefs.lastItem).toLowerCase()).toContain("chocolate cake");
   });
 
+  it("uses a catalogue product name when the buyer types it", () => {
+    const prefs = extractPreferences("clifton, order their cake Pastel Bento Cake", {}, ["Clifton"], ["Pastel Bento Cake"]);
+    expect(prefs.lastItem).toBe("Pastel Bento Cake");
+  });
+
   it("picks up I'm-in phrasing and looking-for requests", () => {
     const prefs = extractPreferences("I'm in Clifton and looking for a bento cake", {});
     expect(String(prefs.preferredArea).toLowerCase()).toContain("clifton");
