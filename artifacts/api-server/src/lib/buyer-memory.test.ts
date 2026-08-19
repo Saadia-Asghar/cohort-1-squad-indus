@@ -34,6 +34,24 @@ describe("extractPreferences", () => {
     expect(prefs.lastItem).toBe("Pastel Bento Cake");
   });
 
+  it("stores WhatsApp and name from chat so a guest can finish without a bag", () => {
+    const prefs = foldSessionPreferences(
+      [
+        "I want Pastel Bento Cake",
+        "Clifton",
+        "my name is Ali",
+        "03001234567",
+      ],
+      {},
+      ["Clifton"],
+      ["Pastel Bento Cake"],
+    );
+    expect(prefs.lastItem).toBe("Pastel Bento Cake");
+    expect(prefs.preferredArea).toBe("Clifton");
+    expect(prefs.buyerName).toMatch(/Ali/i);
+    expect(prefs.buyerWhatsapp).toBe("+923001234567");
+  });
+
   it("picks up I'm-in phrasing and looking-for requests", () => {
     const prefs = extractPreferences("I'm in Clifton and looking for a bento cake", {});
     expect(String(prefs.preferredArea).toLowerCase()).toContain("clifton");

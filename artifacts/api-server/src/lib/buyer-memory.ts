@@ -1,3 +1,6 @@
+import { parseNeededByDate } from "./agent-checkout.js";
+import { normalizePakistanPhone } from "./phone.js";
+
 export const MEMORY_STUB_SUMMARIES = new Set([
   "Recent menu conversation saved.",
   "Customer needs a baker follow-up.",
@@ -128,6 +131,27 @@ export function extractPreferences(
   if (existing.pinEggless === true) {
     prefs.pinEggless = true;
     prefs.eggless = existing.eggless === true;
+  }
+
+  const phone = normalizePakistanPhone(message);
+  if (phone) prefs.buyerWhatsapp = phone;
+  if (/\bpickup\b|\bcollect from (the )?(shop|bakery)\b/.test(lowerMsg)) {
+    prefs.pickup = true;
+  }
+  const neededBy = parseNeededByDate(message);
+  if (neededBy && !phone) prefs.neededByDate = neededBy;
+  else if (neededBy && /\b(tomorrow|today|needed by)\b/.test(lowerMsg)) prefs.neededByDate = neededBy;
+
+  const qtyHit = lowerMsg.match(/\b(\d{1,2})\s*(?:x|pcs|pieces?|cakes?|qty)\b/);
+  if (qtyHit) {
+    const qty = Number(qtyHit[1]);
+    if (qty >= 1 && qty <= 20) prefs.quantity = qty;
+  }
+
+  const named = message.match(/\b(?:my name is|this is)\s+([A-Za-z][A-Za-z .']{1,40})/i)
+    ?? message.match(/\b(?:i am|i'm)\s+(?!in\b|at\b|from\b)([A-Za-z][A-Za-z .']{1,40})/i);
+  if (named?.[1] && !normalizePakistanPhone(named[1])) {
+    prefs.buyerName = named[1].replace(/\s+/g, " ").trim().slice(0, 80);
   }
 
   return prefs;

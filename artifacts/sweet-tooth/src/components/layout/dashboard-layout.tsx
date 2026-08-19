@@ -6,9 +6,9 @@ import {
   type ComponentType,
   type ReactNode,
 } from "react";
-import { useGetBaker, useListOrders, getListOrdersQueryKey } from "@workspace/api-client-react";
+import { customFetch, useGetBaker, useListOrders, getListOrdersQueryKey } from "@workspace/api-client-react";
 import { liveDashboardQuery, ORDERS_POLL_MS } from "@/lib/dashboard-query";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useBuyerSession } from "@/hooks/use-session";
 import { NotificationBell } from "@/components/notification-bell";
 import { BakeryQuest } from "@/components/dashboard/bakery-quest";
@@ -27,6 +27,7 @@ import {
   DollarSign,
   Globe,
   Grid,
+  Inbox,
   LayoutDashboard,
   LogOut,
   MessageSquareText,
@@ -49,6 +50,7 @@ type DashboardNavItem = {
 const desktopPrimaryItems: DashboardNavItem[] = [
   { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
   { href: "/dashboard/orders", label: "Orders", icon: ShoppingBag },
+  { href: "/dashboard/human-inbox", label: "Inbox", icon: Inbox },
   { href: "/dashboard/catalog", label: "Catalog", icon: Grid },
   { href: "/dashboard/customers", label: "Customers", icon: Users },
   {
@@ -79,11 +81,12 @@ const desktopSecondaryItems: DashboardNavItem[] = [
 const mobilePrimaryItems: DashboardNavItem[] = [
   { href: "/dashboard", label: "Home", icon: LayoutDashboard },
   { href: "/dashboard/orders", label: "Orders", icon: ShoppingBag },
+  { href: "/dashboard/human-inbox", label: "Inbox", icon: Inbox },
   { href: "/dashboard/catalog", label: "Catalog", icon: Grid },
-  { href: "/dashboard/customers", label: "Customers", icon: Users },
 ];
 
 const moreItems: DashboardNavItem[] = [
+  { href: "/dashboard/customers", label: "Customers", icon: Users },
   {
     href: "/dashboard/calendar",
     label: "Order schedule",
@@ -146,7 +149,7 @@ function DesktopNavLink({
 
       <span className="min-w-0 flex-1 truncate">{item.label}</span>
 
-      {item.label === "Orders" && badge ? (
+      {badge ? (
         <span className="grid h-5 min-w-5 place-items-center rounded-full bg-secondary px-1 text-[9px] font-bold text-white">
           {badge > 99 ? "99+" : badge}
         </span>
@@ -188,6 +191,19 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
     },
   );
 
+  const { data: navHandoffs } = useQuery({
+    queryKey: ["baker-handoffs-nav", bakerId],
+    queryFn: async () => {
+      const data = await customFetch<Array<{ status: string }>>(
+        `/api/bakers/${bakerId}/handoffs`,
+        { responseType: "json" },
+      );
+      return Array.isArray(data) ? data : [];
+    },
+    enabled: Boolean(bakerId),
+    ...liveDashboardQuery(ORDERS_POLL_MS),
+  });
+
   const openOrderCount = useMemo(
     () =>
       (navOrders ?? []).filter(
@@ -195,6 +211,17 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
       ).length,
     [navOrders],
   );
+
+  const openInboxCount = useMemo(
+    () => (navHandoffs ?? []).filter((handoff) => handoff.status !== "resolved").length,
+    [navHandoffs],
+  );
+
+  const badgeFor = (href: string): number | undefined => {
+    if (href === "/dashboard/orders") return openOrderCount || undefined;
+    if (href === "/dashboard/human-inbox") return openInboxCount || undefined;
+    return undefined;
+  };
 
   const trial = (
     baker as
@@ -316,7 +343,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
                 key={item.href}
                 item={item}
                 active={routeIsActive(location, item.href)}
-                badge={openOrderCount}
+                badge={badgeFor(item.href)}
               />
             ))}
           </nav>
@@ -480,7 +507,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
         typeof trial.daysLeft === "number" ? (
           <div className="border-b border-border bg-accent px-4 py-2.5 text-xs text-foreground sm:px-6 sm:text-sm xl:px-8">
             <span className="font-semibold">Launch Free trial</span>
-            {" Â· "}
+            {" · "}
             {trial.daysLeft} day{trial.daysLeft === 1 ? "" : "s"} left.{" "}
             <Link
               href="/dashboard/settings#platform-billing"
@@ -503,6 +530,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
           {mobilePrimaryItems.map((item) => {
             const active = routeIsActive(location, item.href);
             const Icon = item.icon;
+            const badge = badgeFor(item.href);
 
             return (
               <Link
@@ -514,7 +542,14 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
                     : "text-muted-foreground hover:bg-muted/[0.55] hover:text-foreground"
                 }`}
               >
-                <Icon className="h-[19px] w-[19px]" />
+                <span className="relative">
+                  <Icon className="h-[19px] w-[19px]" />
+                  {badge ? (
+                    <span className="absolute -right-2.5 -top-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-secondary px-1 text-[8px] font-bold text-white">
+                      {badge > 99 ? "99+" : badge}
+                    </span>
+                  ) : null}
+                </span>
                 <span>{item.label}</span>
               </Link>
             );

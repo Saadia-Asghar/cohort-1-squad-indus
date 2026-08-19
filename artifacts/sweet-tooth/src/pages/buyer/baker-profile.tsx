@@ -11,12 +11,11 @@ import {
   getGetBakerReviewsQueryKey
 } from "@workspace/api-client-react";
 import { useParams } from "wouter";
-import { MessageCircle, X, Send, User, Star, Phone, Sparkles, Facebook, Instagram, ShoppingBag, Clock, Truck } from "lucide-react";
+import { MessageCircle, X, Send, User, Star, Phone, Sparkles, Facebook, Instagram, Clock, Truck } from "lucide-react";
 import { formatLeadTime, buildWhatsAppOrderText } from "@/lib/shop-settings";
 import { resolveConversationFlow, type ResolvedConversationFlow } from "@/lib/conversation-flow";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
-import { addGuestCartItem } from "@/pages/buyer/cart";
 import { SafeImage } from "@/components/ui/safe-image";
 
 type PublicChatMessage = {
@@ -131,7 +130,7 @@ export default function BakerProfile() {
 
   const askAboutProduct = (productName: string) => {
     setIsChatOpen(true);
-    handleQuickMessage(`Tell me about ${productName}. Is it available, and can I order it today?`);
+    handleQuickMessage(`I want to order ${productName}`);
   };
 
   const whatsappChatUrl = (baker as { whatsappChatUrl?: string | null } | undefined)?.whatsappChatUrl;
@@ -163,26 +162,6 @@ export default function BakerProfile() {
   const openInstagram = () => {
     if (!instagramUrl) return;
     window.open(instagramUrl, "_blank", "noopener,noreferrer");
-  };
-
-  const addProductToBag = (product: {
-    id: number;
-    name: string;
-    basePricePkr: number;
-    sizes?: Array<{ label: string; pricePkr: number }> | null;
-  }) => {
-    const sizeLabel = selectedSizes[product.id] ?? product.sizes?.[0]?.label ?? "Standard";
-    const matched = product.sizes?.find((s) => s.label === sizeLabel);
-    addGuestCartItem({
-      bakerId,
-      bakerName: baker?.businessName,
-      productId: product.id,
-      productName: product.name,
-      quantity: 1,
-      unitPricePkr: matched?.pricePkr ?? product.basePricePkr,
-      sizeLabel,
-    });
-    toast({ title: "Added to bag", description: `${product.name} is ready in your cart.` });
   };
 
   const openCustomQuote = () => {
@@ -359,7 +338,7 @@ export default function BakerProfile() {
             <div className="mb-8">
               <h2 className="text-3xl font-bold font-serif">Menu</h2>
               <p className="mt-2 text-sm text-muted-foreground">
-                Add items to your bag and check out here. Ask the menu assistant about prices, ingredients, availability, delivery, or bakery policies.
+                No login needed. Chat with the menu assistant to pick a cake and send the order to the bakery. They will confirm on WhatsApp.
               </p>
             </div>
             
@@ -453,20 +432,10 @@ export default function BakerProfile() {
                             <div className="flex gap-2 flex-wrap justify-end">
                               {showWebChat && product.isAvailable && (
                                 <button
-                                  onClick={() => addProductToBag(product)}
-                                  className="p-1.5 rounded-md text-primary border border-primary/20 hover:bg-primary/10"
-                                  aria-label={`Add ${product.name} to bag`}
-                                  title="Add to bag"
-                                >
-                                  <ShoppingBag className="w-4 h-4" />
-                                </button>
-                              )}
-                              {showWebChat && product.isAvailable && (
-                                <button
                                   onClick={() => askAboutProduct(product.name)}
                                   className="p-1.5 rounded-md text-primary border border-primary/20 hover:bg-primary/10"
-                                  aria-label={`Ask the assistant about ${product.name}`}
-                                  title="Ask assistant"
+                                  aria-label={`Book ${product.name} with the assistant`}
+                                  title="Book with assistant"
                                 >
                                   <Sparkles className="w-4 h-4" />
                                 </button>
@@ -484,7 +453,7 @@ export default function BakerProfile() {
                                 </button>
                               )}
                               <button
-                                onClick={() => addProductToBag(product)}
+                                onClick={() => askAboutProduct(product.name)}
                                 disabled={!product.isAvailable}
                                 className="bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground px-4 py-1.5 rounded-md text-sm font-bold transition-colors disabled:opacity-50"
                               >
@@ -564,7 +533,7 @@ export default function BakerProfile() {
                 <User className="w-4 h-4" />
               </div>
               <div className="bg-card border border-border p-3 rounded-2xl rounded-tl-sm shadow-sm text-sm">
-                Hi! Welcome to {baker?.businessName}. I'm their assistant. How can I help you today?
+                Hi! Welcome to {baker?.businessName}. Tell me the cake you want — I'll send the order to the bakery when you confirm. No login needed.
               </div>
             </div>
 

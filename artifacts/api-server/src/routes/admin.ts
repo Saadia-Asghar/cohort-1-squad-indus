@@ -353,7 +353,7 @@ router.get("/admin/bakers/:id", async (req, res): Promise<void> => {
 });
 
 /**
- * Manually activate a paid plan after JazzCash / Easypaisa / bank + WhatsApp confirmation.
+ * Manually activate a paid plan after WhatsApp payment confirmation.
  * Authorization: Bearer <admin JWT>
  */
 router.post("/admin/activate-plan", async (req, res): Promise<void> => {
@@ -430,7 +430,6 @@ const PLATFORM_BILLING_KEY = "platform_billing";
 
 async function persistPlatformBilling(patch: {
   whatsapp?: string;
-  paymentDetails?: string;
   ownerName?: string;
 }): Promise<void> {
   const [existing] = await db
@@ -439,15 +438,15 @@ async function persistPlatformBilling(patch: {
     .where(eq(platformSettingsTable.key, PLATFORM_BILLING_KEY))
     .limit(1);
   const current = (existing?.value ?? {}) as Record<string, unknown>;
-  const next = {
+  const next: Record<string, unknown> = {
     ...current,
     ...(patch.whatsapp ? { whatsapp: patch.whatsapp } : {}),
-    ...(patch.paymentDetails ? { paymentDetails: patch.paymentDetails } : {}),
     ...(patch.ownerName ? { ownerName: patch.ownerName } : {}),
   };
+  delete next.paymentDetails;
   if (typeof next.whatsapp === "string") process.env.PLATFORM_WHATSAPP = next.whatsapp;
-  if (typeof next.paymentDetails === "string") process.env.PLATFORM_PAYMENT_DETAILS = next.paymentDetails;
   if (typeof next.ownerName === "string") process.env.PLATFORM_BILLING_NAME = next.ownerName;
+  delete process.env.PLATFORM_PAYMENT_DETAILS;
 
   await db
     .insert(platformSettingsTable)
@@ -466,8 +465,8 @@ export async function hydratePlatformBillingFromDb(): Promise<void> {
     .limit(1);
   const value = (existing?.value ?? {}) as Record<string, unknown>;
   if (typeof value.whatsapp === "string") process.env.PLATFORM_WHATSAPP = value.whatsapp;
-  if (typeof value.paymentDetails === "string") process.env.PLATFORM_PAYMENT_DETAILS = value.paymentDetails;
   if (typeof value.ownerName === "string") process.env.PLATFORM_BILLING_NAME = value.ownerName;
+  delete process.env.PLATFORM_PAYMENT_DETAILS;
 }
 
 router.get("/admin/platform-billing", async (req, res): Promise<void> => {
@@ -478,15 +477,14 @@ router.get("/admin/platform-billing", async (req, res): Promise<void> => {
 });
 
 /**
- * Set platform JazzCash / WhatsApp billing details. Persists to platform_settings.
+ * App contact + where bakers go to pay for a plan. WhatsApp only — no account numbers.
  */
 router.post("/admin/platform-billing", async (req, res): Promise<void> => {
   if (!requireAdminBearer(req, res)) return;
 
   const parsed = z
     .object({
-      whatsapp: z.string().trim().min(10).max(24).optional(),
-      paymentDetails: z.string().trim().min(8).max(2000).optional(),
+      whatsapp: z.string().trim().min(10).max(24),
       ownerName: z.string().trim().min(2).max(80).optional(),
     })
     .safeParse(req.body);

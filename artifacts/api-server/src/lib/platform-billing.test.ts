@@ -41,9 +41,16 @@ describe("platform-billing", () => {
 
   it("reports enabled when WhatsApp is configured", () => {
     process.env.PLATFORM_WHATSAPP = "923001234567";
-    process.env.PLATFORM_PAYMENT_DETAILS = "JazzCash 0300";
     const cfg = getPlatformBillingConfig();
     expect(cfg.enabled).toBe(true);
-    expect(cfg.paymentDetails).toContain("JazzCash");
+    expect(cfg.whatsappDisplay).toBe("0300-1234567");
+    expect(cfg.paymentDetails).toContain("WhatsApp 0300-1234567");
+    expect(cfg.paymentDetails).not.toMatch(/JazzCash|Easypaisa|IBAN/i);
+  });
+
+  it("defaults to the founder WhatsApp when nothing is saved", () => {
+    const cfg = getPlatformBillingConfig();
+    expect(cfg.whatsappDisplay).toBe("0315-9127771");
+    expect(cfg.paymentDetails).not.toMatch(/JazzCash|bank transfer/i);
   });
 });

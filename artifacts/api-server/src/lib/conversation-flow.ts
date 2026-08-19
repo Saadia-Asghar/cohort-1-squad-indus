@@ -129,7 +129,7 @@ export function resolveConversationFlow(input: ChannelReadinessInput): ResolvedC
   const showWhatsAppCta = whatsappReady && (active === "whatsapp" || Boolean(input.whatsappAgentEnabled));
   const showInstagramCta = instagramReady && (active === "instagram" || Boolean(input.instagramAgentEnabled));
 
-  const primaryCtaLabel = "Add to bag";
+  const primaryCtaLabel = "Book with assistant";
 
   let statusNote = "The menu assistant and web checkout are always primary. Connected social agents are optional additional channels.";
   if (fallbackUsed && !ready[preferred]) {

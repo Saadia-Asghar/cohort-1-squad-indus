@@ -14,7 +14,7 @@ describe("conversation flow", () => {
     expect(flow.active).toBe("web");
     expect(flow.showWebChat).toBe(true);
     expect(flow.showWhatsAppCta).toBe(false);
-    expect(flow.primaryCtaLabel).toBe("Add to bag");
+    expect(flow.primaryCtaLabel).toBe("Book with assistant");
   });
 
   it("keeps social channels secondary when they are connected", () => {

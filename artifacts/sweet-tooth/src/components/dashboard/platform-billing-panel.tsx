@@ -53,7 +53,9 @@ export function PlatformBillingPanel({
   }
 
   async function copyPaymentDetails() {
-    const text = billing?.platform.paymentDetails;
+    const text = billing?.platform.whatsappDisplay
+      ?? billing?.platform.whatsappNumber
+      ?? billing?.platform.paymentDetails;
     if (!text) return;
     try {
       await navigator.clipboard.writeText(text);
@@ -85,8 +87,7 @@ export function PlatformBillingPanel({
         </p>
         <h3 className="mt-1 font-serif text-xl font-bold text-foreground">Upgrade via WhatsApp</h3>
         <p className="mt-1 text-sm text-muted-foreground">
-          No card gateway. Transfer JazzCash / Easypaisa / bank, then message us with your bakery name and
-          receipt — we activate your plan.
+          No card needed. WhatsApp us your bakery name and plan — we share how to pay there.
         </p>
       </div>
 
@@ -94,8 +95,13 @@ export function PlatformBillingPanel({
         <div className="rounded-lg border border-border bg-background/90 p-4 space-y-2">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="text-xs font-semibold text-muted-foreground">Payment details</p>
-              <p className="mt-1 whitespace-pre-wrap text-sm text-foreground">{platform.paymentDetails}</p>
+              <p className="text-xs font-semibold text-muted-foreground">Contact WhatsApp</p>
+              <p className="mt-1 text-sm font-semibold text-foreground">
+                {platform.whatsappDisplay ?? platform.whatsappNumber ?? "Not set"}
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Message this number with your bakery name and plan. Payment details are shared on WhatsApp.
+              </p>
             </div>
             <button
               type="button"
@@ -106,6 +112,17 @@ export function PlatformBillingPanel({
               {copied ? "Copied" : "Copy"}
             </button>
           </div>
+          {platform.whatsappChatUrl && (
+            <a
+              href={platform.whatsappChatUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary underline"
+            >
+              <MessageCircle className="h-3.5 w-3.5" />
+              Open WhatsApp
+            </a>
+          )}
           <p className="text-xs text-muted-foreground">{platform.instructions}</p>
           {!platform.enabled && (
             <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-md px-2 py-1.5">

@@ -1053,7 +1053,7 @@ paths:
     get:
       operationId: getPlatformBilling
       tags: [billing]
-      summary: Public platform payment instructions (JazzCash / bank + WhatsApp)
+      summary: Public platform contact for plan payments (WhatsApp only)
       responses:
         "200":
           description: Platform billing config
@@ -1204,16 +1204,16 @@ paths:
     post:
       operationId: adminSetPlatformBilling
       tags: [admin]
-      summary: Set platform WhatsApp / JazzCash details at runtime
+      summary: Set platform WhatsApp contact for plan payments
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
+              required: [whatsapp]
               properties:
                 whatsapp: { type: string }
-                paymentDetails: { type: string }
                 ownerName: { type: string }
       responses:
         "200":
@@ -2280,6 +2280,7 @@ components:
         metaWebhookToken: { type: ["string", "null"] }
         instagramPageId: { type: ["string", "null"] }
         customGreeting: { type: ["string", "null"] }
+        shopPlaybook: { type: ["string", "null"] }
         blockedTopics: { type: array, items: { type: string } }
         escalateKeywords: { type: array, items: { type: string } }
         autoReplyEnabled: { type: boolean }
@@ -2297,6 +2298,7 @@ components:
         metaWebhookToken: { type: string }
         instagramPageId: { type: string }
         customGreeting: { type: string }
+        shopPlaybook: { type: string }
         blockedTopics: { type: array, items: { type: string } }
         escalateKeywords: { type: array, items: { type: string } }
         autoReplyEnabled: { type: boolean }
@@ -2348,8 +2350,9 @@ components:
         enabled: { type: boolean }
         ownerName: { type: string }
         whatsappNumber: { type: ["string", "null"] }
+        whatsappDisplay: { type: ["string", "null"] }
         whatsappChatUrl: { type: ["string", "null"] }
-        paymentDetails: { type: string }
+        paymentDetails: { type: string, description: WhatsApp-only contact copy. No JazzCash or bank accounts. }
         instructions: { type: string }
 
     BakerBillingPending:

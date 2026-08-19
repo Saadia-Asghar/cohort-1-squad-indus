@@ -13,6 +13,7 @@ export interface AgentConfigInput {
   metaWebhookToken?: string;
   instagramPageId?: string;
   customGreeting?: string;
+  shopPlaybook?: string;
   blockedTopics?: string[];
   escalateKeywords?: string[];
   autoReplyEnabled?: boolean;

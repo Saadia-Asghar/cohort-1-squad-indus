@@ -17,6 +17,7 @@ export interface AgentConfig {
   instagramPageId?: string | null;
   /** @nullable */
   customGreeting?: string | null;
+  shopPlaybook?: string | null;
   blockedTopics?: string[];
   escalateKeywords?: string[];
   autoReplyEnabled?: boolean;

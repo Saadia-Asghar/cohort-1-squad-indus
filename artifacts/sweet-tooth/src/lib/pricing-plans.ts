@@ -110,7 +110,7 @@ export const BILLING_MULTIPLIERS: Record<"monthly" | "semiannual" | "yearly", { 
 export const FOUNDER_OFFER_ACTIVE = true;
 export const FOUNDER_OFFER_LABEL = "Founder rate — first 100 bakeries";
 export const FOUNDER_OFFER_NOTE =
-  "6-month and yearly prepaid lock a lower rate. JazzCash / Easypaisa / bank transfer.";
+  "6-month and yearly prepaid lock a lower rate. WhatsApp us for payment details.";
 
 /**
  * Offers matrix: size × channel.

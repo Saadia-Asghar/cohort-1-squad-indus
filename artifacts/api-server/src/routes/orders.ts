@@ -428,6 +428,18 @@ router.post("/orders", rateLimit(15, 15 * 60 * 1000), async (req, res): Promise<
       source: order.source,
       requireAdvance: order.requireAdvance,
     });
+    try {
+      await db.insert(notificationsTable).values({
+        bakerId: order.bakerId,
+        type: "new_order",
+        title: "New bag order",
+        message: `Order #${order.id} for PKR ${order.totalPkr.toLocaleString()} from ${order.buyerName} is waiting in the dashboard.`,
+        relatedId: order.id,
+        relatedType: "order",
+      });
+    } catch (notifyError) {
+      console.error("Guest order notification failed", notifyError);
+    }
     const guestToken = guestTokenFor(order, ["receipt"]);
     res.status(201).json({
       ...formatOrder(order),

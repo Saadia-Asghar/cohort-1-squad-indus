@@ -1505,12 +1505,13 @@ export const QueryBakerKnowledgeResponse = zod.object({
 
 
 /**
- * @summary Public platform payment instructions (JazzCash / bank + WhatsApp)
+ * @summary Public platform contact for plan payments (WhatsApp only)
  */
 export const GetPlatformBillingResponse = zod.object({
   "enabled": zod.boolean(),
   "ownerName": zod.string(),
   "whatsappNumber": zod.string().nullable(),
+  "whatsappDisplay": zod.string().nullable().optional(),
   "whatsappChatUrl": zod.string().nullable(),
   "paymentDetails": zod.string(),
   "instructions": zod.string()
@@ -1536,6 +1537,7 @@ export const GetBakerBillingResponse = zod.object({
   "enabled": zod.boolean(),
   "ownerName": zod.string(),
   "whatsappNumber": zod.string().nullable(),
+  "whatsappDisplay": zod.string().nullable().optional(),
   "whatsappChatUrl": zod.string().nullable(),
   "paymentDetails": zod.string(),
   "instructions": zod.string()
@@ -1567,6 +1569,7 @@ export const RequestBakerPlanUpgradeResponse = zod.object({
   "enabled": zod.boolean(),
   "ownerName": zod.string(),
   "whatsappNumber": zod.string().nullable(),
+  "whatsappDisplay": zod.string().nullable().optional(),
   "whatsappChatUrl": zod.string().nullable(),
   "paymentDetails": zod.string(),
   "instructions": zod.string()
@@ -1603,11 +1606,10 @@ export const AdminActivatePlanResponse = zod.object({
 
 
 /**
- * @summary Set platform WhatsApp / JazzCash details at runtime
+ * @summary Set platform WhatsApp contact for plan payments
  */
 export const AdminSetPlatformBillingBody = zod.object({
-  "whatsapp": zod.string().optional(),
-  "paymentDetails": zod.string().optional(),
+  "whatsapp": zod.string(),
   "ownerName": zod.string().optional()
 })
 

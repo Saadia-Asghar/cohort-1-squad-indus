@@ -7,7 +7,6 @@
  */
 
 export type AdminSetPlatformBillingBody = {
-  whatsapp?: string;
-  paymentDetails?: string;
+  whatsapp: string;
   ownerName?: string;
 };

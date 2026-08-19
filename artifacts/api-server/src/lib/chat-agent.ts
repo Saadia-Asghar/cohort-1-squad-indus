@@ -23,6 +23,7 @@ import { callLlm } from "./llm.js";
 import { answerNeedsHumanConfirmation, isMenuScopedMessage } from "./agent-safety.js";
 import { logOrderActivity } from "./audit.js";
 import { extractPreferences, foldSessionPreferences, buildMemorySummary } from "./buyer-memory.js";
+import { normalizePakistanPhone } from "./phone.js";
 import {
   findSpokenArea,
   greetingShouldYieldToTask,
@@ -35,6 +36,23 @@ import {
   resolveFocusProduct,
   spokenCity,
 } from "./agent-intent.js";
+import {
+  applyFollowUpAnswer,
+  checkoutRecap,
+  createOrderCommandBlock,
+  isCheckoutFollowUp,
+  isCheckoutRecap,
+  missingCheckoutSlot,
+  nextCheckoutQuestion,
+  slotsFromPreferences,
+} from "./agent-checkout.js";
+import {
+  buildMasterPrompt,
+  groundedFallbackReply,
+  toLlmTurns,
+  type ChatTurn,
+  type MasterPromptProduct,
+} from "./agent-master-prompt.js";
 
 export type AgentReply = {
   reply: string;
@@ -93,22 +111,21 @@ function productTasteLine(product: typeof productsTable.$inferSelect): string {
   return desc;
 }
 
-function checkoutReply(input: {
-  product: typeof productsTable.$inferSelect;
-  area?: string | null;
-  areas: string[];
-  payment: string;
-}): string {
-  const lead = input.product.leadTimeDays > 0
-    ? ` Ready in ${input.product.leadTimeDays} day${input.product.leadTimeDays === 1 ? "" : "s"}.`
-    : "";
-  const taste = productTasteLine(input.product);
-  const tasteBit = taste ? ` ${taste}.` : "";
-  if (!input.area) {
-    const areaHint = input.areas.length ? ` We deliver to ${input.areas.join(", ")}.` : "";
-    return `${input.product.name} — ${productPriceLine(input.product)}.${tasteBit}${lead}${areaHint} Which area should I use for delivery, or is this pickup?`;
-  }
-  return `${input.product.name} for ${input.area}: ${productPriceLine(input.product)}.${tasteBit}${lead} Payment: ${input.payment} Add it to your bag on this page, or tell me the quantity and the date you need it.`;
+export type GenerateAgentOptions = {
+  recentTurns?: ChatTurn[];
+  channel?: "web" | "whatsapp" | "instagram";
+};
+
+function toPromptProducts(products: Array<typeof productsTable.$inferSelect>): MasterPromptProduct[] {
+  return products.map((product) => ({
+    name: product.name,
+    description: product.description,
+    basePricePkr: product.basePricePkr,
+    leadTimeDays: product.leadTimeDays,
+    isEgglessAvailable: product.isEgglessAvailable,
+    isAvailable: product.isAvailable,
+    sizes: (product.sizes as Array<{ label: string; pricePkr: number }> | null) ?? [],
+  }));
 }
 
 export async function generateAgentReply(
@@ -117,6 +134,7 @@ export async function generateAgentReply(
   message: string,
   memory: typeof conversationMemoryTable.$inferSelect | null,
   historyPreferences: Record<string, unknown> = {},
+  options: GenerateAgentOptions = {},
 ): Promise<AgentReply> {
   const [baker] = await db.select().from(bakersTable).where(eq(bakersTable.id, bakerId));
   if (!baker) return { reply: "Baker not found.", action: null, cartItemId: null, escalated: false };
@@ -158,6 +176,7 @@ export async function generateAgentReply(
     availabilityHours?: string;
     dietaryPolicy?: string;
     activeOffers?: string;
+    shopPlaybook?: string;
   };
 
   if (agentConf.autoReplyEnabled === false) {
@@ -325,6 +344,7 @@ export async function generateAgentReply(
   };
   const deliveryAreas = baker.deliveryAreas ?? [];
   const lastAssistantText = typeof buyerPrefs.lastAssistantText === "string" ? buyerPrefs.lastAssistantText : "";
+  Object.assign(buyerPrefs, applyFollowUpAnswer(message, lastAssistantText, buyerPrefs));
   const paymentMode = (baker.agentConfig as { paymentMode?: string } | null)?.paymentMode;
   const paymentPolicy = paymentMode === "full_advance"
     ? "Full advance is required before your order is confirmed."
@@ -432,16 +452,45 @@ export async function generateAgentReply(
 
     const spokenArea = findSpokenArea(message, deliveryAreas)
       ?? (typeof buyerPrefs.preferredArea === "string" ? buyerPrefs.preferredArea : null);
-    if (hasOrderIntent(lowerMsg) || hasBookingConfirmIntent(lowerMsg)) {
+    const wantsCheckout = hasOrderIntent(lowerMsg)
+      || hasBookingConfirmIntent(lowerMsg)
+      || isCheckoutFollowUp(lastAssistantText);
+    if (wantsCheckout) {
+      const slots = slotsFromPreferences(
+        { ...buyerPrefs, lastItem: mentionedProduct.name, preferredArea: spokenArea ?? buyerPrefs.preferredArea },
+        mentionedProduct.name,
+      );
+      const missing = missingCheckoutSlot(slots);
+      if (missing) {
+        return {
+          reply: nextCheckoutQuestion(missing, baker.businessName, deliveryAreas),
+          action: null,
+          cartItemId: null,
+          escalated: false,
+        };
+      }
+      if (isCheckoutRecap(lastAssistantText) && hasBookingConfirmIntent(lowerMsg)) {
+        return {
+          reply: `Sending this to ${baker.businessName} now.\n${createOrderCommandBlock({
+            slots,
+            productName: mentionedProduct.name,
+            leadTimeDays: mentionedProduct.leadTimeDays,
+          })}`,
+          action: "create_order",
+          cartItemId: null,
+          escalated: false,
+        };
+      }
       return {
-        reply: checkoutReply({
-          product: mentionedProduct,
-          area: spokenArea,
-          areas: deliveryAreas,
-          payment: paymentPolicy,
+        reply: checkoutRecap({
+          bakerName: baker.businessName,
+          productName: mentionedProduct.name,
+          priceLine: productPriceLine(mentionedProduct),
+          slots,
+          leadTimeDays: mentionedProduct.leadTimeDays,
         }),
         action: null,
-        cartItemId: mentionedProduct.id,
+        cartItemId: null,
         escalated: false,
       };
     }
@@ -454,9 +503,9 @@ export async function generateAgentReply(
     const eggless = mentionedProduct.isEgglessAvailable ? " An eggless version is available." : "";
     const taste = productTasteLine(mentionedProduct);
     return {
-      reply: `${mentionedProduct.name} is available. ${productPriceLine(mentionedProduct)}.${taste ? ` ${taste}.` : ""}${leadTime}${eggless}${dietary} Would you like to order it, or check delivery for your area?`,
+      reply: `${mentionedProduct.name} is available. ${productPriceLine(mentionedProduct)}.${taste ? ` ${taste}.` : ""}${leadTime}${eggless}${dietary} Tell me your area or pickup to start the order.`,
       action: null,
-      cartItemId: mentionedProduct.id,
+      cartItemId: null,
       escalated: false,
     };
   }
@@ -523,7 +572,7 @@ export async function generateAgentReply(
     }
     const list = eggless.map((p) => `• ${p.name}`).join("\n");
     return {
-      reply: `Great news! These items are available eggless:\n\n${list}\n\nWould you like to order any of these?`,
+      reply: `Great news! These items are available eggless:\n\n${list}\n\nWhich of these should I book with the baker?`,
       action: null,
       cartItemId: null,
       escalated: false,
@@ -636,92 +685,67 @@ export async function generateAgentReply(
     }
     const available = products.filter((p) => p.isAvailable);
     return {
-      reply: `${greeting}${personalNote} I'm here to help you order or answer questions from the bakery's published menu.\n\nWe currently have ${available.length} items listed as available. Would you like to see the menu?`,
+      reply: `${greeting}${personalNote} Tell me the cake you want, or your area for delivery.${available.length ? ` ${available.length} items are listed.` : ""}`,
       action: null,
       cartItemId: null,
       escalated: false,
     };
   }
 
-  // RAG fallback — indexed menu/policy chunks when rules miss
+  // Rules cover ~80% of bakery chat. The remaining messy turns go through a
+  // catalog-grounded master prompt (with RAG notes + recent thread), matching
+  // 2026 WhatsApp commerce agents: short, slot-fill, never invent prices.
   const ragChunks = await retrieveKnowledge(bakerId, message, 3, 0.1);
   const ragContext = formatRetrievedContext(ragChunks);
-  if (ragContext) {
-    // Attempt generative LLM response using free Gemini API or OpenAI if keys are configured
-    const systemPrompt = `You are a friendly, helpful AI assistant for the home-based bakery "${baker.businessName}" in ${baker.city || "Pakistan"}.
-Your goal is to answer customer questions about the bakery's menu, pricing, ingredients, dietary policies, delivery, and availability.
+  const promptProducts = toPromptProducts(products);
+  const slots = {
+    lastItem: typeof buyerPrefs.lastItem === "string" ? buyerPrefs.lastItem : undefined,
+    preferredArea: typeof buyerPrefs.preferredArea === "string" ? buyerPrefs.preferredArea : spokenArea ?? undefined,
+    eggless: Boolean(buyerPrefs.eggless),
+    allergies: Array.isArray(buyerPrefs.allergies) ? buyerPrefs.allergies.filter((item): item is string => typeof item === "string") : undefined,
+    occasion: typeof buyerPrefs.occasion === "string" ? buyerPrefs.occasion : undefined,
+  };
+  const systemPrompt = buildMasterPrompt({
+    baker: {
+      businessName: baker.businessName,
+      city: baker.city,
+      tagline: baker.tagline,
+      deliveryAreas: baker.deliveryAreas,
+      codPolicy: paymentPolicy,
+      shopPlaybook: agentConf.shopPlaybook,
+    },
+    products: promptProducts,
+    retrievedContext: ragContext,
+    slots,
+    channel: options.channel ?? "web",
+  });
+  const llmReply = await callLlm([
+    { role: "system", content: systemPrompt },
+    ...toLlmTurns(options.recentTurns ?? [], message),
+  ], 0.2);
 
-Strict Guidelines:
-1. ONLY answer based on the provided menu, products, and policies in the "Retrieved Context" below. Do not assume or hallucinate any details.
-2. If the user's question cannot be answered by the context, explain politely that you don't have that information and ask them to confirm with the baker directly.
-3. Keep replies helpful and bilingual (in a natural blend of English and Urdu, e.g. using "Assalam-o-Alaikum", "PKR", etc. where appropriate).
-4. Do NOT make up products, prices, or delivery areas.
-5. AUTOMATED ORDERING:
-   If the customer explicitly requests to place an order, AND has specified: (a) what items they want, (b) the quantity, (c) the delivery address (or pickup), and (d) the delivery date, you MUST append a structured order JSON command block at the very end of your response.
-   If any of these details are missing, politely ask the customer for the missing details first and do NOT output the block.
-   Format the block exactly as:
-   [CREATE_ORDER_START]
-   {
-     "buyerName": "Customer Name",
-     "buyerAddress": "Customer Address (or 'Pickup' if fulfillment is pickup)",
-     "deliveryDate": "YYYY-MM-DD (parsed target date)",
-     "fulfillmentType": "delivery" or "pickup",
-     "items": [
-       { "productName": "Matching Product Name", "quantity": 1 }
-     ]
-   }
-   [CREATE_ORDER_END]
-
-Bakery Branding:
-- Name: ${baker.businessName}
-- Tagline: ${baker.tagline || ""}
-- Areas: ${(baker.deliveryAreas ?? []).join(", ")}
-- Payment Policy: ${baker.codPolicy || "Manual transfer / Cash on Delivery"}
-
-Retrieved Context (Menu & Policies):
-${ragContext}
-
-Customer Preferences (if known):
-- Preferred Area: ${buyerPrefs.preferredArea || "None specified"}
-- Eggless Preference: ${buyerPrefs.eggless ? "Eggless Only" : "Standard"}
-- Allergies: ${Array.isArray(buyerPrefs.allergies) ? buyerPrefs.allergies.join(", ") : "None specified"}`;
-
-    const llmReply = await callLlm([
-      { role: "system", content: systemPrompt },
-      { role: "user", content: message },
-    ]);
-
-    if (llmReply) {
-      const needsHuman = answerNeedsHumanConfirmation(llmReply);
-      return {
-        reply: needsHuman
-          ? `${llmReply}\n\nI have also sent this to the bakery's human inbox for confirmation.`
-          : llmReply,
-        action: needsHuman ? "escalate" : "llm_generative",
-        cartItemId: null,
-        escalated: needsHuman,
-      };
-    }
-
-    // Fallback to raw text hint if LLM key is not configured or fails
-    const topChunk = ragChunks[0];
-    const hint =
-      topChunk?.sourceType === "product"
-        ? `I found something relevant on our menu:\n\n${topChunk.content.split("\n").slice(0, 4).join("\n")}`
-        : `Here's what I know from ${baker.businessName}'s published info:\n\n${ragContext.split("\n\n")[0]}`;
+  if (llmReply) {
+    const needsHuman = answerNeedsHumanConfirmation(llmReply);
     return {
-      reply: `${hint}\n\nWould you like to order or need more details?`,
-      action: "rag",
+      reply: needsHuman
+        ? `${llmReply}\n\nI have also sent this to the bakery's human inbox for confirmation.`
+        : llmReply,
+      action: needsHuman ? "escalate" : "llm_generative",
       cartItemId: null,
-      escalated: false,
+      escalated: needsHuman,
     };
   }
 
+  const fallback = groundedFallbackReply({
+    bakerName: baker.businessName,
+    products: promptProducts,
+    slots,
+  });
   return {
-    reply: `I do not have a verified answer for that from ${baker.businessName}'s published menu or policies. I have sent this question to a human team member, who can reply here.`,
-    action: "escalate",
+    reply: fallback.reply,
+    action: fallback.escalated ? "escalate" : "rag",
     cartItemId: null,
-    escalated: true,
+    escalated: fallback.escalated,
   };
 }
 
@@ -867,6 +891,21 @@ export async function processChatMessage(input: ProcessChatInput): Promise<Proce
   );
   historyPreferences.lastAssistantText = lastSingleProductReply?.content ?? assistantTurns[0]?.content ?? "";
 
+  const recentRows = await db
+    .select({ role: chatMessagesTable.role, content: chatMessagesTable.content })
+    .from(chatMessagesTable)
+    .where(and(
+      eq(chatMessagesTable.bakerId, bakerId),
+      eq(chatMessagesTable.sessionId, sid),
+    ))
+    .orderBy(desc(chatMessagesTable.id))
+    .limit(12);
+  const recentTurns: ChatTurn[] = recentRows
+    .slice()
+    .reverse()
+    .filter((row): row is { role: "user" | "assistant"; content: string } => row.role === "user" || row.role === "assistant")
+    .map((row) => ({ role: row.role, content: row.content }));
+
   const [activeHandoff] = await db.select({ id: chatHandoffsTable.id })
     .from(chatHandoffsTable)
     .where(and(
@@ -891,13 +930,16 @@ export async function processChatMessage(input: ProcessChatInput): Promise<Proce
         message,
         memory,
         historyPreferences,
+        { recentTurns, channel: input.channel ?? "web" },
       );
 
   const [bakerRow] = await db.select().from(bakersTable).where(eq(bakersTable.id, bakerId));
   const agentLanguage = normalizeAgentLanguage(
     (bakerRow?.agentConfig as { agentLanguage?: string } | null)?.agentLanguage,
   );
-  agentReply.reply = applyAgentLanguage(agentReply.reply, agentLanguage, bakerRow?.businessName ?? "Bakery");
+  if (agentReply.action !== "llm_generative" && agentReply.action !== "create_order") {
+    agentReply.reply = applyAgentLanguage(agentReply.reply, agentLanguage, bakerRow?.businessName ?? "Bakery");
+  }
 
   // Check for automated order commands in the reply
   const orderMatch = agentReply.reply.match(/\[CREATE_ORDER_START\]\s*([\s\S]*?)\s*\[CREATE_ORDER_END\]/);
@@ -944,13 +986,45 @@ export async function processChatMessage(input: ProcessChatInput): Promise<Proce
 
         let customerName = orderData.buyerName || "Guest Buyer";
         let customerAddress = orderData.buyerAddress || "Delivery Address";
-        let customerWhatsapp = input.buyerWhatsapp || "";
+        let customerWhatsapp = normalizePakistanPhone(String(orderData.buyerWhatsapp ?? ""))
+          || input.buyerWhatsapp
+          || "";
+
+        if (!customerWhatsapp) {
+          agentReply.reply = agentReply.reply.replace(/\[CREATE_ORDER_START\][\s\S]*?\[CREATE_ORDER_END\]/, "").trim();
+          agentReply.reply = `${agentReply.reply}\n\nI still need a WhatsApp number so ${bakerRow?.businessName ?? "the bakery"} can confirm this order.`.trim();
+        } else {
+        if (!buyerId && customerWhatsapp) {
+          const [existingCustomer] = await db
+            .select()
+            .from(customersTable)
+            .where(and(
+              eq(customersTable.bakerId, bakerId),
+              eq(customersTable.whatsappNumber, customerWhatsapp),
+            ))
+            .limit(1);
+          if (existingCustomer) {
+            buyerId = existingCustomer.id;
+            if (existingCustomer.name) customerName = existingCustomer.name;
+          } else {
+            const [created] = await db
+              .insert(customersTable)
+              .values({
+                name: customerName,
+                whatsappNumber: customerWhatsapp,
+                bakerId,
+                preferredArea: orderData.buyerArea || null,
+              })
+              .returning();
+            buyerId = created.id;
+          }
+        }
 
         if (buyerId) {
           const [cust] = await db.select().from(customersTable).where(eq(customersTable.id, buyerId)).limit(1);
           if (cust) {
-            if (cust.name) customerName = cust.name;
-            if (cust.whatsappNumber) customerWhatsapp = cust.whatsappNumber;
+            if (cust.name && customerName === "Guest Buyer") customerName = cust.name;
+            if (cust.whatsappNumber && !customerWhatsapp) customerWhatsapp = cust.whatsappNumber;
           }
         }
 
@@ -996,8 +1070,9 @@ export async function processChatMessage(input: ProcessChatInput): Promise<Proce
         agentReply.reply = agentReply.reply.replace(/\[CREATE_ORDER_START\][\s\S]*?\[CREATE_ORDER_END\]/, "").trim();
         
         // Append confirmation text
-        const confirmMsg = `\n\n*(Note: I have recorded your order request for ${order.fulfillmentType} on ${order.deliveryDate || "selected date"}. Order ID: #${order.id}. The baker will confirm your order details shortly!)*`;
+        const confirmMsg = `\n\nOrder #${order.id} is with ${bakerRow?.businessName ?? "the bakery"} now. They will confirm time and delivery on WhatsApp.`;
         agentReply.reply = agentReply.reply + confirmMsg;
+        }
       }
     } catch (err) {
       logger.error({ err }, "Failed to automatically parse and record chat order");

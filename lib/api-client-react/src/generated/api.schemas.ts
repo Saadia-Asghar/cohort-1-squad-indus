@@ -631,6 +631,8 @@ export interface AgentConfig {
   instagramPageId?: string | null;
   /** @nullable */
   customGreeting?: string | null;
+  /** @nullable */
+  shopPlaybook?: string | null;
   blockedTopics?: string[];
   escalateKeywords?: string[];
   autoReplyEnabled?: boolean;
@@ -647,6 +649,7 @@ export interface AgentConfigInput {
   metaWebhookToken?: string;
   instagramPageId?: string;
   customGreeting?: string;
+  shopPlaybook?: string;
   blockedTopics?: string[];
   escalateKeywords?: string[];
   autoReplyEnabled?: boolean;
@@ -697,6 +700,8 @@ export interface PlatformBillingConfig {
   ownerName: string;
   /** @nullable */
   whatsappNumber: string | null;
+  /** Formatted WhatsApp number for display (e.g. 0315-9127771). */
+  whatsappDisplay?: string | null;
   /** @nullable */
   whatsappChatUrl: string | null;
   paymentDetails: string;

@@ -3,7 +3,8 @@ import { Link } from "wouter";
 import { useEffect, useMemo, useState } from "react";
 import { customFetch } from "@workspace/api-client-react";
 import { useGetBaker, getGetBakerQueryKey } from "@workspace/api-client-react";
-import { Phone } from "lucide-react";
+import { Phone, Trash2, ArrowLeft } from "lucide-react";
+import { formatLeadTime } from "@/lib/shop-settings";
 
 type GuestCartItem = {
   bakerId: number;
@@ -13,7 +14,11 @@ type GuestCartItem = {
   quantity: number;
   unitPricePkr: number;
   sizeLabel: string;
+  leadTimeDays?: number;
+  leadTimeHours?: number | null;
 };
+type LastBaker = { bakerId: number; bakerName?: string };
+type LastGuestOrder = { orderId: number; token: string; bakerId: number };
 type DeliveryQuote = {
   available: boolean;
   zone: { name: string; feePkr: number; minimumOrderPkr?: number } | null;
@@ -21,6 +26,70 @@ type DeliveryQuote = {
 };
 
 const CART_KEY = "sweet_tooth_guest_cart";
+const LAST_BAKER_KEY = "sweet_tooth_guest_baker";
+const LAST_ORDER_KEY = "sweet_tooth_guest_order";
+
+function rememberBaker(bakerId: number, bakerName?: string) {
+  try {
+    localStorage.setItem(LAST_BAKER_KEY, JSON.stringify({ bakerId, bakerName } satisfies LastBaker));
+  } catch {
+    /* ignore quota */
+  }
+}
+
+function readLastBaker(): LastBaker | null {
+  try {
+    const raw = localStorage.getItem(LAST_BAKER_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as LastBaker;
+    return Number.isInteger(parsed.bakerId) && parsed.bakerId > 0 ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function rememberGuestOrder(order: LastGuestOrder) {
+  try {
+    localStorage.setItem(LAST_ORDER_KEY, JSON.stringify(order));
+  } catch {
+    /* ignore quota */
+  }
+}
+
+function readLastGuestOrder(): LastGuestOrder | null {
+  try {
+    const raw = localStorage.getItem(LAST_ORDER_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as LastGuestOrder;
+    if (!parsed.orderId || !parsed.token || !parsed.bakerId) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function guestStatusLabel(status: string): string {
+  switch (status) {
+    case "new":
+      return "Sent to bakery — waiting for confirmation";
+    case "quoted":
+      return "Quote ready — open your order link to accept";
+    case "confirmed":
+      return "Baker confirmed — they are preparing";
+    case "preparing":
+    case "in_kitchen":
+      return "Baking now";
+    case "out_for_delivery":
+    case "dispatched":
+      return "On the way";
+    case "delivered":
+      return "Delivered";
+    case "cancelled":
+      return "Cancelled";
+    default:
+      return status.replaceAll("_", " ");
+  }
+}
 
 function readCart(): GuestCartItem[] {
   try {
@@ -38,6 +107,7 @@ function writeCart(items: GuestCartItem[]) {
 }
 
 export function addGuestCartItem(item: GuestCartItem) {
+  rememberBaker(item.bakerId, item.bakerName);
   const cart = readCart().filter((row) => row.bakerId === item.bakerId);
   const existing = cart.find(
     (row) => row.productId === item.productId && row.sizeLabel === item.sizeLabel,
@@ -64,6 +134,8 @@ export default function Cart() {
   const [receiptError, setReceiptError] = useState<string | null>(null);
   const [deliveryQuote, setDeliveryQuote] = useState<DeliveryQuote | null>(null);
   const [deliveryQuoteLoading, setDeliveryQuoteLoading] = useState(false);
+  const [lastBaker] = useState<LastBaker | null>(() => (typeof window === "undefined" ? null : readLastBaker()));
+  const [liveOrder, setLiveOrder] = useState<{ status: string; totalPkr?: number } | null>(null);
 
   useEffect(() => {
     setItems(readCart());
@@ -73,7 +145,7 @@ export default function Cart() {
     () => items.reduce((sum, item) => sum + item.unitPricePkr * item.quantity, 0),
     [items],
   );
-  const bakerId = items[0]?.bakerId ?? placedBakerId ?? undefined;
+  const bakerId = items[0]?.bakerId ?? placedBakerId ?? lastBaker?.bakerId ?? undefined;
 
   const { data: baker } = useGetBaker(bakerId ?? 0, {
     query: { enabled: !!bakerId, queryKey: getGetBakerQueryKey(bakerId ?? 0) },
@@ -100,6 +172,34 @@ export default function Cart() {
 
   const deliveryFeePkr = fulfillmentType === "delivery" && deliveryQuote?.available ? deliveryQuote.zone?.feePkr ?? 0 : 0;
   const payableTotalPkr = total + deliveryFeePkr;
+  const maxLeadDays = items.reduce((max, item) => Math.max(max, item.leadTimeDays ?? 0), 0);
+  const readyLabel = formatLeadTime(maxLeadDays || undefined);
+
+  useEffect(() => {
+    const saved = readLastGuestOrder();
+    if (!saved) return;
+    let active = true;
+    const load = () => {
+      void customFetch<{ status: string; totalPkr?: number }>(`/api/orders/${saved.orderId}/guest`, {
+        responseType: "json",
+        headers: { "X-Guest-Token": saved.token },
+      })
+        .then((order) => {
+          if (!active) return;
+          setLiveOrder({ status: order.status, totalPkr: order.totalPkr });
+          setOrderId((current) => current ?? saved.orderId);
+          setGuestToken((current) => current || saved.token);
+          setPlacedBakerId((current) => current ?? saved.bakerId);
+        })
+        .catch(() => undefined);
+    };
+    load();
+    const timer = window.setInterval(load, 8_000);
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+    };
+  }, []);
 
   const updateQuantity = (productId: number, sizeLabel: string, quantity: number) => {
     const next = readCart()
@@ -180,8 +280,14 @@ export default function Cart() {
             sizeLabel: item.sizeLabel,
           })),
           source: "web_guest",
+          ...(maxLeadDays > 0
+            ? { deliveryDate: new Date(Date.now() + maxLeadDays * 86_400_000).toISOString().slice(0, 10) }
+            : {}),
         }),
       });
+      rememberBaker(bakerId, items[0]?.bakerName ?? baker?.businessName);
+      rememberGuestOrder({ orderId: order.id, token: order.guestToken, bakerId });
+      setLiveOrder({ status: "new", totalPkr: payableTotalPkr });
       setPlacedBakerId(bakerId);
       writeCart([]);
       setItems([]);
@@ -197,20 +303,30 @@ export default function Cart() {
   };
 
   return (
-    <GuestMenuShell bakerName={items[0]?.bakerName ?? baker?.businessName} bakerId={bakerId ?? null}>
+    <GuestMenuShell bakerName={items[0]?.bakerName ?? baker?.businessName ?? lastBaker?.bakerName} bakerId={bakerId ?? null}>
       <div className="container mx-auto max-w-xl px-4 py-12">
+        {bakerId ? (
+          <Link href={`/menu/${bakerId}`} className="mb-4 inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline">
+            <ArrowLeft className="h-4 w-4" />
+            Back to menu
+          </Link>
+        ) : null}
         <h1 className="font-serif text-4xl font-bold text-primary">Your bag</h1>
         <p className="mt-2 text-muted-foreground text-sm">
-          Guest checkout creates a pending bakery order. Prices are verified on the server.
+          Confirm the bag to send the bill to the bakery dashboard. They will confirm time and delivery.
         </p>
 
-        {orderId ? (
-          <div className="mt-8 rounded-xl border border-emerald-200 bg-emerald-50 p-6 text-emerald-900 space-y-4">
+        {items.length === 0 && orderId ? (
+          <div className={`mt-8 rounded-xl border p-6 space-y-4 ${liveOrder?.status === "delivered" ? "border-emerald-300 bg-emerald-50 text-emerald-950" : "border-emerald-200 bg-emerald-50 text-emerald-900"}`}>
             <div>
-              <p className="font-serif text-2xl font-bold">Order #{orderId} placed</p>
+              <p className="font-serif text-2xl font-bold">
+                {liveOrder?.status === "delivered" ? `Order #${orderId} delivered` : `Order #${orderId} sent`}
+              </p>
+              <p className="mt-2 text-sm font-semibold">
+                {guestStatusLabel(liveOrder?.status ?? "new")}
+              </p>
               <p className="mt-2 text-sm">
-                The bakery will confirm on WhatsApp. Upload your JazzCash / Easypaisa receipt below if they asked for
-                advance payment.
+                The bakery dashboard has this bill. {readyLabel ? `${readyLabel} from the menu lead time — the baker will confirm the exact slot.` : "The baker will confirm when it will be ready."}
               </p>
             </div>
             {paymentSummary && (
@@ -250,15 +366,14 @@ export default function Cart() {
           </div>
         ) : items.length === 0 ? (
           <div className="mt-10 text-center">
-            <p className="text-muted-foreground">Your bag is empty.</p>
+            <p className="text-muted-foreground">This page is no longer used. Open the bakery menu and chat with the assistant to place an order.</p>
             <p className="mt-2 text-sm text-muted-foreground">
-              Open the menu link your baker sent. It opens their bakery menu in the browser.
+              Open the menu, add cakes, then come back here to send the order to the bakery.
             </p>
-            {bakerId ? (
-              <Link href={`/menu/${bakerId}`} className="mt-6 inline-flex rounded-md bg-primary px-5 py-3 text-sm font-bold text-primary-foreground">
-                Back to menu
-              </Link>
-            ) : null}
+            <Link href={bakerId ? `/menu/${bakerId}` : "/"} className="mt-6 inline-flex items-center gap-2 rounded-md bg-primary px-5 py-3 text-sm font-bold text-primary-foreground">
+              <ArrowLeft className="h-4 w-4" />
+              {bakerId ? "Back to menu" : "Find a bakery menu"}
+            </Link>
           </div>
         ) : (
           <div className="mt-8 space-y-6">
@@ -268,7 +383,10 @@ export default function Cart() {
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="font-semibold">{item.productName}</p>
-                      <p className="text-xs text-muted-foreground">{item.sizeLabel}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {item.sizeLabel}
+                        {formatLeadTime(item.leadTimeDays, item.leadTimeHours) ? ` · ${formatLeadTime(item.leadTimeDays, item.leadTimeHours)}` : ""}
+                      </p>
                     </div>
                     <p className="font-mono font-bold">
                       PKR {(item.unitPricePkr * item.quantity).toLocaleString()}
@@ -285,16 +403,22 @@ export default function Cart() {
                     <button
                       type="button"
                       onClick={() => removeItem(item.productId, item.sizeLabel)}
-                      className="text-xs font-medium text-destructive"
+                      className="inline-flex items-center gap-1 rounded-md border border-destructive/30 px-2.5 py-1 text-xs font-semibold text-destructive hover:bg-destructive/10"
                     >
-                      Remove
+                      <Trash2 className="h-3.5 w-3.5" />
+                      Delete
                     </button>
                   </div>
                 </li>
               ))}
             </ul>
 
-            <div className="space-y-1 text-right font-mono text-sm"><p>Products PKR {total.toLocaleString()}</p>{fulfillmentType === "delivery" && deliveryQuote?.available && <p>Delivery PKR {deliveryFeePkr.toLocaleString()}</p>}<p className="text-lg font-bold">Total PKR {payableTotalPkr.toLocaleString()}</p></div>
+            <div className="space-y-1 text-right font-mono text-sm">
+              <p>Products PKR {total.toLocaleString()}</p>
+              {fulfillmentType === "delivery" && deliveryQuote?.available && <p>Delivery PKR {deliveryFeePkr.toLocaleString()}</p>}
+              <p className="text-lg font-bold">Total PKR {payableTotalPkr.toLocaleString()}</p>
+              {readyLabel ? <p className="font-sans text-xs text-muted-foreground">{readyLabel} — baker will confirm the slot</p> : null}
+            </div>
 
             {paymentSummary && (
               <div className="rounded-xl border border-border bg-muted/30 p-4 text-sm">
@@ -325,7 +449,7 @@ export default function Cart() {
               )}
               {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
               <button type="submit" disabled={loading || fulfillmentType === "delivery" && Boolean(buyerArea.trim()) && deliveryQuote?.available === false} className="w-full rounded-md bg-primary py-2.5 text-sm font-bold text-primary-foreground disabled:opacity-50">
-                {loading ? "Placing order…" : "Place guest order"}
+                {loading ? "Sending to bakery…" : "Confirm bag & send bill"}
               </button>
             </form>
           </div>

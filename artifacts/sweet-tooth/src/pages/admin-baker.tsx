@@ -335,7 +335,7 @@ export default function AdminBakerMonitor() {
             <section className={`${cardClass} mt-8`}>
               <h2 className="font-serif text-xl font-bold">Activate subscription</h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                No JazzCash or bank merchant is connected. When a baker sends a transfer screenshot on WhatsApp, confirm it here and turn their plan on in the database.
+                When a baker WhatsApps you and you confirm payment, activate their plan here.
               </p>
               {baker.pendingPlanId && (
                 <p className="mt-3 rounded-xl bg-background px-3 py-2 text-sm font-medium text-primary">
@@ -359,7 +359,7 @@ export default function AdminBakerMonitor() {
                 </select>
                 <input
                   className={inputClass}
-                  placeholder="Note, e.g. JazzCash 03xx received 18 Aug"
+                  placeholder="Note, e.g. WhatsApp receipt confirmed 18 Aug"
                   value={activationNote}
                   onChange={(e) => setActivationNote(e.target.value)}
                 />

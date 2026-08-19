@@ -10,7 +10,6 @@ import {
   Phone,
   RefreshCw,
   Search,
-  Settings,
   Sparkles,
   Store,
   Users,
@@ -78,6 +77,17 @@ function adminHeaders(token: string, json = false): HeadersInit {
     Authorization: `Bearer ${token.trim()}`,
     ...(json ? { "Content-Type": "application/json" } : {}),
   };
+}
+
+function whatsappInputFromPlatform(raw?: string | null): string {
+  const digits = String(raw ?? "").replace(/\D/g, "");
+  if (digits.startsWith("92") && digits.length >= 12) {
+    return `0${digits.slice(2, 5)}-${digits.slice(5)}`;
+  }
+  if (digits.startsWith("0") && digits.length === 11) {
+    return `${digits.slice(0, 4)}-${digits.slice(4)}`;
+  }
+  return raw?.trim() || "0315-9127771";
 }
 
 function asRecordArray(value: unknown): Record<string, unknown>[] {
@@ -163,9 +173,8 @@ export default function AdminPortal() {
   const [rowBusy, setRowBusy] = useState<number | null>(null);
   const [activatingId, setActivatingId] = useState<number | null>(null);
 
-  const [platformWhatsApp, setPlatformWhatsApp] = useState("");
-  const [platformPayment, setPlatformPayment] = useState("");
-  const [platformName, setPlatformName] = useState("");
+  const [platformName, setPlatformName] = useState("Sweet Tooth");
+  const [platformWhatsApp, setPlatformWhatsApp] = useState("0315-9127771");
   const [updatingSettings, setUpdatingSettings] = useState(false);
   const [settingsMessage, setSettingsMessage] = useState("");
 
@@ -243,9 +252,8 @@ export default function AdminPortal() {
       if (billingRes.ok) {
         const data = await billingRes.json();
         const platform = data.platform ?? {};
-        setPlatformWhatsApp(platform.whatsappNumber ?? "");
-        setPlatformPayment(platform.paymentDetails ?? "");
-        setPlatformName(platform.ownerName ?? "");
+        setPlatformWhatsApp(whatsappInputFromPlatform(platform.whatsappDisplay ?? platform.whatsappNumber));
+        setPlatformName(platform.ownerName || "Sweet Tooth");
       }
     } catch {
       setError("Failed to connect to admin server.");
@@ -342,13 +350,16 @@ export default function AdminPortal() {
         method: "POST",
         headers: adminHeaders(token, true),
         body: JSON.stringify({
-          whatsapp: platformWhatsApp || undefined,
-          paymentDetails: platformPayment || undefined,
+          whatsapp: platformWhatsApp,
           ownerName: platformName || undefined,
         }),
       });
       const data = await res.json();
-      setSettingsMessage(res.ok ? "Saved to the database." : `Error: ${data.error || "Update failed"}`);
+      if (res.ok && data.platform) {
+        setPlatformWhatsApp(whatsappInputFromPlatform(data.platform.whatsappDisplay ?? data.platform.whatsappNumber));
+        setPlatformName(data.platform.ownerName || "Sweet Tooth");
+      }
+      setSettingsMessage(res.ok ? "Saved. Bakers now see this WhatsApp for plan payments." : `Error: ${data.error || "Update failed"}`);
     } catch {
       setSettingsMessage("Network error during settings update.");
     } finally {
@@ -517,16 +528,26 @@ export default function AdminPortal() {
         <section className="mt-8 grid gap-6 lg:grid-cols-2">
           <form onSubmit={handleUpdateSettings} className={cardClass}>
             <div className="flex items-center gap-2">
-              <Settings className="h-5 w-5 text-primary" />
-              <h2 className="font-serif text-xl font-bold">Platform billing</h2>
+              <Phone className="h-5 w-5 text-primary" />
+              <h2 className="font-serif text-xl font-bold">App contact & plan payments</h2>
             </div>
-            <p className="mt-1 text-sm text-muted-foreground">Stored in platform settings and shown to bakers on upgrade.</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Shown when a bakery subscribes. Only a WhatsApp number is published — bakers message you for how to pay. No JazzCash, Easypaisa, or bank account in the app.
+            </p>
             <div className="mt-5 space-y-3">
-              <input className={inputClass} placeholder="Billing name" value={platformName} onChange={(e) => setPlatformName(e.target.value)} />
-              <input className={inputClass} placeholder="Support WhatsApp" value={platformWhatsApp} onChange={(e) => setPlatformWhatsApp(e.target.value)} />
-              <textarea className={`${inputClass} min-h-24 py-3`} placeholder="JazzCash / Easypaisa / bank details" value={platformPayment} onChange={(e) => setPlatformPayment(e.target.value)} />
+              <label className="block text-sm font-medium">
+                Display name
+                <input className={`${inputClass} mt-1`} placeholder="Sweet Tooth" value={platformName} onChange={(e) => setPlatformName(e.target.value)} />
+              </label>
+              <label className="block text-sm font-medium">
+                WhatsApp for subscriptions
+                <input className={`${inputClass} mt-1`} placeholder="0315-9127771" value={platformWhatsApp} onChange={(e) => setPlatformWhatsApp(e.target.value)} />
+              </label>
+              <p className="rounded-xl border border-border bg-background px-3.5 py-3 text-sm text-muted-foreground">
+                Bakers will see: WhatsApp {platformWhatsApp || "0315-9127771"} for payment details.
+              </p>
               {settingsMessage && <p className="text-sm font-medium text-primary">{settingsMessage}</p>}
-              <button type="submit" disabled={updatingSettings} className={primaryBtn}>{updatingSettings ? "Saving…" : "Save to database"}</button>
+              <button type="submit" disabled={updatingSettings} className={primaryBtn}>{updatingSettings ? "Saving…" : "Save contact"}</button>
             </div>
           </form>
 
@@ -548,7 +569,7 @@ export default function AdminPortal() {
           <section className={`${cardClass} mt-8`}>
             <h2 className="font-serif text-xl font-bold">Waiting for payment confirmation</h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              These bakeries asked to upgrade. Activate after JazzCash, Easypaisa, or bank transfer is confirmed on WhatsApp. No merchant account needed.
+              These bakeries asked to upgrade. Activate after they WhatsApp you and you confirm payment. No merchant account needed.
             </p>
             <div className="mt-4 space-y-3">
               {bakers.filter((baker) => baker.pendingPlanId).map((baker) => (

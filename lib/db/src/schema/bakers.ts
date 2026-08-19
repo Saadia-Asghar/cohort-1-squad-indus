@@ -27,6 +27,7 @@ export const bakersTable = sweetTooth.table("bakers", {
   agentActive: boolean("agent_active").notNull().default(true),
   agentConfig: jsonb("agent_config").$type<{
     customGreeting?: string;
+    shopPlaybook?: string;
     blockedTopics?: string[];
     escalateKeywords?: string[];
     autoReplyEnabled?: boolean;

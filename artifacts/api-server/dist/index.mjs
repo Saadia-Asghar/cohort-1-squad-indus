@@ -55101,7 +55101,7 @@ function resolveConversationFlow(input) {
   const showWebChat = webReady;
   const showWhatsAppCta = whatsappReady && (active === "whatsapp" || Boolean(input.whatsappAgentEnabled));
   const showInstagramCta = instagramReady && (active === "instagram" || Boolean(input.instagramAgentEnabled));
-  const primaryCtaLabel = "Add to bag";
+  const primaryCtaLabel = "Book with assistant";
   let statusNote = "The menu assistant and web checkout are always primary. Connected social agents are optional additional channels.";
   if (fallbackUsed && !ready[preferred]) {
     if (preferred === "whatsapp" && !planAllowsWhatsApp) {
@@ -64172,12 +64172,15 @@ var init_seed_baker_demo = __esm({
 // src/lib/platform-billing.ts
 var platform_billing_exports = {};
 __export(platform_billing_exports, {
+  DEFAULT_PLATFORM_WHATSAPP: () => DEFAULT_PLATFORM_WHATSAPP,
   PAID_PLAN_IDS: () => PAID_PLAN_IDS,
   buildUpgradeWhatsAppUrl: () => buildUpgradeWhatsAppUrl,
+  formatPakistanWhatsAppDisplay: () => formatPakistanWhatsAppDisplay,
   getPlatformBillingConfig: () => getPlatformBillingConfig,
   isPaidPlanId: () => isPaidPlanId,
   platformWhatsAppDigits: () => platformWhatsAppDigits,
-  readBillingState: () => readBillingState
+  readBillingState: () => readBillingState,
+  whatsappPaymentCopy: () => whatsappPaymentCopy
 });
 function isPaidPlanId(value) {
   return PAID_PLAN_IDS.includes(value);
@@ -64186,23 +64189,35 @@ function digitsOnly(phone) {
   return phone.replace(/\D/g, "");
 }
 function platformWhatsAppDigits(raw) {
-  const digits = digitsOnly(raw ?? process.env.PLATFORM_WHATSAPP ?? "");
+  const digits = digitsOnly(raw ?? process.env.PLATFORM_WHATSAPP ?? DEFAULT_PLATFORM_WHATSAPP);
   if (digits.length < 10) return null;
   if (digits.startsWith("0")) return `92${digits.slice(1)}`;
   if (digits.startsWith("92")) return digits;
   return digits;
 }
+function formatPakistanWhatsAppDisplay(digits92) {
+  if (!digits92) return null;
+  if (digits92.startsWith("92") && digits92.length === 12) {
+    return `0${digits92.slice(2, 5)}-${digits92.slice(5)}`;
+  }
+  return digits92;
+}
+function whatsappPaymentCopy(ownerName, displayPhone) {
+  return `WhatsApp ${displayPhone} (${ownerName}) for plan payment details. We share how to pay on WhatsApp \u2014 no account numbers in the app.`;
+}
 function getPlatformBillingConfig() {
   const whatsappNumber = platformWhatsAppDigits();
   const ownerName = (process.env.PLATFORM_BILLING_NAME ?? "Sweet Tooth").trim() || "Sweet Tooth";
-  const paymentDetails = (process.env.PLATFORM_PAYMENT_DETAILS ?? "Pay via JazzCash / Easypaisa / bank transfer, then WhatsApp us your bakery name + plan + receipt.").trim();
+  const whatsappDisplay = formatPakistanWhatsAppDisplay(whatsappNumber);
+  const paymentDetails = whatsappDisplay ? whatsappPaymentCopy(ownerName, whatsappDisplay) : "WhatsApp us for plan payment details.";
   return {
     enabled: Boolean(whatsappNumber),
     ownerName,
     whatsappNumber,
+    whatsappDisplay,
     whatsappChatUrl: whatsappNumber ? `https://wa.me/${whatsappNumber}` : null,
     paymentDetails,
-    instructions: "1) Transfer the plan amount using the details below. 2) WhatsApp us your bakery name, chosen plan, and payment screenshot. 3) We activate your plan \u2014 no app fees or card needed."
+    instructions: "1) WhatsApp us your bakery name and chosen plan. 2) We will share payment details on WhatsApp. 3) Send the receipt there \u2014 we activate your plan. No card needed."
   };
 }
 function buildUpgradeWhatsAppUrl(input) {
@@ -64214,7 +64229,7 @@ function buildUpgradeWhatsAppUrl(input) {
     `Bakery: ${input.businessName} (id ${input.bakerId})`,
     `Plan: ${input.planName} (${input.planId})`,
     `Amount: ${input.amountLabel}`,
-    `I will send the JazzCash/Easypaisa/bank receipt next.`
+    `Please share payment details on WhatsApp.`
   ].join("\n");
   return `https://wa.me/${digits}?text=${encodeURIComponent(text2)}`;
 }
@@ -64226,11 +64241,12 @@ function readBillingState(agentConfig) {
     billingNote: conf.billingNote
   };
 }
-var PAID_PLAN_IDS;
+var PAID_PLAN_IDS, DEFAULT_PLATFORM_WHATSAPP;
 var init_platform_billing = __esm({
   "src/lib/platform-billing.ts"() {
     "use strict";
     PAID_PLAN_IDS = ["starter", "pro", "bakery_plus"];
+    DEFAULT_PLATFORM_WHATSAPP = "03159127771";
   }
 });
 
@@ -64996,12 +65012,12 @@ async function persistPlatformBilling(patch) {
   const next = {
     ...current,
     ...patch.whatsapp ? { whatsapp: patch.whatsapp } : {},
-    ...patch.paymentDetails ? { paymentDetails: patch.paymentDetails } : {},
     ...patch.ownerName ? { ownerName: patch.ownerName } : {}
   };
+  delete next.paymentDetails;
   if (typeof next.whatsapp === "string") process.env.PLATFORM_WHATSAPP = next.whatsapp;
-  if (typeof next.paymentDetails === "string") process.env.PLATFORM_PAYMENT_DETAILS = next.paymentDetails;
   if (typeof next.ownerName === "string") process.env.PLATFORM_BILLING_NAME = next.ownerName;
+  delete process.env.PLATFORM_PAYMENT_DETAILS;
   await db.insert(platformSettingsTable).values({ key: PLATFORM_BILLING_KEY, value: next, updatedAt: /* @__PURE__ */ new Date() }).onConflictDoUpdate({
     target: platformSettingsTable.key,
     set: { value: next, updatedAt: /* @__PURE__ */ new Date() }
@@ -65011,8 +65027,8 @@ async function hydratePlatformBillingFromDb() {
   const [existing] = await db.select().from(platformSettingsTable).where(eq(platformSettingsTable.key, PLATFORM_BILLING_KEY)).limit(1);
   const value = existing?.value ?? {};
   if (typeof value.whatsapp === "string") process.env.PLATFORM_WHATSAPP = value.whatsapp;
-  if (typeof value.paymentDetails === "string") process.env.PLATFORM_PAYMENT_DETAILS = value.paymentDetails;
   if (typeof value.ownerName === "string") process.env.PLATFORM_BILLING_NAME = value.ownerName;
+  delete process.env.PLATFORM_PAYMENT_DETAILS;
 }
 var import_express19, router17, PLATFORM_BILLING_KEY, admin_default;
 var init_admin = __esm({
@@ -65320,8 +65336,7 @@ var init_admin = __esm({
     router17.post("/admin/platform-billing", async (req, res) => {
       if (!requireAdminBearer(req, res)) return;
       const parsed = external_exports2.object({
-        whatsapp: external_exports2.string().trim().min(10).max(24).optional(),
-        paymentDetails: external_exports2.string().trim().min(8).max(2e3).optional(),
+        whatsapp: external_exports2.string().trim().min(10).max(24),
         ownerName: external_exports2.string().trim().min(2).max(80).optional()
       }).safeParse(req.body);
       if (!parsed.success) {
@@ -76268,6 +76283,7 @@ var GetPlatformBillingResponse = objectType({
   "enabled": booleanType(),
   "ownerName": stringType(),
   "whatsappNumber": stringType().nullable(),
+  "whatsappDisplay": stringType().nullable().optional(),
   "whatsappChatUrl": stringType().nullable(),
   "paymentDetails": stringType(),
   "instructions": stringType()
@@ -76287,6 +76303,7 @@ var GetBakerBillingResponse = objectType({
     "enabled": booleanType(),
     "ownerName": stringType(),
     "whatsappNumber": stringType().nullable(),
+    "whatsappDisplay": stringType().nullable().optional(),
     "whatsappChatUrl": stringType().nullable(),
     "paymentDetails": stringType(),
     "instructions": stringType()
@@ -76308,6 +76325,7 @@ var RequestBakerPlanUpgradeResponse = objectType({
     "enabled": booleanType(),
     "ownerName": stringType(),
     "whatsappNumber": stringType().nullable(),
+    "whatsappDisplay": stringType().nullable().optional(),
     "whatsappChatUrl": stringType().nullable(),
     "paymentDetails": stringType(),
     "instructions": stringType()
@@ -76334,8 +76352,7 @@ var AdminActivatePlanResponse = objectType({
   "message": stringType()
 });
 var AdminSetPlatformBillingBody = objectType({
-  "whatsapp": stringType().optional(),
-  "paymentDetails": stringType().optional(),
+  "whatsapp": stringType(),
   "ownerName": stringType().optional()
 });
 var AdminSetPlatformBillingResponse = unknownType();
@@ -78059,6 +78076,7 @@ router2.get("/bakers/:bakerId/agent-config", requireBakerAuth, requireBakerOwner
     ...tokenMask,
     instagramPageId: baker.instagramPageId,
     customGreeting: conf.customGreeting ?? null,
+    shopPlaybook: conf.shopPlaybook ?? "",
     blockedTopics: conf.blockedTopics ?? [],
     escalateKeywords: conf.escalateKeywords ?? [],
     autoReplyEnabled: conf.autoReplyEnabled ?? true,
@@ -78084,6 +78102,9 @@ router2.put("/bakers/:bakerId/agent-config", requireBakerAuth, requireBakerOwner
   const body = req.body;
   const agentConfigUpdate = {};
   if (body.customGreeting !== void 0) agentConfigUpdate.customGreeting = body.customGreeting;
+  if (body.shopPlaybook !== void 0) {
+    agentConfigUpdate.shopPlaybook = String(body.shopPlaybook).slice(0, 1200);
+  }
   if (body.blockedTopics !== void 0) agentConfigUpdate.blockedTopics = body.blockedTopics;
   if (body.escalateKeywords !== void 0) agentConfigUpdate.escalateKeywords = body.escalateKeywords;
   if (body.autoReplyEnabled !== void 0) agentConfigUpdate.autoReplyEnabled = body.autoReplyEnabled;
@@ -78185,6 +78206,7 @@ router2.put("/bakers/:bakerId/agent-config", requireBakerAuth, requireBakerOwner
     ...tokenMask,
     instagramPageId: baker.instagramPageId,
     customGreeting: conf.customGreeting ?? null,
+    shopPlaybook: conf.shopPlaybook ?? "",
     blockedTopics: conf.blockedTopics ?? [],
     escalateKeywords: conf.escalateKeywords ?? [],
     autoReplyEnabled: conf.autoReplyEnabled ?? true,
@@ -79543,6 +79565,18 @@ router5.post("/orders", rateLimit(15, 15 * 60 * 1e3), async (req, res) => {
       source: order.source,
       requireAdvance: order.requireAdvance
     });
+    try {
+      await db.insert(notificationsTable).values({
+        bakerId: order.bakerId,
+        type: "new_order",
+        title: "New bag order",
+        message: `Order #${order.id} for PKR ${order.totalPkr.toLocaleString()} from ${order.buyerName} is waiting in the dashboard.`,
+        relatedId: order.id,
+        relatedType: "order"
+      });
+    } catch (notifyError) {
+      console.error("Guest order notification failed", notifyError);
+    }
     const guestToken = guestTokenFor(order, ["receipt"]);
     res.status(201).json({
       ...formatOrder(order),
@@ -81102,6 +81136,98 @@ function answerNeedsHumanConfirmation(answer) {
   return /(confirm (with|from) (the )?baker|ask (the )?baker|do not have|don't have|not (in|available from) (the )?(context|information)|cannot confirm|can't confirm)/i.test(answer);
 }
 
+// src/lib/agent-checkout.ts
+var CHECKOUT_RECAP_MARK = "Reply yes to send this to the bakery";
+function karachiDatePlusDays(days) {
+  const ms = Date.now() + Math.max(0, days) * 864e5;
+  return new Date(ms).toLocaleDateString("en-CA", { timeZone: "Asia/Karachi" });
+}
+function isCheckoutRecap(text2) {
+  return text2.includes(CHECKOUT_RECAP_MARK);
+}
+function isCheckoutFollowUp(lastAssistant) {
+  return /which area|delivery area or pickup|your (full )?name|what name|whatsapp|needed by|send this to the bakery|start the order/i.test(
+    lastAssistant
+  );
+}
+function titleName(value) {
+  return value.trim().replace(/\s+/g, " ").slice(0, 80).replace(/\b\w/g, (ch) => ch.toUpperCase());
+}
+function parseNeededByDate(message) {
+  const iso = message.match(/\b(20\d{2}-\d{2}-\d{2})\b/);
+  if (iso) return iso[1];
+  const lower = message.toLowerCase();
+  if (/\btomorrow\b/.test(lower)) return karachiDatePlusDays(1);
+  if (/\btoday\b/.test(lower)) return karachiDatePlusDays(0);
+  const dmy = message.match(/\b(\d{1,2})[\/\-.](\d{1,2})(?:[\/\-.](\d{2,4}))?\b/);
+  if (!dmy) return void 0;
+  const day = Number(dmy[1]);
+  const month = Number(dmy[2]);
+  if (day < 1 || day > 31 || month < 1 || month > 12) return void 0;
+  const yearRaw = dmy[3];
+  const year = yearRaw ? yearRaw.length === 2 ? 2e3 + Number(yearRaw) : Number(yearRaw) : Number((/* @__PURE__ */ new Date()).toLocaleDateString("en-CA", { timeZone: "Asia/Karachi" }).slice(0, 4));
+  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+function slotsFromPreferences(prefs, fallbackProduct) {
+  const quantity = typeof prefs.quantity === "number" && prefs.quantity >= 1 && prefs.quantity <= 20 ? prefs.quantity : 1;
+  return {
+    productName: typeof prefs.lastItem === "string" && prefs.lastItem.trim() ? prefs.lastItem.trim() : fallbackProduct,
+    quantity,
+    area: typeof prefs.preferredArea === "string" && prefs.preferredArea.trim() ? prefs.preferredArea.trim() : void 0,
+    pickup: prefs.pickup === true,
+    neededByDate: typeof prefs.neededByDate === "string" ? prefs.neededByDate : void 0,
+    buyerName: typeof prefs.buyerName === "string" && prefs.buyerName.trim() ? prefs.buyerName.trim() : void 0,
+    buyerWhatsapp: typeof prefs.buyerWhatsapp === "string" ? prefs.buyerWhatsapp : void 0
+  };
+}
+function applyFollowUpAnswer(message, lastAssistant, prefs) {
+  const next = { ...prefs };
+  const trimmed = message.trim();
+  if (!trimmed) return next;
+  const phone = normalizePakistanPhone(trimmed);
+  if (phone) next.buyerWhatsapp = phone;
+  if (/your (full )?name|what name|put on the order/i.test(lastAssistant) && !/\d/.test(trimmed) && trimmed.split(/\s+/).length <= 4) {
+    if (!/^(yes|yeah|yep|ok|okay|haan|han|sure|hi|hello|hey)$/i.test(trimmed)) {
+      next.buyerName = titleName(trimmed);
+    }
+  }
+  const date6 = parseNeededByDate(trimmed);
+  if (date6 && /needed by|date|which day/i.test(lastAssistant)) {
+    next.neededByDate = date6;
+  }
+  if (/\bpickup\b|\bcollect\b/i.test(trimmed)) next.pickup = true;
+  return next;
+}
+function missingCheckoutSlot(slots) {
+  if (!slots.productName?.trim()) return "cake";
+  if (!slots.pickup && !slots.area?.trim()) return "area";
+  if (!slots.buyerName?.trim()) return "name";
+  if (!slots.buyerWhatsapp) return "whatsapp";
+  return null;
+}
+function nextCheckoutQuestion(missing, bakerName, areas) {
+  if (missing === "cake") return `Which cake from ${bakerName} should I send to the baker?`;
+  if (missing === "area") {
+    const hint = areas.length ? ` We deliver to ${areas.join(", ")}.` : "";
+    return `Delivery area or pickup?${hint}`;
+  }
+  if (missing === "name") return "What name should the bakery put on the order?";
+  return "WhatsApp number for the baker to confirm (03xx xxxxxxx)?";
+}
+function checkoutRecap(input) {
+  const when = input.slots.neededByDate ?? karachiDatePlusDays(Math.max(1, input.leadTimeDays ?? 1));
+  const where = input.slots.pickup ? "pickup" : input.slots.area;
+  return `${input.slots.quantity}\xD7 ${input.productName} (${input.priceLine}) for ${where}, needed by ${when}. Name: ${input.slots.buyerName}. ${CHECKOUT_RECAP_MARK}.`;
+}
+function createOrderCommandBlock(input) {
+  const date6 = input.slots.neededByDate ?? karachiDatePlusDays(Math.max(1, input.leadTimeDays ?? 1));
+  const pickup = input.slots.pickup;
+  const address = pickup ? "Pickup from bakery" : input.slots.area && input.slots.area.length >= 5 ? input.slots.area : `${input.slots.area ?? "Guest"}, delivery`;
+  return `[CREATE_ORDER_START]
+{"buyerName":${JSON.stringify(input.slots.buyerName ?? "Guest")},"buyerWhatsapp":${JSON.stringify(input.slots.buyerWhatsapp ?? "")},"buyerAddress":${JSON.stringify(address)},"buyerArea":${JSON.stringify(pickup ? null : input.slots.area ?? null)},"deliveryDate":${JSON.stringify(date6)},"fulfillmentType":${JSON.stringify(pickup ? "pickup" : "delivery")},"items":[{"productName":${JSON.stringify(input.productName)},"quantity":${input.slots.quantity}}]}
+[CREATE_ORDER_END]`;
+}
+
 // src/lib/buyer-memory.ts
 var MEMORY_STUB_SUMMARIES = /* @__PURE__ */ new Set([
   "Recent menu conversation saved.",
@@ -81209,6 +81335,23 @@ function extractPreferences(message, existing, deliveryAreas = [], productNames 
   if (existing.pinEggless === true) {
     prefs.pinEggless = true;
     prefs.eggless = existing.eggless === true;
+  }
+  const phone = normalizePakistanPhone(message);
+  if (phone) prefs.buyerWhatsapp = phone;
+  if (/\bpickup\b|\bcollect from (the )?(shop|bakery)\b/.test(lowerMsg)) {
+    prefs.pickup = true;
+  }
+  const neededBy = parseNeededByDate(message);
+  if (neededBy && !phone) prefs.neededByDate = neededBy;
+  else if (neededBy && /\b(tomorrow|today|needed by)\b/.test(lowerMsg)) prefs.neededByDate = neededBy;
+  const qtyHit = lowerMsg.match(/\b(\d{1,2})\s*(?:x|pcs|pieces?|cakes?|qty)\b/);
+  if (qtyHit) {
+    const qty = Number(qtyHit[1]);
+    if (qty >= 1 && qty <= 20) prefs.quantity = qty;
+  }
+  const named = message.match(/\b(?:my name is|this is)\s+([A-Za-z][A-Za-z .']{1,40})/i) ?? message.match(/\b(?:i am|i'm)\s+(?!in\b|at\b|from\b)([A-Za-z][A-Za-z .']{1,40})/i);
+  if (named?.[1] && !normalizePakistanPhone(named[1])) {
+    prefs.buyerName = named[1].replace(/\s+/g, " ").trim().slice(0, 80);
   }
   return prefs;
 }
@@ -81333,6 +81476,150 @@ function greetingShouldYieldToTask(message, deliveryAreas = []) {
   return hasOrderIntent(message) || hasFlavorIntent(message) || hasOrderStatusIntent(message) || hasBookingConfirmIntent(message) || Boolean(spokenCity(message)) || Boolean(findSpokenArea(message, deliveryAreas)) || /\b(deliver|delivery|pickup|menu|price|payment)\b/i.test(message) || /\bflavo/i.test(message);
 }
 
+// src/lib/agent-master-prompt.ts
+function priceLine(product) {
+  const sizes = product.sizes ?? [];
+  if (sizes.length) {
+    return sizes.map((size) => `${size.label} PKR ${size.pricePkr}`).join(", ");
+  }
+  return `PKR ${product.basePricePkr}`;
+}
+function buildCatalogCard(products) {
+  const available = products.filter((product) => product.isAvailable !== false);
+  if (!available.length) return "(no published items)";
+  return available.slice(0, 12).map((product) => {
+    const taste = String(product.description ?? "").split(/[.!]/)[0]?.trim();
+    const lead = product.leadTimeDays && product.leadTimeDays > 0 ? `; ready in ${product.leadTimeDays}d` : "";
+    const egg = product.isEgglessAvailable ? "; eggless option" : "";
+    return `- ${product.name}: ${priceLine(product)}${taste ? `; ${taste}` : ""}${lead}${egg}`;
+  }).join("\n");
+}
+function buildSlotBoard(slots) {
+  const known = [];
+  const missing = [];
+  if (slots.lastItem?.trim()) known.push(`cake=${slots.lastItem.trim()}`);
+  else missing.push("which cake");
+  if (slots.preferredArea?.trim()) known.push(`area=${slots.preferredArea.trim()}`);
+  else missing.push("delivery area or pickup");
+  if (slots.eggless) known.push("eggless=yes");
+  if (slots.allergies?.length) known.push(`allergies=${slots.allergies.join(", ")}`);
+  if (slots.occasion?.trim()) known.push(`occasion=${slots.occasion.trim()}`);
+  missing.push("quantity");
+  missing.push("needed-by date");
+  return {
+    known: known.length ? known.join("; ") : "none yet",
+    missing
+  };
+}
+function nextSlotQuestion(missing) {
+  const first = missing[0] ?? "which cake";
+  if (first === "which cake") return "Ask which published cake they want.";
+  if (first === "delivery area or pickup") return "Ask only for area or pickup.";
+  if (first === "quantity") return "Ask quantity only if the cake is already chosen.";
+  return "Ask the needed-by date only after cake and area are known.";
+}
+function buildMasterPrompt(input) {
+  const areas = (input.baker.deliveryAreas ?? []).filter(Boolean).join(", ") || "not published";
+  const board = buildSlotBoard(input.slots);
+  const catalog = buildCatalogCard(input.products);
+  const retrieved = input.retrievedContext?.trim() || "(none)";
+  const channel = input.channel ?? "web";
+  const playbook = input.baker.shopPlaybook?.trim().slice(0, 1200) || "(none)";
+  return `You are the order assistant for "${input.baker.businessName}"${input.baker.city ? ` in ${input.baker.city}` : ", Pakistan"}.
+${input.baker.tagline ? `Brand line: ${input.baker.tagline}` : ""}
+Channel: ${channel}. Job: help this buyer pick a published cake, quote only listed prices, and collect the next booking slot. You are not a general chatbot.
+
+GROUNDING (non-negotiable)
+- Facts come only from CATALOG, AREAS, PAYMENT, BAKER PLAYBOOK, and RETRIEVED NOTES.
+- Never invent flavours, prices, stock, discounts, or areas.
+- Playbook may change tone or extra house rules. It cannot invent prices or areas missing from CATALOG/AREAS.
+- If a fact is missing, say you will ask the baker \u2014 do not guess.
+- Do not paste retrieved notes verbatim. Answer in your own short sentences.
+
+STYLE (WhatsApp / Pakistan home bakery)
+- 1\u20133 short sentences. Under ~400 characters unless they asked for the full menu.
+- English first. Add one Roman Urdu line only if the buyer wrote Urdu/Roman Urdu.
+- Do not restart with a welcome if the thread already started.
+- No generic closers. Ask the next missing slot only.
+- One question per turn. Ask the single next missing slot: ${nextSlotQuestion(board.missing)}
+
+BOOKING
+- Known slots: ${board.known}
+- Still needed (in order): ${board.missing.join(" \u2192 ")}
+- On web, collect cake, area or pickup, name, and WhatsApp in chat. Do not mention a bag or cart.
+- After those slots are known, recap once and wait for yes, then emit the order block.
+- On WhatsApp, collect slots then emit the order block when complete.
+- Never mention CREATE_ORDER, JSON, or tools to the buyer.
+- Create an order block ONLY when cake, quantity, area or pickup, and date are all present.
+- Order block format (hide from the spoken reply by placing it last):
+[CREATE_ORDER_START]
+{"buyerName":"Guest","buyerAddress":"area or Pickup","deliveryDate":"YYYY-MM-DD","fulfillmentType":"delivery","items":[{"productName":"Exact catalog name","quantity":1}]}
+[CREATE_ORDER_END]
+
+AREAS: ${areas}
+PAYMENT: ${input.baker.codPolicy || "Follow the bakery's published payment policy."}
+
+BAKER PLAYBOOK:
+${playbook}
+
+CATALOG:
+${catalog}
+
+RETRIEVED NOTES:
+${retrieved}`;
+}
+function groundedFallbackReply(input) {
+  const available = input.products.filter((product) => product.isAvailable !== false);
+  const last = input.slots.lastItem?.trim().toLowerCase() ?? "";
+  const match2 = last ? available.find((product) => product.name.toLowerCase() === last) ?? available.find((product) => product.name.toLowerCase().includes(last) || last.includes(product.name.toLowerCase())) : void 0;
+  if (match2) {
+    const area = input.slots.preferredArea?.trim();
+    if (!area) {
+      return {
+        reply: `${match2.name} is on ${input.bakerName}'s menu (${priceLine(match2)}). Delivery area or pickup?`,
+        escalated: false
+      };
+    }
+    return {
+      reply: `${match2.name} for ${area} is ${priceLine(match2)}. Tell me your name and WhatsApp number so I can send this to the bakery.`,
+      escalated: false
+    };
+  }
+  if (available.length) {
+    const names = available.slice(0, 8).map((product) => product.name).join(", ");
+    return {
+      reply: `I can help from ${input.bakerName}'s published menu: ${names}. Which cake?`,
+      escalated: false
+    };
+  }
+  return {
+    reply: `I do not have a verified answer from ${input.bakerName}'s published menu. I have sent this to the baker.`,
+    escalated: true
+  };
+}
+function toLlmTurns(history, latestUserMessage) {
+  const trimmed = history.filter((turn) => (turn.role === "user" || turn.role === "assistant") && turn.content.trim()).slice(-10).map((turn) => ({
+    role: turn.role,
+    content: turn.content.slice(0, 800)
+  }));
+  if (trimmed.at(-1)?.role === "user" && trimmed.at(-1)?.content.trim() === latestUserMessage.trim()) {
+    trimmed.pop();
+  }
+  const sequence = [...trimmed, { role: "user", content: latestUserMessage }];
+  const merged = [];
+  for (const turn of sequence) {
+    const last = merged.at(-1);
+    if (last && last.role === turn.role) {
+      last.content = `${last.content}
+${turn.content}`;
+    } else {
+      merged.push({ ...turn });
+    }
+  }
+  while (merged[0]?.role === "assistant") merged.shift();
+  return merged;
+}
+
 // src/lib/chat-agent.ts
 function menuScopeRefusal(businessName) {
   return {
@@ -81366,17 +81653,18 @@ function productTasteLine(product) {
   const desc2 = String(product.description ?? "").split(/[.!]/)[0]?.trim() ?? "";
   return desc2;
 }
-function checkoutReply(input) {
-  const lead = input.product.leadTimeDays > 0 ? ` Ready in ${input.product.leadTimeDays} day${input.product.leadTimeDays === 1 ? "" : "s"}.` : "";
-  const taste = productTasteLine(input.product);
-  const tasteBit = taste ? ` ${taste}.` : "";
-  if (!input.area) {
-    const areaHint = input.areas.length ? ` We deliver to ${input.areas.join(", ")}.` : "";
-    return `${input.product.name} \u2014 ${productPriceLine(input.product)}.${tasteBit}${lead}${areaHint} Which area should I use for delivery, or is this pickup?`;
-  }
-  return `${input.product.name} for ${input.area}: ${productPriceLine(input.product)}.${tasteBit}${lead} Payment: ${input.payment} Add it to your bag on this page, or tell me the quantity and the date you need it.`;
+function toPromptProducts(products) {
+  return products.map((product) => ({
+    name: product.name,
+    description: product.description,
+    basePricePkr: product.basePricePkr,
+    leadTimeDays: product.leadTimeDays,
+    isEgglessAvailable: product.isEgglessAvailable,
+    isAvailable: product.isAvailable,
+    sizes: product.sizes ?? []
+  }));
 }
-async function generateAgentReply(bakerId, buyerId, message, memory, historyPreferences = {}) {
+async function generateAgentReply(bakerId, buyerId, message, memory, historyPreferences = {}, options = {}) {
   const [baker] = await db.select().from(bakersTable).where(eq(bakersTable.id, bakerId));
   if (!baker) return { reply: "Baker not found.", action: null, cartItemId: null, escalated: false };
   if (!isPlanAccessActive(baker)) {
@@ -81539,6 +81827,7 @@ async function generateAgentReply(bakerId, buyerId, message, memory, historyPref
   };
   const deliveryAreas = baker.deliveryAreas ?? [];
   const lastAssistantText = typeof buyerPrefs.lastAssistantText === "string" ? buyerPrefs.lastAssistantText : "";
+  Object.assign(buyerPrefs, applyFollowUpAnswer(message, lastAssistantText, buyerPrefs));
   const paymentMode = baker.agentConfig?.paymentMode;
   const paymentPolicy = paymentMode === "full_advance" ? "Full advance is required before your order is confirmed." : paymentMode === "partial_advance" ? `Partial advance (${baker.advancePercentage}%) on orders from PKR ${baker.advanceThresholdPkr.toLocaleString()}. Balance on delivery.` : baker.codPolicy ?? "Cash on delivery (COD) only. Full payment required at the time of delivery.";
   if (/(human|real person|team member|speak (to|with).*(baker|person)|ask (the )?baker|baker.*confirm|person.*confirm)/.test(lowerMsg)) {
@@ -81614,16 +81903,44 @@ Which cake would you like?`,
       };
     }
     const spokenArea2 = findSpokenArea(message, deliveryAreas) ?? (typeof buyerPrefs.preferredArea === "string" ? buyerPrefs.preferredArea : null);
-    if (hasOrderIntent(lowerMsg) || hasBookingConfirmIntent(lowerMsg)) {
+    const wantsCheckout = hasOrderIntent(lowerMsg) || hasBookingConfirmIntent(lowerMsg) || isCheckoutFollowUp(lastAssistantText);
+    if (wantsCheckout) {
+      const slots2 = slotsFromPreferences(
+        { ...buyerPrefs, lastItem: mentionedProduct.name, preferredArea: spokenArea2 ?? buyerPrefs.preferredArea },
+        mentionedProduct.name
+      );
+      const missing = missingCheckoutSlot(slots2);
+      if (missing) {
+        return {
+          reply: nextCheckoutQuestion(missing, baker.businessName, deliveryAreas),
+          action: null,
+          cartItemId: null,
+          escalated: false
+        };
+      }
+      if (isCheckoutRecap(lastAssistantText) && hasBookingConfirmIntent(lowerMsg)) {
+        return {
+          reply: `Sending this to ${baker.businessName} now.
+${createOrderCommandBlock({
+            slots: slots2,
+            productName: mentionedProduct.name,
+            leadTimeDays: mentionedProduct.leadTimeDays
+          })}`,
+          action: "create_order",
+          cartItemId: null,
+          escalated: false
+        };
+      }
       return {
-        reply: checkoutReply({
-          product: mentionedProduct,
-          area: spokenArea2,
-          areas: deliveryAreas,
-          payment: paymentPolicy
+        reply: checkoutRecap({
+          bakerName: baker.businessName,
+          productName: mentionedProduct.name,
+          priceLine: productPriceLine(mentionedProduct),
+          slots: slots2,
+          leadTimeDays: mentionedProduct.leadTimeDays
         }),
         action: null,
-        cartItemId: mentionedProduct.id,
+        cartItemId: null,
         escalated: false
       };
     }
@@ -81633,9 +81950,9 @@ Which cake would you like?`,
     const eggless = mentionedProduct.isEgglessAvailable ? " An eggless version is available." : "";
     const taste = productTasteLine(mentionedProduct);
     return {
-      reply: `${mentionedProduct.name} is available. ${productPriceLine(mentionedProduct)}.${taste ? ` ${taste}.` : ""}${leadTime}${eggless}${dietary} Would you like to order it, or check delivery for your area?`,
+      reply: `${mentionedProduct.name} is available. ${productPriceLine(mentionedProduct)}.${taste ? ` ${taste}.` : ""}${leadTime}${eggless}${dietary} Tell me your area or pickup to start the order.`,
       action: null,
-      cartItemId: mentionedProduct.id,
+      cartItemId: null,
       escalated: false
     };
   }
@@ -81690,7 +82007,7 @@ What would you like to order?`,
 
 ${list}
 
-Would you like to order any of these?`,
+Which of these should I book with the baker?`,
       action: null,
       cartItemId: null,
       escalated: false
@@ -81773,9 +82090,7 @@ Would you like to order any of these?`,
     }
     const available = products.filter((p) => p.isAvailable);
     return {
-      reply: `${greeting}${personalNote} I'm here to help you order or answer questions from the bakery's published menu.
-
-We currently have ${available.length} items listed as available. Would you like to see the menu?`,
+      reply: `${greeting}${personalNote} Tell me the cake you want, or your area for delivery.${available.length ? ` ${available.length} items are listed.` : ""}`,
       action: null,
       cartItemId: null,
       escalated: false
@@ -81783,79 +82098,53 @@ We currently have ${available.length} items listed as available. Would you like 
   }
   const ragChunks = await retrieveKnowledge(bakerId, message, 3, 0.1);
   const ragContext = formatRetrievedContext(ragChunks);
-  if (ragContext) {
-    const systemPrompt = `You are a friendly, helpful AI assistant for the home-based bakery "${baker.businessName}" in ${baker.city || "Pakistan"}.
-Your goal is to answer customer questions about the bakery's menu, pricing, ingredients, dietary policies, delivery, and availability.
-
-Strict Guidelines:
-1. ONLY answer based on the provided menu, products, and policies in the "Retrieved Context" below. Do not assume or hallucinate any details.
-2. If the user's question cannot be answered by the context, explain politely that you don't have that information and ask them to confirm with the baker directly.
-3. Keep replies helpful and bilingual (in a natural blend of English and Urdu, e.g. using "Assalam-o-Alaikum", "PKR", etc. where appropriate).
-4. Do NOT make up products, prices, or delivery areas.
-5. AUTOMATED ORDERING:
-   If the customer explicitly requests to place an order, AND has specified: (a) what items they want, (b) the quantity, (c) the delivery address (or pickup), and (d) the delivery date, you MUST append a structured order JSON command block at the very end of your response.
-   If any of these details are missing, politely ask the customer for the missing details first and do NOT output the block.
-   Format the block exactly as:
-   [CREATE_ORDER_START]
-   {
-     "buyerName": "Customer Name",
-     "buyerAddress": "Customer Address (or 'Pickup' if fulfillment is pickup)",
-     "deliveryDate": "YYYY-MM-DD (parsed target date)",
-     "fulfillmentType": "delivery" or "pickup",
-     "items": [
-       { "productName": "Matching Product Name", "quantity": 1 }
-     ]
-   }
-   [CREATE_ORDER_END]
-
-Bakery Branding:
-- Name: ${baker.businessName}
-- Tagline: ${baker.tagline || ""}
-- Areas: ${(baker.deliveryAreas ?? []).join(", ")}
-- Payment Policy: ${baker.codPolicy || "Manual transfer / Cash on Delivery"}
-
-Retrieved Context (Menu & Policies):
-${ragContext}
-
-Customer Preferences (if known):
-- Preferred Area: ${buyerPrefs.preferredArea || "None specified"}
-- Eggless Preference: ${buyerPrefs.eggless ? "Eggless Only" : "Standard"}
-- Allergies: ${Array.isArray(buyerPrefs.allergies) ? buyerPrefs.allergies.join(", ") : "None specified"}`;
-    const llmReply = await callLlm([
-      { role: "system", content: systemPrompt },
-      { role: "user", content: message }
-    ]);
-    if (llmReply) {
-      const needsHuman = answerNeedsHumanConfirmation(llmReply);
-      return {
-        reply: needsHuman ? `${llmReply}
+  const promptProducts = toPromptProducts(products);
+  const slots = {
+    lastItem: typeof buyerPrefs.lastItem === "string" ? buyerPrefs.lastItem : void 0,
+    preferredArea: typeof buyerPrefs.preferredArea === "string" ? buyerPrefs.preferredArea : spokenArea ?? void 0,
+    eggless: Boolean(buyerPrefs.eggless),
+    allergies: Array.isArray(buyerPrefs.allergies) ? buyerPrefs.allergies.filter((item) => typeof item === "string") : void 0,
+    occasion: typeof buyerPrefs.occasion === "string" ? buyerPrefs.occasion : void 0
+  };
+  const systemPrompt = buildMasterPrompt({
+    baker: {
+      businessName: baker.businessName,
+      city: baker.city,
+      tagline: baker.tagline,
+      deliveryAreas: baker.deliveryAreas,
+      codPolicy: paymentPolicy,
+      shopPlaybook: agentConf.shopPlaybook
+    },
+    products: promptProducts,
+    retrievedContext: ragContext,
+    slots,
+    channel: options.channel ?? "web"
+  });
+  const llmReply = await callLlm([
+    { role: "system", content: systemPrompt },
+    ...toLlmTurns(options.recentTurns ?? [], message)
+  ], 0.2);
+  if (llmReply) {
+    const needsHuman = answerNeedsHumanConfirmation(llmReply);
+    return {
+      reply: needsHuman ? `${llmReply}
 
 I have also sent this to the bakery's human inbox for confirmation.` : llmReply,
-        action: needsHuman ? "escalate" : "llm_generative",
-        cartItemId: null,
-        escalated: needsHuman
-      };
-    }
-    const topChunk = ragChunks[0];
-    const hint = topChunk?.sourceType === "product" ? `I found something relevant on our menu:
-
-${topChunk.content.split("\n").slice(0, 4).join("\n")}` : `Here's what I know from ${baker.businessName}'s published info:
-
-${ragContext.split("\n\n")[0]}`;
-    return {
-      reply: `${hint}
-
-Would you like to order or need more details?`,
-      action: "rag",
+      action: needsHuman ? "escalate" : "llm_generative",
       cartItemId: null,
-      escalated: false
+      escalated: needsHuman
     };
   }
+  const fallback = groundedFallbackReply({
+    bakerName: baker.businessName,
+    products: promptProducts,
+    slots
+  });
   return {
-    reply: `I do not have a verified answer for that from ${baker.businessName}'s published menu or policies. I have sent this question to a human team member, who can reply here.`,
-    action: "escalate",
+    reply: fallback.reply,
+    action: fallback.escalated ? "escalate" : "rag",
     cartItemId: null,
-    escalated: true
+    escalated: fallback.escalated
   };
 }
 async function processChatMessage(input) {
@@ -81939,6 +82228,11 @@ async function processChatMessage(input) {
     (turn) => productsMentionedIn(turn.content, catalogNames).length === 1
   );
   historyPreferences.lastAssistantText = lastSingleProductReply?.content ?? assistantTurns[0]?.content ?? "";
+  const recentRows = await db.select({ role: chatMessagesTable.role, content: chatMessagesTable.content }).from(chatMessagesTable).where(and(
+    eq(chatMessagesTable.bakerId, bakerId),
+    eq(chatMessagesTable.sessionId, sid)
+  )).orderBy(desc(chatMessagesTable.id)).limit(12);
+  const recentTurns = recentRows.slice().reverse().filter((row) => row.role === "user" || row.role === "assistant").map((row) => ({ role: row.role, content: row.content }));
   const [activeHandoff] = await db.select({ id: chatHandoffsTable.id }).from(chatHandoffsTable).where(and(
     eq(chatHandoffsTable.bakerId, bakerId),
     eq(chatHandoffsTable.sessionId, sid),
@@ -81954,13 +82248,16 @@ async function processChatMessage(input) {
     buyerId,
     message,
     memory,
-    historyPreferences
+    historyPreferences,
+    { recentTurns, channel: input.channel ?? "web" }
   );
   const [bakerRow] = await db.select().from(bakersTable).where(eq(bakersTable.id, bakerId));
   const agentLanguage = normalizeAgentLanguage(
     bakerRow?.agentConfig?.agentLanguage
   );
-  agentReply.reply = applyAgentLanguage(agentReply.reply, agentLanguage, bakerRow?.businessName ?? "Bakery");
+  if (agentReply.action !== "llm_generative" && agentReply.action !== "create_order") {
+    agentReply.reply = applyAgentLanguage(agentReply.reply, agentLanguage, bakerRow?.businessName ?? "Bakery");
+  }
   const orderMatch = agentReply.reply.match(/\[CREATE_ORDER_START\]\s*([\s\S]*?)\s*\[CREATE_ORDER_END\]/);
   if (orderMatch) {
     try {
@@ -81999,52 +82296,77 @@ async function processChatMessage(input) {
         totalPkr += deliveryFee;
         let customerName = orderData.buyerName || "Guest Buyer";
         let customerAddress = orderData.buyerAddress || "Delivery Address";
-        let customerWhatsapp = input.buyerWhatsapp || "";
-        if (buyerId) {
-          const [cust] = await db.select().from(customersTable).where(eq(customersTable.id, buyerId)).limit(1);
-          if (cust) {
-            if (cust.name) customerName = cust.name;
-            if (cust.whatsappNumber) customerWhatsapp = cust.whatsappNumber;
-          }
-        }
-        const [order] = await db.insert(ordersTable).values({
-          bakerId,
-          buyerId,
-          buyerName: customerName,
-          buyerWhatsapp: customerWhatsapp,
-          buyerAddress: customerAddress,
-          buyerArea: orderData.buyerArea || null,
-          items: lineItems,
-          totalPkr,
-          deliveryDate: orderData.deliveryDate || null,
-          fulfillmentType: orderData.fulfillmentType || "delivery",
-          source: input.channel || "whatsapp",
-          status: "new",
-          paymentStatus: "pending",
-          requireAdvance: Boolean(bakerRow?.requireAdvance)
-        }).returning();
-        await logOrderActivity({
-          orderId: order.id,
-          bakerId: order.bakerId,
-          actor: { actorType: "system" },
-          action: "status_change",
-          fromStatus: null,
-          toStatus: "new",
-          metadata: { source: order.source }
-        });
-        await notify(
-          bakerId,
-          "new_order",
-          "New Chat Order",
-          `Order #${order.id} for PKR ${totalPkr.toLocaleString()} was placed by ${customerName} via ${input.channel || "chat"}.`,
-          order.id,
-          "order"
-        );
-        agentReply.reply = agentReply.reply.replace(/\[CREATE_ORDER_START\][\s\S]*?\[CREATE_ORDER_END\]/, "").trim();
-        const confirmMsg = `
+        let customerWhatsapp = normalizePakistanPhone(String(orderData.buyerWhatsapp ?? "")) || input.buyerWhatsapp || "";
+        if (!customerWhatsapp) {
+          agentReply.reply = agentReply.reply.replace(/\[CREATE_ORDER_START\][\s\S]*?\[CREATE_ORDER_END\]/, "").trim();
+          agentReply.reply = `${agentReply.reply}
 
-*(Note: I have recorded your order request for ${order.fulfillmentType} on ${order.deliveryDate || "selected date"}. Order ID: #${order.id}. The baker will confirm your order details shortly!)*`;
-        agentReply.reply = agentReply.reply + confirmMsg;
+I still need a WhatsApp number so ${bakerRow?.businessName ?? "the bakery"} can confirm this order.`.trim();
+        } else {
+          if (!buyerId && customerWhatsapp) {
+            const [existingCustomer] = await db.select().from(customersTable).where(and(
+              eq(customersTable.bakerId, bakerId),
+              eq(customersTable.whatsappNumber, customerWhatsapp)
+            )).limit(1);
+            if (existingCustomer) {
+              buyerId = existingCustomer.id;
+              if (existingCustomer.name) customerName = existingCustomer.name;
+            } else {
+              const [created] = await db.insert(customersTable).values({
+                name: customerName,
+                whatsappNumber: customerWhatsapp,
+                bakerId,
+                preferredArea: orderData.buyerArea || null
+              }).returning();
+              buyerId = created.id;
+            }
+          }
+          if (buyerId) {
+            const [cust] = await db.select().from(customersTable).where(eq(customersTable.id, buyerId)).limit(1);
+            if (cust) {
+              if (cust.name && customerName === "Guest Buyer") customerName = cust.name;
+              if (cust.whatsappNumber && !customerWhatsapp) customerWhatsapp = cust.whatsappNumber;
+            }
+          }
+          const [order] = await db.insert(ordersTable).values({
+            bakerId,
+            buyerId,
+            buyerName: customerName,
+            buyerWhatsapp: customerWhatsapp,
+            buyerAddress: customerAddress,
+            buyerArea: orderData.buyerArea || null,
+            items: lineItems,
+            totalPkr,
+            deliveryDate: orderData.deliveryDate || null,
+            fulfillmentType: orderData.fulfillmentType || "delivery",
+            source: input.channel || "whatsapp",
+            status: "new",
+            paymentStatus: "pending",
+            requireAdvance: Boolean(bakerRow?.requireAdvance)
+          }).returning();
+          await logOrderActivity({
+            orderId: order.id,
+            bakerId: order.bakerId,
+            actor: { actorType: "system" },
+            action: "status_change",
+            fromStatus: null,
+            toStatus: "new",
+            metadata: { source: order.source }
+          });
+          await notify(
+            bakerId,
+            "new_order",
+            "New Chat Order",
+            `Order #${order.id} for PKR ${totalPkr.toLocaleString()} was placed by ${customerName} via ${input.channel || "chat"}.`,
+            order.id,
+            "order"
+          );
+          agentReply.reply = agentReply.reply.replace(/\[CREATE_ORDER_START\][\s\S]*?\[CREATE_ORDER_END\]/, "").trim();
+          const confirmMsg = `
+
+Order #${order.id} is with ${bakerRow?.businessName ?? "the bakery"} now. They will confirm time and delivery on WhatsApp.`;
+          agentReply.reply = agentReply.reply + confirmMsg;
+        }
       }
     } catch (err) {
       logger2.error({ err }, "Failed to automatically parse and record chat order");
@@ -83703,6 +84025,7 @@ init_drizzle_orm();
 init_zod();
 init_src();
 init_n8n();
+init_admin();
 init_platform_billing();
 var PLAN_LABELS = {
   starter: { name: "Kitchen Standard", monthlyPkr: 1799 },
@@ -83710,7 +84033,12 @@ var PLAN_LABELS = {
   bakery_plus: { name: "Bakery Team", monthlyPkr: 4499 }
 };
 var router20 = (0, import_express22.Router)();
-router20.get("/billing/platform", (_req, res) => {
+router20.get("/billing/platform", async (_req, res) => {
+  try {
+    await hydratePlatformBillingFromDb();
+  } catch (error40) {
+    console.error("hydrate platform billing failed", error40);
+  }
   res.json(getPlatformBillingConfig());
 });
 router20.post(
@@ -83731,6 +84059,11 @@ router20.post(
     if (!baker) {
       res.status(404).json({ error: "Baker not found" });
       return;
+    }
+    try {
+      await hydratePlatformBillingFromDb();
+    } catch (error40) {
+      console.error("hydrate platform billing failed", error40);
     }
     const plan = PLAN_LABELS[parsed.data.planId];
     const platform = getPlatformBillingConfig();
@@ -83765,7 +84098,7 @@ router20.post(
       platform,
       plan: { id: parsed.data.planId, name: plan.name, amountLabel },
       whatsappUrl,
-      message: whatsappUrl ? "Transfer the amount, then tap WhatsApp to send your receipt. We activate after confirmation." : "Upgrade requested. Set PLATFORM_WHATSAPP on the API so bakers get a WhatsApp link \u2014 or message the founder manually."
+      message: whatsappUrl ? "WhatsApp us your bakery name and plan. We share how to pay there, then activate after your receipt." : "Upgrade requested. WhatsApp us from this screen so we can share payment details."
     });
   }
 );
@@ -83787,6 +84120,11 @@ router20.get(
       amountLabel: `PKR ${PLAN_LABELS[billing.pendingPlanId].monthlyPkr.toLocaleString()}/mo`,
       requestedAt: billing.billingRequestedAt ?? null
     } : null;
+    try {
+      await hydratePlatformBillingFromDb();
+    } catch (error40) {
+      console.error("hydrate platform billing failed", error40);
+    }
     res.json({
       subscriptionPlan: baker.subscriptionPlan,
       pending,

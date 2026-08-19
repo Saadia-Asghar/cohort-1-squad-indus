@@ -220,6 +220,7 @@ export default function AgentHub() {
     agentActive?: boolean;
     autoReplyEnabled?: boolean;
     customGreeting?: string;
+    shopPlaybook?: string;
     blockedTopics?: string[];
     escalateKeywords?: string[];
     customResponses?: Array<{ trigger: string; response: string }>;
@@ -418,7 +419,7 @@ export default function AgentHub() {
           })}
         </div>
 
-        {/* ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ BUILT-IN AGENT ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ */}
+        {/* BUILT-IN AGENT */}
         {activeTab === "built-in" && (
           <div className="mt-5 space-y-4">
             {bakerId && (
@@ -497,6 +498,25 @@ export default function AgentHub() {
                 placeholder={`Assalam-o-Alaikum! Welcome to your baker's shop. How can I help you today?`}
                 className="w-full px-3 py-2 border border-border rounded-lg bg-background text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/30"
               />
+            </div>
+
+            <div className="p-5 rounded-xl border border-border bg-card shadow-sm space-y-3">
+              <div className="flex items-center gap-2 mb-1">
+                <MessageSquare className="w-4 h-4 text-muted-foreground" />
+                <h3 className="font-semibold">Shop playbook</h3>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Extra house rules the assistant must follow (lead times, pickup window, how you like to talk). It cannot invent prices or areas that are not on your menu.
+              </p>
+              <textarea
+                rows={4}
+                maxLength={1200}
+                value={merged.shopPlaybook ?? ""}
+                onChange={e => setLocalConfig(prev => ({ ...prev, shopPlaybook: e.target.value }))}
+                placeholder="Example: Wedding cakes need 7 days. Pickup 5-8pm. Never promise same-day unless I confirm."
+                className="w-full px-3 py-2 border border-border rounded-lg bg-background text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/30"
+              />
+              <p className="text-xs text-muted-foreground">{(merged.shopPlaybook ?? "").length}/1200</p>
             </div>        <details className="overflow-hidden rounded-2xl border border-border bg-white/45">
           <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 [&::-webkit-details-marker]:hidden">
             <div>
@@ -543,7 +563,7 @@ export default function AgentHub() {
               <div>
                 <p className="font-semibold">How buyers talk to you (channel flow)</p>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Your shared menu stays a catalogue. Pick the main channel for questions and bookings. Turn the WhatsApp agent on in its tab (your package must allow it). Instagram DMs are coming soon.
+                  Your shared menu stays a catalogue. The web assistant is live for questions and bookings. WhatsApp auto-reply is not live until a number is connected and a test message replies. Instagram DMs are coming soon.
                 </p>
               </div>
               {(config as unknown as { conversationFlow?: { statusNote?: string } } | undefined)?.conversationFlow?.statusNote && (
@@ -563,7 +583,7 @@ export default function AgentHub() {
                     value="whatsapp"
                     disabled={(config as unknown as { channelEntitlements?: { whatsapp?: boolean } } | undefined)?.channelEntitlements?.whatsapp === false}
                   >
-                    WhatsApp agent {(config as unknown as { channelEntitlements?: { whatsapp?: boolean } } | undefined)?.channelEntitlements?.whatsapp === false ? "(needs Kitchen Standard+)" : "(recommended)"}
+                    WhatsApp agent {(config as unknown as { channelEntitlements?: { whatsapp?: boolean } } | undefined)?.channelEntitlements?.whatsapp === false ? "(needs Kitchen Standard+)" : "(connect and test first)"}
                   </option>
                   <option value="instagram" disabled>
                     Instagram DMs (coming soon)
@@ -571,9 +591,9 @@ export default function AgentHub() {
                 </select>
               </label>
               <ul className="text-xs text-muted-foreground space-y-1 list-disc pl-4">
-                <li>Turn on the WhatsApp agent in its tab.</li>
-                <li>If your primary channel is not ready, the menu falls back to the next ready channel.</li>
-                <li>Launch Free = web only · Kitchen Standard+ = web + WhatsApp · Instagram DM agent coming soon.</li>
+                <li>Web assistant on the menu is the live buyer path.</li>
+                <li>Connect a WhatsApp number in its tab, then send one test message before promising it to customers.</li>
+                <li>Launch Free = web only · Kitchen Standard+ = web + WhatsApp after a tested number · Instagram DM agent coming soon.</li>
               </ul>
             </div>
 
@@ -582,15 +602,15 @@ export default function AgentHub() {
               <p className="text-sm text-muted-foreground">This personalizes your shared menu and gives the agent safe facts to use in every reply.</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <label className="text-sm font-medium">Menu accent colour<input type="color" value={merged.menuAccent ?? "#7c3aed"} onChange={e => setLocalConfig(prev => ({ ...prev, menuAccent: e.target.value }))} className="block mt-1 h-10 w-full rounded border border-border bg-background" /></label>
-                <label className="text-sm font-medium">Order availability<input value={merged.availabilityHours ?? ""} onChange={e => setLocalConfig(prev => ({ ...prev, availabilityHours: e.target.value }))} placeholder="e.g. MonÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œSat, 10amÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ8pm" className="block mt-1 w-full px-3 py-2 border border-border rounded-lg bg-background text-sm" /></label>
+                <label className="text-sm font-medium">Order availability<input value={merged.availabilityHours ?? ""} onChange={e => setLocalConfig(prev => ({ ...prev, availabilityHours: e.target.value }))} placeholder="e.g. Mon-Sat, 10am-8pm" className="block mt-1 w-full px-3 py-2 border border-border rounded-lg bg-background text-sm" /></label>
               </div>
               <label className="block text-sm font-medium">Dietary & allergen policy<textarea rows={3} value={merged.dietaryPolicy ?? ""} onChange={e => setLocalConfig(prev => ({ ...prev, dietaryPolicy: e.target.value }))} placeholder="e.g. Eggless on selected items. We cannot guarantee an allergen-free kitchen; confirm severe allergies before ordering." className="block mt-1 w-full px-3 py-2 border border-border rounded-lg bg-background text-sm resize-none" /></label>
               <div className="rounded-lg border border-border bg-muted/20 p-3">
                 <div className="flex items-start justify-between gap-4"><div><p className="text-sm font-medium">Delivery zones & fees</p><p className="mt-0.5 text-xs text-muted-foreground">Only baker-set areas are quoted. Unknown areas are never guessed.</p></div><span className="text-xs text-muted-foreground">{deliveryZones.length}/30</span></div>
-                {deliveryZones.length > 0 && <div className="mt-3 space-y-2">{deliveryZones.map((zone) => <div key={zone.id} className="flex items-center justify-between gap-3 rounded-md bg-background px-3 py-2 text-sm"><span><strong>{zone.name}</strong> ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· PKR {zone.feePkr.toLocaleString()}{zone.minimumOrderPkr ? ` ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· min PKR ${zone.minimumOrderPkr.toLocaleString()}` : ""}</span><button type="button" onClick={() => removeDeliveryZone(zone.id)} className="rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive" aria-label={`Remove ${zone.name}`}><X className="h-4 w-4" /></button></div>)}</div>}
+                {deliveryZones.length > 0 && <div className="mt-3 space-y-2">{deliveryZones.map((zone) => <div key={zone.id} className="flex items-center justify-between gap-3 rounded-md bg-background px-3 py-2 text-sm"><span><strong>{zone.name}</strong> · PKR {zone.feePkr.toLocaleString()}{zone.minimumOrderPkr ? ` · min PKR ${zone.minimumOrderPkr.toLocaleString()}` : ""}</span><button type="button" onClick={() => removeDeliveryZone(zone.id)} className="rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive" aria-label={`Remove ${zone.name}`}><X className="h-4 w-4" /></button></div>)}</div>}
                 <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_8rem_9rem_auto]"><input value={newZoneName} onChange={(event) => setNewZoneName(event.target.value)} placeholder="Area, e.g. DHA Phase 5" className="rounded-md border border-border bg-background px-3 py-2 text-sm" /><input value={newZoneFee} onChange={(event) => setNewZoneFee(event.target.value)} inputMode="numeric" placeholder="Fee PKR" className="rounded-md border border-border bg-background px-3 py-2 text-sm" /><input value={newZoneMinimum} onChange={(event) => setNewZoneMinimum(event.target.value)} inputMode="numeric" placeholder="Min order (optional)" className="rounded-md border border-border bg-background px-3 py-2 text-sm" /><button type="button" onClick={addDeliveryZone} className="rounded-md bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90">Add</button></div>
               </div>
-              <label className="block text-sm font-medium">Delivery prices<textarea rows={2} value={merged.deliveryPricing ?? ""} onChange={e => setLocalConfig(prev => ({ ...prev, deliveryPricing: e.target.value }))} placeholder="e.g. Gulberg: PKR 200 ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· DHA: PKR 350 ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· Free above PKR 5,000" className="block mt-1 w-full px-3 py-2 border border-border rounded-lg bg-background text-sm resize-none" /></label>
+              <label className="block text-sm font-medium">Delivery prices<textarea rows={2} value={merged.deliveryPricing ?? ""} onChange={e => setLocalConfig(prev => ({ ...prev, deliveryPricing: e.target.value }))} placeholder="e.g. Gulberg: PKR 200 · DHA: PKR 350 · Free above PKR 5,000" className="block mt-1 w-full px-3 py-2 border border-border rounded-lg bg-background text-sm resize-none" /></label>
               <label className="block text-sm font-medium">Current discount offers<textarea rows={2} value={merged.activeOffers ?? ""} onChange={e => setLocalConfig(prev => ({ ...prev, activeOffers: e.target.value }))} placeholder="e.g. 10% off cupcakes with code SWEET10 until 31 July. One offer per line." className="block mt-1 w-full px-3 py-2 border border-border rounded-lg bg-background text-sm resize-none" /></label>
               <p className="text-xs text-muted-foreground">The web and WhatsApp agents use these same delivery prices and offers. Leave a charge blank rather than letting the agent guess.</p>
             </div>
@@ -628,7 +648,7 @@ export default function AgentHub() {
               </div>
             </div>
 
-            {/* Custom trigger ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ response */}
+            {/* Custom trigger -> response */}
             <div className="p-5 rounded-xl border border-border bg-card shadow-sm space-y-3">
               <div className="flex items-center gap-2 mb-1">
                 <MessageSquare className="w-4 h-4 text-primary" />
@@ -780,7 +800,7 @@ export default function AgentHub() {
           </div>
         )}
 
-        {/* ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ WHATSAPP AGENT ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ */}
+        {/* WHATSAPP AGENT */}
         {activeTab === "whatsapp" && (
           <div className="mt-5 space-y-4">
             {(config as unknown as { channelEntitlements?: { whatsapp?: boolean; whatsappConversationsPerMonth?: number } } | undefined)?.channelEntitlements?.whatsapp === false && (
@@ -796,9 +816,9 @@ export default function AgentHub() {
                 <div>
                   <p className="font-semibold">WhatsApp Business Agent</p>
                   <p className="text-sm text-muted-foreground">
-                    Auto-reply on WhatsApp
+                    Auto-reply after a test number is connected
                     {(config as unknown as { channelEntitlements?: { whatsappConversationsPerMonth?: number } } | undefined)?.channelEntitlements?.whatsappConversationsPerMonth
-                      ? ` ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· ${(config as unknown as { channelEntitlements: { whatsappConversationsPerMonth: number } }).channelEntitlements.whatsappConversationsPerMonth} chats / month included`
+                      ? ` · ${(config as unknown as { channelEntitlements: { whatsappConversationsPerMonth: number } }).channelEntitlements.whatsappConversationsPerMonth} chats / month included`
                       : ""}
                   </p>
                 </div>
@@ -946,7 +966,7 @@ export default function AgentHub() {
           </div>
         )}
 
-        {/* ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ INSTAGRAM AGENT ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ */}
+        {/* INSTAGRAM AGENT */}
         {activeTab === "instagram" && (
           <div className="mt-5">
             <div className="rounded-xl border border-border bg-card p-8 text-center shadow-sm">
@@ -964,7 +984,7 @@ export default function AgentHub() {
           </div>
         )}
 
-        {/* ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ CONVERSATIONS ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ */}
+        {/* CONVERSATIONS */}
         {activeTab === "conversations" && (
           <div className="mt-5">
             {showingThread ? (

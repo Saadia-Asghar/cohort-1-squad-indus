@@ -1051,6 +1051,7 @@ router.get("/bakers/:bakerId/agent-config", requireBakerAuth, requireBakerOwner,
     ...tokenMask,
     instagramPageId: baker.instagramPageId,
     customGreeting: (conf.customGreeting as string | null) ?? null,
+    shopPlaybook: (conf.shopPlaybook as string | null) ?? "",
     blockedTopics: (conf.blockedTopics as string[]) ?? [],
     escalateKeywords: (conf.escalateKeywords as string[]) ?? [],
     autoReplyEnabled: (conf.autoReplyEnabled as boolean) ?? true,
@@ -1079,6 +1080,7 @@ router.put("/bakers/:bakerId/agent-config", requireBakerAuth, requireBakerOwner,
     metaWebhookToken?: string;
     instagramPageId?: string;
     customGreeting?: string;
+    shopPlaybook?: string;
     blockedTopics?: string[];
     escalateKeywords?: string[];
     autoReplyEnabled?: boolean;
@@ -1095,6 +1097,9 @@ router.put("/bakers/:bakerId/agent-config", requireBakerAuth, requireBakerOwner,
   };
   const agentConfigUpdate: Record<string, unknown> = {};
   if (body.customGreeting !== undefined) agentConfigUpdate.customGreeting = body.customGreeting;
+  if (body.shopPlaybook !== undefined) {
+    agentConfigUpdate.shopPlaybook = String(body.shopPlaybook).slice(0, 1200);
+  }
   if (body.blockedTopics !== undefined) agentConfigUpdate.blockedTopics = body.blockedTopics;
   if (body.escalateKeywords !== undefined) agentConfigUpdate.escalateKeywords = body.escalateKeywords;
   if (body.autoReplyEnabled !== undefined) agentConfigUpdate.autoReplyEnabled = body.autoReplyEnabled;
@@ -1201,6 +1206,7 @@ router.put("/bakers/:bakerId/agent-config", requireBakerAuth, requireBakerOwner,
     ...tokenMask,
     instagramPageId: baker.instagramPageId,
     customGreeting: (conf.customGreeting as string | null) ?? null,
+    shopPlaybook: (conf.shopPlaybook as string | null) ?? "",
     blockedTopics: (conf.blockedTopics as string[]) ?? [],
     escalateKeywords: (conf.escalateKeywords as string[]) ?? [],
     autoReplyEnabled: (conf.autoReplyEnabled as boolean) ?? true,

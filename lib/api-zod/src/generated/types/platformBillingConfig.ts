@@ -11,6 +11,8 @@ export interface PlatformBillingConfig {
   ownerName: string;
   /** @nullable */
   whatsappNumber: string | null;
+  /** Formatted WhatsApp number for display (e.g. 0315-9127771). */
+  whatsappDisplay?: string | null;
   /** @nullable */
   whatsappChatUrl: string | null;
   paymentDetails: string;

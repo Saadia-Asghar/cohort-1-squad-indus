@@ -4,6 +4,7 @@ import { z } from "zod";
 import { bakersTable, db } from "@workspace/db";
 import { requireBakerAuth, requireBakerOwnership } from "../middlewares/auth.js";
 import { sendN8nEvent } from "../lib/n8n.js";
+import { hydratePlatformBillingFromDb } from "./admin.js";
 import {
   buildUpgradeWhatsAppUrl,
   getPlatformBillingConfig,
@@ -20,8 +21,13 @@ const PLAN_LABELS: Record<PaidPlanId, { name: string; monthlyPkr: number }> = {
 
 const router = Router();
 
-/** Public: how bakers pay the platform (WhatsApp + manual transfer — no gateway). */
-router.get("/billing/platform", (_req, res): void => {
+/** Public: how bakers pay the platform (WhatsApp only — no account numbers in the app). */
+router.get("/billing/platform", async (_req, res): Promise<void> => {
+  try {
+    await hydratePlatformBillingFromDb();
+  } catch (error) {
+    console.error("hydrate platform billing failed", error);
+  }
   res.json(getPlatformBillingConfig());
 });
 
@@ -47,6 +53,12 @@ router.post(
     if (!baker) {
       res.status(404).json({ error: "Baker not found" });
       return;
+    }
+
+    try {
+      await hydratePlatformBillingFromDb();
+    } catch (error) {
+      console.error("hydrate platform billing failed", error);
     }
 
     const plan = PLAN_LABELS[parsed.data.planId];
@@ -91,8 +103,8 @@ router.post(
       plan: { id: parsed.data.planId, name: plan.name, amountLabel },
       whatsappUrl,
       message: whatsappUrl
-        ? "Transfer the amount, then tap WhatsApp to send your receipt. We activate after confirmation."
-        : "Upgrade requested. Set PLATFORM_WHATSAPP on the API so bakers get a WhatsApp link — or message the founder manually.",
+        ? "WhatsApp us your bakery name and plan. We share how to pay there, then activate after your receipt."
+        : "Upgrade requested. WhatsApp us from this screen so we can share payment details.",
     });
   },
 );
@@ -120,6 +132,11 @@ router.get(
           }
         : null;
 
+    try {
+      await hydratePlatformBillingFromDb();
+    } catch (error) {
+      console.error("hydrate platform billing failed", error);
+    }
     res.json({
       subscriptionPlan: baker.subscriptionPlan,
       pending,
