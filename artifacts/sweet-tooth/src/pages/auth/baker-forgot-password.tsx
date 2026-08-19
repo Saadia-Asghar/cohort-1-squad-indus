@@ -37,7 +37,7 @@ export default function BakerForgotPassword() {
   return (
     <AuthShell
       title="Reset password"
-      description="We'll send you an email with a link to choose a new password."
+      description="If you can still sign in, change your password in Settings. A reset email is sent only when mail is configured on this server."
     >
       <div className="space-y-6">
         {error && (
@@ -52,7 +52,7 @@ export default function BakerForgotPassword() {
             <p className="text-sm font-medium text-foreground">
               {emailConfigured
                 ? "If a Sweet Tooth account exists with that email address, you will receive a password reset link shortly."
-                : "If you can still sign in, open Settings and change your password there. Email delivery is not enabled on this server yet, so a reset link cannot be sent."}
+                : "A reset email cannot be sent from this server yet. If you can still sign in, open Settings and change your password there."}
             </p>
             {resetUrl ? (
               <div className="space-y-3 rounded-xl border border-primary/15 bg-primary/5 p-4">
@@ -67,11 +67,17 @@ export default function BakerForgotPassword() {
                 </a>
               </div>
             ) : null}
-            <Link href="/dashboard/login" className={resetUrl
-              ? "inline-flex h-12 w-full items-center justify-center rounded-xl border border-border bg-white text-sm font-bold text-foreground hover:bg-muted/40"
-              : "inline-flex h-12 w-full items-center justify-center rounded-xl bg-primary text-sm font-bold text-white shadow-lg shadow-primary/15 hover:bg-primary/90"}>
-              Back to sign in
-            </Link>
+            {!emailConfigured && !resetUrl ? (
+              <Link href="/dashboard/login" className="inline-flex h-12 w-full items-center justify-center rounded-xl bg-primary text-sm font-bold text-white shadow-lg shadow-primary/15 hover:bg-primary/90">
+                Sign in, then open Settings
+              </Link>
+            ) : (
+              <Link href="/dashboard/login" className={resetUrl
+                ? "inline-flex h-12 w-full items-center justify-center rounded-xl border border-border bg-white text-sm font-bold text-foreground hover:bg-muted/40"
+                : "inline-flex h-12 w-full items-center justify-center rounded-xl bg-primary text-sm font-bold text-white shadow-lg shadow-primary/15 hover:bg-primary/90"}>
+                Back to sign in
+              </Link>
+            )}
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-5">

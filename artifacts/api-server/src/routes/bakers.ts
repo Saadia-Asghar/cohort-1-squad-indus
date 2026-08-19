@@ -31,6 +31,7 @@ import {
 import { rebuildBakerKnowledgeIndex } from "../lib/rag/pipeline.js";
 import { parseSignupFeatureFeedback } from "../lib/signup-feature-feedback.js";
 import { rateLimit } from "../middlewares/rate-limiter.js";
+import { MAX_STORED_IMAGE_CHARS } from "../lib/cloudinary-upload.js";
 import { sendEmail } from "../lib/email.js";
 import {
   createPasswordResetToken,
@@ -833,7 +834,7 @@ router.patch("/bakers/:bakerId", requireBakerAuth, requireBakerOwner, async (req
   const extras = z.object({
     whatsappNumber: z.string().trim().optional(),
     maxOrdersPerDay: z.coerce.number().int().min(1).max(200).optional(),
-    photoUrl: z.string().trim().max(2000).optional(),
+    photoUrl: z.string().trim().max(MAX_STORED_IMAGE_CHARS).optional(),
   }).safeParse(req.body);
   if (!extras.success) {
     res.status(400).json({ error: extras.error.issues[0]?.message ?? "Please check the settings form and try again." });

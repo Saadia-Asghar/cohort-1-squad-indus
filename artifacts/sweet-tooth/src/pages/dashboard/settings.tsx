@@ -16,7 +16,7 @@ import {
 } from "@/lib/shop-settings";
 import { MAX_ORDERS_PER_DAY } from "@/lib/catalog-product";
 import { digitsOnlyPhone, normalizePakistanPhone } from "@/lib/pakistan-phone";
-import { isPublicImageUrl, uploadBakerImage } from "@/lib/image-upload";
+import { isPublicImageUrl, photoUrlFieldPlaceholder, photoUrlFieldValue, uploadBakerImage } from "@/lib/image-upload";
 import { SafeImage } from "@/components/ui/safe-image";
 import { customFetch } from "@workspace/api-client-react";
 
@@ -315,10 +315,10 @@ export default function DashboardSettings() {
                   <SafeImage src={photoUrl} alt={businessName || "Bakery"} className="h-full w-full object-cover" fallback={<div className="grid h-full place-items-center text-xs text-muted-foreground">No bakery photo yet</div>} />
                 </div>
                 <input
-                  type="url"
+                  type="text"
                   className="min-h-11 w-full rounded-xl border border-border bg-card px-3.5 text-sm text-foreground outline-none transition focus:border-secondary/60 focus:ring-4 focus:ring-secondary/10"
-                  placeholder="https://…"
-                  value={photoUrl}
+                  placeholder={photoUrlFieldPlaceholder(photoUrl)}
+                  value={photoUrlFieldValue(photoUrl)}
                   onChange={(e) => setPhotoUrl(e.target.value)}
                 />
                 <label className="inline-flex min-h-10 cursor-pointer items-center rounded-xl border border-border bg-white px-3 text-xs font-semibold">
@@ -343,7 +343,7 @@ export default function DashboardSettings() {
                   />
                   {uploadingPhoto ? "Uploading…" : "Upload bakery image"}
                 </label>
-                <p className="text-xs text-muted-foreground">If upload is unavailable, paste a public https photo link above and save.</p>
+                <p className="text-xs text-muted-foreground">Upload from your phone or computer, or paste a public https photo link above and save.</p>
               </div>
             </div>
 

@@ -76483,7 +76483,7 @@ var health_default = router;
 var import_express3 = __toESM(require_express2(), 1);
 init_drizzle_orm();
 init_src();
-import crypto7 from "node:crypto";
+import crypto8 from "node:crypto";
 init_zod();
 init_auth();
 init_admin_auth();
@@ -76656,11 +76656,107 @@ function parseSignupFeatureFeedback(body) {
 // src/routes/bakers.ts
 init_rate_limiter();
 
+// src/lib/cloudinary-upload.ts
+import crypto5 from "node:crypto";
+var MAX_IMAGE_BYTES = 4 * 1024 * 1024;
+var MAX_STORED_IMAGE_CHARS = 35e4;
+var HOSTING_UNAVAILABLE = "Photo hosting is not available right now. Paste a public https image URL instead.";
+function parseCloudinaryUrl(value) {
+  const raw = value?.trim();
+  if (!raw) return null;
+  try {
+    const url2 = new URL(raw);
+    if (url2.protocol !== "cloudinary:") return null;
+    const cloudName = url2.hostname.trim();
+    const apiKey = decodeURIComponent(url2.username);
+    const apiSecret = decodeURIComponent(url2.password);
+    if (!cloudName || !apiKey || !apiSecret) return null;
+    return { cloudName, apiKey, apiSecret };
+  } catch {
+    return null;
+  }
+}
+function cloudinaryConfig() {
+  const fromUrl = parseCloudinaryUrl(process.env.CLOUDINARY_URL);
+  if (fromUrl) return fromUrl;
+  const cloudName = process.env.CLOUDINARY_CLOUD_NAME?.trim();
+  const apiKey = process.env.CLOUDINARY_API_KEY?.trim();
+  const apiSecret = process.env.CLOUDINARY_API_SECRET?.trim();
+  if (!cloudName || !apiKey || !apiSecret) return null;
+  return { cloudName, apiKey, apiSecret };
+}
+function isPublicHttpUrl(value) {
+  try {
+    const url2 = new URL(value.trim());
+    return url2.protocol === "https:" || url2.protocol === "http:";
+  } catch {
+    return false;
+  }
+}
+function storeCompressedImage(dataUrl) {
+  if (dataUrl.startsWith("data:image/") && dataUrl.length <= MAX_STORED_IMAGE_CHARS) {
+    return dataUrl;
+  }
+  throw new Error(HOSTING_UNAVAILABLE);
+}
+async function uploadBakerImage(file2) {
+  const trimmed = file2.trim();
+  if (!trimmed) throw new Error("Choose an image or paste a photo URL.");
+  if (isPublicHttpUrl(trimmed)) {
+    return trimmed.slice(0, 2e3);
+  }
+  if (!trimmed.startsWith("data:image/")) {
+    throw new Error("Paste a public https image URL or upload a JPEG, PNG or WebP photo.");
+  }
+  const config2 = cloudinaryConfig();
+  if (!config2) {
+    return storeCompressedImage(trimmed);
+  }
+  const timestamp2 = Math.floor(Date.now() / 1e3);
+  const folder = "sweet-tooth";
+  const signature = crypto5.createHash("sha1").update(`folder=${folder}&timestamp=${timestamp2}${config2.apiSecret}`).digest("hex");
+  const body = new URLSearchParams({
+    file: trimmed,
+    api_key: config2.apiKey,
+    timestamp: String(timestamp2),
+    signature,
+    folder
+  });
+  let response;
+  try {
+    response = await fetch(`https://api.cloudinary.com/v1_1/${config2.cloudName}/image/upload`, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body
+    });
+  } catch {
+    return storeCompressedImage(trimmed);
+  }
+  const payload = await response.json();
+  if (!response.ok || !payload.secure_url) {
+    const detail = payload.error?.message || "";
+    if (/invalid cloud_name|unknown api_key|invalid signature/i.test(detail)) {
+      return storeCompressedImage(trimmed);
+    }
+    try {
+      return storeCompressedImage(trimmed);
+    } catch {
+      throw new Error("Could not upload that image. Try a smaller JPEG or PNG, or paste a public photo URL.");
+    }
+  }
+  return payload.secure_url;
+}
+function assertImagePayloadSize(file2) {
+  if (file2.length > MAX_IMAGE_BYTES * 1.4) {
+    throw new Error("Image must be under 4 MB.");
+  }
+}
+
 // src/lib/email.ts
 import nodemailer from "nodemailer";
 
 // src/lib/password-reset.ts
-import crypto5 from "node:crypto";
+import crypto6 from "node:crypto";
 var DEFAULT_PRODUCTION_APP_URL = "https://cohort-1-squad-indus-sweet-tooth.vercel.app";
 var RESET_TTL_MS = 60 * 60 * 1e3;
 function isLocalDev() {
@@ -76685,10 +76781,10 @@ function passwordResetUrl(token) {
   return `${appPublicUrl()}/dashboard/reset-password?token=${encodeURIComponent(token)}`;
 }
 function hashResetToken(token) {
-  return crypto5.createHash("sha256").update(token).digest("hex");
+  return crypto6.createHash("sha256").update(token).digest("hex");
 }
 function createPasswordResetToken() {
-  const token = crypto5.randomBytes(32).toString("hex");
+  const token = crypto6.randomBytes(32).toString("hex");
   return {
     token,
     tokenHash: hashResetToken(token),
@@ -76928,6 +77024,11 @@ function sanitizeProductFields(input) {
     if (!photoUrl) value.photoUrl = null;
     else if (!/^https?:\/\//i.test(photoUrl) && !photoUrl.startsWith("data:image/")) {
       return { error: "Product photo must be an image URL or an uploaded image." };
+    } else if (photoUrl.startsWith("data:image/")) {
+      if (photoUrl.length > MAX_STORED_IMAGE_CHARS) {
+        return { error: "That photo is too large to save. Paste a public https image URL instead." };
+      }
+      value.photoUrl = photoUrl;
     } else {
       value.photoUrl = photoUrl.slice(0, 2e3);
     }
@@ -77052,7 +77153,7 @@ function trialStatus(baker, now = /* @__PURE__ */ new Date()) {
 var TRIAL_EXPIRED_BUYER_REPLY = "This bakery's free Sweet Tooth trial has ended. Please message the baker directly on WhatsApp or Instagram to order.";
 
 // src/lib/firebase-auth.ts
-import crypto6 from "node:crypto";
+import crypto7 from "node:crypto";
 var certificates = null;
 var certificatesExpireAt = 0;
 function fromBase64Url(value) {
@@ -77095,7 +77196,7 @@ async function verifyFirebaseIdToken(idToken) {
   }
   const certificate = (await getCertificates())[header.kid];
   if (!certificate) throw new Error("Firebase sign-in token has expired. Please try again.");
-  const validSignature = crypto6.verify(
+  const validSignature = crypto7.verify(
     "RSA-SHA256",
     Buffer.from(`${parts[0]}.${parts[1]}`),
     certificate,
@@ -77341,7 +77442,7 @@ router2.post("/bakers/firebase/onboard", rateLimit(5, 15 * 60 * 1e3), async (req
       ...parsed.data,
       whatsappNumber: normalizedPhone,
       email: identity.email,
-      slug: `${slugBase}-${crypto7.randomBytes(4).toString("hex")}`,
+      slug: `${slugBase}-${crypto8.randomBytes(4).toString("hex")}`,
       passwordHash: null,
       subscriptionPlan: "free",
       trialEndsAt: freeTrialEndsAtFrom(/* @__PURE__ */ new Date())
@@ -77425,7 +77526,7 @@ router2.post(
       ...parsed.data,
       whatsappNumber: normalizedPhone,
       email: email3,
-      slug: `${slugBase}-${crypto7.randomBytes(4).toString("hex")}`,
+      slug: `${slugBase}-${crypto8.randomBytes(4).toString("hex")}`,
       clerkUserId: request.clerkUserId,
       clerkOrganizationId: request.clerkOrganizationId ?? null,
       passwordHash: null,
@@ -77478,7 +77579,7 @@ router2.post("/bakers", rateLimit(10, 15 * 60 * 1e3), async (req, res) => {
   try {
     const email3 = rest.email.trim().toLowerCase();
     const slugBase = rest.slug.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40) || "bakery";
-    const slug = `${slugBase}-${crypto7.randomBytes(4).toString("hex")}`;
+    const slug = `${slugBase}-${crypto8.randomBytes(4).toString("hex")}`;
     const [baker] = await db.insert(bakersTable).values({
       ...rest,
       email: email3,
@@ -77765,7 +77866,7 @@ router2.patch("/bakers/:bakerId", requireBakerAuth, requireBakerOwner, async (re
   const extras = external_exports.object({
     whatsappNumber: external_exports.string().trim().optional(),
     maxOrdersPerDay: external_exports.coerce.number().int().min(1).max(200).optional(),
-    photoUrl: external_exports.string().trim().max(2e3).optional()
+    photoUrl: external_exports.string().trim().max(MAX_STORED_IMAGE_CHARS).optional()
   }).safeParse(req.body);
   if (!extras.success) {
     res.status(400).json({ error: extras.error.issues[0]?.message ?? "Please check the settings form and try again." });
@@ -78761,14 +78862,14 @@ async function ocrWhatsAppImageHint(imageBytes, expectedAmountPkr, advancePercen
 init_logger2();
 
 // src/lib/guest-action-token.ts
-import crypto8 from "node:crypto";
+import crypto9 from "node:crypto";
 function secret() {
   const value = process.env.GUEST_ACTION_SECRET?.trim() || process.env.JWT_SECRET?.trim();
   if (!value || value.length < 32) throw new Error("GUEST_ACTION_SECRET or JWT_SECRET must be at least 32 characters.");
   return value;
 }
 function sign(encodedPayload) {
-  return crypto8.createHmac("sha256", secret()).update(encodedPayload).digest("base64url");
+  return crypto9.createHmac("sha256", secret()).update(encodedPayload).digest("base64url");
 }
 function createGuestActionToken(input) {
   const payload = {
@@ -78787,7 +78888,7 @@ function verifyGuestActionToken(token, expected) {
   const expectedSignature = sign(encoded);
   const actualBytes = Buffer.from(signature);
   const expectedBytes = Buffer.from(expectedSignature);
-  if (actualBytes.length !== expectedBytes.length || !crypto8.timingSafeEqual(actualBytes, expectedBytes)) return null;
+  if (actualBytes.length !== expectedBytes.length || !crypto9.timingSafeEqual(actualBytes, expectedBytes)) return null;
   try {
     const payload = JSON.parse(Buffer.from(encoded, "base64url").toString("utf8"));
     if (payload.v !== 1 || !Number.isInteger(payload.orderId) || !Number.isInteger(payload.bakerId)) return null;
@@ -82277,7 +82378,7 @@ var import_express15 = __toESM(require_express2(), 1);
 init_drizzle_orm();
 init_src();
 init_logger2();
-import crypto9 from "crypto";
+import crypto10 from "crypto";
 init_plan_limits();
 init_secret_box();
 init_receipt_image();
@@ -82291,10 +82392,10 @@ function resolveAppSecret() {
 function hasValidMetaSignature(rawBody, signature) {
   const appSecret = resolveAppSecret();
   if (!appSecret || !signature?.startsWith("sha256=")) return false;
-  const expected = `sha256=${crypto9.createHmac("sha256", appSecret).update(rawBody).digest("hex")}`;
+  const expected = `sha256=${crypto10.createHmac("sha256", appSecret).update(rawBody).digest("hex")}`;
   const expectedBytes = Buffer.from(expected);
   const receivedBytes = Buffer.from(signature);
-  return expectedBytes.length === receivedBytes.length && crypto9.timingSafeEqual(expectedBytes, receivedBytes);
+  return expectedBytes.length === receivedBytes.length && crypto10.timingSafeEqual(expectedBytes, receivedBytes);
 }
 router13.get("/webhooks/whatsapp", async (req, res) => {
   const mode = req.query["hub.mode"];
@@ -82377,7 +82478,7 @@ router13.post("/webhooks/whatsapp", async (req, res) => {
   }
   try {
     const parsed = parseWhatsAppWebhook(JSON.parse(rawBody.toString("utf8")));
-    const payloadHash = crypto9.createHash("sha256").update(rawBody).digest("hex");
+    const payloadHash = crypto10.createHash("sha256").update(rawBody).digest("hex");
     for (const rawMsg of parsed) {
       const resolved = await findBakerForInbound(rawMsg.phoneNumberId, rawMsg.displayPhoneNumber);
       if (!resolved) {
@@ -82523,7 +82624,7 @@ var import_express16 = __toESM(require_express2(), 1);
 init_drizzle_orm();
 init_src();
 init_logger2();
-import crypto10 from "node:crypto";
+import crypto11 from "node:crypto";
 
 // src/lib/instagram.ts
 init_logger2();
@@ -82598,10 +82699,10 @@ var router14 = (0, import_express16.Router)();
 function hasValidMetaSignature2(rawBody, signature) {
   const appSecret = process.env.META_APP_SECRET;
   if (!appSecret || !signature?.startsWith("sha256=")) return false;
-  const expected = `sha256=${crypto10.createHmac("sha256", appSecret).update(rawBody).digest("hex")}`;
+  const expected = `sha256=${crypto11.createHmac("sha256", appSecret).update(rawBody).digest("hex")}`;
   const expectedBytes = Buffer.from(expected);
   const receivedBytes = Buffer.from(signature);
-  return expectedBytes.length === receivedBytes.length && crypto10.timingSafeEqual(expectedBytes, receivedBytes);
+  return expectedBytes.length === receivedBytes.length && crypto11.timingSafeEqual(expectedBytes, receivedBytes);
 }
 router14.get("/webhooks/instagram", (req, res) => {
   const mode = req.query["hub.mode"];
@@ -82642,7 +82743,7 @@ router14.post("/webhooks/instagram", async (req, res) => {
   }
   try {
     const messages = parseInstagramWebhook(JSON.parse(rawBody.toString("utf8")));
-    const payloadHash = crypto10.createHash("sha256").update(rawBody).digest("hex");
+    const payloadHash = crypto11.createHash("sha256").update(rawBody).digest("hex");
     for (const message of messages) {
       const [connection] = await db.select().from(metaConnectionsTable).where(eq(metaConnectionsTable.instagramAccountId, message.accountId)).limit(1);
       if (!connection?.instagramAccessTokenEncrypted || !connection.instagramPageId) {
@@ -83671,88 +83772,6 @@ var staff_default = router21;
 var import_express24 = __toESM(require_express2(), 1);
 init_zod();
 init_rate_limiter();
-
-// src/lib/cloudinary-upload.ts
-import crypto11 from "node:crypto";
-var MAX_IMAGE_BYTES = 4 * 1024 * 1024;
-var HOSTING_UNAVAILABLE = "Photo hosting is not available right now. Paste a public https image URL instead.";
-function parseCloudinaryUrl(value) {
-  const raw = value?.trim();
-  if (!raw) return null;
-  try {
-    const url2 = new URL(raw);
-    if (url2.protocol !== "cloudinary:") return null;
-    const cloudName = url2.hostname.trim();
-    const apiKey = decodeURIComponent(url2.username);
-    const apiSecret = decodeURIComponent(url2.password);
-    if (!cloudName || !apiKey || !apiSecret) return null;
-    return { cloudName, apiKey, apiSecret };
-  } catch {
-    return null;
-  }
-}
-function cloudinaryConfig() {
-  const fromUrl = parseCloudinaryUrl(process.env.CLOUDINARY_URL);
-  if (fromUrl) return fromUrl;
-  const cloudName = process.env.CLOUDINARY_CLOUD_NAME?.trim();
-  const apiKey = process.env.CLOUDINARY_API_KEY?.trim();
-  const apiSecret = process.env.CLOUDINARY_API_SECRET?.trim();
-  if (!cloudName || !apiKey || !apiSecret) return null;
-  return { cloudName, apiKey, apiSecret };
-}
-function isPublicHttpUrl(value) {
-  try {
-    const url2 = new URL(value.trim());
-    return url2.protocol === "https:" || url2.protocol === "http:";
-  } catch {
-    return false;
-  }
-}
-async function uploadBakerImage(file2) {
-  const trimmed = file2.trim();
-  if (!trimmed) throw new Error("Choose an image or paste a photo URL.");
-  if (isPublicHttpUrl(trimmed)) {
-    return trimmed.slice(0, 2e3);
-  }
-  if (!trimmed.startsWith("data:image/")) {
-    throw new Error("Paste a public https image URL or upload a JPEG, PNG or WebP photo.");
-  }
-  const config2 = cloudinaryConfig();
-  if (!config2) {
-    throw new Error(HOSTING_UNAVAILABLE);
-  }
-  const timestamp2 = Math.floor(Date.now() / 1e3);
-  const folder = "sweet-tooth";
-  const signature = crypto11.createHash("sha1").update(`folder=${folder}&timestamp=${timestamp2}${config2.apiSecret}`).digest("hex");
-  const body = new URLSearchParams({
-    file: trimmed,
-    api_key: config2.apiKey,
-    timestamp: String(timestamp2),
-    signature,
-    folder
-  });
-  const response = await fetch(`https://api.cloudinary.com/v1_1/${config2.cloudName}/image/upload`, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body
-  });
-  const payload = await response.json();
-  if (!response.ok || !payload.secure_url) {
-    const detail = payload.error?.message || "";
-    if (/invalid cloud_name|unknown api_key|invalid signature/i.test(detail)) {
-      throw new Error(HOSTING_UNAVAILABLE);
-    }
-    throw new Error("Could not upload that image. Try a smaller JPEG or PNG, or paste a public photo URL.");
-  }
-  return payload.secure_url;
-}
-function assertImagePayloadSize(file2) {
-  if (file2.length > MAX_IMAGE_BYTES * 1.4) {
-    throw new Error("Image must be under 4 MB.");
-  }
-}
-
-// src/routes/uploads.ts
 var router22 = (0, import_express24.Router)();
 router22.post("/uploads/image", requireBakerAuth, requireBakerOwner, rateLimit(20, 15 * 60 * 1e3), async (req, res) => {
   const parsed = external_exports.object({
@@ -84508,7 +84527,8 @@ app.use((0, import_cors.default)({
 app.use("/api/webhooks/whatsapp", import_express26.default.raw({ type: "application/json", limit: "256kb" }));
 app.use("/api/webhooks/instagram", import_express26.default.raw({ type: "application/json", limit: "256kb" }));
 app.use("/api/orders/:orderId/guest-receipt", import_express26.default.json({ limit: "6mb" }));
-app.use(import_express26.default.json({ limit: "256kb" }));
+app.use("/api/uploads/image", import_express26.default.json({ limit: "2mb" }));
+app.use(import_express26.default.json({ limit: "1mb" }));
 app.use(import_express26.default.urlencoded({ extended: true, limit: "64kb" }));
 app.get("/", (_req, res) => {
   res.json({ status: "ok", message: "Indus API is running", health: "/api/healthz" });

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useDeleteProduct, useUpdateProduct } from "@workspace/api-client-react";
-import { Clock, Trash2, Truck, X } from "lucide-react";
+import { Trash2, Truck, X } from "lucide-react";
+import { LeadTimeFields } from "@/components/dashboard/lead-time-fields";
 import {
   ALLERGEN_LABELS,
   DIETARY_LABELS,
@@ -13,7 +14,7 @@ import {
   parseMoneyPkr,
   toTitleCase,
 } from "@/lib/catalog-product";
-import { isPublicImageUrl, uploadBakerImage } from "@/lib/image-upload";
+import { isPublicImageUrl, photoUrlFieldPlaceholder, photoUrlFieldValue, uploadBakerImage } from "@/lib/image-upload";
 import { SafeImage } from "@/components/ui/safe-image";
 
 const SUGGESTION_TAGS = [
@@ -229,10 +230,10 @@ export function ProductEditorPanel({
               <SafeImage src={photoUrl} alt={name} className="h-full w-full object-cover" fallback={<div className="grid h-full place-items-center text-xs text-muted-foreground">No photo yet</div>} />
             </div>
             <input
-              type="url"
-              value={photoUrl}
+              type="text"
+              value={photoUrlFieldValue(photoUrl)}
               onChange={(e) => setPhotoUrl(e.target.value)}
-              placeholder="https://…"
+              placeholder={photoUrlFieldPlaceholder(photoUrl)}
               className={inputClass}
             />
             <label className="mt-2 inline-flex min-h-10 cursor-pointer items-center rounded-lg border border-border bg-white px-3 text-xs font-semibold">
@@ -257,7 +258,7 @@ export function ProductEditorPanel({
               />
               {uploading ? "Uploading…" : "Upload image"}
             </label>
-            <p className="mt-2 text-xs text-muted-foreground">If upload fails, paste a public https photo URL above and save.</p>
+            <p className="mt-2 text-xs text-muted-foreground">Upload from your phone or computer, or paste a public https photo URL.</p>
           </section>
 
           <label className="flex min-h-10 cursor-pointer items-center justify-between gap-3 rounded-xl border border-border px-3 text-sm font-semibold">
@@ -265,21 +266,12 @@ export function ProductEditorPanel({
             <input type="checkbox" checked={isAvailable} onChange={(e) => setIsAvailable(e.target.checked)} />
           </label>
 
-          <section>
-            <h3 className="flex items-center gap-2 font-semibold text-sm mb-3">
-              <Clock className="h-4 w-4 text-primary" /> Ready in (agent tells buyers)
-            </h3>
-            <div className="grid grid-cols-2 gap-3">
-              <label className="text-xs">
-                Days
-                <input type="number" min={0} value={leadTimeDays} onChange={(e) => setLeadTimeDays(e.target.value)} className={inputClass} />
-              </label>
-              <label className="text-xs">
-                Extra hours
-                <input type="number" min={0} max={23} value={leadTimeHours} onChange={(e) => setLeadTimeHours(e.target.value)} placeholder="0" className={inputClass} />
-              </label>
-            </div>
-          </section>
+          <LeadTimeFields
+            days={leadTimeDays}
+            hours={leadTimeHours}
+            onDaysChange={setLeadTimeDays}
+            onHoursChange={setLeadTimeHours}
+          />
 
           <section>
             <h3 className="font-semibold text-sm mb-2">Recipe cost (for Khata margin)</h3>

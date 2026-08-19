@@ -1,6 +1,8 @@
 import crypto from "node:crypto";
 
 const MAX_IMAGE_BYTES = 4 * 1024 * 1024;
+/** Compressed JPEG data URLs stay under this so they can be saved without Cloudinary. */
+export const MAX_STORED_IMAGE_CHARS = 350_000;
 const HOSTING_UNAVAILABLE =
   "Photo hosting is not available right now. Paste a public https image URL instead.";
 
@@ -39,6 +41,13 @@ export function isPublicHttpUrl(value: string): boolean {
   }
 }
 
+function storeCompressedImage(dataUrl: string): string {
+  if (dataUrl.startsWith("data:image/") && dataUrl.length <= MAX_STORED_IMAGE_CHARS) {
+    return dataUrl;
+  }
+  throw new Error(HOSTING_UNAVAILABLE);
+}
+
 export async function uploadBakerImage(file: string): Promise<string> {
   const trimmed = file.trim();
   if (!trimmed) throw new Error("Choose an image or paste a photo URL.");
@@ -55,7 +64,7 @@ export async function uploadBakerImage(file: string): Promise<string> {
 
   const config = cloudinaryConfig();
   if (!config) {
-    throw new Error(HOSTING_UNAVAILABLE);
+    return storeCompressedImage(trimmed);
   }
 
   const timestamp = Math.floor(Date.now() / 1000);
@@ -73,18 +82,28 @@ export async function uploadBakerImage(file: string): Promise<string> {
     folder,
   });
 
-  const response = await fetch(`https://api.cloudinary.com/v1_1/${config.cloudName}/image/upload`, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body,
-  });
+  let response: Response;
+  try {
+    response = await fetch(`https://api.cloudinary.com/v1_1/${config.cloudName}/image/upload`, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body,
+    });
+  } catch {
+    return storeCompressedImage(trimmed);
+  }
+
   const payload = await response.json() as { secure_url?: string; error?: { message?: string } };
   if (!response.ok || !payload.secure_url) {
     const detail = payload.error?.message || "";
     if (/invalid cloud_name|unknown api_key|invalid signature/i.test(detail)) {
-      throw new Error(HOSTING_UNAVAILABLE);
+      return storeCompressedImage(trimmed);
     }
-    throw new Error("Could not upload that image. Try a smaller JPEG or PNG, or paste a public photo URL.");
+    try {
+      return storeCompressedImage(trimmed);
+    } catch {
+      throw new Error("Could not upload that image. Try a smaller JPEG or PNG, or paste a public photo URL.");
+    }
   }
   return payload.secure_url;
 }

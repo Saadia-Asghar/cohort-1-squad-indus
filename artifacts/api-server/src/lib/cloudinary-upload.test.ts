@@ -50,7 +50,7 @@ describe("cloudinary upload", () => {
     });
   });
 
-  it("explains when file hosting is misconfigured instead of leaking Cloudinary errors", async () => {
+  it("stores a compressed data URL when Cloudinary cloud_name is invalid", async () => {
     setEnv("CLOUDINARY_CLOUD_NAME", "dqlqzecm9");
     setEnv("CLOUDINARY_API_KEY", "123");
     setEnv("CLOUDINARY_API_SECRET", "secret");
@@ -58,7 +58,20 @@ describe("cloudinary upload", () => {
       ok: false,
       json: async () => ({ error: { message: "Invalid cloud_name dqlqzecm9" } }),
     })));
-    await expect(uploadBakerImage("data:image/png;base64,aaaa")).rejects.toThrow(/Paste a public https image URL/);
+    const dataUrl = "data:image/png;base64,aaaa";
+    await expect(uploadBakerImage(dataUrl)).resolves.toBe(dataUrl);
+  });
+
+  it("stores a compressed data URL when Cloudinary is not configured", async () => {
+    setEnv("CLOUDINARY_URL", undefined);
+    setEnv("CLOUDINARY_CLOUD_NAME", undefined);
+    setEnv("CLOUDINARY_API_KEY", undefined);
+    setEnv("CLOUDINARY_API_SECRET", undefined);
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    const dataUrl = "data:image/jpeg;base64,bbbb";
+    await expect(uploadBakerImage(dataUrl)).resolves.toBe(dataUrl);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("recognises http(s) image URLs", () => {

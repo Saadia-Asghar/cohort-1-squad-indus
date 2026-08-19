@@ -1,5 +1,6 @@
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { ProductEditorPanel } from "@/components/dashboard/product-editor";
+import { LeadTimeFields } from "@/components/dashboard/lead-time-fields";
 import { useBuyerSession } from "@/hooks/use-session";
 import {
   getGetBakerProductsQueryKey,
@@ -19,7 +20,7 @@ import {
   parseMoneyPkr,
   toTitleCase,
 } from "@/lib/catalog-product";
-import { isPublicImageUrl, uploadBakerImage } from "@/lib/image-upload";
+import { isPublicImageUrl, photoUrlFieldPlaceholder, photoUrlFieldValue, uploadBakerImage } from "@/lib/image-upload";
 import {
   AlertCircle,
   ArrowUpDown,
@@ -96,6 +97,8 @@ export default function DashboardCatalog() {
     basePricePkr: "",
     description: "",
     photoUrl: "",
+    leadTimeDays: "1",
+    leadTimeHours: "0",
   });
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
@@ -198,6 +201,8 @@ export default function DashboardCatalog() {
       basePricePkr: "",
       description: "",
       photoUrl: "",
+      leadTimeDays: "1",
+      leadTimeHours: "0",
     });
   };
 
@@ -209,6 +214,8 @@ export default function DashboardCatalog() {
     const price = parseMoneyPkr(createForm.basePricePkr);
     const description = createForm.description.trim();
     const photoUrl = createForm.photoUrl.trim();
+    const leadTimeDays = Math.max(0, Number.parseInt(createForm.leadTimeDays, 10) || 1);
+    const leadTimeHours = Math.min(23, Math.max(0, Number.parseInt(createForm.leadTimeHours, 10) || 0));
 
     if (!name || !createForm.category.trim() || price == null || price < 1) {
       setCreateError(
@@ -237,6 +244,8 @@ export default function DashboardCatalog() {
           description: description || undefined,
           photoUrl: photoUrl || undefined,
           isAvailable: true,
+          leadTimeDays,
+          leadTimeHours,
           sizes: [
             {
               label: "Standard",
@@ -1194,15 +1203,15 @@ export default function DashboardCatalog() {
 
               <FormField label="Photo URL or upload">
                 <input
-                  type="url"
-                  value={createForm.photoUrl}
+                  type="text"
+                  value={photoUrlFieldValue(createForm.photoUrl)}
                   onChange={(event) =>
                     setCreateForm((current) => ({
                       ...current,
                       photoUrl: event.target.value,
                     }))
                   }
-                  placeholder="https://…"
+                  placeholder={photoUrlFieldPlaceholder(createForm.photoUrl)}
                   className={inputClass}
                 />
                 <label className="mt-2 inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-xl border border-border bg-white px-3 text-xs font-semibold">
@@ -1230,8 +1239,19 @@ export default function DashboardCatalog() {
                   />
                   {uploadingPhoto ? "Uploading photo…" : "Upload image"}
                 </label>
-                <p className="mt-2 text-xs text-muted-foreground">If upload is unavailable, paste a public https photo URL above.</p>
+                <p className="mt-2 text-xs text-muted-foreground">Upload from your phone or computer, or paste a public https photo URL.</p>
               </FormField>
+
+              <LeadTimeFields
+                days={createForm.leadTimeDays}
+                hours={createForm.leadTimeHours}
+                onDaysChange={(value) =>
+                  setCreateForm((current) => ({ ...current, leadTimeDays: value }))
+                }
+                onHoursChange={(value) =>
+                  setCreateForm((current) => ({ ...current, leadTimeHours: value }))
+                }
+              />
 
               <FormField label={`Short description (${createForm.description.length}/${MAX_PRODUCT_DESCRIPTION_CHARS})`}>
                 <textarea

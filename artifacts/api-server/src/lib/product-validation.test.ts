@@ -16,4 +16,12 @@ describe("sanitizeProductFields", () => {
       allergens: ["Contains eggs"],
     }).error).toMatch(/contradictory/);
   });
+
+  it("keeps compressed data-URL photos instead of truncating them", () => {
+    const photoUrl = `data:image/jpeg;base64,${"A".repeat(8000)}`;
+    expect(sanitizeProductFields({ photoUrl }).value?.photoUrl).toBe(photoUrl);
+    expect(sanitizeProductFields({ photoUrl: "https://images.unsplash.com/photo-1" }).value?.photoUrl).toBe(
+      "https://images.unsplash.com/photo-1",
+    );
+  });
 });

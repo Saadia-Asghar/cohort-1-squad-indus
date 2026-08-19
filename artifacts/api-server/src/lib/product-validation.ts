@@ -1,3 +1,5 @@
+import { MAX_STORED_IMAGE_CHARS } from "./cloudinary-upload.js";
+
 export const PRODUCT_CATEGORIES = [
   "Cakes",
   "Cupcakes",
@@ -138,6 +140,11 @@ export function sanitizeProductFields(input: {
     if (!photoUrl) value.photoUrl = null;
     else if (!/^https?:\/\//i.test(photoUrl) && !photoUrl.startsWith("data:image/")) {
       return { error: "Product photo must be an image URL or an uploaded image." };
+    } else if (photoUrl.startsWith("data:image/")) {
+      if (photoUrl.length > MAX_STORED_IMAGE_CHARS) {
+        return { error: "That photo is too large to save. Paste a public https image URL instead." };
+      }
+      value.photoUrl = photoUrl;
     } else {
       value.photoUrl = photoUrl.slice(0, 2000);
     }
