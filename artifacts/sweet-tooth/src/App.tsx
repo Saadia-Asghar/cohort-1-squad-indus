@@ -12,10 +12,13 @@ import {
 } from "@/lib/managed-auth";
 import { initializeProductAnalytics } from "@/lib/product-analytics";
 import { API_BASE } from "@/lib/api-url";
+import { startApiKeepWarm } from "@/lib/api-keep-warm";
 
 if (API_BASE) {
   setBaseUrl(API_BASE);
 }
+
+startApiKeepWarm();
 
 // Public pages: customers reach a baker's menu through a direct shared link.
 import Home from "@/pages/buyer/home";
