@@ -45,7 +45,7 @@ export const APP_SERVICES = [
   { id: "khata", label: "Khata, inventory & recipe margin" },
   { id: "calendar", label: "Calendar, blocked dates & capacity" },
   { id: "whatsapp", label: "WhatsApp Business agent" },
-  { id: "instagram", label: "Instagram DM agent" },
+  { id: "instagram", label: "Instagram DM agent (coming soon)" },
   { id: "broadcast", label: "Flash drops & customer broadcast" },
   { id: "advance_wa", label: "Advance payment WhatsApp reminders" },
   { id: "feedback", label: "Delivery feedback on WhatsApp" },
@@ -90,8 +90,8 @@ export const BAKER_SIZE_OPTIONS: Array<{ value: BakerSize; label: string; hint: 
 export const CHANNEL_BUNDLE_OPTIONS: Array<{ value: ChannelBundle; label: string; hint: string }> = [
   { value: "web_only", label: "Web agent only", hint: "Built-in chat on your shared menu" },
   { value: "whatsapp_only", label: "WhatsApp agent only", hint: "Menu + WhatsApp booking / auto-replies" },
-  { value: "instagram_only", label: "Instagram agent only", hint: "Menu + Instagram DM agent" },
-  { value: "whatsapp_instagram", label: "WhatsApp + Instagram", hint: "Both social agents + web menu" },
+  { value: "instagram_only", label: "Instagram agent only (coming soon)", hint: "Menu + Instagram DM agent — not live yet" },
+  { value: "whatsapp_instagram", label: "WhatsApp + Instagram (IG coming soon)", hint: "WhatsApp now · Instagram DM agent coming soon" },
 ];
 
 export const BILLING_PERIOD_OPTIONS: Array<{ value: Exclude<BillingPeriod, "quarterly">; label: string; hint: string }> = [
@@ -416,7 +416,7 @@ export const PRICING_PLANS: PricingPlan[] = [
       aiReplies: "50 agent replies / month",
       orders: "Up to 20 orders / month",
       channels: "Web shop + built-in chat agent only",
-      whatsappChats: "WhatsApp & Instagram agents not included",
+      whatsappChats: "WhatsApp agent not included · Instagram coming soon",
     },
     features: [
       "Branded menu link & QR code",
@@ -447,7 +447,7 @@ export const PRICING_PLANS: PricingPlan[] = [
       aiReplies: "250 agent replies / month",
       orders: "Up to 80 orders / month",
       channels: "Web agent + WhatsApp agent (limited)",
-      whatsappChats: "40 WhatsApp chats / month · Instagram not included",
+      whatsappChats: "40 WhatsApp chats / month · Instagram coming soon",
     },
     features: [
       "Everything in Launch Free",
@@ -462,7 +462,7 @@ export const PRICING_PLANS: PricingPlan[] = [
     id: "pro",
     name: "Kitchen Pro",
     nameUr: "کچن پرو",
-    tagline: "Busy home bakeries — WhatsApp / Instagram, Khata, Eid volume.",
+    tagline: "Busy home bakeries — WhatsApp, Khata, Eid volume. Instagram coming soon.",
     monthlyPkr: 2999,
     founderQuarterlyPkr: 7999,
     featured: true,
@@ -479,12 +479,12 @@ export const PRICING_PLANS: PricingPlan[] = [
       products: "Unlimited menu items",
       aiReplies: "800 agent replies / month",
       orders: "Up to 300 orders / month",
-      channels: "Web + WhatsApp + Instagram agents",
-      whatsappChats: "150 WhatsApp + 80 Instagram chats / month",
+      channels: "Web + WhatsApp agents · Instagram coming soon",
+      whatsappChats: "150 WhatsApp chats / month · Instagram coming soon",
     },
     features: [
       "Everything in Kitchen Standard",
-      "WhatsApp & Instagram agent setup",
+      "WhatsApp agent setup · Instagram DM agent coming soon",
       "Flash drops & customer broadcast",
       "Khata, inventory & recipe margin tracking",
       "Advance payment WhatsApp reminders",
@@ -511,13 +511,13 @@ export const PRICING_PLANS: PricingPlan[] = [
       products: "Unlimited menu items",
       aiReplies: "1,500 agent replies / month",
       orders: "Up to 600 orders / month",
-      channels: "Web + WhatsApp + Instagram agents",
-      whatsappChats: "350 WhatsApp + 200 Instagram chats / month",
+      channels: "Web + WhatsApp agents · Instagram coming soon",
+      whatsappChats: "350 WhatsApp chats / month · Instagram coming soon",
     },
     features: [
       "Everything in Kitchen Pro",
       "2 dashboard logins (owner + staff)",
-      "Highest WhatsApp + Instagram conversation bundle",
+      "Highest WhatsApp conversation bundle · Instagram coming soon",
       "Priority support & onboarding call",
       "1% checkout commission (invoiced with plan — not auto-deducted)",
     ],
@@ -755,7 +755,7 @@ export function monthlyIncludedLines(plan: PricingPlan): string[] {
     lines.push("Web chat only — no WhatsApp agent");
   }
   if (plan.instagramConversationsPerMonth > 0) {
-    lines.push(`${plan.instagramConversationsPerMonth.toLocaleString("en-PK")} Instagram chats`);
+    lines.push(`${plan.instagramConversationsPerMonth.toLocaleString("en-PK")} Instagram chats (coming soon)`);
   }
   if (plan.staffLogins > 1) {
     lines.push(`${plan.staffLogins} dashboard logins`);

@@ -19,7 +19,6 @@ import { useBuyerSession } from "@/hooks/use-session";
 import { liveDashboardQuery, ORDERS_POLL_MS } from "@/lib/dashboard-query";
 import { apiUrl } from "@/lib/api-url";
 import { WhatsAppEmbeddedSignup } from "@/components/whatsapp-embedded-signup";
-import { InstagramMetaConnect } from "@/components/instagram-meta-connect";
 import { useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import {
@@ -334,10 +333,10 @@ export default function AgentHub() {
     deliveryZones: deliveryZones.filter((zone) => zone.id !== id),
   }));
 
-  const tabs: { id: Tab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+  const tabs: { id: Tab; label: string; icon: React.ComponentType<{ className?: string }>; badge?: string }[] = [
     { id: "built-in", label: "Assistant", icon: Bot },
     { id: "whatsapp", label: "WhatsApp", icon: Phone },
-    { id: "instagram", label: "Instagram", icon: Instagram },
+    { id: "instagram", label: "Instagram", icon: Instagram, badge: "Coming soon" },
     { id: "conversations", label: "Conversations", icon: Users },
   ];
 
@@ -407,6 +406,13 @@ export default function AgentHub() {
               >
                 <Icon className="w-4 h-4" />
                 {t.label}
+                {t.badge && (
+                  <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide ${
+                    activeTab === t.id ? "bg-white/20 text-white" : "bg-pink-100 text-pink-700"
+                  }`}>
+                    {t.badge}
+                  </span>
+                )}
               </button>
             );
           })}
@@ -537,7 +543,7 @@ export default function AgentHub() {
               <div>
                 <p className="font-semibold">How buyers talk to you (channel flow)</p>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Your shared menu stays a catalogue. Pick the main channel for questions and bookings. Turn WhatsApp and Instagram agents on separately (your package must allow them).
+                  Your shared menu stays a catalogue. Pick the main channel for questions and bookings. Turn the WhatsApp agent on in its tab (your package must allow it). Instagram DMs are coming soon.
                 </p>
               </div>
               {(config as unknown as { conversationFlow?: { statusNote?: string } } | undefined)?.conversationFlow?.statusNote && (
@@ -559,18 +565,15 @@ export default function AgentHub() {
                   >
                     WhatsApp agent {(config as unknown as { channelEntitlements?: { whatsapp?: boolean } } | undefined)?.channelEntitlements?.whatsapp === false ? "(needs Kitchen Standard+)" : "(recommended)"}
                   </option>
-                  <option
-                    value="instagram"
-                    disabled={(config as unknown as { channelEntitlements?: { instagram?: boolean } } | undefined)?.channelEntitlements?.instagram === false}
-                  >
-                    Instagram DMs {(config as unknown as { channelEntitlements?: { instagram?: boolean } } | undefined)?.channelEntitlements?.instagram === false ? "(needs Kitchen Pro+)" : ""}
+                  <option value="instagram" disabled>
+                    Instagram DMs (coming soon)
                   </option>
                 </select>
               </label>
               <ul className="text-xs text-muted-foreground space-y-1 list-disc pl-4">
-                <li>Turn on WhatsApp / Instagram agents in their tabs ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â both can run at once.</li>
+                <li>Turn on the WhatsApp agent in its tab.</li>
                 <li>If your primary channel is not ready, the menu falls back to the next ready channel.</li>
-                <li>Launch Free = web only ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· Kitchen Standard = web + WhatsApp ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· Kitchen Pro / Bakery Team = web + WhatsApp + Instagram.</li>
+                <li>Launch Free = web only · Kitchen Standard+ = web + WhatsApp · Instagram DM agent coming soon.</li>
               </ul>
             </div>
 
@@ -945,84 +948,19 @@ export default function AgentHub() {
 
         {/* ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ INSTAGRAM AGENT ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ */}
         {activeTab === "instagram" && (
-          <div className="mt-5 space-y-4">
-            {(config as unknown as { channelEntitlements?: { instagram?: boolean } } | undefined)?.channelEntitlements?.instagram === false && (
-              <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
-                Instagram DM agent needs <strong>Kitchen Pro</strong> or <strong>Bakery Team</strong>. Kitchen Standard includes WhatsApp only.
+          <div className="mt-5">
+            <div className="rounded-xl border border-border bg-card p-8 text-center shadow-sm">
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-pink-100">
+                <Instagram className="h-7 w-7 text-pink-600" />
               </div>
-            )}
-            <div className="flex items-center justify-between p-5 rounded-xl border border-border bg-card shadow-sm">
-              <div className="flex items-center gap-3">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${merged.instagramAgentEnabled ? "bg-pink-100" : "bg-muted"}`}>
-                  <Instagram className={`w-5 h-5 ${merged.instagramAgentEnabled ? "text-pink-600" : "text-muted-foreground"}`} />
-                </div>
-                <div>
-                  <p className="font-semibold">Instagram DM Agent</p>
-                  <p className="text-sm text-muted-foreground">
-                    Auto-reply to Instagram DMs
-                    {(config as unknown as { channelEntitlements?: { instagramConversationsPerMonth?: number } } | undefined)?.channelEntitlements?.instagramConversationsPerMonth
-                      ? ` ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· ${(config as unknown as { channelEntitlements: { instagramConversationsPerMonth: number } }).channelEntitlements.instagramConversationsPerMonth} chats / month included`
-                      : ""}
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => {
-                  if ((config as unknown as { channelEntitlements?: { instagram?: boolean } } | undefined)?.channelEntitlements?.instagram === false && !merged.instagramAgentEnabled) {
-                    alert("Upgrade to Kitchen Pro or higher to enable the Instagram agent.");
-                    return;
-                  }
-                  setLocalConfig(prev => ({ ...prev, instagramAgentEnabled: !merged.instagramAgentEnabled }));
-                }}
-                className={`relative w-12 h-6 rounded-full transition-colors ${merged.instagramAgentEnabled ? "bg-pink-500" : "bg-muted-foreground/30"}`}
-              >
-                <span className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white shadow transition-transform ${merged.instagramAgentEnabled ? "translate-x-6" : ""}`} />
-              </button>
+              <p className="mt-4 inline-flex items-center rounded-full bg-pink-50 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-pink-700">
+                Coming soon
+              </p>
+              <h2 className="mt-3 text-lg font-semibold">Instagram DM agent</h2>
+              <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
+                Auto-replies in Instagram DMs are not live yet. Use the web assistant and WhatsApp agent for now. You can still add your Instagram profile link in Settings so buyers can find you.
+              </p>
             </div>
-
-            <div className="p-5 rounded-xl border border-border bg-card shadow-sm space-y-4">
-              <h3 className="font-semibold flex items-center gap-2"><Settings className="w-4 h-4 text-muted-foreground" />Connect with Meta</h3>
-              <div className="p-4 bg-pink-50 border border-pink-200 rounded-lg text-sm text-pink-800 space-y-1">
-                <p className="font-medium">Secure Instagram Messaging onboarding:</p>
-                <ol className="list-decimal list-inside space-y-1 text-pink-700">
-                  <li>Connect with Facebook Login / Embedded Signup for the bakery Meta Business account.</li>
-                  <li>Select the Facebook Page linked to the Instagram Business account.</li>
-                  <li>Sweet Tooth verifies the Page ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â Instagram link, encrypts the token, and stores the connection.</li>
-                  <li>Enable the agent toggle only after the connection shows as successful.</li>
-                </ol>
-              </div>
-              <InstagramMetaConnect />
-            </div>
-
-            <div className="p-5 rounded-xl border border-border bg-card shadow-sm space-y-4">
-              <h3 className="font-semibold flex items-center gap-2"><Settings className="w-4 h-4 text-muted-foreground" />Instagram Page Setup</h3>
-              <div className="p-4 bg-pink-50 border border-pink-200 rounded-lg text-sm text-pink-800 space-y-1">
-                <p className="font-medium">Manual Page ID (optional fallback):</p>
-                <ol className="list-decimal list-inside space-y-1 text-pink-700">
-                  <li>Convert to an <strong>Instagram Business or Creator account</strong></li>
-                  <li>Link it to a <strong>Facebook Page</strong> in Meta Business Suite</li>
-                  <li>Paste the <strong>Instagram Page ID</strong> below if you need it on the baker profile</li>
-                </ol>
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Instagram Page ID</label>
-                <input
-                  value={merged.instagramPageId ?? ""}
-                  onChange={e => setLocalConfig(prev => ({ ...prev, instagramPageId: e.target.value }))}
-                  placeholder="e.g. 123456789012345"
-                  className="w-full px-3 py-2 border border-border rounded-lg bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-                />
-              </div>
-              <button
-                onClick={handleSave}
-                disabled={saving}
-                className="flex items-center gap-2 px-6 py-2.5 bg-pink-600 text-white rounded-lg font-medium hover:bg-pink-700 transition-colors disabled:opacity-50"
-              >
-                <Save className="w-4 h-4" />
-                {saving ? "Saving..." : "Save Instagram Config"}
-              </button>
-            </div>
-            <p className="text-xs text-muted-foreground">Saving a Page ID alone does not connect Instagram DMs. Keep the agent disabled until Meta has approved and connected the messaging webhook.</p>
           </div>
         )}
 

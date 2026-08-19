@@ -204,9 +204,9 @@ function HeroSection() {
               transition={{ duration: 0.7, delay: 0.62 }}
               className="mt-6 max-w-[470px] border-l border-secondary/60 pl-4 text-[13px] leading-6 text-primary-foreground/68 sm:mt-9 sm:pl-6 sm:text-base sm:leading-8"
             >
-              Sweet Tooth turns WhatsApp, Instagram and your shared menu chat
-              into organized orders for the people you already bake for. It is
-              not a customer marketplace.
+              Sweet Tooth turns WhatsApp and your shared menu chat into
+              organized orders for the people you already bake for. Instagram
+              DM agent coming soon. It is not a customer marketplace.
             </motion.p>
 
             <motion.div

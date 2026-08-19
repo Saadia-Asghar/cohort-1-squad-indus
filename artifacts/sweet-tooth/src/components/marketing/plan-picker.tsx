@@ -17,8 +17,8 @@ import {
 export function PlanPicker({ registerHref = "/dashboard/register" }: { registerHref?: string }) {
   const [ordersPerMonth, setOrdersPerMonth] = useState("80");
   const [needsWhatsApp, setNeedsWhatsApp] = useState(true);
-  const [needsInstagram, setNeedsInstagram] = useState(false);
   const [teamSize, setTeamSize] = useState("1");
+  const needsInstagram = false;
 
   const orders = Math.max(0, parseInt(ordersPerMonth, 10) || 0);
   const suggestion = useMemo(
@@ -83,14 +83,17 @@ export function PlanPicker({ registerHref = "/dashboard/register" }: { registerH
           />
           Need WhatsApp agent
         </label>
-        <label className="flex items-center gap-2 text-sm font-medium">
+        <label className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
           <input
             type="checkbox"
-            checked={needsInstagram}
-            onChange={(e) => setNeedsInstagram(e.target.checked)}
+            checked={false}
+            disabled
             className="rounded border-border"
           />
           Need Instagram agent
+          <span className="rounded-full bg-pink-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-pink-700">
+            Coming soon
+          </span>
         </label>
       </div>
 
