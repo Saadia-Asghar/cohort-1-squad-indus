@@ -1,5 +1,7 @@
 {
   "version": 2,
+  "buildCommand": "pnpm --filter @workspace/api-server run build && pnpm --filter @workspace/sweet-tooth run build",
+  "outputDirectory": "artifacts/sweet-tooth/dist/public",
   "rewrites": [
     {
       "source": "/api/(.*)",
