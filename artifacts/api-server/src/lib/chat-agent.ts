@@ -1,4 +1,4 @@
-import { eq, and, desc, ne, asc } from "drizzle-orm";
+import { eq, and, desc, ne, asc, gte } from "drizzle-orm";
 import {
   db,
   chatMessagesTable,
@@ -972,7 +972,10 @@ export async function processChatMessage(input: ProcessChatInput): Promise<Proce
         }
       }
 
-      if (lineItems.length > 0) {
+      if (lineItems.length === 0) {
+        agentReply.reply = agentReply.reply.replace(/\[CREATE_ORDER_START\][\s\S]*?\[CREATE_ORDER_END\]/, "").trim();
+        agentReply.reply = `${agentReply.reply}\n\nI could not match that item to the menu. Please name a cake from the list so I can send it to the bakery.`.trim();
+      } else {
         // Resolve delivery fee if fulfillment is delivery
         let deliveryFee = 0;
         if (orderData.fulfillmentType === "delivery" && orderData.buyerAddress) {
@@ -1028,6 +1031,21 @@ export async function processChatMessage(input: ProcessChatInput): Promise<Proce
           }
         }
 
+        const [recentOrder] = await db
+          .select({ id: ordersTable.id })
+          .from(ordersTable)
+          .where(and(
+            eq(ordersTable.bakerId, bakerId),
+            eq(ordersTable.buyerWhatsapp, customerWhatsapp),
+            gte(ordersTable.createdAt, new Date(Date.now() - 3 * 60_000)),
+          ))
+          .orderBy(desc(ordersTable.id))
+          .limit(1);
+
+        if (recentOrder) {
+          agentReply.reply = agentReply.reply.replace(/\[CREATE_ORDER_START\][\s\S]*?\[CREATE_ORDER_END\]/, "").trim();
+          agentReply.reply = `${agentReply.reply}\n\nOrder #${recentOrder.id} is already with ${bakerRow?.businessName ?? "the bakery"}. They will confirm on WhatsApp.`.trim();
+        } else {
         const [order] = await db.insert(ordersTable).values({
           bakerId,
           buyerId,
@@ -1039,7 +1057,7 @@ export async function processChatMessage(input: ProcessChatInput): Promise<Proce
           totalPkr,
           deliveryDate: orderData.deliveryDate || null,
           fulfillmentType: orderData.fulfillmentType || "delivery",
-          source: input.channel || "whatsapp",
+          source: input.channel || "web",
           status: "new",
           paymentStatus: "pending",
           requireAdvance: Boolean(bakerRow?.requireAdvance),
@@ -1073,9 +1091,12 @@ export async function processChatMessage(input: ProcessChatInput): Promise<Proce
         const confirmMsg = `\n\nOrder #${order.id} is with ${bakerRow?.businessName ?? "the bakery"} now. They will confirm time and delivery on WhatsApp.`;
         agentReply.reply = agentReply.reply + confirmMsg;
         }
+        }
       }
     } catch (err) {
       logger.error({ err }, "Failed to automatically parse and record chat order");
+      agentReply.reply = agentReply.reply.replace(/\[CREATE_ORDER_START\][\s\S]*?\[CREATE_ORDER_END\]/, "").trim();
+      agentReply.reply = `${agentReply.reply}\n\nI could not send that order yet. Please name the cake from the menu and say yes again.`.trim();
     }
   }
 

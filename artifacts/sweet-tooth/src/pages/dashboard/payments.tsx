@@ -6,6 +6,7 @@ import {
   useMarkOrderPaid,
 } from "@workspace/api-client-react";
 import { useBuyerSession } from "@/hooks/use-session";
+import { liveDashboardQuery, ORDERS_POLL_MS } from "@/lib/dashboard-query";
 import { useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import {
@@ -76,6 +77,7 @@ export default function DashboardPayments() {
       query: {
         enabled: Boolean(bakerId),
         queryKey: getListOrdersQueryKey({ bakerId }),
+        ...liveDashboardQuery(ORDERS_POLL_MS),
       },
     },
   );

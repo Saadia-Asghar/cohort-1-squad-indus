@@ -16,6 +16,7 @@ const TYPE_CONFIG: Record<string, { icon: React.ComponentType<{ className?: stri
   new_order: { icon: ShoppingBag, color: "text-blue-600 bg-blue-50" },
   chat_escalation: { icon: AlertTriangle, color: "text-red-600 bg-red-50" },
   payment_pending: { icon: DollarSign, color: "text-orange-600 bg-orange-50" },
+  "payment.receipt_uploaded": { icon: DollarSign, color: "text-orange-600 bg-orange-50" },
   order_delivered: { icon: CheckCircle, color: "text-green-600 bg-green-50" },
   new_message: { icon: MessageSquare, color: "text-purple-600 bg-purple-50" },
 };

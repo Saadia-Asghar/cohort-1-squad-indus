@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
 import { setAuthTokenGetter } from "@workspace/api-client-react";
 
 type ManagedBakerContextValue = {
@@ -15,15 +15,18 @@ type ManagedBakerContextValue = {
 
 const ManagedBakerContext = createContext<ManagedBakerContextValue | null>(null);
 
+function readNativeBakerToken(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem("baker_token");
+}
+
+/** Always read the latest JWT from storage so dashboard fetches never race mount effects. */
+setAuthTokenGetter(readNativeBakerToken);
+
 export function ManagedAuthProvider({ children }: { children: ReactNode }) {
-  const [nativeToken, setNativeToken] = useState<string | null>(() => typeof window !== "undefined" ? localStorage.getItem("baker_token") : null);
+  const [nativeToken, setNativeToken] = useState<string | null>(() => readNativeBakerToken());
   const [nativeBakerId, setNativeBakerId] = useState<number>(() => typeof window !== "undefined" ? Number(localStorage.getItem("bakerId") || 0) : 0);
   const [role, setRole] = useState<"owner" | "staff">(() => typeof window !== "undefined" && localStorage.getItem("baker_role") === "staff" ? "staff" : "owner");
-
-  useEffect(() => {
-    setAuthTokenGetter(() => nativeToken);
-    return () => setAuthTokenGetter(null);
-  }, [nativeToken]);
 
   const loginNatively = useCallback((token: string, bakerId: number, nextRole: "owner" | "staff" = "owner") => {
     localStorage.setItem("baker_token", token);

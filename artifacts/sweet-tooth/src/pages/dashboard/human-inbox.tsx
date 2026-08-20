@@ -4,6 +4,7 @@ import { CheckCircle2, Headphones, MessageSquare, RefreshCw, Send, UserCheck } f
 import { customFetch } from "@workspace/api-client-react";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { useBuyerSession } from "@/hooks/use-session";
+import { useManagedBaker } from "@/lib/managed-auth";
 
 type Handoff = {
   id: number;
@@ -26,6 +27,7 @@ type HandoffDetail = {
 
 export default function HumanInbox() {
   const { bakerId } = useBuyerSession();
+  const { hasNativeSession, logoutNatively } = useManagedBaker();
   const [items, setItems] = useState<Handoff[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [detail, setDetail] = useState<HandoffDetail | null>(null);
@@ -34,13 +36,19 @@ export default function HumanInbox() {
   const [error, setError] = useState("");
 
   async function loadInbox() {
-    if (!bakerId) return;
+    if (!bakerId || !hasNativeSession) return;
     try {
       const data = await customFetch<Handoff[]>(`/api/bakers/${bakerId}/handoffs`, { responseType: "json" });
       setItems(data);
       setError("");
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Could not load the human inbox.");
+      const message = cause instanceof Error ? cause.message : "Could not load the human inbox.";
+      if (/401|expired token|no token/i.test(message)) {
+        logoutNatively();
+        window.location.href = "/dashboard/login";
+        return;
+      }
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -53,10 +61,11 @@ export default function HumanInbox() {
   }
 
   useEffect(() => {
+    if (!bakerId || !hasNativeSession) return;
     void loadInbox();
     const timer = window.setInterval(() => void loadInbox(), 8_000);
     return () => window.clearInterval(timer);
-  }, [bakerId]);
+  }, [bakerId, hasNativeSession]);
 
   useEffect(() => {
     if (selectedId === null) { setDetail(null); return; }

@@ -207,7 +207,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
   const openOrderCount = useMemo(
     () =>
       (navOrders ?? []).filter(
-        (order) => order.status !== "cancelled" && order.status !== "delivered",
+        (order) => order.status === "new",
       ).length,
     [navOrders],
   );
@@ -317,7 +317,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-dvh bg-background font-sans text-foreground">
-      <aside className="fixed inset-y-0 left-0 z-40 hidden w-[12.75rem] flex-col overflow-hidden border-r border-white/10 bg-gradient-to-b from-plum-deep via-plum-deep to-primary text-white shadow-[22px_0_65px_rgba(39,20,47,0.14)] xl:flex">        <div className="px-5 pb-5 pt-6">
+      <aside className="fixed inset-y-0 left-0 z-40 hidden w-[12.75rem] flex-col overflow-hidden border-r border-white/10 bg-gradient-to-b from-plum-deep via-plum-deep to-primary text-white shadow-[22px_0_65px_rgba(39,20,47,0.14)] xl:flex">        <div className="flex items-start justify-between gap-2 px-5 pb-5 pt-6">
           <Link
             href="/dashboard"
             aria-label="Sweet Tooth dashboard"
@@ -329,6 +329,11 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
               className="h-10 w-auto max-w-[148px] object-contain"
             />
           </Link>
+          {bakerId ? (
+            <div className="rounded-lg bg-white">
+              <NotificationBell bakerId={bakerId} />
+            </div>
+          ) : null}
         </div>
 
 

@@ -27,8 +27,15 @@ export function notificationHref(notification: NotificationLinkInput): string {
   }
 
   if (
+    type === "payment.receipt_uploaded" ||
+    type === "payment_pending"
+  ) {
+    if (relatedId) return `/dashboard/payments?order=${relatedId}`;
+    return "/dashboard/payments";
+  }
+
+  if (
     type === "new_order" ||
-    type === "payment_pending" ||
     type === "order_delivered" ||
     notification.relatedType === "order"
   ) {
