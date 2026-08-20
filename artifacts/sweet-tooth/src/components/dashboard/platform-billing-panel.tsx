@@ -16,6 +16,13 @@ import {
 
 const PAID_PLANS = PRICING_PLANS.filter((p) => p.id !== "free");
 
+function formatPakistanWhatsAppDisplay(digits92: string | null | undefined): string | null {
+  const digits = String(digits92 ?? "").replace(/\D/g, "");
+  // Server stores normalized form like "923001234567" (92 + 10 digits).
+  if (!digits.startsWith("92") || digits.length < 12) return null;
+  return `0${digits.slice(2, 5)}-${digits.slice(5, 12)}`;
+}
+
 export function PlatformBillingPanel({
   bakerId,
   currentPlanId,
@@ -53,9 +60,11 @@ export function PlatformBillingPanel({
   }
 
   async function copyPaymentDetails() {
-    const text = billing?.platform.whatsappDisplay
-      ?? billing?.platform.whatsappNumber
-      ?? billing?.platform.paymentDetails;
+    const platform = billing?.platform;
+    if (!platform) return;
+    const whatsappDisplay = (platform as any).whatsappDisplay as string | null | undefined;
+    const display = whatsappDisplay ?? formatPakistanWhatsAppDisplay(platform.whatsappNumber);
+    const text = display ?? platform.whatsappNumber ?? platform.paymentDetails;
     if (!text) return;
     try {
       await navigator.clipboard.writeText(text);
@@ -97,7 +106,10 @@ export function PlatformBillingPanel({
             <div>
               <p className="text-xs font-semibold text-muted-foreground">Contact WhatsApp</p>
               <p className="mt-1 text-sm font-semibold text-foreground">
-                {platform.whatsappDisplay ?? platform.whatsappNumber ?? "Not set"}
+                {(platform as any).whatsappDisplay ??
+                  formatPakistanWhatsAppDisplay(platform.whatsappNumber) ??
+                  platform.whatsappNumber ??
+                  "Not set"}
               </p>
               <p className="mt-1 text-sm text-muted-foreground">
                 Message this number with your bakery name and plan. Payment details are shared on WhatsApp.
